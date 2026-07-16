@@ -319,6 +319,26 @@ test("feeds explicit account failures into the M2.3 circuit breaker callback", a
   assert.equal(breaker.tryAcquire("B").allowed, true);
 });
 
+test("records a retryable failure before releasing its selected-account lease", async () => {
+  const order = [];
+  const machine = createFailoverStateMachine({
+    maxAttempts: 1,
+    sleep: async () => undefined,
+  });
+  await assert.rejects(
+    machine.execute({
+      replayPolicy: "initial_request",
+      async selectAccount() {
+        return { accountId: "A", release() { order.push("release"); } };
+      },
+      async attempt() { throw new FailoverAttemptError("network_error"); },
+      async onAttemptFailure() { order.push("failure"); },
+    }),
+    (error) => error.code === "all_accounts_unavailable",
+  );
+  assert.deepEqual(order, ["failure", "release"]);
+});
+
 test("reports an injected backoff failure without mislabeling it as a deadline", async () => {
   const machine = createFailoverStateMachine({
     sleep: async () => { throw new Error("fixture sleep failure"); },

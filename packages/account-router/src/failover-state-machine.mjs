@@ -364,8 +364,8 @@ export function createFailoverStateMachine({
           });
         } catch (rawError) {
           activeAttempt = false;
-          releaseSelection();
           if (rawError instanceof DeadlineReachedError) {
+            releaseSelection();
             throw resultError(
               "all_accounts_unavailable",
               "total_deadline_exceeded",
@@ -374,38 +374,43 @@ export function createFailoverStateMachine({
             );
           }
           if (rawError instanceof ClientCancelledError || signal?.aborted) {
+            releaseSelection();
             throw resultError("client_cancelled", "client_cancelled", attempts, semanticOutput);
           }
           const failure = normalizeAttemptError(rawError);
           let failureCallbackFailed = false;
-          if (RETRYABLE_FAILURE_KINDS.has(failure.kind)) {
-            try {
-              await beforeDeadline({
-                now,
-                deadlineAt,
-                externalSignal: signal,
-                invoke: () => onAttemptFailure(Object.freeze({
-                  accountId,
-                  attempt: attempts,
-                  kind: failure.kind,
-                  retryAfterMs: failure.retryAfterMs,
-                  semanticOutput,
-                })),
-              });
-            } catch (error) {
-              if (error instanceof DeadlineReachedError) {
-                throw resultError(
-                  "all_accounts_unavailable",
-                  "total_deadline_exceeded",
-                  attempts,
-                  semanticOutput,
-                );
+          try {
+            if (RETRYABLE_FAILURE_KINDS.has(failure.kind)) {
+              try {
+                await beforeDeadline({
+                  now,
+                  deadlineAt,
+                  externalSignal: signal,
+                  invoke: () => onAttemptFailure(Object.freeze({
+                    accountId,
+                    attempt: attempts,
+                    kind: failure.kind,
+                    retryAfterMs: failure.retryAfterMs,
+                    semanticOutput,
+                  })),
+                });
+              } catch (error) {
+                if (error instanceof DeadlineReachedError) {
+                  throw resultError(
+                    "all_accounts_unavailable",
+                    "total_deadline_exceeded",
+                    attempts,
+                    semanticOutput,
+                  );
+                }
+                if (error instanceof ClientCancelledError) {
+                  throw resultError("client_cancelled", "client_cancelled", attempts, semanticOutput);
+                }
+                failureCallbackFailed = true;
               }
-              if (error instanceof ClientCancelledError) {
-                throw resultError("client_cancelled", "client_cancelled", attempts, semanticOutput);
-              }
-              failureCallbackFailed = true;
             }
+          } finally {
+            releaseSelection();
           }
 
           if (semanticOutput) {

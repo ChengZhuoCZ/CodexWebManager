@@ -1,0 +1,5 @@
+{"timestamp":"2026-07-16T11:20:06.733Z","kind":"run_started","implementation_mode":"clean-room","account_alias_count":1,"account_switch_scenario_executed":false,"credentials_persisted_to_evidence":false}
+{"timestamp":"2026-07-16T11:20:25.766Z","kind":"scenario_result","scenario":"single-account-multi-turn-through-router","first_turn_terminal":"turn/completed","first_turn_status":"completed","first_turn_fixture_assertion":true,"second_turn_terminal":"turn/completed","second_turn_status":"completed","second_turn_fixture_assertion":true,"outcome":"multi_turn_passed","app_server_stderr_line_count":3}
+{"timestamp":"2026-07-16T11:20:34.587Z","kind":"scenario_result","scenario":"router-and-app-server-restart-resume","resumed_turn_terminal":"turn/completed","resumed_turn_status":"completed","resumed_turn_fixture_assertion":true,"outcome":"historical_thread_resume_passed","app_server_stderr_line_count":1}
+{"timestamp":"2026-07-16T11:20:34.589Z","kind":"scenario_deferred","scenario":"approved-account-switch","reason":"second_authorized_account_unavailable","release_claim_permitted":false}
+{"timestamp":"2026-07-16T11:20:34.598Z","kind":"run_completed","exit_code":0}

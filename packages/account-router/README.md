@@ -20,15 +20,43 @@ node src/main.mjs
 
 Defaults:
 
-- host: `127.0.0.1`
-- port: `18318`
+- admin listener: `127.0.0.1:18318`
+- model listener: `127.0.0.1:18317`
 - `GET /healthz`: `200` while the process is alive
 - `GET /readyz`: `503` with `reason=no_accounts` until an account provider reports at least one
   usable account
 
-Override the listener with `CODEX_ROUTER_ADMIN_HOST` and `CODEX_ROUTER_ADMIN_PORT`. Only literal
-IPv4 or IPv6 loopback addresses are accepted. Port `0` is supported for tests and supervised
-ephemeral development only.
+Override the listeners with `CODEX_ROUTER_ADMIN_HOST`, `CODEX_ROUTER_ADMIN_PORT`,
+`CODEX_ROUTER_MODEL_HOST`, and `CODEX_ROUTER_MODEL_PORT`. Only literal IPv4 or IPv6 loopback
+addresses are accepted. Port `0` is supported for tests and supervised ephemeral development only.
+
+To enable account routing, set both `CODEX_ROUTER_ACCOUNTS_FILE` and
+`CODEX_ROUTER_CREDENTIAL_ROOT`. The account file contains public metadata and opaque references
+only:
+
+```json
+{
+  "version": 1,
+  "accounts": [
+    {
+      "id": "account-a",
+      "alias": "Account A",
+      "enabled": true,
+      "priority": 0,
+      "max_concurrency": 1,
+      "provider": "openai-codex",
+      "secret_provider": "codex-auth",
+      "credential_ref": "auth.json"
+    }
+  ]
+}
+```
+
+The referenced `auth.json` stays in the private credential root and is never copied into the public
+account catalog. The root must be owned by the service user with no group/other access; credential
+files must also deny group/other access. `CODEX_ROUTER_UPSTREAM_ORIGIN` defaults to
+`https://chatgpt.com`. An optional admin bearer token is loaded from the private file named by
+`CODEX_ROUTER_ADMIN_TOKEN_FILE`; no token is accepted on the command line or in the account file.
 
 The M0.4 architecture mode is `LIMITED_MODE`. This service does not claim seamless account
 continuity. An accepted manual switch is explicitly reported as `new_backend_session`; real
@@ -37,9 +65,8 @@ cross-account switching remains untested and deferred.
 ## Admin and event API
 
 M1.3 exports `createAdminAuthenticator()`, `createAdminState()`, `createEventBroker()`, and
-`createAdminHandler()` for programmatic composition with `createRouterService()`. Production token
-loading is intentionally deferred to the systemd credential task; the standalone CLI therefore
-continues to expose only health and readiness for now.
+`createAdminHandler()` for programmatic composition with `createRouterService()`. The standalone
+CLI enables the protected admin routes only when `CODEX_ROUTER_ADMIN_TOKEN_FILE` is configured.
 
 - `GET /v1/status`: sanitized router state, account aliases, current route, and the explicit
   `LIMITED_MODE` continuity flags.
@@ -166,10 +193,9 @@ never returned. The observed Codex WebSocket Responses route uses a raw, backpre
 client cancellation closes the upstream socket and releases its lease. Compression extensions are
 not forwarded because this layer does not independently validate compressed frame semantics.
 
-The standalone CLI still starts only the health/admin listener: composing a production upstream
-resolver requires M3.3 account acquisition and failure-state logic. M3.2 tests use loopback fixture
-servers only. They do not access a real account, retry a request on another account, or establish
-cross-account conversation continuity.
+The standalone CLI composes this listener with the scheduler, credential provider, circuit breaker,
+failover state machine, and separate admin listener. M3.2's own tests still use loopback fixture
+servers only and are not cross-account evidence.
 
 ## Safe failover state machine
 
@@ -201,9 +227,10 @@ connection or account.
 
 `onAttemptFailure` is the integration boundary for the M2.3 circuit breaker; tests prove explicit
 failure kinds open the failed account circuit while the cumulative exclusion set selects another
-fixture account. Production scheduler/credential composition remains a later service-composition
-step. All M3.3 integration tests use loopback mock accounts from `test-fixtures/mock_scenarios.yaml`.
-They are not real account-switch evidence and do not prove seamless continuation.
+fixture account. M3.5 composes that callback before releasing the selected account lease so a
+half-open probe cannot be mistaken for a success. M3.3's multi-account integration tests still use
+loopback mock accounts from `test-fixtures/mock_scenarios.yaml`; they are not real account-switch
+evidence and do not prove seamless continuation.
 
 ## Codex auxiliary endpoints
 
@@ -231,3 +258,17 @@ before the resolver is called. In particular, no memory endpoint is inferred or 
 M0.2 observed none. All M3.4 integration tests use one loopback fixture account, including the
 failover-enabled compatibility case; they perform no real account switch and make no continuity
 claim.
+
+## App Server compatibility scope
+
+M3.5 adds `createRuntimeComposition()` and the clean-room
+`scripts/run-app-server-e2e.mjs` harness. With one user-authorized account, the real Codex App Server
+completed a persistent two-turn thread through the router and, after both processes restarted,
+successfully resumed that historical thread. The checked-in evidence contains only fixture
+assertions, terminal states, counts, and aliases; it contains no prompts, responses, account ID, or
+credential material.
+
+The required approved A-to-B scenario was not run because a second distinct user-authorized account
+is unavailable. M3.5 therefore remains blocked at that acceptance gate. The same-account resume
+result does not show that an upstream `previous_response_id` is portable to a replacement connection
+or a different account, and no seamless cross-account continuity claim is permitted.

@@ -136,6 +136,7 @@ test("CLI starts headlessly on loopback and exits cleanly on SIGTERM", async (co
   const childEnvironment = {
     ...process.env,
     CODEX_ROUTER_ADMIN_PORT: "0",
+    CODEX_ROUTER_MODEL_PORT: "0",
   };
   for (const name of [
     "CODEX_ROUTER_ADMIN_HOST",

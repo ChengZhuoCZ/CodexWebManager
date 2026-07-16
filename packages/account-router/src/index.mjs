@@ -15,6 +15,10 @@ export {
   validateAuxiliaryRequest,
   validateAuxiliaryResponse,
 } from "./auxiliary-endpoints.mjs";
+export {
+  createCodexAuthSecretProvider,
+  parseCodexCredentialBundle,
+} from "./codex-credentials.mjs";
 export { assertLoopbackHost, defaults, loadRuntimeConfig, parsePort } from "./config.mjs";
 export { createHealthHandler } from "./http-handler.mjs";
 export {
@@ -30,6 +34,12 @@ export { listProxyRoutes, normalizeProxyRoute, ProxyRouteError } from "./proxy-r
 export { createQuotaSnapshotAdapter } from "./quota-snapshot.mjs";
 export { redactForLog, REDACTED, stringifyLogRecord } from "./redaction.mjs";
 export { createDeterministicScheduler } from "./scheduler.mjs";
+export { createRuntimeComposition, RUNTIME_STATES } from "./runtime-composition.mjs";
+export {
+  createRuntimeFromEnvironment,
+  DEFAULT_UPSTREAM_ORIGIN,
+  loadRuntimeBootstrap,
+} from "./runtime-bootstrap.mjs";
 export { createSessionStickiness } from "./session-stickiness.mjs";
 export {
   classifyResponseEvent,

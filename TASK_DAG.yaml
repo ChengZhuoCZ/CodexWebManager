@@ -174,7 +174,7 @@ milestones:
           - Unsupported endpoints fail closed with explicit error
       - id: M3.5
         title: Add compatibility E2E with codex app-server
-        status: ready
+        status: in_progress
         depends_on: [M3.3, M3.4]
         acceptance:
           - Multi-turn thread works through router

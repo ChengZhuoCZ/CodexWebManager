@@ -1,90 +1,105 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M3.4",
-  "status": "done",
+  "current_task": "M3.5",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "input_revisions": {
-    "workspace": "a471c7fc11fe07bf29215cc14c305ddb1491fbcc",
+    "workspace": "9e2f6d5f529e590ebf7992e0cffaba085fcf76d0",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2"
   },
-  "output_revision": "f19fdf2ae6592ffc877d2606a3788e297bd78061",
-  "output_revision_note": "f19fdf2 implements and tests M3.4; this state commit records completion.",
-  "workspace_branch": "codex/m3-4-auxiliary-endpoints",
-  "workspace_input_revision": "a471c7fc11fe07bf29215cc14c305ddb1491fbcc",
-  "depends_on": ["M0.2", "M3.2"],
+  "output_revision": null,
+  "output_revision_note": "Pending the M3.5 implementation commit and blocked-state record.",
+  "workspace_branch": "codex/m3-5-app-server-e2e",
+  "workspace_input_revision": "9e2f6d5f529e590ebf7992e0cffaba085fcf76d0",
+  "depends_on": ["M3.3", "M3.4"],
   "expected_outputs": [
+    "evidence/M3.5-app-server-compatibility.md",
+    "evidence/M3.5/app-server-e2e-summary.jsonl",
     "packages/account-router/README.md",
-    "packages/account-router/package.json",
-    "packages/account-router/src/auxiliary-endpoints.mjs",
-    "packages/account-router/src/failover-http-handler.mjs",
-    "packages/account-router/src/index.mjs",
-    "packages/account-router/src/proxy-handler.mjs",
-    "packages/account-router/src/proxy-upstream.mjs",
-    "packages/account-router/test/auxiliary-endpoints.test.mjs"
+    "packages/account-router/scripts/run-app-server-e2e.mjs",
+    "packages/account-router/src/codex-credentials.mjs",
+    "packages/account-router/src/failover-state-machine.mjs",
+    "packages/account-router/src/main.mjs",
+    "packages/account-router/src/runtime-bootstrap.mjs",
+    "packages/account-router/src/runtime-composition.mjs",
+    "packages/account-router/test/app-server-compatibility.test.mjs",
+    "packages/account-router/test/codex-credentials.test.mjs",
+    "packages/account-router/test/failover-state-machine.test.mjs",
+    "packages/account-router/test/runtime-bootstrap.test.mjs",
+    "packages/account-router/test/runtime-composition.test.mjs"
   ],
   "tests": [
     {
-      "command": "node --test test/auxiliary-endpoints.test.mjs before implementation",
-      "result": "expected failure; ERR_MODULE_NOT_FOUND for src/auxiliary-endpoints.mjs, 0 passed and 1 file test failed, duration 42.886625 ms"
+      "command": "node --test test/codex-credentials.test.mjs test/runtime-composition.test.mjs test/failover-state-machine.test.mjs before implementation",
+      "result": "expected red state; 12 passed and 3 failed because both new modules were absent and retryable failure was recorded after lease release, duration 64.787208 ms"
     },
     {
-      "command": "node --test --test-timeout=10000 test/auxiliary-endpoints.test.mjs after correcting the test fixture field collision",
-      "result": "expected behavior failure; 5 passed and 1 failed because route errors lacked status_code and allowed_methods, duration 103.302333 ms"
+      "command": "node --test test/failover-state-machine.test.mjs after callback-order correction",
+      "result": "passed; 13 tests passed, 0 failed, duration 75.517917 ms"
     },
     {
-      "command": "node --test --test-timeout=10000 test/auxiliary-endpoints.test.mjs before route-specific header filtering",
-      "result": "expected behavior failures; 3 passed and 3 failed because Responses-only headers reached auxiliary endpoints, duration 136.392833 ms"
+      "command": "node --test test/codex-credentials.test.mjs test/failover-state-machine.test.mjs",
+      "result": "passed; 16 tests passed, 0 failed, duration 66.695959 ms"
     },
     {
-      "command": "node --test --test-timeout=10000 test/auxiliary-endpoints.test.mjs",
-      "result": "passed with one loopback fixture account; 7 tests passed, 0 failed, duration 103.215375 ms"
+      "command": "node --test test/runtime-composition.test.mjs",
+      "result": "sandbox run failed only because loopback listen returned EPERM; approved loopback rerun passed 3 tests, 0 failed, duration 90.042875 ms"
     },
     {
-      "command": "node --test --test-timeout=30000 test/auxiliary-endpoints.test.mjs test/proxy-routes.test.mjs test/proxy-handler.test.mjs test/failover-proxy.test.mjs",
-      "result": "passed with loopback fixtures; 30 tests passed, 0 failed, duration 2148.973167 ms"
+      "command": "node --test test/runtime-bootstrap.test.mjs before and after implementation",
+      "result": "expected ERR_MODULE_NOT_FOUND before implementation; final run passed 4 tests, 0 failed, duration 77.973584 ms"
     },
     {
-      "command": "cd packages/account-router; env PATH=<bundled-node-and-pnpm> pnpm run check",
-      "result": "passed; all production and selected test modules parsed"
+      "command": "node --test test/app-server-compatibility.test.mjs test/codex-credentials.test.mjs test/failover-state-machine.test.mjs",
+      "result": "passed; 18 tests passed, 0 failed, duration 117.594459 ms"
     },
     {
-      "command": "cd packages/account-router; node --test --test-timeout=30000",
-      "result": "passed with local fixtures; 132 tests passed, 0 failed, duration 2261.329708 ms"
+      "command": "cd packages/account-router; PATH=<bundled-node-and-pnpm> pnpm run check",
+      "result": "passed; all production modules, the E2E harness, and selected tests parsed"
     },
     {
-      "command": "scan the M3.4 production scope for private keys, known token shapes, bearer values, and email addresses",
-      "result": "passed; no production matches; test matches are explicitly synthetic Bearer fixture-* values"
+      "command": "cd packages/account-router; <bundled-node> --test",
+      "result": "passed with loopback fixtures; 145 tests passed, 0 failed, duration 2269.258875 ms"
     },
     {
-      "command": "git diff --cached --check",
+      "command": "M3_5_EVIDENCE_DIR=<repo>/evidence/M3.5 M3_5_SUMMARY_LOG=<repo>/evidence/M3.5/app-server-e2e-summary.jsonl M3_5_TIMEOUT_MS=180000 <bundled-node> scripts/run-app-server-e2e.mjs",
+      "result": "authorized one-account E2E passed with exit code 0; two-turn compatibility and restart plus thread/resume passed; account switch was not executed"
+    },
+    {
+      "command": "scan changed production and evidence scope for private keys, known token shapes, bearer values, refresh-token assignments, and email addresses",
+      "result": "passed; no matches in production source, E2E script, or M3.5 evidence"
+    },
+    {
+      "command": "git diff --check",
       "result": "passed"
     }
   ],
   "evidence": [
-    "evidence/M3.4-auxiliary-endpoints.md",
-    "evidence/M0.2-protocol-redacted.jsonl",
-    "packages/account-router/test/auxiliary-endpoints.test.mjs",
-    "packages/account-router/test/proxy-routes.test.mjs",
-    "packages/account-router/test/websocket-failover.test.mjs",
-    "packages/account-router/test/websocket-tunnel.test.mjs"
+    "evidence/M3.5-app-server-compatibility.md",
+    "evidence/M3.5/app-server-e2e-summary.jsonl",
+    "packages/account-router/test/app-server-compatibility.test.mjs",
+    "packages/account-router/test/runtime-bootstrap.test.mjs",
+    "packages/account-router/test/runtime-composition.test.mjs"
   ],
   "observations": {
-    "protocol_source": "M0.2 observed the Responses WebSocket, GET /backend-api/codex/models?client_version, and POST /backend-api/codex/alpha/search; the two auxiliary HTTP responses were 200 application/json.",
-    "compatibility": "Models and search validate bounded requests and complete successful JSON responses before downstream commitment while preserving unknown search fields byte-for-byte.",
-    "header_boundary": "Auxiliary routes forward only their M0.2-observed safe client headers; resolver credentials are injected internally and client credentials, cookies, and Responses-only metadata are stripped.",
-    "unsupported": "Memory, unknown suffixes, wrong methods, query variants, and wrong transports return structured errors before account resolution.",
-    "real_account_gate": "All M3.4 network validation used one loopback fixture account; no account switch or real Codex request was run."
+    "runtime_composition": "The CLI now composes private Codex credential acquisition, deterministic selection, bounded failover, circuit breaking, separate loopback model/admin listeners, and sanitized admin state.",
+    "multi_turn": "A real persistent two-turn thread completed through the production router with one user-authorized account.",
+    "historical_resume": "After stopping and restarting both router and App Server on the same router port, thread/resume completed and retained the fixture context.",
+    "cross_account_gate": "The approved A-to-B M3.5 scenario remains mandatory and unrun because this device has one user-authorized Codex account.",
+    "privacy": "The E2E used an isolated private CODEX_HOME, fixture-only prompts, approvalPolicy never, a read-only sandbox, and persisted only booleans, terminal states, counts, and aliases."
   },
-  "blockers": [],
+  "blockers": [
+    "A second distinct user-authorized Codex account is unavailable, so the required approved A-to-B E2E cannot run in this task."
+  ],
   "residual_risks": [
-    "Codex CLI versions after 0.144.2 may require a new authorized protocol-shape capture and compatibility update.",
-    "Exact non-2xx auxiliary response bodies and dynamic search fields were not observed and are not semantically inferred.",
-    "Real Codex App Server compatibility and approved account-switch E2E remain M3.5.",
-    "No memory endpoint is supported unless a later authorized protocol capture observes one.",
+    "Same-account App Server history rehydration does not prove that previous_response_id is portable to a replacement connection or another account.",
+    "The runtime currently schedules unavailable quota snapshots by priority and explicit failures; a live provider quota observer is not yet composed.",
+    "Circuit-breaker persistence exists as a tested component but is not yet wired into runtime bootstrap lifecycle.",
+    "Codex auth.json or App Server protocol changes after the tested Codex CLI version may require a new authorized protocol capture.",
     "No seamless cross-account conversation-continuity claim is permitted."
   ],
-  "updated_at": "2026-07-16T18:55:55+08:00"
+  "updated_at": "2026-07-16T19:23:32+08:00"
 }

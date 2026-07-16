@@ -1,9 +1,7 @@
-import { loadRuntimeConfig } from "./config.mjs";
 import { stringifyLogRecord } from "./redaction.mjs";
-import { createRouterService } from "./service.mjs";
+import { createRuntimeFromEnvironment } from "./runtime-bootstrap.mjs";
 
-const config = loadRuntimeConfig();
-const service = createRouterService(config);
+let runtime;
 let stopping = false;
 
 function writeLog(stream, record) {
@@ -17,7 +15,7 @@ async function stop(signal) {
   stopping = true;
   writeLog(process.stdout, { event: "router_stopping", signal });
   try {
-    await service.stop();
+    await runtime?.stop();
     process.exitCode = 0;
   } catch {
     writeLog(process.stderr, { event: "router_stop_failed" });
@@ -29,11 +27,14 @@ process.once("SIGINT", () => void stop("SIGINT"));
 process.once("SIGTERM", () => void stop("SIGTERM"));
 
 try {
-  const address = await service.start();
+  runtime = await createRuntimeFromEnvironment();
+  const addresses = await runtime.start();
   writeLog(process.stdout, {
     event: "router_started",
-    bind_address: address.address,
-    bind_port: address.port,
+    bind_address: addresses.admin.address,
+    bind_port: addresses.admin.port,
+    model_bind_address: addresses.model.address,
+    model_bind_port: addresses.model.port,
     architecture_mode: "LIMITED_MODE",
   });
 } catch {
