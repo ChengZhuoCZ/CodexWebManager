@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "codex_web_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf",
+  "codex_web_tracked_source_modified": false,
+  "browser_title_initial": "Codex",
+  "onboarding_rendered": true,
+  "onboarding_skip_succeeded": true,
+  "main_navigation_rendered": true,
+  "new_task_composer_opened": true,
+  "fixture_marker": "M41READY",
+  "fixture_response_exact_match_count": 1,
+  "thread_route_present": true,
+  "page_reload_succeeded": true,
+  "fixture_response_exact_match_count_after_reload": 1,
+  "account_switch_scenario_executed": false,
+  "credentials_or_account_identity_persisted": false,
+  "release_claim_permitted": false
+}

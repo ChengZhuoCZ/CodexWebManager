@@ -186,7 +186,7 @@ milestones:
     tasks:
       - id: M4.1
         title: Run codex-web unchanged against router
-        status: ready
+        status: in_progress
         depends_on: [M3.5]
         acceptance:
           - Same browser page survives a safe account switch

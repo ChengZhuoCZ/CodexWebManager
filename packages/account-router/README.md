@@ -272,3 +272,21 @@ The required approved A-to-B scenario was not run because a second distinct user
 is unavailable. M3.5 therefore remains blocked at that acceptance gate. The same-account resume
 result does not show that an upstream `previous_response_id` is portable to a replacement connection
 or a different account, and no seamless cross-account continuity claim is permitted.
+
+## Unchanged codex-web integration
+
+M4.1 adds the executable `bin/codex-router-cli.mjs` as the `CODEX_CLI_PATH` boundary used by the
+pinned codex-web checkout. It passes `--version` directly to the real Codex binary and permits only
+the Codex App Server invocation otherwise. For App Server it injects exactly one
+`openai_base_url` pointing to the loopback model listener. Public origins, credentials in URLs,
+wrong paths, missing ports, and unrelated Codex subcommands fail closed.
+
+`scripts/run-codex-web-integration.mjs` validates the pinned upstream revision and a clean tracked
+diff, starts the router CLI, then starts the upstream codex-web server without editing its tracked
+source. Its Codex, UI, and configuration homes are private temporary directories; raw child logs,
+prompts, responses, credentials, and account identity are not written to evidence.
+
+The single-account browser verification created a fixture task, received the exact fixture reply,
+entered a `/thread/...` route, and retained the reply after page reload. The approved same-page
+account-switch row remains deferred because this device has no second authorized account. See
+`docs/codex-web-router-configuration.md` for the exact environment contract.

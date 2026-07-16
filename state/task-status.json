@@ -1,76 +1,65 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M3.5",
-  "status": "blocked",
+  "current_task": "M4.1",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
+  "execution_exception": "EX-DEFER-M0.3-CROSS",
   "input_revisions": {
-    "workspace": "9e2f6d5f529e590ebf7992e0cffaba085fcf76d0",
+    "workspace": "c250cc880c2193d538cba7e8649edf3d5df68f47",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2"
   },
-  "output_revision": "8758ebd2ce0fd8d73f5226c26b3296d040c029ea",
-  "output_revision_note": "Commit 8758ebd implements and verifies the single-account M3.5 scope; this state commit records the mandatory approved A-to-B E2E blocker. M4.1 is ready for development-only work under EX-DEFER-M0.3-CROSS.",
-  "workspace_branch": "codex/m3-5-app-server-e2e",
-  "workspace_input_revision": "9e2f6d5f529e590ebf7992e0cffaba085fcf76d0",
-  "depends_on": ["M3.3", "M3.4"],
+  "output_revision": null,
+  "output_revision_note": "Pending the M4.1 implementation commit and blocked-state record.",
+  "workspace_branch": "codex/m4-1-codex-web-compatibility",
+  "workspace_input_revision": "c250cc880c2193d538cba7e8649edf3d5df68f47",
+  "depends_on": ["M3.5"],
   "expected_outputs": [
-    "evidence/M3.5-app-server-compatibility.md",
-    "evidence/M3.5/app-server-e2e-summary.jsonl",
+    "docs/codex-web-router-configuration.md",
+    "evidence/M4.1-codex-web-compatibility.md",
+    "evidence/M4.1/browser-ui-summary.json",
+    "evidence/M4.1/codex-web-browser-summary.jsonl",
+    "evidence/M4.1/codex-web-smoke-summary.jsonl",
     "packages/account-router/README.md",
-    "packages/account-router/scripts/run-app-server-e2e.mjs",
-    "packages/account-router/src/codex-credentials.mjs",
-    "packages/account-router/src/failover-state-machine.mjs",
-    "packages/account-router/src/main.mjs",
-    "packages/account-router/src/runtime-bootstrap.mjs",
-    "packages/account-router/src/runtime-composition.mjs",
-    "packages/account-router/test/app-server-compatibility.test.mjs",
-    "packages/account-router/test/codex-credentials.test.mjs",
-    "packages/account-router/test/failover-state-machine.test.mjs",
-    "packages/account-router/test/runtime-bootstrap.test.mjs",
-    "packages/account-router/test/runtime-composition.test.mjs"
+    "packages/account-router/bin/codex-router-cli.mjs",
+    "packages/account-router/package.json",
+    "packages/account-router/scripts/run-codex-web-integration.mjs",
+    "packages/account-router/test/codex-web-integration.test.mjs"
   ],
   "tests": [
     {
-      "command": "node --test test/codex-credentials.test.mjs test/runtime-composition.test.mjs test/failover-state-machine.test.mjs before implementation",
-      "result": "expected red state; 12 passed and 3 failed because both new modules were absent and retryable failure was recorded after lease release, duration 64.787208 ms"
+      "command": "node --test test/codex-web-integration.test.mjs before implementation",
+      "result": "expected red state; 0 passed and 3 failed with ENOENT for bin/codex-router-cli.mjs, duration 38.962083 ms"
     },
     {
-      "command": "node --test test/failover-state-machine.test.mjs after callback-order correction",
-      "result": "passed; 13 tests passed, 0 failed, duration 75.517917 ms"
+      "command": "node --test test/codex-web-integration.test.mjs",
+      "result": "passed; 4 tests passed, 0 failed, duration 1051.772875 ms"
     },
     {
-      "command": "node --test test/codex-credentials.test.mjs test/failover-state-machine.test.mjs",
-      "result": "passed; 16 tests passed, 0 failed, duration 66.695959 ms"
+      "command": "M4_1_MODE=smoke M4_1_CODEX_WEB_ROOT=<pinned-checkout> M4_1_EVIDENCE_DIR=<repo>/evidence/M4.1 M4_1_SUMMARY_LOG=<repo>/evidence/M4.1/codex-web-smoke-summary.jsonl <bundled-node> scripts/run-codex-web-integration.mjs",
+      "result": "passed with exit code 0 after isolating HOME, XDG_CONFIG_HOME and CODEX_HOME; pinned tracked diff clean, router and codex-web started, GET / returned 200 text/html, no switch executed"
     },
     {
-      "command": "node --test test/runtime-composition.test.mjs",
-      "result": "sandbox run failed only because loopback listen returned EPERM; approved loopback rerun passed 3 tests, 0 failed, duration 90.042875 ms"
+      "command": "M4_1_MODE=serve with in-app browser verification against the emitted loopback URL",
+      "result": "passed with exit code 0; onboarding and navigation rendered, New task opened, exact M41READY fixture response appeared once, /thread route was entered, and reload preserved exactly one fixture response"
     },
     {
-      "command": "node --test test/runtime-bootstrap.test.mjs before and after implementation",
-      "result": "expected ERR_MODULE_NOT_FOUND before implementation; final run passed 4 tests, 0 failed, duration 77.973584 ms"
-    },
-    {
-      "command": "node --test test/app-server-compatibility.test.mjs test/codex-credentials.test.mjs test/failover-state-machine.test.mjs",
-      "result": "passed; 18 tests passed, 0 failed, duration 117.594459 ms"
+      "command": "git -C <pinned-codex-web> rev-parse HEAD; git -C <pinned-codex-web> diff --quiet --exit-code",
+      "result": "passed; exact revision 888692f7d885118c6a92bbaf60cf2121f5947adf and no tracked changes"
     },
     {
       "command": "cd packages/account-router; PATH=<bundled-node-and-pnpm> pnpm run check",
-      "result": "passed; all production modules, the E2E harness, and selected tests parsed"
+      "result": "passed; all production modules, integration harnesses, and selected tests parsed"
     },
     {
       "command": "cd packages/account-router; <bundled-node> --test",
-      "result": "passed with loopback fixtures; 145 tests passed, 0 failed, duration 2269.258875 ms"
+      "result": "passed; 149 tests passed, 0 failed, duration 2278.310708 ms"
     },
     {
-      "command": "M3_5_EVIDENCE_DIR=<repo>/evidence/M3.5 M3_5_SUMMARY_LOG=<repo>/evidence/M3.5/app-server-e2e-summary.jsonl M3_5_TIMEOUT_MS=180000 <bundled-node> scripts/run-app-server-e2e.mjs",
-      "result": "authorized one-account E2E passed with exit code 0; two-turn compatibility and restart plus thread/resume passed; account switch was not executed"
-    },
-    {
-      "command": "scan changed production and evidence scope for private keys, known token shapes, bearer values, refresh-token assignments, and email addresses",
-      "result": "passed; no matches in production source, E2E script, or M3.5 evidence"
+      "command": "scan M4.1 production, documentation, and evidence scope for private keys, known token shapes, bearer values, refresh-token assignments, and email addresses",
+      "result": "passed; no matches"
     },
     {
       "command": "git diff --check",
@@ -78,28 +67,29 @@
     }
   ],
   "evidence": [
-    "evidence/M3.5-app-server-compatibility.md",
-    "evidence/M3.5/app-server-e2e-summary.jsonl",
-    "packages/account-router/test/app-server-compatibility.test.mjs",
-    "packages/account-router/test/runtime-bootstrap.test.mjs",
-    "packages/account-router/test/runtime-composition.test.mjs"
+    "docs/codex-web-router-configuration.md",
+    "evidence/M4.1-codex-web-compatibility.md",
+    "evidence/M4.1/browser-ui-summary.json",
+    "evidence/M4.1/codex-web-browser-summary.jsonl",
+    "evidence/M4.1/codex-web-smoke-summary.jsonl",
+    "packages/account-router/test/codex-web-integration.test.mjs"
   ],
   "observations": {
-    "runtime_composition": "The CLI now composes private Codex credential acquisition, deterministic selection, bounded failover, circuit breaking, separate loopback model/admin listeners, and sanitized admin state.",
-    "multi_turn": "A real persistent two-turn thread completed through the production router with one user-authorized account.",
-    "historical_resume": "After stopping and restarting both router and App Server on the same router port, thread/resume completed and retained the fixture context.",
-    "cross_account_gate": "The approved A-to-B M3.5 scenario remains mandatory and unrun because this device has one user-authorized Codex account.",
-    "privacy": "The E2E used an isolated private CODEX_HOME, fixture-only prompts, approvalPolicy never, a read-only sandbox, and persisted only booleans, terminal states, counts, and aliases."
+    "unchanged_upstream": "The integration used the exact pinned codex-web commit with a clean tracked diff; only pre-existing untracked generated build outputs were present.",
+    "launch_contract": "CODEX_CLI_PATH points to a fail-closed wrapper that permits only --version and app-server and injects the exact loopback router model base URL.",
+    "browser_functionality": "With one user-authorized account, the unchanged UI created a fixture task, rendered the exact model reply, entered a thread route, and retained the reply after page reload.",
+    "privacy": "Router, Codex, UI and configuration homes were isolated; raw child logs, account profile text, thread ID, prompt body and response stream were not persisted.",
+    "cross_account_gate": "The same-browser-page approved account-switch scenario remains mandatory and unrun because this device has one user-authorized Codex account."
   },
   "blockers": [
-    "A second distinct user-authorized Codex account is unavailable, so the required approved A-to-B E2E cannot run in this task."
+    "A second distinct user-authorized Codex account is unavailable, so the M4.1 same-page safe-switch acceptance row cannot run."
   ],
   "residual_risks": [
-    "Same-account App Server history rehydration does not prove that previous_response_id is portable to a replacement connection or another account.",
-    "The runtime currently schedules unavailable quota snapshots by priority and explicit failures; a live provider quota observer is not yet composed.",
-    "Circuit-breaker persistence exists as a tested component but is not yet wired into runtime bootstrap lifecycle.",
-    "Codex auth.json or App Server protocol changes after the tested Codex CLI version may require a new authorized protocol capture.",
+    "M4.1 cannot be marked done without the approved account-switch E2E.",
+    "Same-account UI operation and page reload do not prove that an active or historical upstream response chain moves between accounts.",
+    "The serve-mode codex-web process emitted high-volume raw diagnostic lines; the harness did not persist them, but production log-volume controls remain future hardening work.",
+    "Future codex-web versions may add Codex CLI probes beyond --version or change App Server launch arguments and will require an explicit wrapper compatibility update.",
     "No seamless cross-account conversation-continuity claim is permitted."
   ],
-  "updated_at": "2026-07-16T19:25:00+08:00"
+  "updated_at": "2026-07-16T19:46:58+08:00"
 }
