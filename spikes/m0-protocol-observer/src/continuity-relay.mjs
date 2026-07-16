@@ -573,6 +573,7 @@ export async function createContinuityRelay({
         session.upstreamAlias = null;
         void logger.write({
           kind: "failure_injected",
+          message_sequence: sequence,
           boundary: "before_first_semantic_event",
           account_alias: primaryAlias,
           replay_allowed: true,
