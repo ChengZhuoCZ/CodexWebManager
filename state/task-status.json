@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M2.4",
-  "status": "in_progress",
+  "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "input_revisions": {
@@ -10,8 +10,8 @@
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2"
   },
-  "output_revision": null,
-  "output_revision_note": "Pending the M2.4 session-stickiness commit.",
+  "output_revision": "2e9fb7f49a0273894428c3fbf0c07d86c84b95e8",
+  "output_revision_note": "2e9fb7f implements and tests M2.4; this state commit records completion.",
   "workspace_branch": "codex/m2-4-session-stickiness",
   "workspace_input_revision": "1e77c2b5abd7acbdee1e53bd7914534d457ecd1b",
   "depends_on": ["M0.4", "M2.2"],
@@ -19,18 +19,49 @@
     "packages/account-router/src/session-stickiness.mjs",
     "packages/account-router/test/session-stickiness.test.mjs"
   ],
-  "tests": [],
-  "evidence": [],
+  "tests": [
+    {
+      "command": "node --test test/session-stickiness.test.mjs before implementation",
+      "result": "expected failure; 1 ERR_MODULE_NOT_FOUND failure proved the test preceded implementation"
+    },
+    {
+      "command": "node --check src/session-stickiness.mjs test/session-stickiness.test.mjs",
+      "result": "passed; 0 syntax failures"
+    },
+    {
+      "command": "node --test test/session-stickiness.test.mjs",
+      "result": "passed; 8 tests passed, 0 failed, duration 34.856208 ms"
+    },
+    {
+      "command": "cd packages/account-router; node --test",
+      "result": "passed; 79 tests passed, 0 failed, duration 173.836417 ms"
+    },
+    {
+      "command": "scan production M2.4 scope for private keys, known token shapes, bearer values, and email addresses",
+      "result": "passed; no matches"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "evidence": [
+    "evidence/M2.4-session-stickiness.md",
+    "packages/account-router/test/session-stickiness.test.mjs"
+  ],
   "observations": {
-    "test_strategy": "Test-first virtual-clock and explicit stream-lease tests with bounded fixture mappings.",
-    "scope": "TTL/size bounded routing sessions, immutable account binding during active streams, and explicit LIMITED_MODE backend-session replacement.",
-    "deferred_gate": "No real session, previous_response_id, account route, or account switch will be exercised."
+    "stream_boundary": "Semantic-stream leases freeze account and backend-session assignment until every lease ends.",
+    "bounded_mapping": "Inactive mappings expire at the exact TTL boundary and deterministic LRU eviction enforces capacity; active mappings are never expired or evicted.",
+    "limited_mode": "A safe-boundary account change requires a distinct backend session and returns limited_mode_new_session/new_backend_session.",
+    "response_state": "The strict assignment contract rejects previous_response_id and credential-bearing fields.",
+    "deferred_gate": "All routes, accounts, backend sessions, clocks, and streams were fixtures; no real account switch occurred."
   },
   "blockers": [],
   "residual_risks": [
-    "Proxy integration and semantic SSE boundaries remain M3.",
-    "Transcript rehydration remains a later LIMITED_MODE integration concern.",
+    "M3 must acquire the semantic-stream lease exactly before forwarding the first semantic SSE event and always release it on completion/cancellation.",
+    "Routing mappings intentionally do not persist; restart degrades to an explicit new backend session in LIMITED_MODE.",
+    "Transcript rehydration remains a later bounded integration concern.",
     "Real cross-account continuity remains deferred and unverified."
   ],
-  "updated_at": "2026-07-16T17:07:29+08:00"
+  "updated_at": "2026-07-16T17:14:01+08:00"
 }
