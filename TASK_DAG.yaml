@@ -174,7 +174,7 @@ milestones:
           - Unsupported endpoints fail closed with explicit error
       - id: M3.5
         title: Add compatibility E2E with codex app-server
-        status: in_progress
+        status: blocked
         depends_on: [M3.3, M3.4]
         acceptance:
           - Multi-turn thread works through router
@@ -186,7 +186,7 @@ milestones:
     tasks:
       - id: M4.1
         title: Run codex-web unchanged against router
-        status: pending
+        status: ready
         depends_on: [M3.5]
         acceptance:
           - Same browser page survives a safe account switch

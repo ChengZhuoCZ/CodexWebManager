@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M3.5",
-  "status": "in_progress",
+  "status": "blocked",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "input_revisions": {
@@ -10,8 +10,8 @@
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2"
   },
-  "output_revision": null,
-  "output_revision_note": "Pending the M3.5 implementation commit and blocked-state record.",
+  "output_revision": "8758ebd2ce0fd8d73f5226c26b3296d040c029ea",
+  "output_revision_note": "Commit 8758ebd implements and verifies the single-account M3.5 scope; this state commit records the mandatory approved A-to-B E2E blocker. M4.1 is ready for development-only work under EX-DEFER-M0.3-CROSS.",
   "workspace_branch": "codex/m3-5-app-server-e2e",
   "workspace_input_revision": "9e2f6d5f529e590ebf7992e0cffaba085fcf76d0",
   "depends_on": ["M3.3", "M3.4"],
@@ -101,5 +101,5 @@
     "Codex auth.json or App Server protocol changes after the tested Codex CLI version may require a new authorized protocol capture.",
     "No seamless cross-account conversation-continuity claim is permitted."
   ],
-  "updated_at": "2026-07-16T19:23:32+08:00"
+  "updated_at": "2026-07-16T19:25:00+08:00"
 }
