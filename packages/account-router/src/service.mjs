@@ -42,10 +42,16 @@ export function createRouterService({
   adminHost = defaults.adminHost,
   adminPort = defaults.adminPort,
   getUsableAccountCount = () => 0,
+  adminHandler = null,
 } = {}) {
   const host = assertLoopbackHost(adminHost);
   const port = parsePort(adminPort);
-  const server = http.createServer(createHealthHandler({ getUsableAccountCount }));
+  if (adminHandler !== null && typeof adminHandler !== "function") {
+    throw new TypeError("adminHandler must be a function");
+  }
+  const server = http.createServer(
+    createHealthHandler({ getUsableAccountCount, fallback: adminHandler }),
+  );
   server.headersTimeout = 10_000;
   server.requestTimeout = 30_000;
   server.keepAliveTimeout = 5_000;

@@ -2,6 +2,9 @@ openapi: 3.1.0
 info:
   title: Codex Account Router Admin API
   version: 0.1.0
+  description: >-
+    Loopback-only sanitized administration API. A switch in LIMITED_MODE always creates a new
+    backend session and does not claim cross-account conversation continuity.
 servers:
   - url: http://127.0.0.1:18318
 paths:
@@ -16,7 +19,7 @@ paths:
       security: []
       responses:
         '200':
-          description: Router is ready
+          description: Router has a usable account
         '503':
           description: Router is not ready
   /v1/status:
@@ -27,60 +30,148 @@ paths:
           description: Sanitized router status
           content:
             application/json:
-              schema:
-                $ref: '#/components/schemas/RouterStatus'
+              schema: {$ref: '#/components/schemas/RouterStatus'}
+        '401': {$ref: '#/components/responses/AdminUnauthorized'}
+        '503': {$ref: '#/components/responses/AdminUnavailable'}
   /v1/accounts:
     get:
       security: [{adminToken: []}]
       responses:
         '200':
-          description: Sanitized accounts
+          description: Sanitized account runtime states
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/AccountList'}
+        '401': {$ref: '#/components/responses/AdminUnauthorized'}
+        '503': {$ref: '#/components/responses/AdminUnavailable'}
   /v1/switch:
     post:
+      description: >-
+        Requests a manual route change through an injected implementation. Success means a new
+        backend session, never seamless continuation of an existing account session.
       security: [{adminToken: []}]
       requestBody:
         required: true
         content:
           application/json:
-            schema:
-              type: object
-              additionalProperties: false
-              properties:
-                account_alias: {type: string}
-                routing_session_id: {type: string}
-                reason: {type: string}
+            schema: {$ref: '#/components/schemas/SwitchRequest'}
       responses:
-        '200': {description: Switch accepted}
-        '409': {description: Active semantic stream or unsafe state}
+        '200':
+          description: Manual switch accepted as a new backend session
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/SwitchAccepted'}
+        '400': {$ref: '#/components/responses/InvalidRequest'}
+        '401': {$ref: '#/components/responses/AdminUnauthorized'}
+        '409':
+          description: Active semantic stream, unavailable switch implementation, or rejected target
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ErrorResponse'}
+        '413': {$ref: '#/components/responses/InvalidRequest'}
+        '415': {$ref: '#/components/responses/InvalidRequest'}
+        '503': {$ref: '#/components/responses/AdminUnavailable'}
   /v1/events:
     get:
+      description: Streams a bounded replay followed by sanitized live events.
       security: [{adminToken: []}]
+      parameters:
+        - in: header
+          name: Last-Event-ID
+          required: false
+          schema: {type: string, pattern: '^(?:0|[1-9][0-9]*)$'}
       responses:
         '200':
           description: Server-sent sanitized events
+          content:
+            text/event-stream:
+              schema: {type: string}
+        '400': {$ref: '#/components/responses/InvalidRequest'}
+        '401': {$ref: '#/components/responses/AdminUnauthorized'}
+        '503': {$ref: '#/components/responses/AdminUnavailable'}
 components:
   securitySchemes:
     adminToken:
       type: http
       scheme: bearer
+      description: Dedicated admin credential; model-proxy credentials are not accepted.
+  responses:
+    AdminUnauthorized:
+      description: Dedicated admin bearer credential is missing or invalid
+      headers:
+        WWW-Authenticate:
+          schema: {type: string}
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorResponse'}
+    AdminUnavailable:
+      description: Admin authentication or switch state is unavailable
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorResponse'}
+    InvalidRequest:
+      description: Request failed strict validation
+      content:
+        application/json:
+          schema: {$ref: '#/components/schemas/ErrorResponse'}
   schemas:
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [error]
+      properties:
+        error: {type: string}
     RouterStatus:
       type: object
       additionalProperties: false
-      required: [status, accounts, active_streams]
+      required:
+        - status
+        - architecture_mode
+        - cross_account_e2e_verified
+        - active_streams
+        - current_route
+        - accounts
       properties:
         status: {type: string, enum: [ready, degraded, unavailable]}
-        active_streams: {type: integer, minimum: 0}
+        architecture_mode: {const: LIMITED_MODE}
+        cross_account_e2e_verified: {const: false}
+        active_streams: {type: integer, minimum: 0, maximum: 1000000}
+        current_route:
+          oneOf:
+            - type: 'null'
+            - {$ref: '#/components/schemas/CurrentRoute'}
         accounts:
           type: array
-          items:
-            $ref: '#/components/schemas/AccountStatus'
+          items: {$ref: '#/components/schemas/AccountStatus'}
+    CurrentRoute:
+      type: object
+      additionalProperties: false
+      required: [account_alias, continuity]
+      properties:
+        account_alias: {type: string, minLength: 1, maxLength: 64}
+        continuity: {const: new_backend_session}
+    AccountList:
+      type: object
+      additionalProperties: false
+      required: [accounts]
+      properties:
+        accounts:
+          type: array
+          items: {$ref: '#/components/schemas/AccountStatus'}
     AccountStatus:
       type: object
       additionalProperties: false
-      required: [alias, state, enabled]
+      required:
+        - alias
+        - state
+        - enabled
+        - five_hour_remaining_ratio
+        - weekly_remaining_ratio
+        - snapshot_observed_at
+        - cooldown_until
+        - last_switch_reason
       properties:
-        alias: {type: string}
+        alias: {type: string, minLength: 1, maxLength: 64}
         state:
           type: string
           enum: [healthy, cooling_down, half_open, auth_expired, quota_exhausted, disabled, unknown]
@@ -89,4 +180,25 @@ components:
         weekly_remaining_ratio: {type: [number, 'null'], minimum: 0, maximum: 1}
         snapshot_observed_at: {type: [string, 'null'], format: date-time}
         cooldown_until: {type: [string, 'null'], format: date-time}
-        last_switch_reason: {type: [string, 'null']}
+        last_switch_reason:
+          type: [string, 'null']
+          enum: [manual, startup, quota_exhausted, rate_limited, auth_expired, network_error, upstream_5xx, null]
+    SwitchRequest:
+      type: object
+      additionalProperties: false
+      required: [account_alias, reason]
+      properties:
+        account_alias: {type: string, minLength: 1, maxLength: 64}
+        routing_session_id:
+          type: string
+          pattern: '^[A-Za-z0-9._:-]{1,128}$'
+        reason: {const: manual}
+    SwitchAccepted:
+      type: object
+      additionalProperties: false
+      required: [accepted, account_alias, continuity, architecture_mode]
+      properties:
+        accepted: {const: true}
+        account_alias: {type: string, minLength: 1, maxLength: 64}
+        continuity: {const: new_backend_session}
+        architecture_mode: {const: LIMITED_MODE}

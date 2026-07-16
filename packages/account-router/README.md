@@ -4,8 +4,8 @@ This package is the clean-room, headless service foundation for the Codex accoun
 Node.js built-ins only and does not depend on Electron, a display server, or a desktop keychain.
 
 M1.1 exposes process health and readiness on the admin listener. M1.2 defines account metadata,
-secret providers, leases, and log redaction. Authenticated admin APIs, scheduling, and model proxy
-routes are added by later DAG tasks.
+secret providers, leases, and log redaction. M1.3 adds a separately authenticated, sanitized admin
+API and bounded event stream. Scheduling and model proxy routes are added by later DAG tasks.
 
 ## Requirements
 
@@ -31,7 +31,27 @@ IPv4 or IPv6 loopback addresses are accepted. Port `0` is supported for tests an
 ephemeral development only.
 
 The M0.4 architecture mode is `LIMITED_MODE`. This service does not claim seamless account
-continuity, and M1.1 performs no account switching.
+continuity. An accepted manual switch is explicitly reported as `new_backend_session`; real
+cross-account switching remains untested and deferred.
+
+## Admin and event API
+
+M1.3 exports `createAdminAuthenticator()`, `createAdminState()`, `createEventBroker()`, and
+`createAdminHandler()` for programmatic composition with `createRouterService()`. Production token
+loading is intentionally deferred to the systemd credential task; the standalone CLI therefore
+continues to expose only health and readiness for now.
+
+- `GET /v1/status`: sanitized router state, account aliases, current route, and the explicit
+  `LIMITED_MODE` continuity flags.
+- `GET /v1/accounts`: sanitized account runtime status without internal IDs or credential binding
+  fields.
+- `GET /v1/events`: bounded SSE backlog and live sanitized events, with `Last-Event-ID` replay.
+- `POST /v1/switch`: validates a manual request and delegates it to an injected switch callback.
+
+All four routes require a dedicated admin bearer token. Proxy-like headers are rejected, bodies
+are bounded, unknown fields fail closed, and manual switch requests are rejected while a semantic
+stream is active. The M1.3 tests use fixture accounts and an injected callback only; they do not
+access or switch any real account.
 
 ## Account and secret boundary
 

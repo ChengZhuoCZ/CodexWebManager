@@ -5,7 +5,7 @@ const JSON_HEADERS = Object.freeze({
 });
 const READ_METHODS = new Set(["GET", "HEAD"]);
 
-function sendJson(request, response, statusCode, payload, extraHeaders = {}) {
+export function sendJson(request, response, statusCode, payload, extraHeaders = {}) {
   const body = `${JSON.stringify(payload)}\n`;
   response.writeHead(statusCode, {
     ...JSON_HEADERS,
@@ -15,7 +15,7 @@ function sendJson(request, response, statusCode, payload, extraHeaders = {}) {
   response.end(request.method === "HEAD" ? undefined : body);
 }
 
-function routePath(rawUrl) {
+export function routePath(rawUrl) {
   try {
     const url = new URL(rawUrl ?? "/", "http://127.0.0.1");
     return url.search ? null : url.pathname;
@@ -24,15 +24,26 @@ function routePath(rawUrl) {
   }
 }
 
-export function createHealthHandler({ getUsableAccountCount = () => 0 } = {}) {
+export function createHealthHandler({ getUsableAccountCount = () => 0, fallback = null } = {}) {
   if (typeof getUsableAccountCount !== "function") {
     throw new TypeError("getUsableAccountCount must be a function");
+  }
+  if (fallback !== null && typeof fallback !== "function") {
+    throw new TypeError("health fallback must be a function");
   }
 
   return (request, response) => {
     const pathname = routePath(request.url);
     if (pathname === null) {
       sendJson(request, response, 400, { error: "invalid_request_target" });
+      return;
+    }
+    if (!new Set(["/healthz", "/readyz"]).has(pathname)) {
+      if (fallback) {
+        fallback(request, response, pathname);
+      } else {
+        sendJson(request, response, 404, { error: "not_found" });
+      }
       return;
     }
     if (!READ_METHODS.has(request.method)) {
@@ -83,6 +94,5 @@ export function createHealthHandler({ getUsableAccountCount = () => 0 } = {}) {
       });
       return;
     }
-    sendJson(request, response, 404, { error: "not_found" });
   };
 }

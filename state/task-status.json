@@ -1,74 +1,38 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M1.2",
-  "status": "done",
+  "current_task": "M1.3",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "input_revisions": {
-    "workspace": "c27a9fa119c5b738432eb199c6ff4c2e8b856078",
+    "workspace": "2118e69",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2"
   },
-  "output_revision": "3a773c0",
-  "output_revision_note": "3a773c0 implements and tests M1.2; this state commit records completion.",
-  "workspace_branch": "codex/m1-2-account-secrets",
-  "workspace_input_revision": "c27a9fa119c5b738432eb199c6ff4c2e8b856078",
+  "output_revision": null,
+  "output_revision_note": "Pending the M1.3 admin and event API commit.",
+  "workspace_branch": "codex/m1-3-admin-api",
+  "workspace_input_revision": "2118e69",
   "depends_on": ["M1.1"],
   "expected_outputs": [
-    "packages/account-router/src/accounts.mjs",
-    "packages/account-router/src/secrets.mjs",
-    "packages/account-router/src/redaction.mjs"
+    "packages/account-router/src/admin-auth.mjs",
+    "packages/account-router/src/admin-state.mjs",
+    "packages/account-router/src/admin-handler.mjs",
+    "packages/account-router/src/event-broker.mjs"
   ],
-  "tests": [
-    {
-      "command": "node --test test/accounts.test.mjs test/secrets.test.mjs test/redaction.test.mjs before implementation",
-      "result": "expected failure; 3 ERR_MODULE_NOT_FOUND failures proved tests preceded implementation"
-    },
-    {
-      "command": "Node --check on M1.2 source and test modules",
-      "result": "passed; 0 syntax failures"
-    },
-    {
-      "command": "cd packages/account-router; Node --test",
-      "result": "passed; 26 tests passed, 0 failed, duration 119.93425 ms"
-    },
-    {
-      "command": "node --test test/accounts.test.mjs after final public-schema alignment",
-      "result": "passed; 5 tests passed, 0 failed"
-    },
-    {
-      "command": "jq empty contracts/account.schema.json packages/account-router/package.json state/task-status.json",
-      "result": "passed"
-    },
-    {
-      "command": "scan production M1.2 files for credential values, private keys, known token shapes, and email addresses",
-      "result": "passed; no matches"
-    },
-    {
-      "command": "git diff --check",
-      "result": "passed"
-    }
-  ],
-  "evidence": [
-    "evidence/M1.2-account-secret-providers.md",
-    "packages/account-router/test/accounts.test.mjs",
-    "packages/account-router/test/secrets.test.mjs",
-    "packages/account-router/test/redaction.test.mjs"
-  ],
+  "tests": [],
+  "evidence": [],
   "observations": {
-    "public_metadata": "Credential references and secret-provider names are excluded from public account objects and schema.",
-    "secret_lifecycle": "SecretProviderRegistry withSecret always disposes SecretLease, including callback failures.",
-    "file_backend": "Requires private same-owner directory and regular file; rejects symlinks, permissive modes, traversal, empty, and oversized files.",
-    "redaction": "Lifecycle logs use recursive structured redaction for credential keys, email, bearer values, token shapes, leases, cycles, and bounds.",
-    "deferred_gate": "No real account or account-switch request was used."
+    "test_strategy": "Test-first with fixture accounts and fixture-only admin bearer tokens.",
+    "scope": "Sanitized status/accounts/current route/switch events and separate admin authentication.",
+    "deferred_gate": "Manual switch requests use an injected fixture callback; no real account switching."
   },
   "blockers": [],
   "residual_risks": [
-    "JavaScript strings exposed to secret consumers cannot be forcibly zeroed.",
-    "Production systemd credential wiring remains M5.2.",
-    "Admin authorization and response shaping remain M1.3.",
+    "Scheduler-backed switch execution remains M2/M3.",
+    "Production admin credential loading remains M5.2.",
     "Real account compatibility remains deferred."
   ],
-  "updated_at": "2026-07-16T16:20:26+08:00"
+  "updated_at": "2026-07-16T16:25:00+08:00"
 }

@@ -1,21 +1,49 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://local.invalid/codex-router/event.schema.json",
-  "title": "Sanitized router event",
+  "title": "Sanitized router event envelope",
   "type": "object",
   "additionalProperties": false,
-  "required": ["event_id", "type", "timestamp"],
+  "required": ["id", "type", "timestamp", "data"],
   "properties": {
-    "event_id": {"type": "string"},
+    "id": {"type": "string", "pattern": "^[1-9][0-9]*$"},
     "type": {
       "type": "string",
-      "enum": ["account_selected", "account_cooldown", "account_recovered", "switch_succeeded", "switch_blocked", "all_accounts_unavailable", "request_failed"]
+      "pattern": "^[a-z][a-z0-9_.-]{0,63}$"
     },
     "timestamp": {"type": "string", "format": "date-time"},
-    "routing_session_id": {"type": ["string", "null"]},
-    "from_alias": {"type": ["string", "null"]},
-    "to_alias": {"type": ["string", "null"]},
-    "reason": {"type": ["string", "null"]},
-    "request_id": {"type": ["string", "null"]}
+    "data": {
+      "type": "object",
+      "maxProperties": 64
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": {"type": {"const": "router.switch"}},
+        "required": ["type"]
+      },
+      "then": {
+        "properties": {
+          "data": {"$ref": "#/$defs/switchData"}
+        }
+      }
+    }
+  ],
+  "$defs": {
+    "switchData": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["from_alias", "to_alias", "reason", "continuity", "architecture_mode"],
+      "properties": {
+        "from_alias": {"type": ["string", "null"], "maxLength": 64},
+        "to_alias": {"type": "string", "minLength": 1, "maxLength": 64},
+        "reason": {
+          "enum": ["manual", "startup", "quota_exhausted", "rate_limited", "auth_expired", "network_error", "upstream_5xx"]
+        },
+        "continuity": {"const": "new_backend_session"},
+        "architecture_mode": {"const": "LIMITED_MODE"}
+      }
+    }
   }
 }
