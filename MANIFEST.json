@@ -1,0 +1,186 @@
+{
+  "name": "codex-web-auto-account-switch-task-pack",
+  "generated_at": "2026-07-15T00:00:00+09:00",
+  "baseline": {
+    "0xcaff/codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
+    "meitianwang/CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
+    "relevant_codexmanager_commit": "213e848097ee93cd8f24c7b0892400eb995300b6"
+  },
+  "files": [
+    {
+      "path": "ACCEPTANCE_TESTS.md",
+      "bytes": 3132,
+      "sha256": "bc47bb5bbfb856fc8ea37ae8ea4b9f9cf39ebb1f95a0b37d3f5296b1d1e5b25a"
+    },
+    {
+      "path": "AGENTS.md",
+      "bytes": 2472,
+      "sha256": "80ad895a0c9f2f78c9e8c7bffa6518ea035743b9b94720ed835312009d7ad039"
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "bytes": 4838,
+      "sha256": "b72e1b7f36e0e046c7c6d13ac9edfd42dd288a8016f653ee45b1a5720534c9de"
+    },
+    {
+      "path": "CODEX_PROMPTS.md",
+      "bytes": 1585,
+      "sha256": "69edae2ec3760fa536ed8f2f6e987c660aa22d07d5c1572f621be716d98e56e9"
+    },
+    {
+      "path": "CODEX_TASK_PACKAGE_COMBINED.md",
+      "bytes": 33484,
+      "sha256": "143091f226c32879363f07aa474fb9837e751320ad64481247eea83fcaceae9a"
+    },
+    {
+      "path": "DECISIONS.md",
+      "bytes": 1032,
+      "sha256": "3af2e9b1065d7e1255c7ca91bdba2e162965abee31f4cb983461b42c39b648a6"
+    },
+    {
+      "path": "DEPLOYMENT.md",
+      "bytes": 1691,
+      "sha256": "52b9f58571490cc52ab374e75d8b2919bc85eeff4c62f318cf7978a510dcd8c2"
+    },
+    {
+      "path": "LICENSE_BOUNDARY.md",
+      "bytes": 1322,
+      "sha256": "3323ea37ed375a2f07d963b9c20c8b3e7c358fb2304deef671ebfad514da5d52"
+    },
+    {
+      "path": "MILESTONES.md",
+      "bytes": 1594,
+      "sha256": "40f19f7b336127a735f89b9fadd6e37c6e682b76dd0f6f7f0d2299be34e5cd87"
+    },
+    {
+      "path": "PROJECT_CHARTER.md",
+      "bytes": 2460,
+      "sha256": "73349e36b22ad48c7161b3ce56c41b1abbf6ee2da46a629dc7c1531158436127"
+    },
+    {
+      "path": "SECURITY.md",
+      "bytes": 1863,
+      "sha256": "7e6a8d420334e6cc62fb0cb123851901fa1d86830b9f6b05273b0be933f34069"
+    },
+    {
+      "path": "START_HERE.md",
+      "bytes": 2679,
+      "sha256": "078330bb01a8e6726a85a87b3e881d5458db57473f2c6be796586d8eb63abc23"
+    },
+    {
+      "path": "STATUS_TEMPLATE.json",
+      "bytes": 387,
+      "sha256": "0366cbd009764a3214f2ad3cae411fe547b658921a9a619970e99b6b0e8b92da"
+    },
+    {
+      "path": "TASK_DAG.yaml",
+      "bytes": 9444,
+      "sha256": "b9a24161b176cbffbb5634a32e146e5d9045e98ca6d59e98eace8a09732d43dc"
+    },
+    {
+      "path": "configs/codex-config.example.toml",
+      "bytes": 357,
+      "sha256": "ac8dd775bc078693161ea7f541c7cbedf011a6a96eb3448d4ed077dfa9e819c3"
+    },
+    {
+      "path": "configs/env.example",
+      "bytes": 345,
+      "sha256": "a826eb583268ed319ca37b39e20169b3cadec325dd874e6d0c95dedfbf517255"
+    },
+    {
+      "path": "configs/router.example.toml",
+      "bytes": 968,
+      "sha256": "ffbac831bedfeffc6992d56735e453563b48fb86a1ecb079c2c817a40f5f7f2d"
+    },
+    {
+      "path": "contracts/account.schema.json",
+      "bytes": 701,
+      "sha256": "80f939e8da0b9c31808ae69877f630e4113276ad4368eb58dcbcd6a911572ad5"
+    },
+    {
+      "path": "contracts/event.schema.json",
+      "bytes": 833,
+      "sha256": "79fce281b4e10866625367482a134994ce17700fb410b3e2f13179154d0f4b7e"
+    },
+    {
+      "path": "contracts/router.openapi.yaml",
+      "bytes": 2638,
+      "sha256": "a6c95c29982a79c26cd55d1c6de19b58f4a39ad8c1ed8058cf3821d6bbd3fdb8"
+    },
+    {
+      "path": "prompts/M0_spike.md",
+      "bytes": 819,
+      "sha256": "4bf862df15eaf446324e009b1261a7deb84bc2827ed8961db3c71afe9846e541"
+    },
+    {
+      "path": "prompts/M1_router_core.md",
+      "bytes": 384,
+      "sha256": "82f74e4bbf9b00ebb73919bbb234cc617af13a00fe895433f6476a299d4d338b"
+    },
+    {
+      "path": "prompts/M2_quota_scheduler.md",
+      "bytes": 316,
+      "sha256": "51e7ca845b05c239712df660614240a0a1f0b06a7d51680162e231681f2640fb"
+    },
+    {
+      "path": "prompts/M3_responses_failover.md",
+      "bytes": 414,
+      "sha256": "1976ce4da0a5aa68a63d62029df1675dec3e282d22ccdb207f4d58cdb6c99ac8"
+    },
+    {
+      "path": "prompts/M4_codex_web_ui.md",
+      "bytes": 320,
+      "sha256": "2b2077416fe268eceaef30c86c00a49ee4205626872f5a5d30184621a057caab"
+    },
+    {
+      "path": "prompts/M5_linux_service.md",
+      "bytes": 263,
+      "sha256": "6760159e036047a9f1a4f67eb4523576f42b02e86913bc910a24c443cbc9f526"
+    },
+    {
+      "path": "prompts/M6_hardening.md",
+      "bytes": 337,
+      "sha256": "6ba76deefbaff0a7e0449e355414b514fcd2c13255b5500f425bebd181d7a96d"
+    },
+    {
+      "path": "state/architecture-decision.md",
+      "bytes": 224,
+      "sha256": "aed02e0da2d22c3724a53543fe12dd497fc2fb09a972dde156db37eb876234f5"
+    },
+    {
+      "path": "state/implementation-mode.txt",
+      "bytes": 11,
+      "sha256": "cbb71b5f478d6919864e7180dd3aa1787fc3e9b13fed5be5bf010165c90aac09"
+    },
+    {
+      "path": "state/task-status.json",
+      "bytes": 387,
+      "sha256": "0366cbd009764a3214f2ad3cae411fe547b658921a9a619970e99b6b0e8b92da"
+    },
+    {
+      "path": "systemd/codex-account-router.service",
+      "bytes": 613,
+      "sha256": "33d63b64660cc4f2c1e183800b7ae5decc4f1ed1c348e9129a2db9e34a08f119"
+    },
+    {
+      "path": "systemd/codex-app-server.service",
+      "bytes": 648,
+      "sha256": "a027fc9ff0808cf10e7fc860068bafa0fdf96d4d5fe0e988749cc1f7b7ca548b"
+    },
+    {
+      "path": "systemd/codex-web.service",
+      "bytes": 558,
+      "sha256": "939777f2eefea00250376e5643c9989580819a681f301baba286658b650f6de6"
+    },
+    {
+      "path": "test-fixtures/README.md",
+      "bytes": 436,
+      "sha256": "9e896424f8228cf2159d5683c7ddb5b7f7a6c2d1d920cf8ed71b9452c16cf31a"
+    },
+    {
+      "path": "test-fixtures/mock_scenarios.yaml",
+      "bytes": 1883,
+      "sha256": "f75eb53e72cad3b54a795b396c73f346f0085892d21422bed17b4cec8308aa00"
+    }
+  ]
+}

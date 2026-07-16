@@ -1,0 +1,36 @@
+
+> codex-manager-desktop@1.0.12 test /private/tmp/codex-web-auto-account-switch-m0.1/CodexManager/apps/desktop
+> vitest run
+
+
+ RUN  v4.1.7 /private/tmp/codex-web-auto-account-switch-m0.1/CodexManager/apps/desktop
+
+
+
+
+
+Error: EEXIST: file already exists, symlink 'Versions/Current/Electron Framework' -> '/private/tmp/codex-web-auto-account-switch-m0.1/CodexManager/apps/desktop/node_modules/electron/dist/Electron.app/Contents/Frameworks/Electron Framework.framework/Electron Framework'
+    at async Object.symlink (node:internal/fs/promises:999:10)
+    at async Extractor.extractEntry (/private/tmp/codex-web-auto-account-switch-m0.1/CodexManager/apps/desktop/node_modules/extract-zip/index.js:130:7)
+    at async ZipFile.<anonymous> (/private/tmp/codex-web-auto-account-switch-m0.1/CodexManager/apps/desktop/node_modules/extract-zip/index.js:65:11)
+stdout | tests/app-context.test.ts
+Downloading Electron binary...
+
+ ❯ tests/app-context.test.ts (0 test)
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 1 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/app-context.test.ts [ tests/app-context.test.ts ]
+Error: Electron failed to install correctly. Please delete `node_modules/electron` and run "npx install-electron --no" manually.
+ ❯ getElectronPath node_modules/electron/index.js:43:13
+ ❯ Object.<anonymous> node_modules/electron/index.js:52:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/1]⎯
+
+
+ Test Files  1 failed | 17 passed (18)
+      Tests  235 passed (235)
+   Start at  23:56:38
+   Duration  47.85s (transform 1.07s, setup 0ms, import 47.60s, tests 3.96s, environment 5.05s)
+
+ ELIFECYCLE  Test failed. See above for more details.

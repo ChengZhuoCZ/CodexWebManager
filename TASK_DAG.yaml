@@ -1,0 +1,259 @@
+version: 1
+project: codex-web-auto-account-switch
+implementation_mode_default: clean-room
+states: [pending, ready, in_progress, blocked, done, rejected]
+
+hard_gates:
+  - id: G-LICENSE
+    condition: state/implementation-mode.txt exists and is authorized-fork or clean-room
+  - id: G-PROTOCOL
+    condition: state/architecture-decision.md contains GO_PATH_A, GO_PATH_A_REHYDRATE, GO_PATH_B, or LIMITED_MODE
+  - id: G-SECRETS
+    condition: secret scanning and log-redaction tests pass
+
+milestones:
+  - id: M0
+    name: Baseline and protocol continuity spike
+    tasks:
+      - id: M0.1
+        title: Pin repositories and reproduce baseline
+        status: done
+        depends_on: []
+        outputs:
+          - evidence/M0.1-baseline.md
+          - state/repositories.json
+        acceptance:
+          - Record exact SHAs and build commands
+          - Run existing typecheck/tests where available
+          - Do not change production behavior
+      - id: M0.2
+        title: Capture Codex proxy protocol
+        status: done
+        depends_on: [M0.1]
+        outputs:
+          - evidence/M0.2-protocol-redacted.jsonl
+          - evidence/M0.2-endpoints.md
+        acceptance:
+          - Capture request paths, method, safe headers, body field names and SSE event types
+          - Redact all credentials and user content unless fixture-generated
+          - Identify responses, compact, models, memory and search calls
+      - id: M0.3
+        title: Test cross-account continuity
+        status: in_progress
+        depends_on: [M0.2]
+        outputs:
+          - evidence/M0.3-continuity-matrix.md
+        acceptance:
+          - Test A->A control and A->B switch between model calls
+          - Test with previous_response_id present and absent
+          - Test router restart and thread resume
+          - Test failure before and after first semantic SSE event
+      - id: M0.4
+        title: Select architecture
+        status: pending
+        depends_on: [M0.3]
+        outputs:
+          - state/architecture-decision.md
+        acceptance:
+          - Select exactly one supported architecture mode
+          - List observed facts, rejected alternatives and residual risks
+          - Stop project if no safe continuation semantics exist
+
+  - id: M1
+    name: Headless router foundation
+    tasks:
+      - id: M1.1
+        title: Create headless service package
+        status: pending
+        depends_on: [M0.4, G-LICENSE, G-PROTOCOL]
+        outputs:
+          - packages/account-router/
+        acceptance:
+          - Runs on Node.js 22+ without Electron, X11, Wayland or desktop keychain dependency
+          - Starts with no accounts and exposes health/readiness
+          - Binds to loopback by default
+      - id: M1.2
+        title: Define account and secret providers
+        status: pending
+        depends_on: [M1.1]
+        acceptance:
+          - Public account metadata separated from credentials
+          - Pluggable secret backend
+          - File permissions and redaction tests pass
+      - id: M1.3
+        title: Implement admin and event API
+        status: pending
+        depends_on: [M1.1]
+        acceptance:
+          - Status, account aliases, current route and switch events available
+          - Admin auth separate from model proxy auth
+          - No secret-bearing response fields
+
+  - id: M2
+    name: Quota scheduler and account state machine
+    tasks:
+      - id: M2.1
+        title: Implement quota snapshot adapter
+        status: pending
+        depends_on: [M1.2]
+        acceptance:
+          - Supports 5-hour and weekly windows
+          - Stores observed_at and confidence/staleness
+          - Handles unavailable quota data without guessing zero or full
+      - id: M2.2
+        title: Implement deterministic scheduler
+        status: pending
+        depends_on: [M2.1]
+        acceptance:
+          - Deterministic selection for equal inputs
+          - Priority, remaining quota, cooldown and concurrency represented
+          - Unit tests include all-exhausted and stale-data cases
+      - id: M2.3
+        title: Implement cooldown and circuit breaker
+        status: pending
+        depends_on: [M2.2]
+        acceptance:
+          - Distinct cooldowns for quota, auth, 429, network and 5xx
+          - Half-open probing is bounded
+          - State persists across router restart
+      - id: M2.4
+        title: Implement session stickiness
+        status: pending
+        depends_on: [M0.4, M2.2]
+        acceptance:
+          - No account switch within an active semantic stream
+          - Routing session mapping has TTL and bounded storage
+          - Architecture-specific continuity behavior documented
+
+  - id: M3
+    name: Responses proxy and safe failover
+    tasks:
+      - id: M3.1
+        title: Implement strict proxy path normalization
+        status: pending
+        depends_on: [M1.1]
+        acceptance:
+          - Only allowlisted Codex routes forwarded
+          - Path variants covered by tests
+          - No open-proxy behavior
+      - id: M3.2
+        title: Implement Responses and SSE pass-through
+        status: pending
+        depends_on: [M3.1, M2.4]
+        acceptance:
+          - Streaming and non-streaming responses work
+          - Backpressure and client cancellation propagate
+          - Request/body size limits enforced
+      - id: M3.3
+        title: Implement safe failover state machine
+        status: pending
+        depends_on: [M3.2, M2.3]
+        acceptance:
+          - Failover allowed only before first semantic event
+          - Retry count, total deadline and account exclusion enforced
+          - unsafe_to_replay returned after semantic output
+      - id: M3.4
+        title: Implement Codex auxiliary endpoints
+        status: pending
+        depends_on: [M0.2, M3.2]
+        acceptance:
+          - Every endpoint observed in M0 has a compatibility test
+          - Unsupported endpoints fail closed with explicit error
+      - id: M3.5
+        title: Add compatibility E2E with codex app-server
+        status: pending
+        depends_on: [M3.3, M3.4]
+        acceptance:
+          - Multi-turn thread works through router
+          - Approved account-switch scenario passes
+          - Historical thread resume scenario passes or limitation is documented
+
+  - id: M4
+    name: codex-web integration and UX
+    tasks:
+      - id: M4.1
+        title: Run codex-web unchanged against router
+        status: pending
+        depends_on: [M3.5]
+        acceptance:
+          - Same browser page survives a safe account switch
+          - Existing codex-web functionality remains usable
+          - Document exact app-server/router configuration
+      - id: M4.2
+        title: Add optional account status bridge
+        status: pending
+        depends_on: [M4.1, M1.3]
+        acceptance:
+          - codex-web receives only sanitized status/events
+          - Feature disabled when router not configured
+          - No regression for standard single-account operation
+      - id: M4.3
+        title: Add minimal UI
+        status: pending
+        depends_on: [M4.2]
+        acceptance:
+          - Show alias, quota windows, cooldown, last switch reason
+          - Manual switch disabled during active stream
+          - All-exhausted state is explicit
+
+  - id: M5
+    name: Linux service and deployment
+    tasks:
+      - id: M5.1
+        title: Build Linux headless release
+        status: pending
+        depends_on: [M3.5]
+        acceptance:
+          - No Electron runtime required for router
+          - x86_64 Linux tested; arm64 documented or tested
+          - Reproducible install command
+      - id: M5.2
+        title: Add systemd units and least privilege
+        status: pending
+        depends_on: [M5.1]
+        acceptance:
+          - Router, app-server and codex-web restart independently
+          - Loopback/Unix socket only
+          - Secrets loaded without command-line exposure
+      - id: M5.3
+        title: Add upgrade, backup and rollback
+        status: pending
+        depends_on: [M5.2]
+        acceptance:
+          - Configuration schema migration is reversible or backed up
+          - One-command rollback documented
+          - Restart does not erase account health history
+
+  - id: M6
+    name: Hardening and release gate
+    tasks:
+      - id: M6.1
+        title: Complete automated test matrix
+        status: pending
+        depends_on: [M4.3, M5.3]
+        acceptance:
+          - Unit, integration and E2E suites pass
+          - Failure injection covers quota, 429, auth, network, 5xx and malformed SSE
+      - id: M6.2
+        title: Run 24-hour soak test
+        status: pending
+        depends_on: [M6.1]
+        acceptance:
+          - No unhandled crash or infinite retry
+          - Memory/FD/concurrency metrics remain bounded
+          - Restart and resume drills completed
+      - id: M6.3
+        title: Security and secret audit
+        status: pending
+        depends_on: [M6.1, G-SECRETS]
+        acceptance:
+          - Logs, crash dumps, API responses and UI contain no secrets
+          - Admin API authorization tested
+          - Path and SSRF/open-proxy tests pass
+      - id: M6.4
+        title: Produce release and operator docs
+        status: pending
+        depends_on: [M6.2, M6.3]
+        acceptance:
+          - Install, configure, monitor, rotate, backup and rollback documented
+          - Known limitations and compliance boundaries explicit

@@ -1,0 +1,11 @@
+# Illustrative only. M0 must verify the exact configuration keys supported by
+# the installed Codex CLI/App Server version.
+
+model_provider = "account_router"
+
+[model_providers.account_router]
+name = "Local Codex Account Router"
+base_url = "http://127.0.0.1:18317/v1"
+wire_api = "responses"
+env_key = "CODEX_ROUTER_PROXY_TOKEN"
+requires_openai_auth = false

@@ -1,0 +1,11 @@
+
+> codex-web@0.0.1 build:browser
+> vite build --config vite.browser.config.ts
+
+vite v8.0.8 building client environment for production...
+[2Ktransforming...✓ 67 modules transformed.
+rendering chunks...
+computing gzip size...
+scratch/asar/webview/assets/preload.js  596.52 kB │ gzip: 117.66 kB │ map: 1,046.91 kB
+
+✓ built in 49ms

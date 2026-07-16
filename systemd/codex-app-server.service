@@ -1,0 +1,23 @@
+[Unit]
+Description=Codex App Server
+After=network-online.target codex-account-router.service
+Requires=codex-account-router.service
+
+[Service]
+Type=simple
+User=codex
+Group=codex
+WorkingDirectory=/home/codex
+Environment=HOME=/home/codex
+Environment=CODEX_HOME=/home/codex/.codex
+Environment=CODEX_ROUTER_PROXY_TOKEN_FILE=/run/credentials/codex-app-server.service/proxy-token
+LoadCredential=proxy-token:/etc/codex-router/credentials/proxy-token
+RuntimeDirectory=codex
+ExecStart=/usr/local/bin/codex app-server --listen unix:///run/codex/app-server.sock
+Restart=always
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

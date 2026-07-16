@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-07-16T00:06:13+08:00",
+  "implementation_mode": "clean-room",
+  "workspace": {
+    "url": "https://github.com/ChengZhuoCZ/CodexWebManager.git",
+    "branch": "main",
+    "revision": null,
+    "revision_note": "The workspace had no HEAD commit when M0.1 started."
+  },
+  "repositories": {
+    "codex-web": {
+      "url": "https://github.com/0xcaff/codex-web.git",
+      "expected_audit_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf",
+      "checkout_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf",
+      "tree_revision": "ff7211b4f2d5ad804544a8d4b0aeb29158a1f220",
+      "commit_date": "2026-07-11T19:18:01-05:00",
+      "commit_subject": "Fix file output rendering in browser (#24)",
+      "package_version": "0.0.1",
+      "license_observed": "MIT",
+      "checkout_location": "/tmp/codex-web-auto-account-switch-m0.1/codex-web",
+      "checkout_is_ephemeral": true,
+      "tracked_diff_after_validation": false,
+      "codex_app_asset_version": "26.707.30751"
+    },
+    "CodexManager": {
+      "url": "https://github.com/meitianwang/CodexManager.git",
+      "expected_audit_revision": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
+      "checkout_revision": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
+      "tree_revision": "bbc2b7633e23c111e994822121f55a1ce8527e98",
+      "commit_date": "2026-06-07T10:37:26+08:00",
+      "commit_subject": "fix: 放宽桌面端 smoke 当前账号标记断言",
+      "relevant_history_revision": "213e848097ee93cd8f24c7b0892400eb995300b6",
+      "relevant_history_commit_date": "2026-06-07T08:03:57+08:00",
+      "package_version": "1.0.12",
+      "license_observed": "UNLICENSED / Private - All Rights Reserved",
+      "checkout_location": "/tmp/codex-web-auto-account-switch-m0.1/CodexManager",
+      "checkout_is_ephemeral": true,
+      "tracked_diff_after_validation": false,
+      "clean_room_restriction": "Metadata, public documentation, build and black-box test behavior only; no implementation was copied."
+    }
+  },
+  "codex_runtime": {
+    "executable": "/Applications/ChatGPT.app/Contents/Resources/codex",
+    "cli_version": "codex-cli 0.144.2",
+    "app_server_version": "Uses the same codex-cli 0.144.2 executable; no separate version flag is exposed.",
+    "sha256": "4a9e84ad1c9622e8f6a50dafd75710eaee4af79dc5bcf8bafd4471763255fe18"
+  },
+  "validation_toolchain": {
+    "os": "macOS 27.0 (26A5378n), arm64",
+    "git": "2.54.0 (Apple Git-157)",
+    "node": "24.14.0",
+    "npm": "11.18.0",
+    "pnpm": "10.34.5"
+  }
+}

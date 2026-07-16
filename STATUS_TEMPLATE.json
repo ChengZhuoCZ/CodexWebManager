@@ -1,0 +1,18 @@
+{
+  "project": "codex-web-auto-account-switch",
+  "current_task": "M0.1",
+  "status": "ready",
+  "implementation_mode": "clean-room",
+  "architecture_mode": null,
+  "input_revisions": {
+    "codex-web": null,
+    "CodexManager": null,
+    "codex-cli": null
+  },
+  "output_revision": null,
+  "tests": [],
+  "evidence": [],
+  "blockers": [],
+  "residual_risks": [],
+  "updated_at": null
+}

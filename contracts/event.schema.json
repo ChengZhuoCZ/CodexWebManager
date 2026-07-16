@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.invalid/codex-router/event.schema.json",
+  "title": "Sanitized router event",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["event_id", "type", "timestamp"],
+  "properties": {
+    "event_id": {"type": "string"},
+    "type": {
+      "type": "string",
+      "enum": ["account_selected", "account_cooldown", "account_recovered", "switch_succeeded", "switch_blocked", "all_accounts_unavailable", "request_failed"]
+    },
+    "timestamp": {"type": "string", "format": "date-time"},
+    "routing_session_id": {"type": ["string", "null"]},
+    "from_alias": {"type": ["string", "null"]},
+    "to_alias": {"type": ["string", "null"]},
+    "reason": {"type": ["string", "null"]},
+    "request_id": {"type": ["string", "null"]}
+  }
+}

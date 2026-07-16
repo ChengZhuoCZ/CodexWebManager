@@ -1,0 +1,13 @@
+✔ describes protocol fields without persisting values (3.919541ms)
+✔ redacts dynamic path identifiers and query values (0.64675ms)
+✔ proxies fixtures while logging only request and SSE shape (27.371292ms)
+✔ rejects non-loopback bind hosts and credential-bearing upstream URLs (0.219167ms)
+✔ proxies WebSocket Responses while logging frame shape only (3.623209ms)
+ℹ tests 5
+ℹ suites 0
+ℹ pass 5
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 83.833709

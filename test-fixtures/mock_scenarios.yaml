@@ -1,0 +1,85 @@
+scenarios:
+  - id: success_stream
+    account: A
+    response:
+      status: 200
+      content_type: text/event-stream
+      events:
+        - type: response.created
+        - type: response.output_text.delta
+          delta: hello
+        - type: response.completed
+
+  - id: quota_before_stream
+    account: A
+    response:
+      status: 429
+      json:
+        error:
+          type: quota_exhausted
+          message: fixture quota exhausted
+    expect:
+      failover_allowed: true
+      cooldown: quota
+
+  - id: rate_limit_before_stream
+    account: A
+    response:
+      status: 429
+      headers:
+        retry-after: '60'
+      json:
+        error:
+          type: rate_limit
+          message: fixture rate limit
+    expect:
+      failover_allowed: true
+      cooldown: rate_limit
+
+  - id: auth_expired
+    account: A
+    response:
+      status: 401
+      json:
+        error:
+          type: invalid_auth
+          message: fixture auth expired
+    expect:
+      failover_allowed: true
+      account_state: auth_expired
+
+  - id: failure_after_text_delta
+    account: A
+    response:
+      status: 200
+      content_type: text/event-stream
+      events:
+        - type: response.created
+        - type: response.output_text.delta
+          delta: partial
+        - disconnect: true
+    expect:
+      failover_allowed: false
+      error: unsafe_to_replay
+
+  - id: failure_after_function_args
+    account: A
+    response:
+      status: 200
+      content_type: text/event-stream
+      events:
+        - type: response.created
+        - type: response.function_call_arguments.delta
+          delta: '{"path":"x"'
+        - disconnect: true
+    expect:
+      failover_allowed: false
+      error: unsafe_to_replay
+
+  - id: all_accounts_exhausted
+    accounts: [A, B, C]
+    response:
+      status: 429
+    expect:
+      final_error: all_accounts_unavailable
+      max_attempts: 3

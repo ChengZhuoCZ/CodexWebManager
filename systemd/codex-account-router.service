@@ -1,0 +1,24 @@
+[Unit]
+Description=Codex Account Router
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=codex
+Group=codex
+WorkingDirectory=/opt/codex-router
+ExecStart=/usr/bin/node /opt/codex-router/dist/main.js --config /etc/codex-router/router.toml
+Restart=always
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+StateDirectory=codex-router
+RuntimeDirectory=codex-router
+LoadCredential=proxy-token:/etc/codex-router/credentials/proxy-token
+LoadCredential=admin-token:/etc/codex-router/credentials/admin-token
+Environment=NODE_ENV=production
+
+[Install]
+WantedBy=multi-user.target

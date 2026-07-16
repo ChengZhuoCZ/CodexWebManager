@@ -1,0 +1,12 @@
+
+> codex-manager-desktop@1.0.12 test /private/tmp/codex-web-auto-account-switch-m0.1/CodexManager/apps/desktop
+> vitest run
+
+
+ RUN  v4.1.7 /private/tmp/codex-web-auto-account-switch-m0.1/CodexManager/apps/desktop
+
+
+ Test Files  18 passed (18)
+      Tests  236 passed (236)
+   Start at  00:00:15
+   Duration  3.01s (transform 1.28s, setup 0ms, import 1.95s, tests 3.90s, environment 5.95s)

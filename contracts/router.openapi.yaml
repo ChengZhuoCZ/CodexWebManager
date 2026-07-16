@@ -1,0 +1,92 @@
+openapi: 3.1.0
+info:
+  title: Codex Account Router Admin API
+  version: 0.1.0
+servers:
+  - url: http://127.0.0.1:18318
+paths:
+  /healthz:
+    get:
+      security: []
+      responses:
+        '200':
+          description: Process is alive
+  /readyz:
+    get:
+      security: []
+      responses:
+        '200':
+          description: Router is ready
+        '503':
+          description: Router is not ready
+  /v1/status:
+    get:
+      security: [{adminToken: []}]
+      responses:
+        '200':
+          description: Sanitized router status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RouterStatus'
+  /v1/accounts:
+    get:
+      security: [{adminToken: []}]
+      responses:
+        '200':
+          description: Sanitized accounts
+  /v1/switch:
+    post:
+      security: [{adminToken: []}]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: false
+              properties:
+                account_alias: {type: string}
+                routing_session_id: {type: string}
+                reason: {type: string}
+      responses:
+        '200': {description: Switch accepted}
+        '409': {description: Active semantic stream or unsafe state}
+  /v1/events:
+    get:
+      security: [{adminToken: []}]
+      responses:
+        '200':
+          description: Server-sent sanitized events
+components:
+  securitySchemes:
+    adminToken:
+      type: http
+      scheme: bearer
+  schemas:
+    RouterStatus:
+      type: object
+      additionalProperties: false
+      required: [status, accounts, active_streams]
+      properties:
+        status: {type: string, enum: [ready, degraded, unavailable]}
+        active_streams: {type: integer, minimum: 0}
+        accounts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AccountStatus'
+    AccountStatus:
+      type: object
+      additionalProperties: false
+      required: [alias, state, enabled]
+      properties:
+        alias: {type: string}
+        state:
+          type: string
+          enum: [healthy, cooling_down, half_open, auth_expired, quota_exhausted, disabled, unknown]
+        enabled: {type: boolean}
+        five_hour_remaining_ratio: {type: [number, 'null'], minimum: 0, maximum: 1}
+        weekly_remaining_ratio: {type: [number, 'null'], minimum: 0, maximum: 1}
+        snapshot_observed_at: {type: [string, 'null'], format: date-time}
+        cooldown_until: {type: [string, 'null'], format: date-time}
+        last_switch_reason: {type: [string, 'null']}

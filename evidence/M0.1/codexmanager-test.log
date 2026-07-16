@@ -1,0 +1,296 @@
+
+> codex-manager-desktop@1.0.12 test /private/tmp/codex-web-auto-account-switch-m0.1/CodexManager/apps/desktop
+> vitest run
+
+
+ RUN  v4.1.7 /private/tmp/codex-web-auto-account-switch-m0.1/CodexManager/apps/desktop
+
+ ❯ tests/proxy.test.ts (66 tests | 58 failed) 59ms
+     × serves health without API key 32ms
+     × rejects non-health requests without the configured API key 3ms
+     × mirrors mac-compatible CORS headers for preflight requests 1ms
+     × returns a bad request for invalid JSON on supported proxy routes 0ms
+     × does not parse request bodies before rejecting unsupported routes 0ms
+     × returns the mac-compatible unsupported-route response for unsupported methods 0ms
+     × accepts Codex-compatible Responses path aliases 1ms
+     × returns the mac-compatible no-account status before forwarding 1ms
+     × does not reject accounts only because cached usage says quota is exhausted 1ms
+     × forwards Responses requests through the selected account and cleans headers 1ms
+     × streams Responses passthrough chunks before the upstream request completes 0ms
+     × strips upstream encoding headers from Responses passthrough streams 0ms
+     × waits for the first upstream chunk before opening a Responses passthrough stream 0ms
+     × interrupts Codex passthrough streams instead of forwarding midstream quota 429 errors 0ms
+     × rotates accounts after hidden midstream high-demand SSE errors 0ms
+     × maps non-streaming Codex passthrough SSE quota errors to retryable 5xx responses 0ms
+     × rotates accounts after hidden pre-output high-demand SSE errors 0ms
+     × rotates accounts when a streaming Responses passthrough ends before a ready event 0ms
+     × aborts upstream streams when the downstream client disconnects 0ms
+     × stops quickly by aborting active upstream requests and closing client sockets 0ms
+     × adds encrypted reasoning include for Responses requests that use reasoning 0ms
+     × preserves explicit Responses compatibility fields 0ms
+     × forwards Models requests as non-streaming GET with query parameters 0ms
+     × preserves explicit Models client_version query parameters 0ms
+     × uses the client version header for Models requests without client_version 0ms
+     × accepts Codex-compatible Models path aliases 0ms
+     × preserves Codex JSON passthrough requests without forcing streaming 0ms
+     × uses an empty default model for alpha search passthrough 0ms
+     × preserves empty string models instead of applying a default 0ms
+     × translates non-streaming Chat Completions requests 0ms
+     × defaults Chat Completions requests to non-streaming responses 0ms
+     × rejects Chat Completions requests without a model before forwarding 1ms
+     × accepts empty string Chat Completions models like macOS 0ms
+     × rejects Chat Completions requests without messages before forwarding 0ms
+     × rejects Chat Completions requests with non-object messages before forwarding 0ms
+     × translates streaming Chat Completions responses to OpenAI chunks 0ms
+     × translates streaming Chat Completions chunks before the upstream request completes 0ms
+     × translates Anthropic messages requests to Codex Responses 0ms
+     × returns mac-compatible Anthropic errors for invalid Messages JSON 0ms
+     × returns mac-compatible Anthropic errors for Messages requests without a model 0ms
+     × translates non-streaming Anthropic responses to Anthropic message JSON 0ms
+     × uses the mac-compatible Anthropic fallback text extraction 0ms
+     × converts Anthropic tool calls and tool results in request history 0ms
+     × omits empty Anthropic text content before forwarding 0ms
+     × retries the next eligible account after a retryable upstream error 0ms
+     × retries the next eligible account after a 403 auth failure without a refresh token 0ms
+     × prioritizes the current account before falling back by remaining quota 0ms
+     × retries the next eligible account after a preflight SSE error before output 0ms
+     × retries the next eligible account after a preflight SSE quota error 0ms
+     × retries passthrough routes after a complete-body SSE error before output 0ms
+     × refreshes an expired access token and retries the same account before moving on 0ms
+     × does not locally cool down generic rate limits on later requests 0ms
+     × does not mark all accounts unavailable after transient retryable failures 0ms
+     × treats usage-limit 429s with retry wording as quota cooldowns 0ms
+     × does not expose quota 429s to Codex clients when no fallback account is available 0ms
+     × does not cool down high-load 429s so Codex provider retries can reattempt 0ms
+     × does not cool down accounts only because cached usage has no reset time 0ms
+     × does not reject accounts only because the catalog omits the requested model 0ms
+TypeError: fetch failed
+stdout | tests/platform-services.test.ts
+Downloading Electron binary...
+
+ ❯ tests/platform-services.test.ts (0 test)
+TypeError: fetch failed
+stdout | tests/app-context.test.ts
+Downloading Electron binary...
+
+ ❯ tests/app-context.test.ts (0 test)
+stderr | tests/network-services.test.ts > OAuth helpers > rejects callback sign-in when state does not match
+Promise returned by `expect(actual).rejects.toThrow(expected)` was not awaited. Vitest currently auto-awaits hanging assertions at the end of the test, but this will cause the test to fail in the next Vitest major. Please remember to await the assertion.
+    at /private/tmp/codex-web-auto-account-switch-m0.1/CodexManager/apps/desktop/tests/network-services.test.ts:176:36
+
+stderr | tests/network-services.test.ts > OAuth helpers > localizes OAuth callback failures and callback pages
+Promise returned by `expect(actual).rejects.toThrow(expected)` was not awaited. Vitest currently auto-awaits hanging assertions at the end of the test, but this will cause the test to fail in the next Vitest major. Please remember to await the assertion.
+    at /private/tmp/codex-web-auto-account-switch-m0.1/CodexManager/apps/desktop/tests/network-services.test.ts:216:36
+
+ ❯ tests/network-services.test.ts (19 tests | 6 failed) 4424ms
+     × completes callback sign-in after validating state 1107ms
+     × validates forced workspace from access token claims 1099ms
+     × rejects callback sign-in when state does not match 1101ms
+     × localizes browser-open failures using the current app locale 4ms
+     × localizes OAuth callback failures and callback pages 1093ms
+     × localizes OAuth sign-in timeout errors 3ms
+
+⎯⎯⎯⎯⎯⎯ Failed Suites 2 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/app-context.test.ts [ tests/app-context.test.ts ]
+ FAIL  tests/platform-services.test.ts [ tests/platform-services.test.ts ]
+Error: Electron failed to install correctly. Please delete `node_modules/electron` and run "npx install-electron --no" manually.
+ ❯ getElectronPath node_modules/electron/index.js:43:13
+ ❯ Object.<anonymous> node_modules/electron/index.js:52:18
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[1/66]⎯
+
+
+⎯⎯⎯⎯⎯⎯ Failed Tests 64 ⎯⎯⎯⎯⎯⎯⎯
+
+ FAIL  tests/network-services.test.ts > OAuth helpers > completes callback sign-in after validating state
+Error: Timed out waiting for authorize URL
+ ❯ callbackURLFromOpenedAuthorizeURL tests/network-services.test.ts:497:9
+       |         ^
+ ❯ tests/network-services.test.ts:101:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[2/66]⎯
+
+ FAIL  tests/network-services.test.ts > OAuth helpers > validates forced workspace from access token claims
+Error: Timed out waiting for authorize URL
+ ❯ callbackURLFromOpenedAuthorizeURL tests/network-services.test.ts:497:9
+       |         ^
+ ❯ tests/network-services.test.ts:147:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[3/66]⎯
+
+ FAIL  tests/network-services.test.ts > OAuth helpers > rejects callback sign-in when state does not match
+Error: Timed out waiting for authorize URL
+ ❯ callbackURLFromOpenedAuthorizeURL tests/network-services.test.ts:497:9
+       |         ^
+ ❯ tests/network-services.test.ts:177:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[4/66]⎯
+
+ FAIL  tests/network-services.test.ts > OAuth helpers > localizes browser-open failures using the current app locale
+AssertionError: expected [Function] to throw error including '无法打开浏览器登录页' but got 'listen EPERM: operation not permitted…'
+
+Expected: "无法打开浏览器登录页"
+Received: "listen EPERM: operation not permitted 127.0.0.1:1467"
+
+ ❯ tests/network-services.test.ts:196:46
+       |                                              ^
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[5/66]⎯
+
+ FAIL  tests/network-services.test.ts > OAuth helpers > localizes OAuth callback failures and callback pages
+Error: Timed out waiting for authorize URL
+ ❯ callbackURLFromOpenedAuthorizeURL tests/network-services.test.ts:497:9
+       |         ^
+ ❯ tests/network-services.test.ts:217:25
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[6/66]⎯
+
+ FAIL  tests/network-services.test.ts > OAuth helpers > localizes OAuth sign-in timeout errors
+AssertionError: expected [Function] to throw error including '等待浏览器登录完成超时，请重试' but got 'listen EPERM: operation not permitted…'
+
+Expected: "等待浏览器登录完成超时，请重试"
+Received: "listen EPERM: operation not permitted 127.0.0.1:1467"
+
+ ❯ tests/network-services.test.ts:238:46
+       |                                              ^
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[7/66]⎯
+
+ FAIL  tests/proxy.test.ts > local proxy > serves health without API key
+ FAIL  tests/proxy.test.ts > local proxy > rejects non-health requests without the configured API key
+ FAIL  tests/proxy.test.ts > local proxy > mirrors mac-compatible CORS headers for preflight requests
+ FAIL  tests/proxy.test.ts > local proxy > returns a bad request for invalid JSON on supported proxy routes
+ FAIL  tests/proxy.test.ts > local proxy > does not parse request bodies before rejecting unsupported routes
+ FAIL  tests/proxy.test.ts > local proxy > returns the mac-compatible unsupported-route response for unsupported methods
+ FAIL  tests/proxy.test.ts > local proxy > accepts Codex-compatible Responses path aliases
+ FAIL  tests/proxy.test.ts > local proxy > returns the mac-compatible no-account status before forwarding
+ FAIL  tests/proxy.test.ts > local proxy > does not reject accounts only because cached usage says quota is exhausted
+ FAIL  tests/proxy.test.ts > local proxy > forwards Responses requests through the selected account and cleans headers
+ FAIL  tests/proxy.test.ts > local proxy > streams Responses passthrough chunks before the upstream request completes
+ FAIL  tests/proxy.test.ts > local proxy > strips upstream encoding headers from Responses passthrough streams
+ FAIL  tests/proxy.test.ts > local proxy > waits for the first upstream chunk before opening a Responses passthrough stream
+ FAIL  tests/proxy.test.ts > local proxy > interrupts Codex passthrough streams instead of forwarding midstream quota 429 errors
+ FAIL  tests/proxy.test.ts > local proxy > rotates accounts after hidden midstream high-demand SSE errors
+ FAIL  tests/proxy.test.ts > local proxy > maps non-streaming Codex passthrough SSE quota errors to retryable 5xx responses
+ FAIL  tests/proxy.test.ts > local proxy > rotates accounts after hidden pre-output high-demand SSE errors
+ FAIL  tests/proxy.test.ts > local proxy > rotates accounts when a streaming Responses passthrough ends before a ready event
+ FAIL  tests/proxy.test.ts > local proxy > aborts upstream streams when the downstream client disconnects
+ FAIL  tests/proxy.test.ts > local proxy > stops quickly by aborting active upstream requests and closing client sockets
+ FAIL  tests/proxy.test.ts > local proxy > adds encrypted reasoning include for Responses requests that use reasoning
+ FAIL  tests/proxy.test.ts > local proxy > preserves explicit Responses compatibility fields
+ FAIL  tests/proxy.test.ts > local proxy > forwards Models requests as non-streaming GET with query parameters
+ FAIL  tests/proxy.test.ts > local proxy > preserves explicit Models client_version query parameters
+ FAIL  tests/proxy.test.ts > local proxy > uses the client version header for Models requests without client_version
+ FAIL  tests/proxy.test.ts > local proxy > accepts Codex-compatible Models path aliases
+ FAIL  tests/proxy.test.ts > local proxy > preserves Codex JSON passthrough requests without forcing streaming
+ FAIL  tests/proxy.test.ts > local proxy > uses an empty default model for alpha search passthrough
+ FAIL  tests/proxy.test.ts > local proxy > preserves empty string models instead of applying a default
+ FAIL  tests/proxy.test.ts > local proxy > translates non-streaming Chat Completions requests
+ FAIL  tests/proxy.test.ts > local proxy > defaults Chat Completions requests to non-streaming responses
+ FAIL  tests/proxy.test.ts > local proxy > rejects Chat Completions requests without a model before forwarding
+ FAIL  tests/proxy.test.ts > local proxy > accepts empty string Chat Completions models like macOS
+ FAIL  tests/proxy.test.ts > local proxy > rejects Chat Completions requests without messages before forwarding
+ FAIL  tests/proxy.test.ts > local proxy > rejects Chat Completions requests with non-object messages before forwarding
+ FAIL  tests/proxy.test.ts > local proxy > translates streaming Chat Completions responses to OpenAI chunks
+ FAIL  tests/proxy.test.ts > local proxy > translates streaming Chat Completions chunks before the upstream request completes
+ FAIL  tests/proxy.test.ts > local proxy > translates Anthropic messages requests to Codex Responses
+ FAIL  tests/proxy.test.ts > local proxy > returns mac-compatible Anthropic errors for invalid Messages JSON
+ FAIL  tests/proxy.test.ts > local proxy > returns mac-compatible Anthropic errors for Messages requests without a model
+ FAIL  tests/proxy.test.ts > local proxy > translates non-streaming Anthropic responses to Anthropic message JSON
+ FAIL  tests/proxy.test.ts > local proxy > uses the mac-compatible Anthropic fallback text extraction
+ FAIL  tests/proxy.test.ts > local proxy > converts Anthropic tool calls and tool results in request history
+ FAIL  tests/proxy.test.ts > local proxy > omits empty Anthropic text content before forwarding
+ FAIL  tests/proxy.test.ts > local proxy > retries the next eligible account after a retryable upstream error
+ FAIL  tests/proxy.test.ts > local proxy > retries the next eligible account after a 403 auth failure without a refresh token
+ FAIL  tests/proxy.test.ts > local proxy > prioritizes the current account before falling back by remaining quota
+ FAIL  tests/proxy.test.ts > local proxy > retries the next eligible account after a preflight SSE error before output
+ FAIL  tests/proxy.test.ts > local proxy > retries the next eligible account after a preflight SSE quota error
+ FAIL  tests/proxy.test.ts > local proxy > retries passthrough routes after a complete-body SSE error before output
+ FAIL  tests/proxy.test.ts > local proxy > refreshes an expired access token and retries the same account before moving on
+ FAIL  tests/proxy.test.ts > local proxy > does not locally cool down generic rate limits on later requests
+ FAIL  tests/proxy.test.ts > local proxy > does not mark all accounts unavailable after transient retryable failures
+ FAIL  tests/proxy.test.ts > local proxy > treats usage-limit 429s with retry wording as quota cooldowns
+ FAIL  tests/proxy.test.ts > local proxy > does not expose quota 429s to Codex clients when no fallback account is available
+ FAIL  tests/proxy.test.ts > local proxy > does not cool down high-load 429s so Codex provider retries can reattempt
+ FAIL  tests/proxy.test.ts > local proxy > does not cool down accounts only because cached usage has no reset time
+ FAIL  tests/proxy.test.ts > local proxy > does not reject accounts only because the catalog omits the requested model
+Error: listen EPERM: operation not permitted 127.0.0.1
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯[8/66]⎯
+
+⎯⎯⎯⎯⎯⎯ Unhandled Errors ⎯⎯⎯⎯⎯⎯
+
+Vitest caught 4 unhandled errors during the test run.
+This might cause false positive tests. Resolve unhandled errors to make sure your tests are not affected.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: listen EPERM: operation not permitted 127.0.0.1:1467
+ ❯ Server.setupListenHandle [as _listen2] node:net:1926:21
+ ❯ listenInCluster node:net:2005:12
+ ❯ node:net:2214:7
+ ❯ processTicksAndRejections node:internal/process/task_queues:90:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'EPERM', errno: -1, syscall: 'listen', address: '127.0.0.1', port: 1467 }
+This error originated in "tests/network-services.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "completes callback sign-in after validating state". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+Error: listen EPERM: operation not permitted 127.0.0.1:1467
+ ❯ Server.setupListenHandle [as _listen2] node:net:1926:21
+ ❯ listenInCluster node:net:2005:12
+ ❯ node:net:2214:7
+ ❯ processTicksAndRejections node:internal/process/task_queues:90:21
+
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+Serialized Error: { code: 'EPERM', errno: -1, syscall: 'listen', address: '127.0.0.1', port: 1467 }
+This error originated in "tests/network-services.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "validates forced workspace from access token claims". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+AssertionError: expected [Function] to throw error matching /callback validation failed/ but got 'listen EPERM: operation not permitted…'
+ ❯ _Assertion.__VITEST_REJECTS__ node_modules/@vitest/expect/dist/index.js:1747:17
+ ❯ _Assertion.propertyGetter node_modules/chai/index.js:1570:27
+ ❯ Object.proxyGetter [as get] node_modules/chai/index.js:1659:22
+ ❯ tests/network-services.test.ts:176:36
+       |                                    ^
+ ❯ node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+ ❯ node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+ ❯ node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+ ❯ runWithCancel node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10
+
+This error originated in "tests/network-services.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "rejects callback sign-in when state does not match". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+
+⎯⎯⎯⎯ Unhandled Rejection ⎯⎯⎯⎯⎯
+AssertionError: expected [Function] to throw error including '登录回调校验失败，请重试' but got 'listen EPERM: operation not permitted…'
+ ❯ _Assertion.__VITEST_REJECTS__ node_modules/@vitest/expect/dist/index.js:1747:17
+ ❯ _Assertion.propertyGetter node_modules/chai/index.js:1570:27
+ ❯ Object.proxyGetter [as get] node_modules/chai/index.js:1659:22
+ ❯ tests/network-services.test.ts:216:36
+       |                                    ^
+ ❯ node_modules/@vitest/runner/dist/chunk-artifact.js:302:11
+ ❯ node_modules/@vitest/runner/dist/chunk-artifact.js:1903:26
+ ❯ node_modules/@vitest/runner/dist/chunk-artifact.js:2326:20
+ ❯ runWithCancel node_modules/@vitest/runner/dist/chunk-artifact.js:2323:10
+
+This error originated in "tests/network-services.test.ts" test file. It doesn't mean the error was thrown inside the file itself, but while it was running.
+The latest test that might've caused the error is "localizes OAuth callback failures and callback pages". It might mean one of the following:
+- The error was thrown, while Vitest was running this test.
+- If the error occurred after the test had been completed, this was the last documented test before it was thrown.
+⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯⎯
+
+
+ Test Files  4 failed | 14 passed (18)
+      Tests  64 failed | 142 passed (206)
+     Errors  4 errors
+   Start at  23:56:12
+   Duration  5.20s (transform 1.24s, setup 0ms, import 1.59s, tests 7.58s, environment 6.12s)
+
+ ELIFECYCLE  Test failed. See above for more details.

@@ -1,0 +1,3 @@
+
+> codex-web@0.0.1 build:server
+> cd src/server && tsc

@@ -1,0 +1,23 @@
+[Unit]
+Description=Codex Web
+After=network-online.target codex-app-server.service
+Requires=codex-app-server.service
+
+[Service]
+Type=simple
+User=codex
+Group=codex
+WorkingDirectory=/home/codex
+Environment=HOME=/home/codex
+Environment=CODEX_HOME=/home/codex/.codex
+Environment=CODEX_UNIX_SOCKET=/run/codex/app-server.sock
+Environment=CODEX_CLI_PATH=/usr/local/bin/codex_remote_proxy
+ExecStart=/usr/local/bin/codex-web --host 127.0.0.1 --port 8214
+Restart=always
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target

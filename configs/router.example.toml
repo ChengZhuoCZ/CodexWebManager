@@ -1,0 +1,43 @@
+[server]
+model_host = "127.0.0.1"
+model_port = 18317
+admin_host = "127.0.0.1"
+admin_port = 18318
+state_dir = "/var/lib/codex-router"
+request_body_limit_bytes = 52428800
+stream_first_event_timeout_ms = 90000
+request_total_timeout_ms = 900000
+max_failovers = 2
+
+[security]
+admin_token_credential = "codex-router-admin-token"
+proxy_token_credential = "codex-router-proxy-token"
+log_request_bodies = false
+log_response_bodies = false
+
+[routing]
+stickiness_ttl_seconds = 3600
+quota_snapshot_max_age_seconds = 120
+quota_cooldown_seconds = 3600
+rate_limit_cooldown_seconds = 60
+auth_cooldown_seconds = 300
+network_cooldown_seconds = 15
+upstream_5xx_cooldown_seconds = 15
+
+[[accounts]]
+id = "account-a"
+alias = "A"
+enabled = true
+priority = 0
+max_concurrency = 1
+credential_ref = "codex-account-a"
+provider = "openai-codex"
+
+[[accounts]]
+id = "account-b"
+alias = "B"
+enabled = true
+priority = 0
+max_concurrency = 1
+credential_ref = "codex-account-b"
+provider = "openai-codex"

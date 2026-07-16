@@ -1,0 +1,19 @@
+# Local credentials and environment overrides
+auth.json
+**/auth.json
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.token
+
+# Dependency and test output directories
+node_modules/
+coverage/
+
+# Editor and operating-system files
+.DS_Store
+*.swp
+*.tmp
