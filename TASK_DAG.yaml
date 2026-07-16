@@ -167,14 +167,14 @@ milestones:
           - unsafe_to_replay returned after semantic output
       - id: M3.4
         title: Implement Codex auxiliary endpoints
-        status: in_progress
+        status: done
         depends_on: [M0.2, M3.2]
         acceptance:
           - Every endpoint observed in M0 has a compatibility test
           - Unsupported endpoints fail closed with explicit error
       - id: M3.5
         title: Add compatibility E2E with codex app-server
-        status: pending
+        status: ready
         depends_on: [M3.3, M3.4]
         acceptance:
           - Multi-turn thread works through router
