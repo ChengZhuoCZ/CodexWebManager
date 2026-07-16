@@ -1,0 +1,87 @@
+{
+  "task": "M5.1",
+  "recorded_at": "2026-07-16T20:57:59+08:00",
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "input_workspace_revision": "bb8883a2d6eb52a700668d96bdede0092b14473f",
+  "local_platform": {
+    "os": "darwin",
+    "architecture": "arm64",
+    "linux_runtime_acceptance": false
+  },
+  "account_configuration_loaded": false,
+  "real_account_switch_executed": false,
+  "seamless_cross_account_continuity_claimed": false,
+  "results": [
+    {
+      "stage": "runtime_discovery",
+      "command": "node --test test/linux-release.test.mjs",
+      "exit_code": 127,
+      "output": "The initial shell PATH had no node executable; the bundled workspace Node path was selected without installing system software."
+    },
+    {
+      "stage": "test_first",
+      "command": "<bundled-node> --test test/linux-release.test.mjs",
+      "exit_code": 1,
+      "output": "Expected red state: scripts/build-linux-release.mjs did not exist and the ESM import failed with ERR_MODULE_NOT_FOUND."
+    },
+    {
+      "stage": "focused_release_test",
+      "command": "<bundled-node> --test test/linux-release.test.mjs",
+      "exit_code": 0,
+      "output": "2 passed, 0 failed; byte-identical x64 rebuild, manifest/file/mode checks, no desktop dependency payload, and unsupported-architecture rejection passed."
+    },
+    {
+      "stage": "local_x64_build",
+      "command": "<bundled-node> packages/account-router/scripts/build-linux-release.mjs --arch x64 --output <private-temp>",
+      "exit_code": 0,
+      "output": "Built codex-account-router-0.1.0-linux-x64.tar.gz with SHA-256 1b11daaa0caff7da1bf27b6a262201d4108a295d1b3db83244905e0c50bd79ee."
+    },
+    {
+      "stage": "local_arm64_build",
+      "command": "<bundled-node> packages/account-router/scripts/build-linux-release.mjs --arch arm64 --output <private-temp>",
+      "exit_code": 0,
+      "output": "Built codex-account-router-0.1.0-linux-arm64.tar.gz with SHA-256 a0c3cce49edacb904652adeb616da92cdb0cfbe896b6a56ece80aa71fa34a425."
+    },
+    {
+      "stage": "archive_interoperability",
+      "command": "tar -tzf <x64-archive>",
+      "exit_code": 0,
+      "output": "The host tar implementation listed the complete release root, launchers, installer, runtime source, manifest, README, and license-boundary notice."
+    },
+    {
+      "stage": "non_linux_guard",
+      "command": "<bundled-node> packages/account-router/scripts/verify-linux-release.mjs --arch x64 --artifact <x64-archive>",
+      "exit_code": 1,
+      "output": "Expected guard: Linux release verification must run on a Linux host."
+    },
+    {
+      "stage": "syntax_and_document_parse",
+      "command": "node --check <M5.1 modules>; parse package/status JSON; parse workflow YAML",
+      "exit_code": 0,
+      "output": "Builder, verifier, and test syntax passed; package/status JSON and workflow YAML parsed successfully."
+    },
+    {
+      "stage": "secret_and_format_scan",
+      "command": "git diff --check; scan the M5.1 scope for private-key, OpenAI-key, JWT, and email patterns",
+      "exit_code": 0,
+      "output": "No whitespace errors and no secret-pattern matches."
+    },
+    {
+      "stage": "full_regression_sandbox_attempt",
+      "command": "cd packages/account-router; <bundled-node> --test",
+      "exit_code": 1,
+      "output": "Sandbox denied temporary 127.0.0.1 listen calls with EPERM; pure tests passed and no product assertion failed before the environment error."
+    },
+    {
+      "stage": "full_regression_final",
+      "command": "cd packages/account-router; <bundled-node> --test with temporary loopback permission",
+      "exit_code": 0,
+      "output": "168 total: 161 passed, 0 failed, 7 pre-existing environment-gated browser rows skipped; duration 2310.738375 ms."
+    }
+  ],
+  "pending": [
+    "Native Ubuntu 24.04 x64 install and runtime verification",
+    "Native Ubuntu 24.04 arm64 install and runtime verification when the public arm64 runner is available"
+  ]
+}

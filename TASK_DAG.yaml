@@ -214,7 +214,7 @@ milestones:
     tasks:
       - id: M5.1
         title: Build Linux headless release
-        status: ready
+        status: in_progress
         depends_on: [M3.5]
         acceptance:
           - No Electron runtime required for router
