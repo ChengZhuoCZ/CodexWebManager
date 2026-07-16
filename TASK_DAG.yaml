@@ -77,7 +77,7 @@ milestones:
     tasks:
       - id: M1.1
         title: Create headless service package
-        status: ready
+        status: in_progress
         depends_on: [M0.4, G-LICENSE, G-PROTOCOL]
         outputs:
           - packages/account-router/

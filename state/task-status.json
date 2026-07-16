@@ -1,68 +1,39 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M0.4",
-  "status": "done",
+  "current_task": "M1.1",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "input_revisions": {
-    "workspace": "7714dff0ff0eeb3ce35c094fb1e29198f60dd9bd",
+    "workspace": "1eb233011f1e5a8a895c94002500db855fb379ab",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2 (sha256:4a9e84ad1c9622e8f6a50dafd75710eaee4af79dc5bcf8bafd4471763255fe18)"
   },
-  "output_revision": "7cbf432",
-  "output_revision_note": "7cbf432 selects LIMITED_MODE and records the deferred M0.3 gate; this follow-up state commit records task completion.",
-  "workspace_branch": "codex/m0-4-limited-mode",
-  "workspace_input_revision": "7714dff0ff0eeb3ce35c094fb1e29198f60dd9bd",
+  "output_revision": null,
+  "output_revision_note": "Pending the M1.1 headless service package commit.",
+  "workspace_branch": "codex/m1-1-headless-service",
+  "workspace_input_revision": "1eb233011f1e5a8a895c94002500db855fb379ab",
   "depends_on": [
-    "M0.3 is blocked and explicitly deferred for development by EX-DEFER-M0.3-CROSS"
+    "M0.4",
+    "G-LICENSE",
+    "G-PROTOCOL"
   ],
   "expected_outputs": [
-    "state/architecture-decision.md",
-    "evidence/M0.4-architecture-selection.md"
+    "packages/account-router/"
   ],
-  "tests": [
-    {
-      "command": "jq -e '<assert M0.4 done, LIMITED_MODE, and output revision 7cbf432>' state/task-status.json",
-      "result": "passed"
-    },
-    {
-      "command": "ruby -ryaml -e '<validate M0.3 blocked, M0.4 done, M1.1 ready, and EX-DEFER-M0.3-CROSS>'",
-      "result": "passed; DAG exception and final task states valid"
-    },
-    {
-      "command": "test \"$(rg -c '^Mode: LIMITED_MODE$' state/architecture-decision.md)\" = \"1\"",
-      "result": "passed; exactly one selected mode line"
-    },
-    {
-      "command": "git diff --check",
-      "result": "passed"
-    },
-    {
-      "command": "rg secret-value, known-token-shape, and email patterns over M0.4 changed files",
-      "result": "passed; no matches"
-    }
-  ],
-  "evidence": [
-    "evidence/M0.3-continuity-matrix.md",
-    "evidence/M0.3-blocker.md",
-    "evidence/M0.4-architecture-selection.md",
-    "state/architecture-decision.md"
-  ],
+  "tests": [],
+  "evidence": [],
   "observations": {
-    "user_directive": "Defer account-switch testing and complete development first.",
     "selected_mode": "LIMITED_MODE",
-    "selection_reason": "Existing evidence does not prove portable upstream response state; safe development requires explicit new-session behavior.",
-    "release_gate": "Real A-to-B E2E remains mandatory before account-switch acceptance or seamless-continuity claims."
+    "scope": "Headless Node.js service foundation only; no account-switch E2E in this task.",
+    "deferred_gate": "M0.3 remains blocked under EX-DEFER-M0.3-CROSS."
   },
-  "blockers": [
-    "M0.3 real A-to-B evidence requires a second distinct user-authorized CODEX_HOME; this is deferred, not passed."
-  ],
+  "blockers": [],
   "residual_risks": [
-    "Cross-account endpoint and response-state behavior remains unverified.",
-    "Transcript rehydration can lose hidden upstream state and increase token usage.",
-    "Tool-side-effect boundaries must prevent replay of interrupted or uncommitted work.",
-    "LIMITED_MODE must remain visible in API, logs, UI, and documentation."
+    "Account and secret providers are intentionally deferred to M1.2.",
+    "Admin authentication and event APIs are intentionally deferred to M1.3.",
+    "Proxy paths and failover are intentionally deferred to M3."
   ],
-  "updated_at": "2026-07-16T12:49:36+08:00"
+  "updated_at": "2026-07-16T12:50:00+08:00"
 }
