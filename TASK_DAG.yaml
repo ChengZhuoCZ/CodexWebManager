@@ -87,7 +87,7 @@ milestones:
           - Binds to loopback by default
       - id: M1.2
         title: Define account and secret providers
-        status: in_progress
+        status: done
         depends_on: [M1.1]
         acceptance:
           - Public account metadata separated from credentials
@@ -95,7 +95,7 @@ milestones:
           - File permissions and redaction tests pass
       - id: M1.3
         title: Implement admin and event API
-        status: pending
+        status: ready
         depends_on: [M1.1]
         acceptance:
           - Status, account aliases, current route and switch events available
