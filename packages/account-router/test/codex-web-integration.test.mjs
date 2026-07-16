@@ -14,14 +14,15 @@ async function fixtureCli(context) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "codex-web-wrapper-test-"));
   const executable = path.join(directory, "fixture-codex.mjs");
   const argumentLog = path.join(directory, "argv.json");
+  const environmentLog = path.join(directory, "environment.json");
   await fs.writeFile(
     executable,
-    `#!${process.execPath}\nimport { writeFileSync } from "node:fs";\nwriteFileSync(process.env.FIXTURE_ARGV_LOG, JSON.stringify(process.argv.slice(2)));\n`,
+    `#!${process.execPath}\nimport { writeFileSync } from "node:fs";\nwriteFileSync(process.env.FIXTURE_ARGV_LOG, JSON.stringify(process.argv.slice(2)));\nif (process.env.FIXTURE_ENV_LOG) writeFileSync(process.env.FIXTURE_ENV_LOG, JSON.stringify(process.env));\n`,
     { mode: 0o700 },
   );
   await fs.chmod(executable, 0o700);
   context.after(() => fs.rm(directory, { recursive: true, force: true }));
-  return { executable, argumentLog };
+  return { executable, argumentLog, environmentLog };
 }
 
 function runWrapper(args, environment) {
@@ -96,6 +97,60 @@ test("passes the codex version probe through without router arguments", async (c
   });
   assert.equal(result.code, 0);
   assert.deepEqual(JSON.parse(await fs.readFile(fixture.argumentLog, "utf8")), ["--version"]);
+});
+
+test("connects pinned codex-web invocations to a supervised Unix App Server", async (context) => {
+  const fixture = await fixtureCli(context);
+  const result = await runWrapper(
+    ["-c", "features.code_mode_host=true", "app-server", "--analytics-default-enabled"],
+    {
+      CODEX_REAL_CLI_PATH: fixture.executable,
+      CODEX_ROUTER_MODEL_BASE_URL: "http://127.0.0.1:18317/backend-api/codex",
+      CODEX_APP_SERVER_SOCKET: "/run/codex-app-server/app-server.sock",
+      FIXTURE_ARGV_LOG: fixture.argumentLog,
+      FIXTURE_ENV_LOG: fixture.environmentLog,
+    },
+  );
+  assert.equal(result.code, 0);
+  assert.equal(result.signal, null);
+  assert.equal(result.stdout, "");
+  assert.equal(result.stderr, "");
+  assert.deepEqual(JSON.parse(await fs.readFile(fixture.argumentLog, "utf8")), [
+    "-c",
+    "features.code_mode_host=true",
+    "app-server",
+    "proxy",
+    "--sock",
+    "/run/codex-app-server/app-server.sock",
+  ]);
+  const childEnvironment = JSON.parse(await fs.readFile(fixture.environmentLog, "utf8"));
+  assert.equal(childEnvironment.CODEX_REAL_CLI_PATH, undefined);
+  assert.equal(childEnvironment.CODEX_ROUTER_MODEL_BASE_URL, undefined);
+  assert.equal(childEnvironment.CODEX_APP_SERVER_SOCKET, undefined);
+});
+
+test("fails closed for unsafe App Server sockets and unsupported proxy options", async (context) => {
+  const fixture = await fixtureCli(context);
+  const cases = [
+    { socket: "/tmp/app-server.sock", args: ["app-server"] },
+    { socket: "/run/../tmp/app-server.sock", args: ["app-server"] },
+    { socket: "/run/codex-app-server/app-server.sock\nignored", args: ["app-server"] },
+    { socket: "/run/codex-app-server/app-server.sock", args: ["app-server", "--listen", "ws://0.0.0.0:9000"] },
+    { socket: "/run/codex-app-server/app-server.sock", args: ["app-server", "proxy"] },
+    { socket: "/run/codex-app-server/app-server.sock", args: ["-c", "features.example=true", "app-server", "--analytics-default-enabled"] },
+  ];
+  for (const candidate of cases) {
+    const result = await runWrapper(candidate.args, {
+      CODEX_REAL_CLI_PATH: fixture.executable,
+      CODEX_APP_SERVER_SOCKET: candidate.socket,
+      FIXTURE_ARGV_LOG: fixture.argumentLog,
+    });
+    assert.equal(result.code, 64);
+    assert.equal(result.stdout, "");
+    assert.match(result.stderr, /codex router wrapper configuration is invalid/);
+    assert.doesNotMatch(result.stderr, /app-server\.sock|0\.0\.0\.0|fixture-codex/);
+  }
+  await assert.rejects(fs.access(fixture.argumentLog));
 });
 
 test("fails closed for public origins, malformed invocations, and missing configuration", async (context) => {

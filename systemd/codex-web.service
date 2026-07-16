@@ -1,23 +1,57 @@
 [Unit]
 Description=Codex Web
-After=network-online.target codex-app-server.service
-Requires=codex-app-server.service
+After=network-online.target codex-account-router.service codex-app-server.service
+Wants=network-online.target codex-account-router.service codex-app-server.service
+StartLimitIntervalSec=60s
+StartLimitBurst=5
 
 [Service]
 Type=simple
 User=codex
 Group=codex
-WorkingDirectory=/home/codex
-Environment=HOME=/home/codex
-Environment=CODEX_HOME=/home/codex/.codex
-Environment=CODEX_UNIX_SOCKET=/run/codex/app-server.sock
-Environment=CODEX_CLI_PATH=/usr/local/bin/codex_remote_proxy
-ExecStart=/usr/local/bin/codex-web --host 127.0.0.1 --port 8214
-Restart=always
-RestartSec=5
+WorkingDirectory=/srv/codex-workspaces
+Environment=HOME=/var/lib/codex-web
+Environment=CODEX_HOME=/var/lib/codex-web
+Environment=CODEX_CLI_PATH=/opt/codex-account-router/current/bin/codex-router-cli
+Environment=CODEX_REAL_CLI_PATH=/usr/local/bin/codex
+Environment=CODEX_APP_SERVER_SOCKET=/run/codex-app-server/app-server.sock
+Environment=CODEX_ROUTER_ADMIN_ORIGIN=http://127.0.0.1:18318
+Environment=CODEX_ROUTER_ADMIN_TOKEN_FILE=%d/router-admin-token
+LoadCredential=router-admin-token:/etc/codex-account-router/credentials/admin-token
+ExecStart=/usr/bin/node /opt/codex-web/src/server/main.js --host 127.0.0.1 --port 8214
+Restart=on-failure
+RestartSec=3s
+TimeoutStartSec=30s
+TimeoutStopSec=20s
+KillSignal=SIGTERM
 UMask=0077
+StateDirectory=codex-web
+StateDirectoryMode=0700
+RuntimeDirectory=codex-web
+RuntimeDirectoryMode=0700
+ReadWritePaths=/srv/codex-workspaces
 NoNewPrivileges=true
 PrivateTmp=true
+PrivateDevices=true
+PrivateMounts=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectHostname=true
+ProtectClock=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=codex-web
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=codex-stack.target

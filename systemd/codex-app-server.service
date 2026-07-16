@@ -1,23 +1,54 @@
 [Unit]
 Description=Codex App Server
 After=network-online.target codex-account-router.service
-Requires=codex-account-router.service
+Wants=network-online.target codex-account-router.service
+StartLimitIntervalSec=60s
+StartLimitBurst=5
 
 [Service]
 Type=simple
 User=codex
 Group=codex
-WorkingDirectory=/home/codex
-Environment=HOME=/home/codex
-Environment=CODEX_HOME=/home/codex/.codex
-Environment=CODEX_ROUTER_PROXY_TOKEN_FILE=/run/credentials/codex-app-server.service/proxy-token
-LoadCredential=proxy-token:/etc/codex-router/credentials/proxy-token
-RuntimeDirectory=codex
-ExecStart=/usr/local/bin/codex app-server --listen unix:///run/codex/app-server.sock
-Restart=always
-RestartSec=5
+WorkingDirectory=/srv/codex-workspaces
+Environment=HOME=/var/lib/codex-app-server
+Environment=CODEX_HOME=/var/lib/codex-app-server
+LoadCredential=codex-auth:/etc/codex-account-router/credentials/app-server-auth.json
+ExecStartPre=/usr/bin/ln -sfn %d/codex-auth /var/lib/codex-app-server/auth.json
+ExecStart=/usr/local/bin/codex -c 'openai_base_url="http://127.0.0.1:18317/backend-api/codex"' -c features.code_mode_host=true app-server --analytics-default-enabled --listen unix:///run/codex-app-server/app-server.sock
+ExecStopPost=/usr/bin/rm -f /var/lib/codex-app-server/auth.json
+Restart=on-failure
+RestartSec=3s
+TimeoutStartSec=30s
+TimeoutStopSec=20s
+KillSignal=SIGTERM
 UMask=0077
+StateDirectory=codex-app-server
+StateDirectoryMode=0700
+RuntimeDirectory=codex-app-server
+RuntimeDirectoryMode=0700
+ReadWritePaths=/srv/codex-workspaces
 NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+PrivateMounts=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectHostname=true
+ProtectClock=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=codex-app-server
 
 [Install]
-WantedBy=multi-user.target
+WantedBy=codex-stack.target

@@ -1,0 +1,7 @@
+[Unit]
+Description=Codex Web Manager stack
+Wants=codex-account-router.service codex-app-server.service codex-web.service
+After=network-online.target
+
+[Install]
+WantedBy=multi-user.target

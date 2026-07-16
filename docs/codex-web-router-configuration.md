@@ -87,6 +87,11 @@ The router, App Server, and codex-web remain separate processes. Stopping a brow
 itself terminate those server processes, but this does not mean an in-flight upstream calculation
 can be moved to another account or resumed in place after process failure.
 
+For the separately supervised Linux topology, set `CODEX_APP_SERVER_SOCKET` to the private
+`/run/codex-app-server/app-server.sock`. The wrapper then changes only the pinned codex-web
+App Server invocation into `app-server proxy --sock PATH`; the supervised App Server process owns
+the router base URL. See `linux-systemd.md` for the exact units and credential paths.
+
 ## M4.1 boundary
 
 The authorized single-account test proved page load, task creation, one model response, thread URL

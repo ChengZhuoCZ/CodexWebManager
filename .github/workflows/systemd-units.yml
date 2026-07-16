@@ -1,0 +1,100 @@
+name: systemd least privilege
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "codex/**"
+    paths:
+      - ".github/workflows/systemd-units.yml"
+      - "docs/linux-systemd.md"
+      - "packages/account-router/**"
+      - "systemd/**"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify systemd lifecycle
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6.0.1
+
+      - name: Select Node.js 22
+        uses: actions/setup-node@v6.5.0
+        with:
+          node-version: "22"
+
+      - name: Run contract tests
+        run: >-
+          node --test
+          packages/account-router/test/codex-web-integration.test.mjs
+          packages/account-router/test/systemd-units.test.mjs
+
+      - name: Build x64 router release
+        run: >-
+          node packages/account-router/scripts/build-linux-release.mjs
+          --arch x64
+          --output artifacts/release
+
+      - name: Install isolated fixture stack
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo ln -sfn "$(command -v node)" /usr/bin/node
+          sudo systemd-sysusers systemd/codex-stack.sysusers.conf
+          sudo systemd-tmpfiles --create systemd/codex-stack.tmpfiles.conf
+
+          release_version=$(node -p "require('./packages/account-router/package.json').version")
+          archive="artifacts/release/codex-account-router-${release_version}-linux-x64.tar.gz"
+          extract_root=$(mktemp -d)
+          tar -xzf "$archive" -C "$extract_root"
+          sudo env NODE_BINARY=/usr/bin/node \
+            sh "$extract_root/codex-account-router-${release_version}-linux-x64/install.sh"
+
+          sudo install -m 0755 \
+            packages/account-router/fixtures/systemd/fake-codex.mjs \
+            /usr/local/bin/codex
+          sudo install -D -m 0755 \
+            packages/account-router/fixtures/systemd/fake-codex-web.cjs \
+            /opt/codex-web/src/server/main.js
+
+          sudo install -m 0644 systemd/*.service systemd/*.target /etc/systemd/system/
+          sudo install -m 0644 systemd/codex-stack.sysusers.conf /usr/lib/sysusers.d/codex-stack.conf
+          sudo install -m 0644 systemd/codex-stack.tmpfiles.conf /usr/lib/tmpfiles.d/codex-stack.conf
+
+          printf '%s\n' '{"version":1,"accounts":[]}' | sudo tee /etc/codex-account-router/accounts.json >/dev/null
+          sudo chown codex:codex /etc/codex-account-router/accounts.json
+          sudo chmod 0600 /etc/codex-account-router/accounts.json
+          openssl rand -hex 32 | sudo tee /etc/codex-account-router/credentials/admin-token >/dev/null
+          openssl rand -hex 32 | sudo tee /etc/codex-account-router/credentials/app-server-auth.json >/dev/null
+          sudo chmod 0600 /etc/codex-account-router/credentials/admin-token
+          sudo chmod 0600 /etc/codex-account-router/credentials/app-server-auth.json
+
+          sudo systemctl daemon-reload
+          sudo systemd-analyze verify \
+            /etc/systemd/system/codex-account-router.service \
+            /etc/systemd/system/codex-app-server.service \
+            /etc/systemd/system/codex-web.service \
+            /etc/systemd/system/codex-stack.target
+
+      - name: Verify native independent lifecycle
+        run: >-
+          sudo /usr/bin/node
+          packages/account-router/scripts/verify-systemd-lifecycle.mjs
+          --summary artifacts/systemd-lifecycle.json
+
+      - name: Show sanitized evidence
+        run: cat artifacts/systemd-lifecycle.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload lifecycle evidence
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: systemd-lifecycle-evidence
+          path: artifacts/systemd-lifecycle.json
+          if-no-files-found: error
+          compression-level: 0

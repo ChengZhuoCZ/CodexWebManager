@@ -1,90 +1,78 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M5.1",
-  "status": "done",
+  "current_task": "M5.2",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-DEFER-M0.3-CROSS",
   "input_revisions": {
-    "workspace": "bb8883a2d6eb52a700668d96bdede0092b14473f",
+    "workspace": "078af2627d95b963b5ac60f614cfc1828c57ecc3",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
-    "codex-cli": "codex-cli 0.144.2"
+    "codex-cli-observed": "codex-cli 0.144.5",
+    "codex-cli-task-baseline": "codex-cli 0.144.2"
   },
-  "output_revision": "531cdf0b77cb5ae9de37369e30843812f27e65f4",
-  "output_revision_note": "Commit 531cdf0 implements the deterministic Linux headless release; this state commit records native x64/arm64 acceptance and makes M5.2 ready.",
-  "workspace_branch": "codex/m5-1-linux-headless-release",
-  "workspace_input_revision": "bb8883a2d6eb52a700668d96bdede0092b14473f",
-  "depends_on": ["M3.5"],
+  "output_revision": null,
+  "output_revision_note": "Pending M5.2 systemd, credential-path, independent lifecycle, and native Linux evidence.",
+  "workspace_branch": "codex/m5-2-systemd-least-privilege",
+  "workspace_input_revision": "078af2627d95b963b5ac60f614cfc1828c57ecc3",
+  "depends_on": ["M5.1"],
   "expected_outputs": [
-    "evidence/M5.1-linux-headless-release.md",
-    "evidence/M5.1/local-test-summary.json",
-    "evidence/M5.1/github-actions-summary.json",
-    "evidence/M5.1/linux-x64-verification.json",
-    "evidence/M5.1/linux-arm64-verification.json",
-    "packages/account-router/scripts/build-linux-release.mjs",
-    "packages/account-router/scripts/verify-linux-release.mjs",
-    ".github/workflows/linux-headless-release.yml",
-    "docs/linux-headless-release.md"
+    "evidence/M5.2-systemd-least-privilege.md",
+    "systemd/codex-account-router.service",
+    "systemd/codex-app-server.service",
+    "systemd/codex-web.service",
+    "systemd/codex-stack.target",
+    "packages/account-router/test/systemd-units.test.mjs",
+    "packages/account-router/scripts/verify-systemd-lifecycle.mjs",
+    "docs/linux-systemd.md",
+    ".github/workflows/systemd-units.yml",
+    "evidence/M5.2/local-test-summary.json",
+    "evidence/M5.2/systemd-lifecycle.json",
+    "evidence/M5.2/github-actions-summary.json"
   ],
   "tests": [
     {
-      "command": "<bundled-node> --test packages/account-router/test/linux-release.test.mjs before implementation",
-      "result": "expected red state; build-linux-release.mjs was absent and ERR_MODULE_NOT_FOUND was raised"
+      "command": "<bundled-node> --test packages/account-router/test/codex-web-integration.test.mjs packages/account-router/test/systemd-units.test.mjs before implementation",
+      "result": "expected red state; 12 total, 6 passed, and 6 failed on the provisional wrapper and units"
     },
     {
-      "command": "<bundled-node> --test packages/account-router/test/linux-release.test.mjs",
-      "result": "passed; 2 tests passed and 0 failed; reproducibility, manifest, modes, desktop exclusion, and architecture rejection verified"
+      "command": "<bundled-node> --test packages/account-router/test/codex-web-integration.test.mjs packages/account-router/test/systemd-units.test.mjs packages/account-router/test/linux-release.test.mjs",
+      "result": "passed; 15 total, 15 passed, 0 failed, and 0 skipped"
+    },
+    {
+      "command": "cd packages/account-router; <bundled-node> --run check",
+      "result": "passed"
     },
     {
       "command": "cd packages/account-router; <bundled-node> --test with temporary loopback permission",
-      "result": "passed; 168 total, 161 passed, 0 failed, and 7 pre-existing browser-gated rows skipped; duration 2310.738375 ms"
+      "result": "passed; 177 total, 170 passed, 0 failed, and 7 pre-existing browser-gated rows skipped"
     },
     {
-      "command": "build-linux-release.mjs --arch x64|arm64 --output <private-temp>",
-      "result": "passed; deterministic local archives built and parsed by the host tar implementation"
+      "command": "Ruby Psych parse .github/workflows/systemd-units.yml; git diff --check",
+      "result": "passed"
     },
     {
-      "command": "verify-linux-release.mjs on local Darwin host",
-      "result": "expected rejection before extraction; Linux release verification must run on a Linux host"
-    },
-    {
-      "command": "GitHub Actions run 29501006722 / Verify Linux x64",
-      "result": "passed; native x86_64 and node x64 asserted, archive installed, loopback health 200, empty readiness 503, clean SIGTERM exit, artifact uploaded"
-    },
-    {
-      "command": "GitHub Actions run 29501006722 / Verify Linux arm64",
-      "result": "passed; native aarch64 and node arm64 asserted, archive installed, loopback health 200, empty readiness 503, clean SIGTERM exit, artifact uploaded"
-    },
-    {
-      "command": "download run 29501006722 artifacts; SHA-256 compare against local builds",
-      "result": "passed; x64 and arm64 CI archives exactly matched their independent local deterministic builds"
-    },
-    {
-      "command": "git diff --check; parse workflow YAML and task JSON; scan M5.1 scope for private-key, OpenAI-key, JWT, and email patterns",
-      "result": "passed; no formatting, parse, or secret-pattern failure"
+      "command": "<bundled-node> packages/account-router/scripts/verify-systemd-lifecycle.mjs --summary <private-temp> on Darwin",
+      "result": "expected fail-closed rejection; native Linux with systemd as PID 1 is required"
     }
   ],
   "evidence": [
-    "evidence/M5.1-linux-headless-release.md",
-    "evidence/M5.1/local-test-summary.json",
-    "evidence/M5.1/github-actions-summary.json",
-    "evidence/M5.1/linux-x64-verification.json",
-    "evidence/M5.1/linux-arm64-verification.json",
-    "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/29501006722"
+    "evidence/M5.2-systemd-least-privilege.md",
+    "evidence/M5.2/local-test-summary.json"
   ],
   "observations": {
-    "native_linux": "Both Ubuntu 24.04 x64 and arm64 jobs installed and ran the packaged launcher headlessly with literal loopback listeners.",
-    "runtime_boundary": "Each native summary reports Electron false, display server false, node_modules absent, account configuration absent, health 200, no-account readiness 503, and SIGTERM exit 0.",
-    "reproducibility": "Both downloaded CI archive digests exactly match the independent Darwin-built target archives.",
-    "account_test_scope": "No real account configuration or account-switch scenario was used; both summaries explicitly record account_switch_tested false.",
-    "dependency_exception": "M3.5 remains blocked only on its approved account-switch row; M5.1 supplies packaging evidence only and does not waive that row."
+    "task_scope": "Replace provisional units with least-privilege services, systemd credential paths, an independent App Server Unix socket, and native lifecycle evidence.",
+    "provisional_unit_defects": "The checked-in router entrypoint and config argument do not match M5.1, while the app-server/web units assume an unverified socket integration and use Requires dependencies that weaken restart independence.",
+    "local_cli_observation": "The read-only Codex 0.144.5 help exposes app-server --listen unix://PATH and app-server proxy --sock PATH; no account or model request was used.",
+    "pinned_codex_web_observation": "The pinned MIT codex-web bundle invokes CODEX_CLI_PATH with -c features.code_mode_host=true app-server --analytics-default-enabled over stdio, so the wrapper needs an explicit proxy mode for a separately supervised server.",
+    "systemd_credential_model": "Use LoadCredential/ImportCredential plus %d file paths; secret contents must not enter Environment or ExecStart."
   },
   "blockers": [],
   "residual_risks": [
-    "M5.2 must still add least-privilege systemd supervision, private environment/configuration loading, and independent restart behavior.",
-    "The verified artifacts are unsigned CI artifacts rather than a public signed release; signing, provenance, and owner license approval remain release-gate work.",
-    "M0.3, M3.5, and M4.1 approved account-switch rows remain mandatory and unrun; M5.1 is not evidence of seamless cross-account continuity."
+    "The Darwin development host cannot run systemd; unit syntax and independent PID lifecycle require native Ubuntu CI evidence.",
+    "The deployment proxy path is pinned to a Codex CLI that exposes app-server proxy; the local observed binary is 0.144.5 while the earlier task baseline was 0.144.2.",
+    "M0.3, M3.5, and M4.1 real-account switching rows remain unrun; M5.2 will use no real account or switch test."
   ],
-  "updated_at": "2026-07-16T21:11:09+08:00"
+  "updated_at": "2026-07-16T21:37:37+08:00"
 }

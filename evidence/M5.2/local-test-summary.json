@@ -1,0 +1,51 @@
+{
+  "schema_version": 1,
+  "task": "M5.2",
+  "generated_at": "2026-07-16T21:37:37+08:00",
+  "input_revision": "078af2627d95b963b5ac60f614cfc1828c57ecc3",
+  "branch": "codex/m5-2-systemd-least-privilege",
+  "host": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "node": "v24.14.0",
+    "systemd_available": false
+  },
+  "test_first": {
+    "command": "<bundled-node> --test packages/account-router/test/codex-web-integration.test.mjs packages/account-router/test/systemd-units.test.mjs",
+    "result": "expected red state",
+    "total": 12,
+    "passed": 6,
+    "failed": 6,
+    "reason": "The provisional wrapper injected the router URL instead of using app-server proxy, and the provisional units failed the least-privilege, topology, entrypoint, and credential-path contracts."
+  },
+  "contract_tests": {
+    "command": "<bundled-node> --test packages/account-router/test/codex-web-integration.test.mjs packages/account-router/test/systemd-units.test.mjs packages/account-router/test/linux-release.test.mjs",
+    "result": "passed",
+    "total": 15,
+    "passed": 15,
+    "failed": 0,
+    "skipped": 0
+  },
+  "full_suite": {
+    "command": "cd packages/account-router; <bundled-node> --test with temporary loopback permission",
+    "result": "passed",
+    "total": 177,
+    "passed": 170,
+    "failed": 0,
+    "skipped": 7,
+    "skipped_note": "The seven browser-gated rows pre-date M5.2."
+  },
+  "static_checks": {
+    "package_check": "passed",
+    "workflow_yaml_parse": "passed",
+    "git_diff_check": "passed"
+  },
+  "native_linux": {
+    "status": "pending GitHub Actions",
+    "required_evidence": "systemd-analyze verify plus supervised independent lifecycle on Ubuntu 24.04"
+  },
+  "architecture_mode": "LIMITED_MODE",
+  "real_account_configured": false,
+  "account_switch_tested": false,
+  "seamless_account_continuity_claimed": false
+}

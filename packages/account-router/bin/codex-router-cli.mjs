@@ -58,7 +58,40 @@ function invocation(args) {
     index += 2;
   }
   if (args[index] !== "app-server") fail();
-  return Object.freeze({ mode: "app-server", args });
+  return Object.freeze({
+    mode: "app-server",
+    args,
+    prefix: args.slice(0, index),
+    serverOptions: args.slice(index + 1),
+  });
+}
+
+function appServerSocket(value) {
+  if (
+    typeof value !== "string" ||
+    !path.isAbsolute(value) ||
+    value !== path.normalize(value) ||
+    !value.startsWith("/run/") ||
+    !value.endsWith(".sock") ||
+    Buffer.byteLength(value, "utf8") > 100 ||
+    /[\u0000-\u001f\u007f]/.test(value)
+  ) {
+    fail();
+  }
+  return value;
+}
+
+function proxyArguments(parsed, socketPath) {
+  if (
+    parsed.prefix.length !== 2 ||
+    parsed.prefix[0] !== "-c" ||
+    parsed.prefix[1] !== "features.code_mode_host=true" ||
+    parsed.serverOptions.length !== 1 ||
+    parsed.serverOptions[0] !== "--analytics-default-enabled"
+  ) {
+    fail();
+  }
+  return [...parsed.prefix, "app-server", "proxy", "--sock", socketPath];
 }
 
 const executable = realExecutable(process.env.CODEX_REAL_CLI_PATH);
@@ -66,14 +99,20 @@ const parsed = invocation(process.argv.slice(2));
 const childEnvironment = { ...process.env };
 delete childEnvironment.CODEX_REAL_CLI_PATH;
 delete childEnvironment.CODEX_ROUTER_MODEL_BASE_URL;
+delete childEnvironment.CODEX_APP_SERVER_SOCKET;
 
-const childArguments = parsed.mode === "version"
-  ? parsed.args
-  : [
-      "-c",
-      `openai_base_url=${JSON.stringify(routerBaseUrl(process.env.CODEX_ROUTER_MODEL_BASE_URL))}`,
-      ...parsed.args,
-    ];
+let childArguments;
+if (parsed.mode === "version") {
+  childArguments = parsed.args;
+} else if (process.env.CODEX_APP_SERVER_SOCKET !== undefined) {
+  childArguments = proxyArguments(parsed, appServerSocket(process.env.CODEX_APP_SERVER_SOCKET));
+} else {
+  childArguments = [
+    "-c",
+    `openai_base_url=${JSON.stringify(routerBaseUrl(process.env.CODEX_ROUTER_MODEL_BASE_URL))}`,
+    ...parsed.args,
+  ];
+}
 const child = spawn(executable, childArguments, {
   env: childEnvironment,
   stdio: "inherit",
