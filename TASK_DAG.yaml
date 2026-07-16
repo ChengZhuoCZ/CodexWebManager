@@ -151,7 +151,7 @@ milestones:
           - No open-proxy behavior
       - id: M3.2
         title: Implement Responses and SSE pass-through
-        status: in_progress
+        status: done
         depends_on: [M3.1, M2.4]
         acceptance:
           - Streaming and non-streaming responses work
@@ -159,7 +159,7 @@ milestones:
           - Request/body size limits enforced
       - id: M3.3
         title: Implement safe failover state machine
-        status: pending
+        status: ready
         depends_on: [M3.2, M2.3]
         acceptance:
           - Failover allowed only before first semantic event
