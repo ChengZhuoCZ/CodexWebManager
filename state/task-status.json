@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M2.3",
-  "status": "in_progress",
+  "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "input_revisions": {
@@ -10,8 +10,8 @@
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2"
   },
-  "output_revision": null,
-  "output_revision_note": "Pending the M2.3 cooldown, circuit breaker, and persistence commit.",
+  "output_revision": "343a4c1e00ff6355ba835cc2f851e7917ba7b78c",
+  "output_revision_note": "343a4c1 implements and tests M2.3; this state commit records completion.",
   "workspace_branch": "codex/m2-3-circuit-breaker",
   "workspace_input_revision": "bbbe64385eb57be3b42ce1b520362967b36b80b9",
   "depends_on": ["M2.2"],
@@ -21,18 +21,51 @@
     "packages/account-router/test/circuit-breaker.test.mjs",
     "packages/account-router/test/state-store.test.mjs"
   ],
-  "tests": [],
-  "evidence": [],
+  "tests": [
+    {
+      "command": "node --test test/circuit-breaker.test.mjs test/state-store.test.mjs before implementation",
+      "result": "expected failure; 2 ERR_MODULE_NOT_FOUND failures proved the tests preceded implementation"
+    },
+    {
+      "command": "Node --check on circuit-breaker, state-store, and their test modules",
+      "result": "passed; 0 syntax failures"
+    },
+    {
+      "command": "node --test test/circuit-breaker.test.mjs test/state-store.test.mjs",
+      "result": "passed; 10 tests passed, 0 failed, duration 61.651958 ms"
+    },
+    {
+      "command": "cd packages/account-router; node --test",
+      "result": "passed; 71 tests passed, 0 failed, duration 192.792208 ms"
+    },
+    {
+      "command": "scan production M2.3 scope for private keys, known token shapes, bearer values, and email addresses",
+      "result": "passed; no matches"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "evidence": [
+    "evidence/M2.3-circuit-breaker-persistence.md",
+    "packages/account-router/test/circuit-breaker.test.mjs",
+    "packages/account-router/test/state-store.test.mjs"
+  ],
   "observations": {
-    "test_strategy": "Test-first virtual-clock state-machine tests plus restart simulation in private temporary directories.",
-    "scope": "Distinct bounded cooldowns, bounded half-open leases, versioned atomic persistence, and safe restore.",
-    "deferred_gate": "Failure events and probes are fixtures only; no live upstream or real account will be called."
+    "cooldowns": "Quota, auth, rate-limit, network, and upstream-5xx failures use distinct configured durations with a hard maximum.",
+    "half_open": "After the exact cooldown boundary, explicit probe leases are bounded; success closes and failure reopens while invalidating stale leases.",
+    "persistence": "Versioned state is validated and atomically replaced through a private temporary file; restart restore resets in-flight probes to zero.",
+    "file_boundary": "State directories/files require service-user ownership and private modes; symlinks, corruption, empty files, and oversized inputs fail closed.",
+    "deferred_gate": "All failure events, clocks, and probes were fixtures; no live upstream or real account was accessed."
   },
   "blockers": [],
   "residual_risks": [
-    "Proxy error classification and probe execution remain M3.",
+    "The store assumes one router writer; multi-process state coordination is unsupported.",
+    "Proxy error classification and actual half-open probe execution remain M3.",
     "Routing-session stickiness remains M2.4.",
-    "Production state-directory ownership is verified in M5."
+    "Production state-directory ownership and service integration remain M5.",
+    "Real account behavior remains deferred."
   ],
-  "updated_at": "2026-07-16T16:56:01+08:00"
+  "updated_at": "2026-07-16T17:05:32+08:00"
 }
