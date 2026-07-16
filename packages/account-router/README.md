@@ -119,3 +119,20 @@ rename. It requires an absolute service-user-owned private directory, rejects sy
 permissive, corrupt, empty, and oversized files, and validates every field before save or restore.
 Probe tokens are runtime-only and never persisted; a restored half-open account starts with zero
 in-flight probes. M2.3 tests use a virtual clock and private temporary directories only.
+
+## Routing-session stickiness
+
+M2.4 exports `createSessionStickiness()` as an in-memory, TTL- and capacity-bounded routing map.
+Calling `beginSemanticStream()` creates an explicit lease for the current account/backend pair;
+until every such lease is ended, changing either value or deleting the mapping fails closed. Active
+mappings are not evicted or expired, and per-session semantic leases have a separate hard bound.
+
+At a safe boundary, assigning a different account requires a different backend-session ID and
+returns `limited_mode_new_session` with `new_backend_session`. Reusing the unchanged pair returns
+`sticky_backend_session`; it does not claim that a prior account's upstream response chain moved.
+The strict assignment shape rejects `previous_response_id` and credential-bearing fields.
+
+Mappings use deterministic inactive-LRU eviction after pruning expired entries. They are
+intentionally not restored after a router restart: under `LIMITED_MODE`, loss of this in-memory map
+requires an explicit new backend session (and later bounded rehydration), never forwarding an old
+account's response ID or describing the result as seamless recovery.

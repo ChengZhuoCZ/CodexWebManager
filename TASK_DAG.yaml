@@ -131,7 +131,7 @@ milestones:
           - State persists across router restart
       - id: M2.4
         title: Implement session stickiness
-        status: ready
+        status: in_progress
         depends_on: [M0.4, M2.2]
         acceptance:
           - No account switch within an active semantic stream

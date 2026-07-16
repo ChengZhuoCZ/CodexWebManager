@@ -13,6 +13,7 @@ export { createHealthHandler } from "./http-handler.mjs";
 export { createQuotaSnapshotAdapter } from "./quota-snapshot.mjs";
 export { redactForLog, REDACTED, stringifyLogRecord } from "./redaction.mjs";
 export { createDeterministicScheduler } from "./scheduler.mjs";
+export { createSessionStickiness } from "./session-stickiness.mjs";
 export {
   createFileSecretProvider,
   defineSecretProvider,
