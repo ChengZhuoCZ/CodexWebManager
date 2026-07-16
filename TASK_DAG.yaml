@@ -63,7 +63,7 @@ milestones:
           - Test failure before and after first semantic SSE event
       - id: M0.4
         title: Select architecture
-        status: in_progress
+        status: done
         depends_on: [M0.3]
         outputs:
           - state/architecture-decision.md
@@ -77,7 +77,7 @@ milestones:
     tasks:
       - id: M1.1
         title: Create headless service package
-        status: pending
+        status: ready
         depends_on: [M0.4, G-LICENSE, G-PROTOCOL]
         outputs:
           - packages/account-router/

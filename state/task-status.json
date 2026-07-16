@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M0.4",
-  "status": "in_progress",
+  "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "input_revisions": {
@@ -10,8 +10,8 @@
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2 (sha256:4a9e84ad1c9622e8f6a50dafd75710eaee4af79dc5bcf8bafd4471763255fe18)"
   },
-  "output_revision": null,
-  "output_revision_note": "Pending the M0.4 architecture-selection commit.",
+  "output_revision": "7cbf432",
+  "output_revision_note": "7cbf432 selects LIMITED_MODE and records the deferred M0.3 gate; this follow-up state commit records task completion.",
   "workspace_branch": "codex/m0-4-limited-mode",
   "workspace_input_revision": "7714dff0ff0eeb3ce35c094fb1e29198f60dd9bd",
   "depends_on": [
@@ -21,7 +21,28 @@
     "state/architecture-decision.md",
     "evidence/M0.4-architecture-selection.md"
   ],
-  "tests": [],
+  "tests": [
+    {
+      "command": "jq -e '<assert M0.4 done, LIMITED_MODE, and output revision 7cbf432>' state/task-status.json",
+      "result": "passed"
+    },
+    {
+      "command": "ruby -ryaml -e '<validate M0.3 blocked, M0.4 done, M1.1 ready, and EX-DEFER-M0.3-CROSS>'",
+      "result": "passed; DAG exception and final task states valid"
+    },
+    {
+      "command": "test \"$(rg -c '^Mode: LIMITED_MODE$' state/architecture-decision.md)\" = \"1\"",
+      "result": "passed; exactly one selected mode line"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "rg secret-value, known-token-shape, and email patterns over M0.4 changed files",
+      "result": "passed; no matches"
+    }
+  ],
   "evidence": [
     "evidence/M0.3-continuity-matrix.md",
     "evidence/M0.3-blocker.md",
@@ -43,5 +64,5 @@
     "Tool-side-effect boundaries must prevent replay of interrupted or uncommitted work.",
     "LIMITED_MODE must remain visible in API, logs, UI, and documentation."
   ],
-  "updated_at": "2026-07-16T10:35:00+08:00"
+  "updated_at": "2026-07-16T12:49:36+08:00"
 }
