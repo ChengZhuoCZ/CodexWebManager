@@ -104,3 +104,18 @@ A fresh zero in either quota window is exhausted. Stale, partial, and unavailabl
 cached ratio for scoring and remains an explicit uncertain fallback, so unknown data is not treated
 as either zero or full. Fully occupied, actively cooling, disabled, or explicitly excluded accounts
 are ineligible. M2.2 only returns fixture decisions; it does not route a request or switch accounts.
+
+## Cooldowns, circuit breaking, and restart state
+
+M2.3 exports `createCircuitBreaker()` with distinct bounded policies for quota exhaustion, expired
+authentication, rate limits, network errors, and upstream 5xx failures. An open account rejects
+acquisition until its cooldown boundary, then enters half-open and grants at most the configured
+number of explicit probe leases. Probe success closes the circuit; probe failure reopens it and
+invalidates every outstanding lease. Retry-after input is accepted only for rate limits and is
+clamped to the configured maximum.
+
+`createCircuitStateStore()` atomically writes versioned state through a private temporary file and
+rename. It requires an absolute service-user-owned private directory, rejects symlinked,
+permissive, corrupt, empty, and oversized files, and validates every field before save or restore.
+Probe tokens are runtime-only and never persisted; a restored half-open account starts with zero
+in-flight probes. M2.3 tests use a virtual clock and private temporary directories only.
