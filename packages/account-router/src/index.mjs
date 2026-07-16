@@ -10,6 +10,7 @@ export {
 } from "./circuit-breaker.mjs";
 export { assertLoopbackHost, defaults, loadRuntimeConfig, parsePort } from "./config.mjs";
 export { createHealthHandler } from "./http-handler.mjs";
+export { listProxyRoutes, normalizeProxyRoute, ProxyRouteError } from "./proxy-routes.mjs";
 export { createQuotaSnapshotAdapter } from "./quota-snapshot.mjs";
 export { redactForLog, REDACTED, stringifyLogRecord } from "./redaction.mjs";
 export { createDeterministicScheduler } from "./scheduler.mjs";

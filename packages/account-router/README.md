@@ -136,3 +136,17 @@ Mappings use deterministic inactive-LRU eviction after pruning expired entries. 
 intentionally not restored after a router restart: under `LIMITED_MODE`, loss of this in-memory map
 requires an explicit new backend session (and later bounded rehydration), never forwarding an old
 account's response ID or describing the result as seamless recovery.
+
+## Strict proxy routes
+
+M3.1 exports `normalizeProxyRoute()` and a frozen route registry mirrored by
+`contracts/proxy-routes.json`. Standard HTTP routes accept only the documented Responses,
+Responses compact, and models prefix variants. The clean-room M0.2 observations add exactly three
+backend paths: models over HTTP, Responses over WebSocket, and alpha search over HTTP. Memory and
+all other backend paths remain unallowlisted.
+
+Normalization accepts origin-form request targets only, enforces method and transport per route,
+rejects encoded/dot traversal, absolute/authority targets, fragments, backslashes, control bytes,
+unknown suffixes, and arbitrary queries. Only a bounded plain `client_version` value is preserved
+on model routes. The result contains a relative upstream target and never an origin, host, or
+authority, preventing this layer from becoming an open proxy.

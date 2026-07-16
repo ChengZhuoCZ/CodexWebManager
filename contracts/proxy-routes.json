@@ -1,0 +1,59 @@
+{
+  "version": 1,
+  "routes": [
+    {
+      "route_id": "responses_http",
+      "method": "POST",
+      "transport": "http",
+      "canonical_path": "/v1/responses",
+      "upstream_path": "/v1/responses",
+      "inbound_paths": ["/v1/responses", "/responses", "/v1/v1/responses", "/codex/v1/responses"],
+      "allowed_query_keys": []
+    },
+    {
+      "route_id": "responses_compact",
+      "method": "POST",
+      "transport": "http",
+      "canonical_path": "/v1/responses/compact",
+      "upstream_path": "/v1/responses/compact",
+      "inbound_paths": ["/v1/responses/compact", "/responses/compact", "/v1/v1/responses/compact", "/codex/v1/responses/compact"],
+      "allowed_query_keys": []
+    },
+    {
+      "route_id": "models_http",
+      "method": "GET",
+      "transport": "http",
+      "canonical_path": "/v1/models",
+      "upstream_path": "/v1/models",
+      "inbound_paths": ["/v1/models", "/models", "/v1/v1/models", "/codex/v1/models"],
+      "allowed_query_keys": ["client_version"]
+    },
+    {
+      "route_id": "codex_responses_websocket",
+      "method": "GET",
+      "transport": "websocket",
+      "canonical_path": "/backend-api/codex/responses",
+      "upstream_path": "/backend-api/codex/responses",
+      "inbound_paths": ["/backend-api/codex/responses"],
+      "allowed_query_keys": []
+    },
+    {
+      "route_id": "codex_models",
+      "method": "GET",
+      "transport": "http",
+      "canonical_path": "/backend-api/codex/models",
+      "upstream_path": "/backend-api/codex/models",
+      "inbound_paths": ["/backend-api/codex/models"],
+      "allowed_query_keys": ["client_version"]
+    },
+    {
+      "route_id": "codex_search",
+      "method": "POST",
+      "transport": "http",
+      "canonical_path": "/backend-api/codex/alpha/search",
+      "upstream_path": "/backend-api/codex/alpha/search",
+      "inbound_paths": ["/backend-api/codex/alpha/search"],
+      "allowed_query_keys": []
+    }
+  ]
+}
