@@ -1,0 +1,227 @@
+import assert from "node:assert/strict";
+import { spawn, spawnSync } from "node:child_process";
+import { promises as fs } from "node:fs";
+import http from "node:http";
+import os from "node:os";
+import path from "node:path";
+import test from "node:test";
+import {
+  applyStatusBridge,
+  EXPECTED_CODEX_WEB_REVISION,
+} from "../../../integrations/codex-web/apply-status-bridge.mjs";
+
+const ADMIN_TOKEN = "fixture-admin-token-0123456789";
+const codexWebRoot = process.env.M4_2_CODEX_WEB_ROOT;
+const integrationTest = codexWebRoot && path.isAbsolute(codexWebRoot) ? test : test.skip;
+
+function safeStatus() {
+  return {
+    status: "ready",
+    architecture_mode: "LIMITED_MODE",
+    cross_account_e2e_verified: false,
+    active_streams: 0,
+    current_route: null,
+    accounts: [
+      {
+        alias: "Fixture A",
+        state: "healthy",
+        enabled: true,
+        five_hour_remaining_ratio: 0.5,
+        weekly_remaining_ratio: 0.25,
+        snapshot_observed_at: "2026-07-16T00:00:00.000Z",
+        cooldown_until: null,
+        last_switch_reason: "startup",
+        credential_ref: "must-not-pass",
+      },
+    ],
+    authorization: "must-not-pass",
+  };
+}
+
+async function preparePatchedServer(context) {
+  assert.ok(codexWebRoot && path.isAbsolute(codexWebRoot), "M4_2_CODEX_WEB_ROOT is required");
+  const revision = spawnSync("git", ["-C", codexWebRoot, "rev-parse", "HEAD"], {
+    encoding: "utf8",
+  });
+  assert.equal(revision.status, 0);
+  assert.equal(revision.stdout.trim(), EXPECTED_CODEX_WEB_REVISION);
+  const temporaryRoot = await fs.mkdtemp(path.join(os.tmpdir(), "m4-2-codex-web-"));
+  context.after(() => fs.rm(temporaryRoot, { recursive: true, force: true }));
+  await fs.mkdir(path.join(temporaryRoot, "src", "server"), { recursive: true });
+  for (const relativePath of [
+    "package.json",
+    "src/server/main.ts",
+    "src/server/module.ts",
+    "src/server/tsconfig.json",
+  ]) {
+    const destination = path.join(temporaryRoot, relativePath);
+    await fs.mkdir(path.dirname(destination), { recursive: true });
+    await fs.copyFile(path.join(codexWebRoot, relativePath), destination);
+  }
+  await fs.symlink(path.join(codexWebRoot, "node_modules"), path.join(temporaryRoot, "node_modules"));
+  await applyStatusBridge({
+    codexWebRoot: temporaryRoot,
+    revision: EXPECTED_CODEX_WEB_REVISION,
+  });
+  const harness = `
+import Fastify from "fastify";
+import { registerRouterStatusBridge } from "./router-status-bridge";
+async function main() {
+  const app = Fastify({ logger: false });
+  app.get("/single-account-health", async () => ({ status: "unchanged" }));
+  await registerRouterStatusBridge(app, process.env);
+  const origin = await app.listen({ host: "127.0.0.1", port: 0 });
+  process.stdout.write(JSON.stringify({ origin }) + "\\n");
+  const stop = async () => { await app.close(); process.exit(0); };
+  process.once("SIGTERM", stop);
+  process.once("SIGINT", stop);
+}
+main().catch(() => { process.stderr.write("fixture bridge failed\\n"); process.exit(1); });
+`;
+  await fs.writeFile(path.join(temporaryRoot, "src", "server", "bridge-harness.ts"), harness);
+  const build = spawnSync(
+    process.execPath,
+    [path.join(codexWebRoot, "node_modules", "typescript", "bin", "tsc")],
+    { cwd: path.join(temporaryRoot, "src", "server"), encoding: "utf8" },
+  );
+  assert.equal(build.status, 0, `${build.stdout}\n${build.stderr}`);
+  const patchedMain = await fs.readFile(path.join(temporaryRoot, "src", "server", "main.ts"), "utf8");
+  assert.match(patchedMain, /registerRouterStatusBridge/);
+  return {
+    temporaryRoot,
+    harness: path.join(temporaryRoot, "src", "server", "bridge-harness.js"),
+  };
+}
+
+function startHarness(context, harness, cwd, environment = {}) {
+  const child = spawn(process.execPath, [harness], {
+    cwd,
+    env: { ...process.env, ...environment },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  let stderr = "";
+  child.stderr.setEncoding("utf8");
+  child.stderr.on("data", (chunk) => { stderr += chunk; });
+  const exit = new Promise((resolve) => child.once("exit", (code, signal) => resolve({ code, signal })));
+  context.after(async () => {
+    if (child.exitCode === null && child.signalCode === null) {
+      child.kill("SIGTERM");
+      await exit;
+    }
+  });
+  const origin = new Promise((resolve, reject) => {
+    let stdout = "";
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk;
+      const boundary = stdout.indexOf("\n");
+      if (boundary === -1) return;
+      try {
+        resolve(JSON.parse(stdout.slice(0, boundary)).origin);
+      } catch {
+        reject(new Error("fixture bridge readiness was invalid"));
+      }
+    });
+    exit.then(({ code }) => reject(new Error(`fixture bridge exited ${code}: ${stderr}`)));
+  });
+  return { child, exit, origin };
+}
+
+integrationTest("pinned codex-web overlay builds and remains disabled without router configuration", async (context) => {
+  const prepared = await preparePatchedServer(context);
+  const fixture = startHarness(context, prepared.harness, prepared.temporaryRoot);
+  const origin = await fixture.origin;
+  const standard = await fetch(`${origin}/single-account-health`);
+  assert.equal(standard.status, 200);
+  assert.deepEqual(await standard.json(), { status: "unchanged" });
+  const status = await fetch(`${origin}/__backend/codex-router/status`);
+  assert.equal(status.status, 404);
+  assert.deepEqual(await status.json(), { enabled: false });
+  const events = await fetch(`${origin}/__backend/codex-router/events`);
+  assert.equal(events.status, 404);
+  assert.deepEqual(await events.json(), { enabled: false });
+});
+
+integrationTest("same-origin bridge exposes only sanitized status and switch events", async (context) => {
+  const prepared = await preparePatchedServer(context);
+  const tokenDirectory = await fs.mkdtemp(path.join(os.tmpdir(), "m4-2-admin-token-"));
+  context.after(() => fs.rm(tokenDirectory, { recursive: true, force: true }));
+  await fs.chmod(tokenDirectory, 0o700);
+  const tokenFile = path.join(tokenDirectory, "admin-token");
+  await fs.writeFile(tokenFile, ADMIN_TOKEN, { mode: 0o600 });
+  await fs.chmod(tokenFile, 0o600);
+  const observed = [];
+  const admin = http.createServer((request, response) => {
+    observed.push({
+      path: request.url,
+      authorizationMatches: request.headers.authorization === `Bearer ${ADMIN_TOKEN}`,
+      cursor: request.headers["last-event-id"] ?? null,
+    });
+    if (request.url === "/v1/status") {
+      response.writeHead(200, { "content-type": "application/json" });
+      response.end(JSON.stringify(safeStatus()));
+      return;
+    }
+    if (request.url === "/v1/events") {
+      const data = {
+        from_alias: null,
+        to_alias: "Fixture A",
+        reason: "manual",
+        continuity: "new_backend_session",
+        architecture_mode: "LIMITED_MODE",
+        timestamp: "2026-07-16T00:00:01.000Z",
+        token: "must-not-pass",
+      };
+      response.writeHead(200, { "content-type": "text/event-stream" });
+      response.end(`id: 9\nevent: router.switch\ndata: ${JSON.stringify(data)}\n\n`);
+      return;
+    }
+    response.writeHead(404).end();
+  });
+  await new Promise((resolve, reject) => {
+    admin.once("error", reject);
+    admin.listen(0, "127.0.0.1", resolve);
+  });
+  context.after(() => new Promise((resolve) => admin.close(resolve)));
+  const address = admin.address();
+  assert.ok(address && typeof address !== "string");
+
+  const fixture = startHarness(context, prepared.harness, prepared.temporaryRoot, {
+    CODEX_ROUTER_ADMIN_ORIGIN: `http://127.0.0.1:${address.port}`,
+    CODEX_ROUTER_ADMIN_TOKEN_FILE: tokenFile,
+  });
+  const origin = await fixture.origin;
+  const status = await fetch(`${origin}/__backend/codex-router/status`);
+  assert.equal(status.status, 200);
+  const statusBody = await status.json();
+  assert.equal(statusBody.router.accounts[0].alias, "Fixture A");
+  assert.doesNotMatch(JSON.stringify(statusBody), /must-not-pass|credential_ref|authorization|token/i);
+
+  const events = await fetch(`${origin}/__backend/codex-router/events`, {
+    headers: { "last-event-id": "8" },
+  });
+  assert.equal(events.status, 200);
+  const eventText = await events.text();
+  assert.match(eventText, /event: router\.switch/);
+  assert.match(eventText, /"to_alias":"Fixture A"/);
+  assert.doesNotMatch(eventText, /must-not-pass|token/i);
+  assert.deepEqual(observed, [
+    { path: "/v1/status", authorizationMatches: true, cursor: null },
+    { path: "/v1/events", authorizationMatches: true, cursor: "8" },
+  ]);
+});
+
+test("overlay application rejects unpinned and structurally changed codex-web sources", async (context) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "m4-2-overlay-reject-"));
+  context.after(() => fs.rm(root, { recursive: true, force: true }));
+  await fs.mkdir(path.join(root, "src", "server"), { recursive: true });
+  await fs.writeFile(path.join(root, "src", "server", "main.ts"), "changed");
+  await assert.rejects(
+    applyStatusBridge({ codexWebRoot: root, revision: "different" }),
+    /revision is not supported/,
+  );
+  await assert.rejects(
+    applyStatusBridge({ codexWebRoot: root, revision: EXPECTED_CODEX_WEB_REVISION }),
+    /does not match the pinned revision/,
+  );
+});

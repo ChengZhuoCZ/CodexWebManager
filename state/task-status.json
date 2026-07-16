@@ -1,95 +1,40 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M4.1",
-  "status": "blocked",
+  "current_task": "M4.2",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-DEFER-M0.3-CROSS",
   "input_revisions": {
-    "workspace": "c250cc880c2193d538cba7e8649edf3d5df68f47",
+    "workspace": "06e84543c29d4b5042f5caaa366ac9aeb6a9a2b8",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2"
   },
-  "output_revision": "03ae53ef3620825c661b9ca9dfd5365cc8d13cde",
-  "output_revision_note": "Commit 03ae53e implements and verifies unchanged codex-web integration for one authorized account; this state commit records the mandatory approved same-page account-switch blocker. M4.2 is ready for development-only work under EX-DEFER-M0.3-CROSS.",
-  "workspace_branch": "codex/m4-1-codex-web-compatibility",
-  "workspace_input_revision": "c250cc880c2193d538cba7e8649edf3d5df68f47",
-  "depends_on": ["M3.5"],
+  "output_revision": null,
+  "output_revision_note": "Pending M4.2 optional sanitized status bridge implementation and evidence.",
+  "workspace_branch": "codex/m4-2-account-status-bridge",
+  "workspace_input_revision": "06e84543c29d4b5042f5caaa366ac9aeb6a9a2b8",
+  "depends_on": ["M4.1", "M1.3"],
   "expected_outputs": [
-    "docs/codex-web-router-configuration.md",
-    "evidence/M4.1-codex-web-compatibility.md",
-    "evidence/M4.1/browser-ui-summary.json",
-    "evidence/M4.1/codex-web-browser-summary.jsonl",
-    "evidence/M4.1/codex-web-smoke-summary.jsonl",
-    "packages/account-router/README.md",
-    "packages/account-router/bin/codex-router-cli.mjs",
-    "packages/account-router/package.json",
-    "packages/account-router/scripts/run-codex-web-integration.mjs",
-    "packages/account-router/test/codex-web-integration.test.mjs"
+    "evidence/M4.2-account-status-bridge.md",
+    "packages/account-router/src/status-bridge.mjs",
+    "packages/account-router/test/status-bridge.test.mjs",
+    "integrations/codex-web/"
   ],
-  "tests": [
-    {
-      "command": "node --test test/codex-web-integration.test.mjs before implementation",
-      "result": "expected red state; 0 passed and 3 failed with ENOENT for bin/codex-router-cli.mjs, duration 38.962083 ms"
-    },
-    {
-      "command": "node --test test/codex-web-integration.test.mjs",
-      "result": "passed; 4 tests passed, 0 failed, duration 1051.772875 ms"
-    },
-    {
-      "command": "M4_1_MODE=smoke M4_1_CODEX_WEB_ROOT=<pinned-checkout> M4_1_EVIDENCE_DIR=<repo>/evidence/M4.1 M4_1_SUMMARY_LOG=<repo>/evidence/M4.1/codex-web-smoke-summary.jsonl <bundled-node> scripts/run-codex-web-integration.mjs",
-      "result": "passed with exit code 0 after isolating HOME, XDG_CONFIG_HOME and CODEX_HOME; pinned tracked diff clean, router and codex-web started, GET / returned 200 text/html, no switch executed"
-    },
-    {
-      "command": "M4_1_MODE=serve with in-app browser verification against the emitted loopback URL",
-      "result": "passed with exit code 0; onboarding and navigation rendered, New task opened, exact M41READY fixture response appeared once, /thread route was entered, and reload preserved exactly one fixture response"
-    },
-    {
-      "command": "git -C <pinned-codex-web> rev-parse HEAD; git -C <pinned-codex-web> diff --quiet --exit-code",
-      "result": "passed; exact revision 888692f7d885118c6a92bbaf60cf2121f5947adf and no tracked changes"
-    },
-    {
-      "command": "cd packages/account-router; PATH=<bundled-node-and-pnpm> pnpm run check",
-      "result": "passed; all production modules, integration harnesses, and selected tests parsed"
-    },
-    {
-      "command": "cd packages/account-router; <bundled-node> --test",
-      "result": "passed; 149 tests passed, 0 failed, duration 2278.310708 ms"
-    },
-    {
-      "command": "scan M4.1 production, documentation, and evidence scope for private keys, known token shapes, bearer values, refresh-token assignments, and email addresses",
-      "result": "passed; no matches"
-    },
-    {
-      "command": "git diff --check",
-      "result": "passed"
-    }
-  ],
-  "evidence": [
-    "docs/codex-web-router-configuration.md",
-    "evidence/M4.1-codex-web-compatibility.md",
-    "evidence/M4.1/browser-ui-summary.json",
-    "evidence/M4.1/codex-web-browser-summary.jsonl",
-    "evidence/M4.1/codex-web-smoke-summary.jsonl",
-    "packages/account-router/test/codex-web-integration.test.mjs"
-  ],
+  "tests": [],
+  "evidence": [],
   "observations": {
-    "unchanged_upstream": "The integration used the exact pinned codex-web commit with a clean tracked diff; only pre-existing untracked generated build outputs were present.",
-    "launch_contract": "CODEX_CLI_PATH points to a fail-closed wrapper that permits only --version and app-server and injects the exact loopback router model base URL.",
-    "browser_functionality": "With one user-authorized account, the unchanged UI created a fixture task, rendered the exact model reply, entered a thread route, and retained the reply after page reload.",
-    "privacy": "Router, Codex, UI and configuration homes were isolated; raw child logs, account profile text, thread ID, prompt body and response stream were not persisted.",
-    "cross_account_gate": "The same-browser-page approved account-switch scenario remains mandatory and unrun because this device has one user-authorized Codex account."
+    "task_scope": "Provide an optional codex-web-facing bridge for router status and events using only the sanitized M1.3 admin contract.",
+    "default_boundary": "The standard codex-web single-account path must be byte-for-byte behaviorally unchanged when router bridge configuration is absent.",
+    "dependency_exception": "M4.1 is blocked only on its approved account-switch row; EX-DEFER-M0.3-CROSS permits M4.2 development without waiving that row.",
+    "privacy": "The bridge must never forward the admin bearer token, internal account IDs, credential bindings, raw quotas, child logs, or upstream bodies."
   },
-  "blockers": [
-    "A second distinct user-authorized Codex account is unavailable, so the M4.1 same-page safe-switch acceptance row cannot run."
-  ],
+  "blockers": [],
   "residual_risks": [
-    "M4.1 cannot be marked done without the approved account-switch E2E.",
-    "Same-account UI operation and page reload do not prove that an active or historical upstream response chain moves between accounts.",
-    "The serve-mode codex-web process emitted high-volume raw diagnostic lines; the harness did not persist them, but production log-volume controls remain future hardening work.",
-    "Future codex-web versions may add Codex CLI probes beyond --version or change App Server launch arguments and will require an explicit wrapper compatibility update.",
+    "The M4.2 bridge cannot be treated as account-switch continuity evidence.",
+    "M4.3 UI remains a separate task and must consume only this sanitized boundary.",
     "No seamless cross-account conversation-continuity claim is permitted."
   ],
-  "updated_at": "2026-07-16T19:50:55+08:00"
+  "updated_at": "2026-07-16T19:53:02+08:00"
 }

@@ -194,7 +194,7 @@ milestones:
           - Document exact app-server/router configuration
       - id: M4.2
         title: Add optional account status bridge
-        status: ready
+        status: in_progress
         depends_on: [M4.1, M1.3]
         acceptance:
           - codex-web receives only sanitized status/events

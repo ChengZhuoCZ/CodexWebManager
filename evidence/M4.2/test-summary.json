@@ -1,0 +1,64 @@
+{
+  "task": "M4.2",
+  "recorded_at": "2026-07-16T20:10:21+08:00",
+  "implementation_mode": "clean-room",
+  "account_switch_scenario_executed": false,
+  "input_workspace_revision": "06e84543c29d4b5042f5caaa366ac9aeb6a9a2b8",
+  "input_codex_web_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf",
+  "results": [
+    {
+      "stage": "test_first",
+      "command": "<bundled-node> --test packages/account-router/test/status-bridge.test.mjs",
+      "exit_code": 1,
+      "output": "Expected red state: ERR_MODULE_NOT_FOUND for src/status-bridge.mjs; 0 implementation tests passed."
+    },
+    {
+      "stage": "core_bridge",
+      "command": "<bundled-node> --test packages/account-router/test/status-bridge.test.mjs",
+      "exit_code": 0,
+      "output": "8 tests passed, 0 failed, duration 117.963083 ms."
+    },
+    {
+      "stage": "adapter_compile_first",
+      "command": "M4_2_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test packages/account-router/test/codex-web-status-bridge.test.mjs",
+      "exit_code": 1,
+      "output": "Expected adapter red state after initial implementation: TypeScript rejected a number-or-bigint mode operation; 1 test passed and 2 failed."
+    },
+    {
+      "stage": "adapter_integration",
+      "command": "M4_2_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test packages/account-router/test/codex-web-status-bridge.test.mjs",
+      "exit_code": 0,
+      "output": "Pinned overlay build, disabled-mode regression, sanitized same-origin status/SSE, and pin rejection passed; 3 tests passed, 0 failed, duration 1313.549375 ms."
+    },
+    {
+      "stage": "focused_regression",
+      "command": "M4_2_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test packages/account-router/test/status-bridge.test.mjs packages/account-router/test/codex-web-status-bridge.test.mjs",
+      "exit_code": 0,
+      "output": "11 tests passed, 0 failed, duration 1397.300125 ms."
+    },
+    {
+      "stage": "syntax_check",
+      "command": "cd packages/account-router && PATH=<bundled-node-and-pnpm> pnpm run check",
+      "exit_code": 0,
+      "output": "All production modules, harnesses, and selected tests parsed successfully."
+    },
+    {
+      "stage": "full_regression",
+      "command": "cd packages/account-router && M4_2_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test",
+      "exit_code": 0,
+      "output": "160 tests passed, 0 failed, 0 skipped, duration 2342.754125 ms."
+    },
+    {
+      "stage": "upstream_integrity",
+      "command": "git -C <pinned-codex-web> rev-parse HEAD && git -C <pinned-codex-web> diff --quiet --exit-code",
+      "exit_code": 0,
+      "output": "Revision remained 888692f7d885118c6a92bbaf60cf2121f5947adf with no tracked changes."
+    },
+    {
+      "stage": "secret_and_format_scan",
+      "command": "git diff --check; scan M4.2 scope for private-key, known token, JWT, and email patterns",
+      "exit_code": 0,
+      "output": "No whitespace errors and no secret-pattern matches."
+    }
+  ]
+}

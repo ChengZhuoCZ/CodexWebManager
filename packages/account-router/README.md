@@ -80,6 +80,17 @@ are bounded, unknown fields fail closed, and manual switch requests are rejected
 stream is active. The M1.3 tests use fixture accounts and an injected callback only; they do not
 access or switch any real account.
 
+## Optional codex-web status bridge
+
+M4.2 exports `createStatusBridge()` and `createPrivateFileTokenConsumer()` as a second validation
+boundary in front of the admin API. The bridge is inert when unconfigured, accepts only an exact
+HTTP loopback admin origin, applies bounded requests and SSE frames, and copies status and switch
+events through explicit field whitelists. The admin bearer token remains server-side.
+
+The pinned codex-web overlay, deployment variables, and reserved same-origin endpoints are
+documented in `../../integrations/codex-web/README.md`. This is an optional status surface only; it
+does not establish or claim cross-account conversation continuity.
+
 ## Account and secret boundary
 
 M1.2 keeps the two data classes separate:

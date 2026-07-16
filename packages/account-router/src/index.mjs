@@ -53,5 +53,12 @@ export {
   SecretProviderRegistry,
 } from "./secrets.mjs";
 export { createRouterService, SERVICE_STATES } from "./service.mjs";
+export {
+  createPrivateFileTokenConsumer,
+  createStatusBridge,
+  sanitizeRouterStatus,
+  sanitizeRouterSwitchEvent,
+  StatusBridgeError,
+} from "./status-bridge.mjs";
 export { createCircuitStateStore } from "./state-store.mjs";
 export { createEventBroker } from "./event-broker.mjs";
