@@ -41,14 +41,20 @@ jobs:
           --arch x64
           --output artifacts/release
 
-      - name: Install isolated fixture stack
+      - name: Provision isolated service identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo install -m 0644 systemd/codex-stack.sysusers.conf /usr/lib/sysusers.d/codex-stack.conf
+          sudo install -m 0644 systemd/codex-stack.tmpfiles.conf /usr/lib/tmpfiles.d/codex-stack.conf
+          sudo systemd-sysusers /usr/lib/sysusers.d/codex-stack.conf
+          sudo systemd-tmpfiles --create /usr/lib/tmpfiles.d/codex-stack.conf
+
+      - name: Install router release
         shell: bash
         run: |
           set -euo pipefail
           sudo ln -sfn "$(command -v node)" /usr/bin/node
-          sudo systemd-sysusers systemd/codex-stack.sysusers.conf
-          sudo systemd-tmpfiles --create systemd/codex-stack.tmpfiles.conf
-
           release_version=$(node -p "require('./packages/account-router/package.json').version")
           archive="artifacts/release/codex-account-router-${release_version}-linux-x64.tar.gz"
           extract_root=$(mktemp -d)
@@ -56,6 +62,10 @@ jobs:
           sudo env NODE_BINARY=/usr/bin/node \
             sh "$extract_root/codex-account-router-${release_version}-linux-x64/install.sh"
 
+      - name: Install fixture services and units
+        shell: bash
+        run: |
+          set -euo pipefail
           sudo install -m 0755 \
             packages/account-router/fixtures/systemd/fake-codex.mjs \
             /usr/local/bin/codex
@@ -64,9 +74,11 @@ jobs:
             /opt/codex-web/src/server/main.js
 
           sudo install -m 0644 systemd/*.service systemd/*.target /etc/systemd/system/
-          sudo install -m 0644 systemd/codex-stack.sysusers.conf /usr/lib/sysusers.d/codex-stack.conf
-          sudo install -m 0644 systemd/codex-stack.tmpfiles.conf /usr/lib/tmpfiles.d/codex-stack.conf
 
+      - name: Provision ephemeral fixture credentials
+        shell: bash
+        run: |
+          set -euo pipefail
           printf '%s\n' '{"version":1,"accounts":[]}' | sudo tee /etc/codex-account-router/accounts.json >/dev/null
           sudo chown codex:codex /etc/codex-account-router/accounts.json
           sudo chmod 0600 /etc/codex-account-router/accounts.json
@@ -75,6 +87,10 @@ jobs:
           sudo chmod 0600 /etc/codex-account-router/credentials/admin-token
           sudo chmod 0600 /etc/codex-account-router/credentials/app-server-auth.json
 
+      - name: Verify installed unit syntax
+        shell: bash
+        run: |
+          set -euo pipefail
           sudo systemctl daemon-reload
           sudo systemd-analyze verify \
             /etc/systemd/system/codex-account-router.service \
