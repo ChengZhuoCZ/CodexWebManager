@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M4.1",
-  "status": "in_progress",
+  "status": "blocked",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-DEFER-M0.3-CROSS",
@@ -11,8 +11,8 @@
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2"
   },
-  "output_revision": null,
-  "output_revision_note": "Pending the M4.1 implementation commit and blocked-state record.",
+  "output_revision": "03ae53ef3620825c661b9ca9dfd5365cc8d13cde",
+  "output_revision_note": "Commit 03ae53e implements and verifies unchanged codex-web integration for one authorized account; this state commit records the mandatory approved same-page account-switch blocker. M4.2 is ready for development-only work under EX-DEFER-M0.3-CROSS.",
   "workspace_branch": "codex/m4-1-codex-web-compatibility",
   "workspace_input_revision": "c250cc880c2193d538cba7e8649edf3d5df68f47",
   "depends_on": ["M3.5"],
@@ -91,5 +91,5 @@
     "Future codex-web versions may add Codex CLI probes beyond --version or change App Server launch arguments and will require an explicit wrapper compatibility update.",
     "No seamless cross-account conversation-continuity claim is permitted."
   ],
-  "updated_at": "2026-07-16T19:46:58+08:00"
+  "updated_at": "2026-07-16T19:50:55+08:00"
 }

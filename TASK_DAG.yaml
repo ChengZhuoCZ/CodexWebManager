@@ -186,7 +186,7 @@ milestones:
     tasks:
       - id: M4.1
         title: Run codex-web unchanged against router
-        status: in_progress
+        status: blocked
         depends_on: [M3.5]
         acceptance:
           - Same browser page survives a safe account switch
@@ -194,7 +194,7 @@ milestones:
           - Document exact app-server/router configuration
       - id: M4.2
         title: Add optional account status bridge
-        status: pending
+        status: ready
         depends_on: [M4.1, M1.3]
         acceptance:
           - codex-web receives only sanitized status/events
