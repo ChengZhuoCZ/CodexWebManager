@@ -95,7 +95,7 @@ milestones:
           - File permissions and redaction tests pass
       - id: M1.3
         title: Implement admin and event API
-        status: in_progress
+        status: done
         depends_on: [M1.1]
         acceptance:
           - Status, account aliases, current route and switch events available
@@ -107,7 +107,7 @@ milestones:
     tasks:
       - id: M2.1
         title: Implement quota snapshot adapter
-        status: pending
+        status: ready
         depends_on: [M1.2]
         acceptance:
           - Supports 5-hour and weekly windows
