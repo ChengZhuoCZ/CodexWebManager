@@ -22,7 +22,3 @@
 {"timestamp":"2026-07-16T02:15:19.486Z","kind":"upstream_event","account_alias":"account-a","event_type":"response.content_part.done","semantic":true}
 {"timestamp":"2026-07-16T02:15:19.486Z","kind":"upstream_event","account_alias":"account-a","event_type":"response.output_item.done","semantic":true}
 {"timestamp":"2026-07-16T02:15:19.611Z","kind":"upstream_event","account_alias":"account-a","event_type":"response.completed","semantic":false}
-{"timestamp":"2026-07-16T02:17:34.376Z","kind":"identity_headers_captured","account_alias":"account-a","header_names":["authorization","chatgpt-account-id"]}
-{"timestamp":"2026-07-16T02:20:35.840Z","kind":"identity_headers_captured","account_alias":"account-a","header_names":["authorization","chatgpt-account-id"]}
-{"timestamp":"2026-07-16T02:23:40.467Z","kind":"identity_headers_captured","account_alias":"account-a","header_names":["authorization","chatgpt-account-id"]}
-{"timestamp":"2026-07-16T02:26:43.171Z","kind":"identity_headers_captured","account_alias":"account-a","header_names":["authorization","chatgpt-account-id"]}

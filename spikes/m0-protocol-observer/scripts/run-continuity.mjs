@@ -440,28 +440,32 @@ async function runTwoTurnScenario({
 async function runRestartResumeScenario({ homeA, fixtureDirectory }) {
   const beforeLog = path.join(evidenceDirectory, "restart-resume-before-relay.jsonl");
   const afterLog = path.join(evidenceDirectory, "restart-resume-after-relay.jsonl");
-  let relay = await createContinuityRelay({
-    upstreamOrigin,
-    logPath: beforeLog,
-    routePlan: [{ accountAlias: "account-a" }, { accountAlias: "account-a" }],
-  });
-  const relayPort = relay.address.port;
-  let client = await startClient({ home: homeA, fixtureDirectory, relay, alias: "account-a" });
-  const token = fixtureToken();
-  const threadId = await client.startThread({ ephemeral: false });
-  const first = await client.runTurn(threadId, firstTurnPrompt(token), { expectedText: "READY" });
-  const firstStderrLines = client.stderrLineCount;
-  await client.stop();
-  await relay.close();
-
-  relay = await createContinuityRelay({
-    upstreamOrigin,
-    logPath: afterLog,
-    routePlan: [{ accountAlias: "account-a" }, { accountAlias: "account-a" }],
-    port: relayPort,
-  });
-  client = await startClient({ home: homeA, fixtureDirectory, relay, alias: "account-a" });
+  let relay;
+  let client;
   try {
+    relay = await createContinuityRelay({
+      upstreamOrigin,
+      logPath: beforeLog,
+      routePlan: [{ accountAlias: "account-a" }, { accountAlias: "account-a" }],
+    });
+    const relayPort = relay.address.port;
+    client = await startClient({ home: homeA, fixtureDirectory, relay, alias: "account-a" });
+    const token = fixtureToken();
+    const threadId = await client.startThread({ ephemeral: false });
+    const first = await client.runTurn(threadId, firstTurnPrompt(token), { expectedText: "READY" });
+    const firstStderrLines = client.stderrLineCount;
+    await client.stop();
+    client = null;
+    await relay.close();
+    relay = null;
+
+    relay = await createContinuityRelay({
+      upstreamOrigin,
+      logPath: afterLog,
+      routePlan: [{ accountAlias: "account-a" }, { accountAlias: "account-a" }],
+      port: relayPort,
+    });
+    client = await startClient({ home: homeA, fixtureDirectory, relay, alias: "account-a" });
     await client.resumeThread(threadId);
     const second = await client.runTurn(threadId, recallPrompt(), { expectedText: token });
     await relay.flush();
@@ -490,8 +494,11 @@ async function runRestartResumeScenario({ homeA, fixtureDirectory }) {
     await emit(result);
     return result;
   } finally {
-    await client.stop();
-    await relay.close();
+    try {
+      await client?.stop();
+    } finally {
+      await relay?.close();
+    }
   }
 }
 
