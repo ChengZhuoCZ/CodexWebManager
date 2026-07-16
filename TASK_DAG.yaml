@@ -107,7 +107,7 @@ milestones:
     tasks:
       - id: M2.1
         title: Implement quota snapshot adapter
-        status: in_progress
+        status: done
         depends_on: [M1.2]
         acceptance:
           - Supports 5-hour and weekly windows
@@ -115,7 +115,7 @@ milestones:
           - Handles unavailable quota data without guessing zero or full
       - id: M2.2
         title: Implement deterministic scheduler
-        status: pending
+        status: ready
         depends_on: [M2.1]
         acceptance:
           - Deterministic selection for equal inputs

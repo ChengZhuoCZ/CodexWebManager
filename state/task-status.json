@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M2.1",
-  "status": "in_progress",
+  "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "input_revisions": {
@@ -10,8 +10,8 @@
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2"
   },
-  "output_revision": null,
-  "output_revision_note": "Pending the M2.1 quota snapshot adapter commit.",
+  "output_revision": "e9ff72c2bab763628ced761d12ee74f3106ab894",
+  "output_revision_note": "e9ff72c implements and tests M2.1; this state commit records completion.",
   "workspace_branch": "codex/m2-1-quota-snapshot",
   "workspace_input_revision": "c11fd7924c4eb4d73e1c4570a1a06716760a4002",
   "depends_on": ["M1.2"],
@@ -20,18 +20,54 @@
     "packages/account-router/test/quota-snapshot.test.mjs",
     "contracts/quota-snapshot.schema.json"
   ],
-  "tests": [],
-  "evidence": [],
+  "tests": [
+    {
+      "command": "node --test test/quota-snapshot.test.mjs before implementation",
+      "result": "expected failure; 1 ERR_MODULE_NOT_FOUND failure proved the test preceded implementation"
+    },
+    {
+      "command": "node --check src/quota-snapshot.mjs test/quota-snapshot.test.mjs",
+      "result": "passed; 0 syntax failures"
+    },
+    {
+      "command": "node --test test/quota-snapshot.test.mjs",
+      "result": "passed; 7 tests passed, 0 failed, duration 39.111875 ms"
+    },
+    {
+      "command": "cd packages/account-router; node --test",
+      "result": "passed; 51 tests passed, 0 failed, duration 166.996958 ms"
+    },
+    {
+      "command": "Node JSON.parse contracts/quota-snapshot.schema.json and state/task-status.json",
+      "result": "passed"
+    },
+    {
+      "command": "scan production M2.1 scope for private keys, known token shapes, bearer values, and email addresses",
+      "result": "passed; no matches"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "evidence": [
+    "evidence/M2.1-quota-snapshot-adapter.md",
+    "contracts/quota-snapshot.schema.json",
+    "packages/account-router/test/quota-snapshot.test.mjs"
+  ],
   "observations": {
-    "test_strategy": "Test-first with a virtual clock and fixture-only upstream quota shapes.",
-    "scope": "Normalize five-hour and weekly windows, observation time, confidence, and staleness without real account access.",
-    "deferred_gate": "No live quota endpoint or real account switching will be tested."
+    "windows": "Canonical snapshots always include five_hour and weekly windows.",
+    "freshness": "Snapshots retain attempted_at and observed_at, compute age/staleness against a bounded threshold, and support virtual-clock re-evaluation.",
+    "confidence": "Each window has an explicit confidence and the aggregate uses the most conservative value.",
+    "unavailable_data": "Missing, throwing, ambiguous, future-skewed, or malformed observations produce null ratios with unknown confidence instead of zero or full.",
+    "deferred_gate": "All inputs were fixture observations; no live quota source or real account was accessed."
   },
   "blockers": [],
   "residual_risks": [
     "Real upstream quota shape compatibility remains unverified until an authorized account test.",
+    "The provider-specific translator from a future live quota response must map into the strict canonical observation contract.",
     "Scheduler scoring and selection remain M2.2.",
     "Cooldown and persistence remain M2.3."
   ],
-  "updated_at": "2026-07-16T16:37:36+08:00"
+  "updated_at": "2026-07-16T16:44:20+08:00"
 }
