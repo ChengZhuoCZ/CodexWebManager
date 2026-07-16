@@ -1,0 +1,48 @@
+{
+  "task": "M4.3",
+  "recorded_at": "2026-07-16T20:36:59+08:00",
+  "browser_surface": "Codex in-app browser",
+  "fixture_only": true,
+  "real_account_accessed": false,
+  "account_switch_scenario_executed": false,
+  "scenarios": [
+    {
+      "name": "active",
+      "panel_attached": true,
+      "panel_visible": true,
+      "panel_width_css_px": 360,
+      "panel_height_css_px": 530,
+      "aliases": ["Fixture A", "Fixture B"],
+      "button_count": 2,
+      "all_buttons_disabled": true,
+      "visible_evidence": [
+        "Manual switching is unavailable while a response is streaming.",
+        "5-hour quota 76%",
+        "Weekly quota Unavailable",
+        "Cooldown Until 2026-07-16T01:00:00.000Z",
+        "Last switch Rate limited",
+        "Cross-account continuity is not verified."
+      ],
+      "switch_request_count": 0
+    },
+    {
+      "name": "exhausted",
+      "panel_attached": true,
+      "panel_visible": true,
+      "panel_width_css_px": 360,
+      "panel_height_css_px": 495,
+      "button_count": 2,
+      "all_buttons_disabled": true,
+      "all_exhausted_message_visible": true,
+      "zero_quota_values_visible": true,
+      "continuity_limitation_visible": true,
+      "switch_request_count": 0
+    },
+    {
+      "name": "disabled",
+      "fixture_ready": true,
+      "panel_attached": false,
+      "switch_request_count": 0
+    }
+  ]
+}

@@ -1,0 +1,76 @@
+{
+  "task": "M4.3",
+  "recorded_at": "2026-07-16T20:36:59+08:00",
+  "implementation_mode": "clean-room",
+  "account_switch_scenario_executed": false,
+  "input_workspace_revision": "42ca3d157bb19d02182e156c172b9fbd3f9f1c2f",
+  "input_codex_web_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf",
+  "results": [
+    {
+      "stage": "ui_test_first",
+      "command": "M4_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test packages/account-router/test/codex-web-account-ui.test.mjs",
+      "exit_code": 1,
+      "output": "Expected red state: router-account-panel.ts was absent; 0 passed and 4 failed, duration 565.454375 ms."
+    },
+    {
+      "stage": "ui_model",
+      "command": "M4_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test packages/account-router/test/codex-web-account-ui.test.mjs",
+      "exit_code": 0,
+      "output": "Initial view-model tests passed; 4 passed, 0 failed, duration 816.121042 ms."
+    },
+    {
+      "stage": "server_guard_test_first",
+      "command": "M4_2_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test packages/account-router/test/codex-web-status-bridge.test.mjs",
+      "exit_code": 1,
+      "output": "Expected red state: switch route absent; 1 passed and 2 failed, duration 1392.418333 ms."
+    },
+    {
+      "stage": "focused_regression",
+      "command": "M4_2_CODEX_WEB_ROOT=<pinned-checkout> M4_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test packages/account-router/test/codex-web-account-ui.test.mjs packages/account-router/test/codex-web-status-bridge.test.mjs",
+      "exit_code": 0,
+      "output": "UI model, temporary Vite bundle, pinned installer, disabled mode, sanitized status/SSE, and active-stream switch rejection passed; 9 passed, 0 failed, duration 1591.110583 ms."
+    },
+    {
+      "stage": "fixture_smoke",
+      "command": "run-codex-web-account-ui.mjs in active, exhausted, and disabled smoke scenarios",
+      "exit_code": 0,
+      "output": "All three loopback fixture scenarios passed; each recorded switch_request_count 0 and account_switch_scenario_executed false."
+    },
+    {
+      "stage": "browser_render",
+      "command": "run-codex-web-account-ui.mjs serve scenarios plus in-app browser DOM/layout inspection",
+      "exit_code": 0,
+      "output": "Active, all-exhausted, and disabled rendering checks passed; exact observations are in browser-ui-summary.json and all switch_request_count values are 0."
+    },
+    {
+      "stage": "full_regression_first",
+      "command": "cd packages/account-router; M4_2_CODEX_WEB_ROOT=<pinned-checkout> M4_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test",
+      "exit_code": 1,
+      "output": "Path-independence defect exposed by package working directory; 161 passed and 5 failed, duration 2414.273417 ms."
+    },
+    {
+      "stage": "full_regression_final",
+      "command": "cd packages/account-router; M4_2_CODEX_WEB_ROOT=<pinned-checkout> M4_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test",
+      "exit_code": 0,
+      "output": "166 tests passed, 0 failed, 0 skipped, duration 2424.581292 ms."
+    },
+    {
+      "stage": "syntax_check",
+      "command": "cd packages/account-router; PATH=<bundled-node-and-pnpm> pnpm run check",
+      "exit_code": 0,
+      "output": "All production modules, harnesses, and selected tests parsed successfully."
+    },
+    {
+      "stage": "upstream_integrity",
+      "command": "git -C <pinned-codex-web> rev-parse HEAD; git -C <pinned-codex-web> diff --quiet --exit-code",
+      "exit_code": 0,
+      "output": "Revision remained 888692f7d885118c6a92bbaf60cf2121f5947adf with no tracked changes."
+    },
+    {
+      "stage": "secret_and_format_scan",
+      "command": "git diff --check; scan M4.3 scope for private-key, known-token, JWT, and email patterns",
+      "exit_code": 0,
+      "output": "No whitespace errors and no secret-pattern matches."
+    }
+  ]
+}

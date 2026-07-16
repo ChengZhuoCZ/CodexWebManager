@@ -87,9 +87,11 @@ boundary in front of the admin API. The bridge is inert when unconfigured, accep
 HTTP loopback admin origin, applies bounded requests and SSE frames, and copies status and switch
 events through explicit field whitelists. The admin bearer token remains server-side.
 
-The pinned codex-web overlay, deployment variables, and reserved same-origin endpoints are
-documented in `../../integrations/codex-web/README.md`. This is an optional status surface only; it
-does not establish or claim cross-account conversation continuity.
+The pinned codex-web overlay, deployment variables, reserved same-origin endpoints, and M4.3
+minimal Shadow DOM account panel are documented in `../../integrations/codex-web/README.md`. The
+panel exposes only alias, state, quota windows, cooldown, last switch reason, and the current route.
+It disables manual switching during an active semantic stream and labels any accepted switch as a
+new backend session. It does not establish or claim cross-account conversation continuity.
 
 ## Account and secret boundary
 

@@ -202,7 +202,7 @@ milestones:
           - No regression for standard single-account operation
       - id: M4.3
         title: Add minimal UI
-        status: ready
+        status: in_progress
         depends_on: [M4.2]
         acceptance:
           - Show alias, quota windows, cooldown, last switch reason

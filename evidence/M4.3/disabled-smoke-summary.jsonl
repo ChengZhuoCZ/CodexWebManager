@@ -1,0 +1,2 @@
+{"timestamp":"2026-07-16T12:30:10.316Z","event":"fixture_started","origin":"http://127.0.0.1:60664","mode":"smoke","scenario":"disabled","implementation_mode":"clean-room","account_switch_scenario_executed":false}
+{"timestamp":"2026-07-16T12:30:10.325Z","event":"fixture_finished","signal":"smoke","scenario":"disabled","status_request_count":1,"event_request_count":0,"switch_request_count":0,"account_switch_scenario_executed":false}

@@ -50,6 +50,7 @@ async function preparePatchedServer(context) {
   await fs.mkdir(path.join(temporaryRoot, "src", "server"), { recursive: true });
   for (const relativePath of [
     "package.json",
+    "src/browser/shim.ts",
     "src/server/main.ts",
     "src/server/module.ts",
     "src/server/tsconfig.json",
@@ -87,6 +88,9 @@ main().catch(() => { process.stderr.write("fixture bridge failed\\n"); process.e
   assert.equal(build.status, 0, `${build.stdout}\n${build.stderr}`);
   const patchedMain = await fs.readFile(path.join(temporaryRoot, "src", "server", "main.ts"), "utf8");
   assert.match(patchedMain, /registerRouterStatusBridge/);
+  const patchedShim = await fs.readFile(path.join(temporaryRoot, "src", "browser", "shim.ts"), "utf8");
+  assert.match(patchedShim, /installRouterAccountPanel/);
+  await fs.access(path.join(temporaryRoot, "src", "browser", "router-account-panel.ts"));
   return {
     temporaryRoot,
     harness: path.join(temporaryRoot, "src", "server", "bridge-harness.js"),
@@ -140,6 +144,13 @@ integrationTest("pinned codex-web overlay builds and remains disabled without ro
   const events = await fetch(`${origin}/__backend/codex-router/events`);
   assert.equal(events.status, 404);
   assert.deepEqual(await events.json(), { enabled: false });
+  const manualSwitch = await fetch(`${origin}/__backend/codex-router/switch`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ account_alias: "Fixture A", reason: "manual" }),
+  });
+  assert.equal(manualSwitch.status, 404);
+  assert.deepEqual(await manualSwitch.json(), { enabled: false });
 });
 
 integrationTest("same-origin bridge exposes only sanitized status and switch events", async (context) => {
@@ -151,12 +162,13 @@ integrationTest("same-origin bridge exposes only sanitized status and switch eve
   await fs.writeFile(tokenFile, ADMIN_TOKEN, { mode: 0o600 });
   await fs.chmod(tokenFile, 0o600);
   const observed = [];
-  const admin = http.createServer((request, response) => {
-    observed.push({
+  const admin = http.createServer(async (request, response) => {
+    const observation = {
       path: request.url,
       authorizationMatches: request.headers.authorization === `Bearer ${ADMIN_TOKEN}`,
       cursor: request.headers["last-event-id"] ?? null,
-    });
+    };
+    observed.push(observation);
     if (request.url === "/v1/status") {
       response.writeHead(200, { "content-type": "application/json" });
       response.end(JSON.stringify(safeStatus()));
@@ -174,6 +186,17 @@ integrationTest("same-origin bridge exposes only sanitized status and switch eve
       };
       response.writeHead(200, { "content-type": "text/event-stream" });
       response.end(`id: 9\nevent: router.switch\ndata: ${JSON.stringify(data)}\n\n`);
+      return;
+    }
+    if (request.url === "/v1/switch") {
+      let body = "";
+      for await (const chunk of request) body += chunk.toString("utf8");
+      observation.body = JSON.parse(body);
+      response.writeHead(409, { "content-type": "application/json" });
+      response.end(JSON.stringify({
+        error: "active_semantic_stream",
+        credential_ref: "must-not-pass",
+      }));
       return;
     }
     response.writeHead(404).end();
@@ -205,9 +228,39 @@ integrationTest("same-origin bridge exposes only sanitized status and switch eve
   assert.match(eventText, /event: router\.switch/);
   assert.match(eventText, /"to_alias":"Fixture A"/);
   assert.doesNotMatch(eventText, /must-not-pass|token/i);
+  const manualSwitch = await fetch(`${origin}/__backend/codex-router/switch`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ account_alias: "Fixture B", reason: "manual" }),
+  });
+  assert.equal(manualSwitch.status, 409);
+  assert.deepEqual(await manualSwitch.json(), {
+    enabled: true,
+    error: "active_semantic_stream",
+  });
+  const malformedSwitch = await fetch(`${origin}/__backend/codex-router/switch`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({
+      account_alias: "Fixture B",
+      reason: "manual",
+      credential_ref: "must-not-pass",
+    }),
+  });
+  assert.equal(malformedSwitch.status, 400);
+  assert.deepEqual(await malformedSwitch.json(), {
+    enabled: true,
+    error: "invalid_switch_request",
+  });
   assert.deepEqual(observed, [
     { path: "/v1/status", authorizationMatches: true, cursor: null },
     { path: "/v1/events", authorizationMatches: true, cursor: "8" },
+    {
+      path: "/v1/switch",
+      authorizationMatches: true,
+      cursor: null,
+      body: { account_alias: "Fixture B", reason: "manual" },
+    },
   ]);
 });
 

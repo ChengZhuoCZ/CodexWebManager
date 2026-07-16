@@ -1,4 +1,4 @@
-# Optional codex-web router status bridge
+# Optional codex-web router integration
 
 This directory contains a small, pinned overlay for upstream `codex-web` revision
 `888692f7d885118c6a92bbaf60cf2121f5947adf`. It does not copy CodexManager code.
@@ -11,9 +11,10 @@ cd /absolute/path/to/codex-web
 npm run build:server
 ```
 
-The installer checks the exact upstream revision and the SHA-256 of `src/server/main.ts`
-before adding `router-status-bridge.ts` and two registration lines. It fails closed for
-other source revisions so upstream changes can be reviewed deliberately.
+The installer checks the exact upstream revision plus the SHA-256 digests of
+`src/server/main.ts` and `src/browser/shim.ts` before adding the server bridge, browser
+panel, and minimal registration lines. It fails closed for other source revisions so
+upstream changes can be reviewed deliberately.
 
 ## Configuration
 
@@ -33,10 +34,24 @@ When disabled, the reserved endpoints return `404 {"enabled":false}`:
 
 - `GET /__backend/codex-router/status`
 - `GET /__backend/codex-router/events`
+- `POST /__backend/codex-router/switch`
 
 When enabled, status is revalidated and copied through an exact field whitelist. The
 event endpoint accepts only sanitized `router.switch` SSE frames. Responses are
 same-origin, `no-store`, size-bounded, and use fixed error codes.
 
-This bridge reports router state only. It is not evidence that cross-account session
-continuity works, and it never describes backend switching as seamless continuation.
+## Minimal account panel
+
+When status reports `enabled:true`, a Shadow DOM panel shows only account alias, state,
+five-hour and weekly quota, cooldown, last switch reason, and the current route. Unknown
+quota is displayed as `Unavailable`; it is never guessed as zero or full. When every
+enabled account is quota exhausted, the panel displays that condition explicitly.
+
+Manual switch buttons are disabled while `active_streams` is nonzero, for the current
+route, and for unavailable account states. The same-origin switch route accepts only
+`{"account_alias":"…","reason":"manual"}` and the router admin API remains the
+authoritative active-stream guard. UI copy explicitly says a switch starts a new backend
+session.
+
+This integration is not evidence that cross-account session continuity works, and it
+never describes backend switching as seamless continuation.

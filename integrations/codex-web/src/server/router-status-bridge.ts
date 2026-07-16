@@ -5,6 +5,7 @@ import type { FastifyInstance } from "fastify";
 
 const STATUS_PATH = "/__backend/codex-router/status";
 const EVENTS_PATH = "/__backend/codex-router/events";
+const SWITCH_PATH = "/__backend/codex-router/switch";
 const TOKEN_PATTERN = /^[A-Za-z0-9._~+/-]+=*$/;
 const CURSOR_PATTERN = /^(?:0|[1-9][0-9]*)$/;
 const ACCOUNT_STATES = new Set([
@@ -29,6 +30,14 @@ const ROUTER_STATUSES = new Set(["ready", "degraded", "unavailable"]);
 const REQUEST_TIMEOUT_MS = 3_000;
 const MAX_STATUS_BYTES = 64 * 1024;
 const MAX_EVENT_BYTES = 16 * 1024;
+const MAX_SWITCH_BYTES = 8 * 1024;
+const SWITCH_ERRORS = new Set([
+  "active_semantic_stream",
+  "switch_not_available",
+  "switch_rejected",
+  "switch_target_mismatch",
+  "switch_state_rejected",
+]);
 
 type BridgeConfig =
   | { enabled: false }
@@ -218,7 +227,7 @@ async function withAdminToken<T>(tokenFile: string, callback: (token: string) =>
   }
 }
 
-async function boundedText(response: Response): Promise<string> {
+async function boundedText(response: Response, maxBytes = MAX_STATUS_BYTES): Promise<string> {
   if (!response.body) {
     throw new Error("router response is unavailable");
   }
@@ -230,7 +239,7 @@ async function boundedText(response: Response): Promise<string> {
       const next = await reader.read();
       if (next.done) break;
       length += next.value.byteLength;
-      if (length > MAX_STATUS_BYTES) throw new Error("router response is too large");
+      if (length > maxBytes) throw new Error("router response is too large");
       chunks.push(next.value);
     }
   } finally {
@@ -243,6 +252,78 @@ async function boundedText(response: Response): Promise<string> {
     offset += chunk.byteLength;
   }
   return new TextDecoder("utf-8", { fatal: true }).decode(body);
+}
+
+function manualSwitchBody(value: unknown): { account_alias: string; reason: "manual" } {
+  if (
+    !isRecord(value) ||
+    Object.keys(value).length !== 2 ||
+    !Object.hasOwn(value, "account_alias") ||
+    !Object.hasOwn(value, "reason") ||
+    value.reason !== "manual"
+  ) {
+    throw new Error("invalid switch request");
+  }
+  return { account_alias: alias(value.account_alias), reason: "manual" };
+}
+
+async function forwardManualSwitch(
+  config: Extract<BridgeConfig, { enabled: true }>,
+  requestBody: { account_alias: string; reason: "manual" },
+) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+  timer.unref();
+  try {
+    const response = await withAdminToken(config.tokenFile, (token) =>
+      fetch(`${config.adminOrigin}/v1/switch`, {
+        method: "POST",
+        headers: {
+          accept: "application/json",
+          authorization: `Bearer ${token}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify(requestBody),
+        signal: controller.signal,
+      }),
+    );
+    if (!/^application\/json(?:\s*;|$)/i.test(response.headers.get("content-type") ?? "")) {
+      throw new Error("router switch response is unavailable");
+    }
+    const body = JSON.parse(await boundedText(response, MAX_SWITCH_BYTES)) as unknown;
+    if (response.status === 200) {
+      if (
+        !isRecord(body) ||
+        body.accepted !== true ||
+        body.account_alias !== requestBody.account_alias ||
+        body.continuity !== "new_backend_session" ||
+        body.architecture_mode !== "LIMITED_MODE"
+      ) {
+        throw new Error("router switch response is invalid");
+      }
+      return {
+        statusCode: 200,
+        payload: {
+          enabled: true,
+          accepted: true,
+          account_alias: requestBody.account_alias,
+          continuity: "new_backend_session",
+          architecture_mode: "LIMITED_MODE",
+        },
+      };
+    }
+    if (
+      response.status === 409 &&
+      isRecord(body) &&
+      typeof body.error === "string" &&
+      SWITCH_ERRORS.has(body.error)
+    ) {
+      return { statusCode: 409, payload: { enabled: true, error: body.error } };
+    }
+    throw new Error("router switch response is unavailable");
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
 async function fetchStatus(config: Extract<BridgeConfig, { enabled: true }>) {
@@ -392,6 +473,23 @@ export async function registerRouterStatusBridge(
       clearTimeout(timer);
       request.raw.off("aborted", cancel);
       reply.raw.off("close", cancel);
+    }
+  });
+
+  app.post(SWITCH_PATH, { bodyLimit: 4 * 1024 }, async (request, reply) => {
+    reply.header("cache-control", "no-store").header("x-content-type-options", "nosniff");
+    if (!config.enabled) return reply.code(404).send({ enabled: false });
+    let body;
+    try {
+      body = manualSwitchBody(request.body);
+    } catch {
+      return reply.code(400).send({ enabled: true, error: "invalid_switch_request" });
+    }
+    try {
+      const result = await forwardManualSwitch(config, body);
+      return reply.code(result.statusCode).send(result.payload);
+    } catch {
+      return reply.code(502).send({ enabled: true, error: "router_switch_unavailable" });
     }
   });
 }
