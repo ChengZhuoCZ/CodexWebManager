@@ -80,8 +80,8 @@
       "output": "168 total: 161 passed, 0 failed, 7 pre-existing environment-gated browser rows skipped; duration 2310.738375 ms."
     }
   ],
-  "pending": [
-    "Native Ubuntu 24.04 x64 install and runtime verification",
-    "Native Ubuntu 24.04 arm64 install and runtime verification when the public arm64 runner is available"
+  "external_acceptance": [
+    "GitHub Actions run 29501006722 completed native Ubuntu 24.04 x64 verification successfully.",
+    "GitHub Actions run 29501006722 completed native Ubuntu 24.04 arm64 verification successfully."
   ]
 }

@@ -1,0 +1,52 @@
+{
+  "task": "M5.1",
+  "recorded_at": "2026-07-16T21:11:09+08:00",
+  "run": {
+    "id": 29501006722,
+    "url": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/29501006722",
+    "head_sha": "531cdf0b77cb5ae9de37369e30843812f27e65f4",
+    "status": "completed",
+    "conclusion": "success",
+    "created_at": "2026-07-16T13:09:15Z",
+    "completed_at": "2026-07-16T13:09:34Z"
+  },
+  "jobs": [
+    {
+      "id": 87629619497,
+      "name": "Verify Linux x64",
+      "url": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/29501006722/job/87629619497",
+      "conclusion": "success",
+      "native_architecture_assertion": "x86_64 / node x64",
+      "release_builder_test": "passed",
+      "headless_install_and_runtime": "passed",
+      "artifact_upload": "passed"
+    },
+    {
+      "id": 87629619615,
+      "name": "Verify Linux arm64",
+      "url": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/29501006722/job/87629619615",
+      "conclusion": "success",
+      "native_architecture_assertion": "aarch64 / node arm64",
+      "release_builder_test": "passed",
+      "headless_install_and_runtime": "passed",
+      "artifact_upload": "passed"
+    }
+  ],
+  "downloaded_artifacts": [
+    {
+      "architecture": "x64",
+      "archive_sha256": "1b11daaa0caff7da1bf27b6a262201d4108a295d1b3db83244905e0c50bd79ee",
+      "verification_summary_sha256": "d7c573806033f58ccfd3df15f61cc481f035a5f31df644b56d152117fc1d1338",
+      "matches_local_reproducible_build": true
+    },
+    {
+      "architecture": "arm64",
+      "archive_sha256": "a0c3cce49edacb904652adeb616da92cdb0cfbe896b6a56ece80aa71fa34a425",
+      "verification_summary_sha256": "c9e42f152e6577b5a502554de4ef22d040f247a6ee579f9c4af44df3c8c2c62d",
+      "matches_local_reproducible_build": true
+    }
+  ],
+  "account_configuration_loaded": false,
+  "account_switch_tested": false,
+  "seamless_cross_account_continuity_claimed": false
+}
