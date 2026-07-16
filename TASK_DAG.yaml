@@ -115,7 +115,7 @@ milestones:
           - Handles unavailable quota data without guessing zero or full
       - id: M2.2
         title: Implement deterministic scheduler
-        status: ready
+        status: in_progress
         depends_on: [M2.1]
         acceptance:
           - Deterministic selection for equal inputs

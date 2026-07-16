@@ -6,6 +6,7 @@ export { assertLoopbackHost, defaults, loadRuntimeConfig, parsePort } from "./co
 export { createHealthHandler } from "./http-handler.mjs";
 export { createQuotaSnapshotAdapter } from "./quota-snapshot.mjs";
 export { redactForLog, REDACTED, stringifyLogRecord } from "./redaction.mjs";
+export { createDeterministicScheduler } from "./scheduler.mjs";
 export {
   createFileSecretProvider,
   defineSecretProvider,

@@ -88,3 +88,19 @@ observations produce `remaining_ratio: null` with `confidence: unknown`; they ar
 as exhausted or full quota. The canonical shape is documented in
 `contracts/quota-snapshot.schema.json`. M2.1 uses injected fixture observations only and does not
 query a real account.
+
+## Deterministic scheduling
+
+M2.2 exports `createDeterministicScheduler()`. It validates public account metadata plus canonical
+quota snapshots, applies cooldown and concurrency eligibility, and returns a frozen decision with
+sanitized per-account explanations. Selection uses this stable order:
+
+1. fresh, complete quota data before uncertain fallback data;
+2. higher numeric operator priority;
+3. higher conservative minimum of the five-hour and weekly ratios;
+4. higher confidence, lower concurrency utilization, then ASCII account ID.
+
+A fresh zero in either quota window is exhausted. Stale, partial, and unavailable data never uses a
+cached ratio for scoring and remains an explicit uncertain fallback, so unknown data is not treated
+as either zero or full. Fully occupied, actively cooling, disabled, or explicitly excluded accounts
+are ineligible. M2.2 only returns fixture decisions; it does not route a request or switch accounts.
