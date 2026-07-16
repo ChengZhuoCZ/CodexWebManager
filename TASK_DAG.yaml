@@ -143,7 +143,7 @@ milestones:
     tasks:
       - id: M3.1
         title: Implement strict proxy path normalization
-        status: in_progress
+        status: done
         depends_on: [M1.1]
         acceptance:
           - Only allowlisted Codex routes forwarded
@@ -151,7 +151,7 @@ milestones:
           - No open-proxy behavior
       - id: M3.2
         title: Implement Responses and SSE pass-through
-        status: pending
+        status: ready
         depends_on: [M3.1, M2.4]
         acceptance:
           - Streaming and non-streaming responses work
