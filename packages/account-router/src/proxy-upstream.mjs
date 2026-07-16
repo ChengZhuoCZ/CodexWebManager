@@ -2,6 +2,7 @@ import {
   validateHeaderName,
   validateHeaderValue,
 } from "node:http";
+import { getAuxiliaryEndpointPolicy } from "./auxiliary-endpoints.mjs";
 
 const HTTP_CLIENT_HEADERS = new Set([
   "accept",
@@ -47,6 +48,7 @@ const HTTP_RESPONSE_HEADERS = new Set([
   "last-modified",
   "request-id",
   "retry-after",
+  "x-oai-request-id",
   "x-request-id",
 ]);
 const WEBSOCKET_RESPONSE_HEADERS = new Set([
@@ -149,10 +151,13 @@ export async function resolveUpstreamConfiguration(resolveUpstream, route, selec
 export function buildUpstreamRequestHeaders(
   clientHeaders,
   injectedHeaders,
-  { contentLength = null, websocket = false } = {},
+  { contentLength = null, route = null, websocket = false } = {},
 ) {
   const output = Object.create(null);
-  const allowed = websocket ? WEBSOCKET_CLIENT_HEADERS : HTTP_CLIENT_HEADERS;
+  const auxiliaryPolicy = websocket ? null : getAuxiliaryEndpointPolicy(route);
+  const allowed = auxiliaryPolicy === null
+    ? websocket ? WEBSOCKET_CLIENT_HEADERS : HTTP_CLIENT_HEADERS
+    : new Set(auxiliaryPolicy.forwarded_client_headers);
   for (const [rawName, rawValue] of Object.entries(clientHeaders ?? {})) {
     const name = rawName.toLowerCase();
     if (!allowed.has(name)) {

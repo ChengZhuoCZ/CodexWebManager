@@ -167,7 +167,7 @@ milestones:
           - unsafe_to_replay returned after semantic output
       - id: M3.4
         title: Implement Codex auxiliary endpoints
-        status: ready
+        status: in_progress
         depends_on: [M0.2, M3.2]
         acceptance:
           - Every endpoint observed in M0 has a compatibility test

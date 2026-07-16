@@ -1,5 +1,9 @@
 import http from "node:http";
 import https from "node:https";
+import {
+  AuxiliaryEndpointError,
+  validateAuxiliaryResponse,
+} from "./auxiliary-endpoints.mjs";
 import { sendJson } from "./http-handler.mjs";
 import {
   FailoverAttemptError,
@@ -158,10 +162,18 @@ async function endResponse(response, body = null) {
   });
 }
 
-async function sendBufferedResponse(incoming, response, body, observeEvent) {
+async function sendBufferedResponse(incoming, response, body, observeEvent, route) {
   const statusCode = incoming.statusCode;
   if (!Number.isInteger(statusCode) || statusCode < 100 || statusCode > 599) {
     throw new FailoverAttemptError("protocol_error");
+  }
+  try {
+    validateAuxiliaryResponse(route, statusCode, incoming.headers, body);
+  } catch (error) {
+    if (error instanceof AuxiliaryEndpointError) {
+      throw new FailoverAttemptError("protocol_error");
+    }
+    throw error;
   }
   observeEvent("response.completed");
   response.writeHead(statusCode, filterHttpResponseHeaders(incoming.headers));
@@ -232,6 +244,7 @@ async function upstreamAttempt({
   if (signal.aborted) throw new FailoverAttemptError("client_cancelled");
   const headers = buildUpstreamRequestHeaders(requestHeaders, configuration.headers, {
     contentLength: route.method === "GET" ? null : body.length,
+    route,
   });
   const transport = configuration.origin.protocol === "https:" ? https : http;
   let incoming = null;
@@ -276,7 +289,7 @@ async function upstreamAttempt({
       }
       throw new FailoverAttemptError("network_error");
     }
-    await sendBufferedResponse(incoming, response, responseBody, observeEvent);
+    await sendBufferedResponse(incoming, response, responseBody, observeEvent, route);
   } finally {
     clearTimeout(headersTimer);
     signal.removeEventListener("abort", abort);
@@ -303,17 +316,19 @@ export function createFailoverHttpHandler({
   if (typeof resolveUpstream !== "function") throw new TypeError("resolveUpstream is required");
   if (typeof onAttemptFailure !== "function") throw new TypeError("onAttemptFailure is required");
 
-  return async ({ request, response, route }) => {
-    let body;
-    try {
-      body = await readRequestBody(request, requestBodyLimitBytes);
-    } catch (error) {
-      if (error instanceof RequestBodyLimitError) {
-        sendJson(request, response, 413, { error: "request_body_too_large" }, { connection: "close" });
-      } else if (!response.destroyed) {
-        response.destroy();
+  return async ({ request, response, route, body: preparedBody = null }) => {
+    let body = preparedBody;
+    if (!Buffer.isBuffer(body)) {
+      try {
+        body = await readRequestBody(request, requestBodyLimitBytes);
+      } catch (error) {
+        if (error instanceof RequestBodyLimitError) {
+          sendJson(request, response, 413, { error: "request_body_too_large" }, { connection: "close" });
+        } else if (!response.destroyed) {
+          response.destroy();
+        }
+        return;
       }
-      return;
     }
 
     const controller = new AbortController();

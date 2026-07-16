@@ -204,3 +204,30 @@ failure kinds open the failed account circuit while the cumulative exclusion set
 fixture account. Production scheduler/credential composition remains a later service-composition
 step. All M3.3 integration tests use loopback mock accounts from `test-fixtures/mock_scenarios.yaml`.
 They are not real account-switch evidence and do not prove seamless continuation.
+
+## Codex auxiliary endpoints
+
+M3.4 derives its auxiliary HTTP policy directly from the redacted M0.2 capture for Codex CLI
+0.144.2. The observed surface is limited to:
+
+- `GET /backend-api/codex/models?client_version=...`, with no request body and a JSON response;
+- `POST /backend-api/codex/alpha/search`, with the observed stable search JSON fields and a JSON
+  response.
+
+The router buffers these request and response bodies within the configured limits. Search input
+must be UTF-8 JSON with the observed stable top-level types (`id`, `input`, `max_output_tokens`, and
+`model`); unknown nested or configuration fields remain byte-for-byte intact. Successful upstream
+responses are committed only after their media type and complete JSON body validate. Invalid input
+fails before account resolution, while an invalid successful upstream response becomes a bounded
+`502` instead of leaking a partial or non-JSON payload.
+
+Each auxiliary route forwards only its M0.2-observed safe client headers. Host and content length
+are regenerated, account identity and authorization can only come from the internal resolver, and
+client credentials, cookies, Responses-only session/turn headers, upstream cookies, and private
+response headers are removed. The observed safe `x-oai-request-id` response header is preserved.
+
+Unsupported methods, queries, transports, suffixes, and paths return a structured route error
+before the resolver is called. In particular, no memory endpoint is inferred or allowlisted because
+M0.2 observed none. All M3.4 integration tests use one loopback fixture account, including the
+failover-enabled compatibility case; they perform no real account switch and make no continuity
+claim.

@@ -8,6 +8,13 @@ export {
   FAILURE_KINDS,
   normalizeCircuitStateDocument,
 } from "./circuit-breaker.mjs";
+export {
+  AuxiliaryEndpointError,
+  getAuxiliaryEndpointPolicy,
+  listAuxiliaryEndpointPolicies,
+  validateAuxiliaryRequest,
+  validateAuxiliaryResponse,
+} from "./auxiliary-endpoints.mjs";
 export { assertLoopbackHost, defaults, loadRuntimeConfig, parsePort } from "./config.mjs";
 export { createHealthHandler } from "./http-handler.mjs";
 export {

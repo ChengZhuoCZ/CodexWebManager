@@ -1,94 +1,43 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M3.3",
-  "status": "done",
+  "current_task": "M3.4",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "input_revisions": {
-    "workspace": "cdaa81cefb43a2ac205114d89882039d8c7eb8ef",
+    "workspace": "a471c7fc11fe07bf29215cc14c305ddb1491fbcc",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2"
   },
-  "output_revision": "e1633069cf65cf333e2e29f470aedb012c5f6329",
-  "output_revision_note": "e163306 implements and tests M3.3; this state commit records completion.",
-  "workspace_branch": "codex/m3-3-safe-failover",
-  "workspace_input_revision": "cdaa81cefb43a2ac205114d89882039d8c7eb8ef",
-  "depends_on": ["M3.2", "M2.3"],
+  "output_revision": null,
+  "output_revision_note": "Pending the M3.4 auxiliary-endpoint compatibility commit.",
+  "workspace_branch": "codex/m3-4-auxiliary-endpoints",
+  "workspace_input_revision": "a471c7fc11fe07bf29215cc14c305ddb1491fbcc",
+  "depends_on": ["M0.2", "M3.2"],
   "expected_outputs": [
+    "packages/account-router/src/auxiliary-endpoints.mjs",
     "packages/account-router/src/failover-http-handler.mjs",
-    "packages/account-router/src/failover-state-machine.mjs",
-    "packages/account-router/src/semantic-events.mjs",
-    "packages/account-router/src/sse-semantic-gate.mjs",
-    "packages/account-router/src/websocket-failover-relay.mjs",
-    "packages/account-router/src/websocket-frames.mjs",
-    "packages/account-router/test/failover-state-machine.test.mjs",
-    "packages/account-router/test/failover-fixtures.test.mjs",
-    "packages/account-router/test/failover-proxy.test.mjs",
-    "packages/account-router/test/semantic-gates.test.mjs",
-    "packages/account-router/test/websocket-failover.test.mjs"
+    "packages/account-router/src/proxy-handler.mjs",
+    "packages/account-router/src/proxy-upstream.mjs",
+    "packages/account-router/src/index.mjs",
+    "packages/account-router/README.md",
+    "packages/account-router/test/auxiliary-endpoints.test.mjs"
   ],
-  "tests": [
-    {
-      "command": "node --test test/failover-state-machine.test.mjs test/failover-fixtures.test.mjs before implementation",
-      "result": "expected failure; 2 ERR_MODULE_NOT_FOUND file failures proved tests preceded implementation, duration 40.555708 ms"
-    },
-    {
-      "command": "node --test test/failover-proxy.test.mjs before proxy integration",
-      "result": "expected failure; 5 assertions received legacy 502 responses before failover integration, duration 124.713333 ms"
-    },
-    {
-      "command": "node --check the 9 changed or added production modules",
-      "result": "passed; 0 syntax failures"
-    },
-    {
-      "command": "node --test test/failover-state-machine.test.mjs test/failover-fixtures.test.mjs test/semantic-gates.test.mjs",
-      "result": "passed; 16 tests passed, 0 failed, duration 156.585625 ms"
-    },
-    {
-      "command": "node --test --test-timeout=30000 test/failover-proxy.test.mjs test/websocket-failover.test.mjs",
-      "result": "passed with local loopback fixtures; 12 tests passed, 0 failed, duration 288.606375 ms"
-    },
-    {
-      "command": "cd packages/account-router; env PATH=<bundled-node-and-pnpm> pnpm run check",
-      "result": "passed; all production and selected test modules parsed"
-    },
-    {
-      "command": "cd packages/account-router; node --test --test-timeout=30000",
-      "result": "passed with local loopback fixtures; 125 tests passed, 0 failed, duration 2236.27925 ms"
-    },
-    {
-      "command": "scan the M3.3 scope for authorization values, token fields, bearer values, and email addresses",
-      "result": "passed; no matches"
-    },
-    {
-      "command": "git diff --cached --check",
-      "result": "passed"
-    }
-  ],
-  "evidence": [
-    "evidence/M3.3-safe-failover.md",
-    "packages/account-router/test/failover-fixtures.test.mjs",
-    "packages/account-router/test/failover-proxy.test.mjs",
-    "packages/account-router/test/failover-state-machine.test.mjs",
-    "packages/account-router/test/semantic-gates.test.mjs",
-    "packages/account-router/test/websocket-failover.test.mjs"
-  ],
+  "tests": [],
+  "evidence": [],
   "observations": {
-    "test_strategy": "Test-first virtual-clock and loopback-fixture coverage for pre-semantic retry, post-semantic replay denial, backoff, deadlines, attempt bounds, and account exclusion.",
-    "continuation_boundary": "M0.3 proves an initial request can be replayed before semantic output, but a continuation request with previous_response_id is not assumed portable across a replacement connection.",
-    "real_account_gate": "The user directed development to continue without account-switch testing; no mock result is represented as real cross-account evidence.",
-    "http_sse": "Replayable request bytes and preflight SSE events are bounded; any failure after semantic output returns unsafe_to_replay without another selection.",
-    "websocket": "Initial response.create can reconnect only before semantic output; continuation requests remain on the existing connection and never move to another account.",
-    "circuit_breaker": "Only explicit retryable account failures reach the M2.3 callback; protocol errors and client cancellation do not penalize account health."
+    "protocol_source": "M0.2 observed GET /backend-api/codex/models?client_version and POST /backend-api/codex/alpha/search, both returning JSON; Responses transport is already covered by M3.2 and M3.3.",
+    "memory_boundary": "No memory endpoint was observed because the feature was disabled; M3.4 will not invent or allowlist a memory route.",
+    "test_strategy": "Write compatibility tests from the redacted M0.2 method, path, query, media-type, request-shape, response-shape, header-filtering, body-limit, and fail-closed observations before production implementation.",
+    "real_account_gate": "The user directed development to continue without account-switch testing; all M3.4 network validation will use loopback fixtures only."
   },
   "blockers": [],
   "residual_risks": [
-    "Real A-to-B failover before the first semantic event remains deferred until a second authorized account exists.",
-    "Codex App Server compatibility E2E and WebSocket control-message behavior remain M3.5.",
-    "Production scheduler, credential, circuit-breaker, and proxy-listener composition remains later DAG work.",
-    "High-concurrency replay-buffer memory and file-descriptor behavior requires M6 hardening and soak coverage.",
-    "Continuation requests are connection-bound; no seamless conversation-continuity claim is permitted."
+    "M0.2 intentionally redacted dynamic JSON field names and all values, so compatibility can prove only the observed stable shapes and transport behavior.",
+    "Codex App Server real compatibility remains M3.5; M3.4 fixture tests are not a real-account substitute.",
+    "No memory endpoint is supported unless a later authorized protocol capture observes one.",
+    "No seamless cross-account conversation-continuity claim is permitted."
   ],
-  "updated_at": "2026-07-16T18:35:14+08:00"
+  "updated_at": "2026-07-16T18:40:23+08:00"
 }

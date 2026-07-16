@@ -2,6 +2,12 @@ import http from "node:http";
 import https from "node:https";
 import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
+import {
+  AuxiliaryEndpointError,
+  getAuxiliaryEndpointPolicy,
+  validateAuxiliaryRequest,
+  validateAuxiliaryResponse,
+} from "./auxiliary-endpoints.mjs";
 import { sendJson } from "./http-handler.mjs";
 import { createFailoverHttpHandler } from "./failover-http-handler.mjs";
 import { normalizeProxyRoute, ProxyRouteError } from "./proxy-routes.mjs";
@@ -95,6 +101,17 @@ function forwardRequestBody(request, upstreamRequest, limit) {
   });
 }
 
+async function readBoundedBody(stream, limit) {
+  const chunks = [];
+  let length = 0;
+  for await (const chunk of stream) {
+    length += chunk.length;
+    if (length > limit) throw new BodyLimitError();
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks, length);
+}
+
 function responseLimitTransform(limit, onLimit) {
   let length = 0;
   return new Transform({
@@ -175,7 +192,7 @@ export function createProxyHandler({
         const headers = error.allowedMethods.length > 0
           ? { allow: error.allowedMethods.join(", ") }
           : {};
-        sendJson(request, response, error.statusCode, { error: error.code }, headers);
+        sendJson(request, response, error.statusCode, error.toJSON(), headers);
       } else {
         sendJson(request, response, 400, { error: "invalid_request" });
       }
@@ -198,8 +215,38 @@ export function createProxyHandler({
       return;
     }
 
+    const auxiliaryPolicy = getAuxiliaryEndpointPolicy(route);
+    let auxiliaryBody = null;
+    if (auxiliaryPolicy !== null) {
+      try {
+        auxiliaryBody = await readBoundedBody(request, requestBodyLimitBytes);
+        validateAuxiliaryRequest(route, request.headers, auxiliaryBody);
+      } catch (error) {
+        if (error instanceof AuxiliaryEndpointError) {
+          sendJson(request, response, error.statusCode, { error: error.code });
+        } else if (error instanceof BodyLimitError) {
+          sendJson(
+            request,
+            response,
+            413,
+            { error: "request_body_too_large" },
+            { connection: "close" },
+          );
+        } else if (!response.destroyed) {
+          response.destroy();
+        }
+        return;
+      }
+    }
+
     if (failoverHttpHandler !== null) {
-      await failoverHttpHandler({ request, response, route, contentLength });
+      await failoverHttpHandler({
+        request,
+        response,
+        route,
+        contentLength,
+        body: auxiliaryBody,
+      });
       return;
     }
 
@@ -211,7 +258,7 @@ export function createProxyHandler({
       sendJson(request, response, 502, { error: "upstream_unavailable" });
       return;
     }
-    if (request.destroyed || response.destroyed) {
+    if (request.aborted || response.destroyed) {
       try { configuration.release?.(); } catch {}
       return;
     }
@@ -232,7 +279,10 @@ export function createProxyHandler({
     let upstreamRequest;
     try {
       const headers = buildUpstreamRequestHeaders(request.headers, configuration.headers, {
-        contentLength,
+        contentLength: auxiliaryBody === null
+          ? contentLength
+          : route.method === "GET" ? null : auxiliaryBody.length,
+        route,
       });
       const transport = configuration.origin.protocol === "https:" ? https : http;
       upstreamRequest = transport.request({
@@ -302,6 +352,40 @@ export function createProxyHandler({
         fail(502, "invalid_upstream_response");
         return;
       }
+      if (auxiliaryPolicy !== null) {
+        void readBoundedBody(incoming, responseBodyLimitBytes).then((body) => {
+          try {
+            validateAuxiliaryResponse(route, statusCode, incoming.headers, body);
+          } catch (error) {
+            fail(
+              502,
+              error instanceof AuxiliaryEndpointError
+                ? error.code
+                : "invalid_auxiliary_response",
+            );
+            return;
+          }
+          if (finished || request.aborted || response.destroyed) {
+            cancel();
+            return;
+          }
+          response.writeHead(statusCode, filterHttpResponseHeaders(incoming.headers));
+          response.end(body, () => {
+            if (!finished) {
+              finished = true;
+              cleanup();
+            }
+          });
+        }).catch((error) => {
+          fail(
+            502,
+            error instanceof BodyLimitError
+              ? "upstream_response_too_large"
+              : "upstream_stream_failed",
+          );
+        });
+        return;
+      }
       response.writeHead(statusCode, filterHttpResponseHeaders(incoming.headers));
       const streams = [incoming];
       if (!streamingSse) {
@@ -333,14 +417,18 @@ export function createProxyHandler({
       }
     });
 
-    void forwardRequestBody(request, upstreamRequest, requestBodyLimitBytes).catch((error) => {
-      if (error instanceof BodyLimitError) {
-        bodyFailure = "request_body_too_large";
-        fail(413, bodyFailure);
-      } else if (error.message !== "client_aborted") {
-        fail(502, "request_forward_failed");
-      }
-    });
+    if (auxiliaryBody !== null) {
+      upstreamRequest.end(auxiliaryBody);
+    } else {
+      void forwardRequestBody(request, upstreamRequest, requestBodyLimitBytes).catch((error) => {
+        if (error instanceof BodyLimitError) {
+          bodyFailure = "request_body_too_large";
+          fail(413, bodyFailure);
+        } else if (error.message !== "client_aborted") {
+          fail(502, "request_forward_failed");
+        }
+      });
+    }
   };
 
   return Object.freeze({
