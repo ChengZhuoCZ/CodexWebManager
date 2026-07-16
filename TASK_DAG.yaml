@@ -151,7 +151,7 @@ milestones:
           - No open-proxy behavior
       - id: M3.2
         title: Implement Responses and SSE pass-through
-        status: ready
+        status: in_progress
         depends_on: [M3.1, M2.4]
         acceptance:
           - Streaming and non-streaming responses work

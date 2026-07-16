@@ -3,9 +3,9 @@
 This package is the clean-room, headless service foundation for the Codex account router. It uses
 Node.js built-ins only and does not depend on Electron, a display server, or a desktop keychain.
 
-M1.1 exposes process health and readiness on the admin listener. M1.2 defines account metadata,
-secret providers, leases, and log redaction. M1.3 adds a separately authenticated, sanitized admin
-API and bounded event stream. Scheduling and model proxy routes are added by later DAG tasks.
+M1 provides the service, secret, and admin boundaries. M2 provides quota normalization, scheduling,
+circuit breaking, and bounded session stickiness. M3 adds strict model proxy routing and transport
+adapters without weakening the explicit `LIMITED_MODE` continuity boundary.
 
 ## Requirements
 
@@ -150,3 +150,23 @@ rejects encoded/dot traversal, absolute/authority targets, fragments, backslashe
 unknown suffixes, and arbitrary queries. Only a bounded plain `client_version` value is preserved
 on model routes. The result contains a relative upstream target and never an origin, host, or
 authority, preventing this layer from becoming an open proxy.
+
+## HTTP, SSE, and WebSocket pass-through
+
+M3.2 exports `createProxyHandler()` and `createModelProxyService()`. The model listener defaults to
+`127.0.0.1:18317`, rejects non-loopback binds, and applies the M3.1 route normalizer before calling
+the injected upstream resolver. The resolver returns an internal origin plus selected-account
+headers and an optional release callback; clients cannot choose the upstream origin or forward
+their own authorization, cookie, API-key, or account-selection headers.
+
+HTTP request bodies and non-SSE response bodies have explicit byte limits. Streaming uses Node
+stream backpressure, forwards SSE chunks incrementally, propagates client cancellation, and applies
+separate upstream-header and total deadlines. Response headers are allowlisted and `set-cookie` is
+never returned. The observed Codex WebSocket Responses route uses a raw, backpressured duplex tunnel;
+client cancellation closes the upstream socket and releases its lease. Compression extensions are
+not forwarded because this layer does not independently validate compressed frame semantics.
+
+The standalone CLI still starts only the health/admin listener: composing a production upstream
+resolver requires M3.3 account acquisition and failure-state logic. M3.2 tests use loopback fixture
+servers only. They do not access a real account, retry a request on another account, or establish
+cross-account conversation continuity.

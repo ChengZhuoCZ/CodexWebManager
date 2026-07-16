@@ -1,69 +1,39 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M3.1",
-  "status": "done",
+  "current_task": "M3.2",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "input_revisions": {
-    "workspace": "90133975ca78165d6c04a246610783d699c6b29f",
+    "workspace": "1b7e4e92d460cbcc249ec02a07d3bf0c5bb6b47d",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2"
   },
-  "output_revision": "00f97e5820cdad8bd21b782addcc61ec017a4af5",
-  "output_revision_note": "00f97e5 implements and tests M3.1; this state commit records completion.",
-  "workspace_branch": "codex/m3-1-proxy-paths",
-  "workspace_input_revision": "90133975ca78165d6c04a246610783d699c6b29f",
-  "depends_on": ["M1.1"],
+  "output_revision": null,
+  "output_revision_note": "Pending the M3.2 HTTP/SSE/WebSocket pass-through commit.",
+  "workspace_branch": "codex/m3-2-proxy-pass-through",
+  "workspace_input_revision": "1b7e4e92d460cbcc249ec02a07d3bf0c5bb6b47d",
+  "depends_on": ["M3.1", "M2.4"],
   "expected_outputs": [
-    "packages/account-router/src/proxy-routes.mjs",
-    "packages/account-router/test/proxy-routes.test.mjs",
-    "contracts/proxy-routes.json"
+    "packages/account-router/src/proxy-handler.mjs",
+    "packages/account-router/src/model-service.mjs",
+    "packages/account-router/src/websocket-tunnel.mjs",
+    "packages/account-router/test/proxy-handler.test.mjs",
+    "packages/account-router/test/websocket-tunnel.test.mjs"
   ],
-  "tests": [
-    {
-      "command": "node --test test/proxy-routes.test.mjs before implementation",
-      "result": "expected failure; 1 ERR_MODULE_NOT_FOUND failure proved the test preceded implementation"
-    },
-    {
-      "command": "node --check src/proxy-routes.mjs test/proxy-routes.test.mjs",
-      "result": "passed; 0 syntax failures"
-    },
-    {
-      "command": "node --test test/proxy-routes.test.mjs",
-      "result": "passed; 8 tests passed, 0 failed, duration 37.430917 ms"
-    },
-    {
-      "command": "cd packages/account-router; node --test",
-      "result": "passed; 87 tests passed, 0 failed, duration 210.70525 ms"
-    },
-    {
-      "command": "scan production M3.1 scope for private keys, known token shapes, bearer values, and email addresses",
-      "result": "passed; no matches"
-    },
-    {
-      "command": "git diff --check",
-      "result": "passed"
-    }
-  ],
-  "evidence": [
-    "evidence/M3.1-strict-proxy-paths.md",
-    "contracts/proxy-routes.json",
-    "packages/account-router/test/proxy-routes.test.mjs"
-  ],
+  "tests": [],
+  "evidence": [],
   "observations": {
-    "allowlist": "Only standard Responses/compact/models variants and the three M0.2-observed backend routes are registered.",
-    "transport": "The observed backend Responses path requires GET plus WebSocket; HTTP routes reject WebSocket transport.",
-    "query": "Only one bounded plain client_version query is accepted on model routes.",
-    "open_proxy": "Normalization returns relative upstream targets only and rejects absolute/authority targets, traversal, encoding, fragments, controls, arbitrary queries, and suffixes.",
-    "deferred_gate": "All inputs were request-target fixtures; no upstream network or real account was accessed."
+    "test_strategy": "Test-first loopback mock-upstream tests for non-streaming, SSE, backpressure, cancellation, request limits, headers, and WebSocket byte tunneling.",
+    "scope": "Single selected upstream pass-through only; account selection and retry/failover remain M3.3.",
+    "transport_gate": "M0.2 established WebSocket as the current Codex default, so upgrade forwarding is included rather than deferred as optional."
   },
   "blockers": [],
   "residual_risks": [
-    "HTTP/SSE pass-through, cancellation, backpressure, and request limits remain M3.2.",
-    "Production WebSocket forwarding remains to be implemented after the HTTP/SSE core; M0.2 proves it is required for current Codex defaults.",
-    "Auxiliary endpoint response compatibility remains M3.4.",
-    "Real account behavior remains deferred."
+    "Safe multi-account retry and semantic-event gating remain M3.3.",
+    "Auxiliary response compatibility remains M3.4.",
+    "Real account and cross-account tests remain deferred."
   ],
-  "updated_at": "2026-07-16T17:24:56+08:00"
+  "updated_at": "2026-07-16T17:28:28+08:00"
 }

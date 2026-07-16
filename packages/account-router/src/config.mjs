@@ -1,4 +1,6 @@
 const LOOPBACK_HOSTS = new Set(["127.0.0.1", "::1"]);
+const DEFAULT_MODEL_HOST = "127.0.0.1";
+const DEFAULT_MODEL_PORT = 18_317;
 const DEFAULT_ADMIN_HOST = "127.0.0.1";
 const DEFAULT_ADMIN_PORT = 18_318;
 
@@ -29,10 +31,19 @@ export function loadRuntimeConfig(environment = process.env) {
     environment.CODEX_ROUTER_ADMIN_PORT ?? String(DEFAULT_ADMIN_PORT),
     "CODEX_ROUTER_ADMIN_PORT",
   );
-  return Object.freeze({ adminHost, adminPort });
+  const modelHost = assertLoopbackHost(
+    environment.CODEX_ROUTER_MODEL_HOST ?? DEFAULT_MODEL_HOST,
+  );
+  const modelPort = parsePort(
+    environment.CODEX_ROUTER_MODEL_PORT ?? String(DEFAULT_MODEL_PORT),
+    "CODEX_ROUTER_MODEL_PORT",
+  );
+  return Object.freeze({ adminHost, adminPort, modelHost, modelPort });
 }
 
 export const defaults = Object.freeze({
   adminHost: DEFAULT_ADMIN_HOST,
   adminPort: DEFAULT_ADMIN_PORT,
+  modelHost: DEFAULT_MODEL_HOST,
+  modelPort: DEFAULT_MODEL_PORT,
 });
