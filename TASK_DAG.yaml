@@ -77,7 +77,7 @@ milestones:
     tasks:
       - id: M1.1
         title: Create headless service package
-        status: in_progress
+        status: done
         depends_on: [M0.4, G-LICENSE, G-PROTOCOL]
         outputs:
           - packages/account-router/
@@ -87,7 +87,7 @@ milestones:
           - Binds to loopback by default
       - id: M1.2
         title: Define account and secret providers
-        status: pending
+        status: ready
         depends_on: [M1.1]
         acceptance:
           - Public account metadata separated from credentials

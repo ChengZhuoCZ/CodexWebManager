@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M1.1",
-  "status": "in_progress",
+  "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "input_revisions": {
@@ -10,8 +10,8 @@
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2 (sha256:4a9e84ad1c9622e8f6a50dafd75710eaee4af79dc5bcf8bafd4471763255fe18)"
   },
-  "output_revision": null,
-  "output_revision_note": "Pending the M1.1 headless service package commit.",
+  "output_revision": "337df9f",
+  "output_revision_note": "337df9f creates and tests the M1.1 headless service package; this state commit records completion.",
   "workspace_branch": "codex/m1-1-headless-service",
   "workspace_input_revision": "1eb233011f1e5a8a895c94002500db855fb379ab",
   "depends_on": [
@@ -22,12 +22,48 @@
   "expected_outputs": [
     "packages/account-router/"
   ],
-  "tests": [],
-  "evidence": [],
+  "tests": [
+    {
+      "command": "/Users/chengzhuo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --version",
+      "result": "passed; v24.14.0 satisfies Node.js >=22"
+    },
+    {
+      "command": "same Node binary --check on all 7 account-router source and test modules",
+      "result": "passed; 0 syntax failures"
+    },
+    {
+      "command": "cd packages/account-router; same Node binary --test",
+      "result": "passed; 10 tests passed, 0 failed, duration 91.896083 ms"
+    },
+    {
+      "command": "jq empty packages/account-router/package.json state/task-status.json",
+      "result": "passed"
+    },
+    {
+      "command": "scan package manifest and source for Electron, keytar, X11, Wayland, or keychain dependencies",
+      "result": "passed; no matches and no production dependencies"
+    },
+    {
+      "command": "scan M1.1 files for credential values, known token shapes, and email addresses",
+      "result": "passed; no matches"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "evidence": [
+    "evidence/M1.1-headless-service.md",
+    "packages/account-router/test/config.test.mjs",
+    "packages/account-router/test/service.test.mjs"
+  ],
   "observations": {
-    "selected_mode": "LIMITED_MODE",
-    "scope": "Headless Node.js service foundation only; no account-switch E2E in this task.",
-    "deferred_gate": "M0.3 remains blocked under EX-DEFER-M0.3-CROSS."
+    "runtime": "Pure Node.js ESM using built-in modules only.",
+    "default_listener": "127.0.0.1:18318",
+    "zero_account_health": "GET /healthz returns 200",
+    "zero_account_readiness": "GET /readyz returns 503 with reason no_accounts",
+    "headless_e2e": "CLI started without DISPLAY, WAYLAND_DISPLAY, or XAUTHORITY and exited cleanly on SIGTERM.",
+    "deferred_gate": "No account-switch scenario is implemented or tested in M1.1; M0.3 remains blocked."
   },
   "blockers": [],
   "residual_risks": [
@@ -35,5 +71,5 @@
     "Admin authentication and event APIs are intentionally deferred to M1.3.",
     "Proxy paths and failover are intentionally deferred to M3."
   ],
-  "updated_at": "2026-07-16T12:50:00+08:00"
+  "updated_at": "2026-07-16T16:07:45+08:00"
 }
