@@ -12,7 +12,7 @@
   },
   "scripts": {
     "start": "node src/main.mjs",
-    "check": "node --check src/config.mjs && node --check src/http-handler.mjs && node --check src/service.mjs && node --check src/main.mjs",
+    "check": "node --check src/accounts.mjs && node --check src/config.mjs && node --check src/http-handler.mjs && node --check src/index.mjs && node --check src/redaction.mjs && node --check src/secrets.mjs && node --check src/service.mjs && node --check src/main.mjs",
     "test": "node --test"
   }
 }

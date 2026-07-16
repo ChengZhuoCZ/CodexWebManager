@@ -4,14 +4,13 @@
   "title": "Account public metadata",
   "type": "object",
   "additionalProperties": false,
-  "required": ["id", "alias", "enabled", "priority"],
+  "required": ["id", "alias", "enabled", "priority", "max_concurrency", "provider"],
   "properties": {
-    "id": {"type": "string", "pattern": "^[a-zA-Z0-9._-]+$"},
+    "id": {"type": "string", "maxLength": 128, "pattern": "^[a-zA-Z0-9._-]+$"},
     "alias": {"type": "string", "minLength": 1, "maxLength": 64},
     "enabled": {"type": "boolean"},
     "priority": {"type": "integer", "minimum": -1000, "maximum": 1000},
     "max_concurrency": {"type": "integer", "minimum": 1, "maximum": 64},
-    "credential_ref": {"type": "string", "minLength": 1},
-    "provider": {"type": "string"}
+    "provider": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9._-]{0,63}$"}
   }
 }

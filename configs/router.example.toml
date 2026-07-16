@@ -31,6 +31,7 @@ enabled = true
 priority = 0
 max_concurrency = 1
 credential_ref = "codex-account-a"
+secret_provider = "file"
 provider = "openai-codex"
 
 [[accounts]]
@@ -40,4 +41,5 @@ enabled = true
 priority = 0
 max_concurrency = 1
 credential_ref = "codex-account-b"
+secret_provider = "file"
 provider = "openai-codex"

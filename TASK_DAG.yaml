@@ -87,7 +87,7 @@ milestones:
           - Binds to loopback by default
       - id: M1.2
         title: Define account and secret providers
-        status: ready
+        status: in_progress
         depends_on: [M1.1]
         acceptance:
           - Public account metadata separated from credentials

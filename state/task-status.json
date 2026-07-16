@@ -1,75 +1,37 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M1.1",
-  "status": "done",
+  "current_task": "M1.2",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "input_revisions": {
-    "workspace": "1eb233011f1e5a8a895c94002500db855fb379ab",
+    "workspace": "c27a9fa119c5b738432eb199c6ff4c2e8b856078",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
-    "codex-cli": "codex-cli 0.144.2 (sha256:4a9e84ad1c9622e8f6a50dafd75710eaee4af79dc5bcf8bafd4471763255fe18)"
+    "codex-cli": "codex-cli 0.144.2"
   },
-  "output_revision": "337df9f",
-  "output_revision_note": "337df9f creates and tests the M1.1 headless service package; this state commit records completion.",
-  "workspace_branch": "codex/m1-1-headless-service",
-  "workspace_input_revision": "1eb233011f1e5a8a895c94002500db855fb379ab",
-  "depends_on": [
-    "M0.4",
-    "G-LICENSE",
-    "G-PROTOCOL"
-  ],
+  "output_revision": null,
+  "output_revision_note": "Pending the M1.2 account and secret provider commit.",
+  "workspace_branch": "codex/m1-2-account-secrets",
+  "workspace_input_revision": "c27a9fa119c5b738432eb199c6ff4c2e8b856078",
+  "depends_on": ["M1.1"],
   "expected_outputs": [
-    "packages/account-router/"
+    "packages/account-router/src/accounts.mjs",
+    "packages/account-router/src/secrets.mjs",
+    "packages/account-router/src/redaction.mjs"
   ],
-  "tests": [
-    {
-      "command": "/Users/chengzhuo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --version",
-      "result": "passed; v24.14.0 satisfies Node.js >=22"
-    },
-    {
-      "command": "same Node binary --check on all 7 account-router source and test modules",
-      "result": "passed; 0 syntax failures"
-    },
-    {
-      "command": "cd packages/account-router; same Node binary --test",
-      "result": "passed; 10 tests passed, 0 failed, duration 91.896083 ms"
-    },
-    {
-      "command": "jq empty packages/account-router/package.json state/task-status.json",
-      "result": "passed"
-    },
-    {
-      "command": "scan package manifest and source for Electron, keytar, X11, Wayland, or keychain dependencies",
-      "result": "passed; no matches and no production dependencies"
-    },
-    {
-      "command": "scan M1.1 files for credential values, known token shapes, and email addresses",
-      "result": "passed; no matches"
-    },
-    {
-      "command": "git diff --check",
-      "result": "passed"
-    }
-  ],
-  "evidence": [
-    "evidence/M1.1-headless-service.md",
-    "packages/account-router/test/config.test.mjs",
-    "packages/account-router/test/service.test.mjs"
-  ],
+  "tests": [],
+  "evidence": [],
   "observations": {
-    "runtime": "Pure Node.js ESM using built-in modules only.",
-    "default_listener": "127.0.0.1:18318",
-    "zero_account_health": "GET /healthz returns 200",
-    "zero_account_readiness": "GET /readyz returns 503 with reason no_accounts",
-    "headless_e2e": "CLI started without DISPLAY, WAYLAND_DISPLAY, or XAUTHORITY and exited cleanly on SIGTERM.",
-    "deferred_gate": "No account-switch scenario is implemented or tested in M1.1; M0.3 remains blocked."
+    "test_strategy": "Test-first with fixture-only providers and temporary permission-controlled files.",
+    "scope": "Public account metadata, secret-provider interfaces, file permissions, and log redaction only.",
+    "deferred_gate": "No real account or account-switch request is used."
   },
   "blockers": [],
   "residual_risks": [
-    "Account and secret providers are intentionally deferred to M1.2.",
-    "Admin authentication and event APIs are intentionally deferred to M1.3.",
-    "Proxy paths and failover are intentionally deferred to M3."
+    "Production systemd credential wiring remains M5.2.",
+    "Admin authorization remains M1.3.",
+    "Real account compatibility remains deferred."
   ],
-  "updated_at": "2026-07-16T16:07:45+08:00"
+  "updated_at": "2026-07-16T16:10:00+08:00"
 }
