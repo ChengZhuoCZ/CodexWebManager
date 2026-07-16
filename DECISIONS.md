@@ -29,3 +29,12 @@
 状态：Accepted
 
 原因：上游可合并性和回退能力要求账号路由功能为可选适配层，未配置时行为不变。
+
+## ADR-006：缺少真实 A→B 时仅按 LIMITED_MODE 开发
+
+状态：Accepted for development，release gate deferred
+
+原因：现有证据表明 `previous_response_id` 不可假设能跨新连接或账号复用，移除该字段又会
+丢失上下文。用户明确要求先完成开发、后补真实换号测试，因此开发只能实现显式新后台
+会话与本地 transcript 重建；M0.3、M3.5、M4.1 和最终发布门禁不得据此标记通过，也不得
+宣传无缝保持原会话。

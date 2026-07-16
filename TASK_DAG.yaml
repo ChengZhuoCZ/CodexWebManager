@@ -3,6 +3,19 @@ project: codex-web-auto-account-switch
 implementation_mode_default: clean-room
 states: [pending, ready, in_progress, blocked, done, rejected]
 
+execution_exceptions:
+  - id: EX-DEFER-M0.3-CROSS
+    authorized_at: "2026-07-16T10:35:00+08:00"
+    source: user_directive
+    reason: The current device has one Codex account; defer real account-switch testing and finish development first.
+    permits:
+      - Complete M0.4 with LIMITED_MODE only
+      - Implement later tasks without claiming cross-account continuity is verified
+    does_not_waive:
+      - M0.3 real A-to-B acceptance
+      - M3.5 and M4.1 approved account-switch E2E
+      - Final release, security, and product-claim gates
+
 hard_gates:
   - id: G-LICENSE
     condition: state/implementation-mode.txt exists and is authorized-fork or clean-room
@@ -39,7 +52,7 @@ milestones:
           - Identify responses, compact, models, memory and search calls
       - id: M0.3
         title: Test cross-account continuity
-        status: in_progress
+        status: blocked
         depends_on: [M0.2]
         outputs:
           - evidence/M0.3-continuity-matrix.md
@@ -50,7 +63,7 @@ milestones:
           - Test failure before and after first semantic SSE event
       - id: M0.4
         title: Select architecture
-        status: pending
+        status: in_progress
         depends_on: [M0.3]
         outputs:
           - state/architecture-decision.md

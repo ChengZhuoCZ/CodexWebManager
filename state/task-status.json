@@ -1,79 +1,47 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M0.3",
+  "current_task": "M0.4",
   "status": "in_progress",
   "implementation_mode": "clean-room",
-  "architecture_mode": null,
+  "architecture_mode": "LIMITED_MODE",
   "input_revisions": {
+    "workspace": "7714dff0ff0eeb3ce35c094fb1e29198f60dd9bd",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2 (sha256:4a9e84ad1c9622e8f6a50dafd75710eaee4af79dc5bcf8bafd4471763255fe18)"
   },
   "output_revision": null,
-  "output_revision_note": "M0.3 remains in progress. Partial control evidence is based on workspace input 9792d209d1c4dc4770a004121043cc1d90133d8b and is being published on codex/m0-3-control-evidence.",
-  "workspace_branch": "codex/m0-3-control-evidence",
-  "workspace_input_revision": "9792d209d1c4dc4770a004121043cc1d90133d8b",
-  "depends_on": ["M0.2"],
+  "output_revision_note": "Pending the M0.4 architecture-selection commit.",
+  "workspace_branch": "codex/m0-4-limited-mode",
+  "workspace_input_revision": "7714dff0ff0eeb3ce35c094fb1e29198f60dd9bd",
+  "depends_on": [
+    "M0.3 is blocked and explicitly deferred for development by EX-DEFER-M0.3-CROSS"
+  ],
   "expected_outputs": [
-    "evidence/M0.3-continuity-matrix.md"
+    "state/architecture-decision.md",
+    "evidence/M0.4-architecture-selection.md"
   ],
-  "tests": [
-    {
-      "command": "codex --version && codex login status; enumerate auth.json paths and JSON key/type shape only",
-      "result": "passed; codex-cli 0.144.2 is logged in with ChatGPT, but only one CODEX_HOME auth slot is currently available"
-    },
-    {
-      "command": "codex app-server generate-json-schema --out /tmp/codex-web-auto-account-switch-m0.3-schema",
-      "result": "passed; account/read, thread/start, thread/resume and turn/start are present"
-    },
-    {
-      "command": "/Users/chengzhuo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --check spikes/m0-protocol-observer/src/continuity-relay.mjs; same Node binary --check spikes/m0-protocol-observer/scripts/run-continuity.mjs; same Node binary --check spikes/m0-protocol-observer/test/continuity-relay.test.mjs",
-      "result": "passed"
-    },
-    {
-      "command": "cd spikes/m0-protocol-observer; /Users/chengzhuo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --test",
-      "result": "passed; 11 tests passed, 0 failed"
-    },
-    {
-      "command": "M0_3_MODE=control M0_3_SCENARIOS=restart ... node spikes/m0-protocol-observer/scripts/run-continuity.mjs",
-      "result": "passed; router and app-server restart plus thread resume preserved the fixture"
-    },
-    {
-      "command": "M0_3_MODE=control M0_3_SCENARIOS=boundaries ... node spikes/m0-protocol-observer/scripts/run-continuity.mjs",
-      "result": "passed; initial pre-semantic replay succeeded and post-semantic transparent replay was prevented"
-    }
-  ],
+  "tests": [],
   "evidence": [
     "evidence/M0.3-continuity-matrix.md",
-    "evidence/M0.3/control-summary.jsonl",
-    "evidence/M0.3/control-restart-summary.jsonl",
-    "evidence/M0.3/control-boundaries-summary.jsonl",
-    "evidence/M0.3/control-a-to-a-with-previous-relay.jsonl",
-    "evidence/M0.3/control-a-to-a-without-previous-relay.jsonl",
-    "evidence/M0.3/restart-resume-before-relay.jsonl",
-    "evidence/M0.3/restart-resume-after-relay.jsonl",
-    "evidence/M0.3/failure-before-initial-relay.jsonl",
-    "evidence/M0.3/failure-before-relay.jsonl",
-    "evidence/M0.3/failure-after-relay.jsonl"
+    "evidence/M0.3-blocker.md",
+    "evidence/M0.4-architecture-selection.md",
+    "state/architecture-decision.md"
   ],
   "observations": {
-    "account_slots_discovered": 1,
-    "account_slot_detail": "Only ~/.codex/auth.json was found; values, email, account id and quota were not recorded.",
-    "protocol_handoff": "M0.2 proved that Codex 0.144.2 uses a persistent Responses WebSocket and sends previous_response_id on continuation.",
-    "same_account_with_previous": "passed; fixture continuity was preserved",
-    "same_account_without_previous": "call completed but fixture continuity was not preserved",
-    "restart_resume": "passed after a fresh upstream bootstrap; this is not in-place recovery of interrupted computation",
-    "pre_semantic_initial_replay": "passed with no previous_response_id",
-    "pre_semantic_continuation_reconnect": "failed with an upstream error when an old previous_response_id was forwarded on a replacement WebSocket",
-    "post_semantic_replay": "blocked; no transparent second upstream attempt occurred"
+    "user_directive": "Defer account-switch testing and complete development first.",
+    "selected_mode": "LIMITED_MODE",
+    "selection_reason": "Existing evidence does not prove portable upstream response state; safe development requires explicit new-session behavior.",
+    "release_gate": "Real A-to-B E2E remains mandatory before account-switch acceptance or seamless-continuity claims."
   },
   "blockers": [
-    "A second user-authorized CODEX_HOME is required before the real A-to-B matrix can be completed."
+    "M0.3 real A-to-B evidence requires a second distinct user-authorized CODEX_HOME; this is deferred, not passed."
   ],
   "residual_risks": [
-    "No A-to-B result exists yet, so account binding and seamless continuity remain unproven.",
-    "The experiment must avoid persisting either account's credentials or account identifiers.",
-    "A persistent upstream WebSocket must be deliberately reconnected at a turn boundary to switch accounts."
+    "Cross-account endpoint and response-state behavior remains unverified.",
+    "Transcript rehydration can lose hidden upstream state and increase token usage.",
+    "Tool-side-effect boundaries must prevent replay of interrupted or uncommitted work.",
+    "LIMITED_MODE must remain visible in API, logs, UI, and documentation."
   ],
-  "updated_at": "2026-07-16T10:23:11+08:00"
+  "updated_at": "2026-07-16T10:35:00+08:00"
 }
