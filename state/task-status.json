@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M2.2",
-  "status": "in_progress",
+  "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "input_revisions": {
@@ -10,8 +10,8 @@
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2"
   },
-  "output_revision": null,
-  "output_revision_note": "Pending the M2.2 deterministic scheduler commit.",
+  "output_revision": "3e0ef4f148945a752330a749a4772bfbabbad703",
+  "output_revision_note": "3e0ef4f implements and tests M2.2; this state commit records completion.",
   "workspace_branch": "codex/m2-2-deterministic-scheduler",
   "workspace_input_revision": "cd3cad43efadabf24b441c1139cafe584f6e02c1",
   "depends_on": ["M2.1"],
@@ -19,18 +19,49 @@
     "packages/account-router/src/scheduler.mjs",
     "packages/account-router/test/scheduler.test.mjs"
   ],
-  "tests": [],
-  "evidence": [],
+  "tests": [
+    {
+      "command": "node --test test/scheduler.test.mjs before implementation",
+      "result": "expected failure; 1 ERR_MODULE_NOT_FOUND failure proved the test preceded implementation"
+    },
+    {
+      "command": "node --check src/scheduler.mjs test/scheduler.test.mjs",
+      "result": "passed; 0 syntax failures"
+    },
+    {
+      "command": "node --test test/scheduler.test.mjs",
+      "result": "passed; 10 tests passed, 0 failed, duration 45.3325 ms"
+    },
+    {
+      "command": "cd packages/account-router; node --test",
+      "result": "passed; 61 tests passed, 0 failed, duration 158.127917 ms"
+    },
+    {
+      "command": "scan production M2.2 scope for private keys, known token shapes, bearer values, and email addresses",
+      "result": "passed; no matches"
+    },
+    {
+      "command": "git diff --check",
+      "result": "passed"
+    }
+  ],
+  "evidence": [
+    "evidence/M2.2-deterministic-scheduler.md",
+    "packages/account-router/test/scheduler.test.mjs"
+  ],
   "observations": {
-    "test_strategy": "Test-first pure scheduler tests with canonical quota fixtures and a virtual current time.",
-    "scope": "Deterministic eligibility, ordering, priority, quota, cooldown, and concurrency representation.",
-    "deferred_gate": "Selections are fixture decisions only; no real account route or switch will execute."
+    "determinism": "Equal eligible inputs are ordered by bounded ASCII account ID independent of caller order.",
+    "ordering": "Fresh complete quota data precedes uncertain fallback data; higher numeric priority, conservative quota, confidence, and lower utilization then decide ties.",
+    "eligibility": "Disabled, cooling, concurrency-full, excluded, and fresh-exhausted candidates have explicit reasons.",
+    "staleness": "Scheduler time re-evaluates stored snapshots; stale, partial, and unavailable data does not use a numeric ratio and remains an explicit fallback.",
+    "deferred_gate": "All decisions used fixture accounts and quota observations; no route or real switch executed."
   },
   "blockers": [],
   "residual_risks": [
     "Cooldown classification, half-open state, and persistence remain M2.3.",
     "Routing-session stickiness remains M2.4.",
+    "The uncertain fallback policy still requires a live upstream attempt to learn actual availability; that behavior belongs to M3 and approved E2E.",
     "Real account behavior remains deferred."
   ],
-  "updated_at": "2026-07-16T16:46:00+08:00"
+  "updated_at": "2026-07-16T16:54:22+08:00"
 }

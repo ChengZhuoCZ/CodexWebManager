@@ -115,7 +115,7 @@ milestones:
           - Handles unavailable quota data without guessing zero or full
       - id: M2.2
         title: Implement deterministic scheduler
-        status: in_progress
+        status: done
         depends_on: [M2.1]
         acceptance:
           - Deterministic selection for equal inputs
@@ -123,7 +123,7 @@ milestones:
           - Unit tests include all-exhausted and stale-data cases
       - id: M2.3
         title: Implement cooldown and circuit breaker
-        status: pending
+        status: ready
         depends_on: [M2.2]
         acceptance:
           - Distinct cooldowns for quota, auth, 429, network and 5xx
