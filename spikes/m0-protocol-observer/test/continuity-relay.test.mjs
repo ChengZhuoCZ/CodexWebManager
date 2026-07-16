@@ -316,6 +316,7 @@ test("replays only a pre-semantic injected failure on the fallback account", asy
   ]);
   await fixture.relay.flush();
   const log = await fs.readFile(fixture.logPath, "utf8");
+  assert.match(log, /"message_sequence":1/);
   assert.match(log, /"boundary":"before_first_semantic_event"/);
   assert.match(log, /"replay_allowed":true/);
 });

@@ -14,16 +14,26 @@ const summaryLog = process.env.M0_3_SUMMARY_LOG;
 const timeoutMs = Number.parseInt(process.env.M0_3_TIMEOUT_MS ?? "180000", 10);
 const sourceHomeA = path.resolve(process.env.CODEX_HOME_A ?? path.join(os.homedir(), ".codex"));
 const sourceHomeB = process.env.CODEX_HOME_B ? path.resolve(process.env.CODEX_HOME_B) : null;
+const scenarioGroups = new Set(
+  (process.env.M0_3_SCENARIOS ?? "all")
+    .split(",")
+    .map((value) => value.trim())
+    .filter(Boolean),
+);
+const allowedScenarioGroups = new Set(["all", "continuity", "restart", "boundaries"]);
 
 if (
   !new Set(["control", "cross"]).has(mode) ||
   !evidenceDirectory ||
   !summaryLog ||
   !Number.isInteger(timeoutMs) ||
-  timeoutMs < 10_000
+  timeoutMs < 10_000 ||
+  scenarioGroups.size === 0 ||
+  [...scenarioGroups].some((value) => !allowedScenarioGroups.has(value)) ||
+  (mode === "cross" && scenarioGroups.has("restart"))
 ) {
   process.stderr.write(
-    "M0_3_MODE, M0_3_EVIDENCE_DIR, M0_3_SUMMARY_LOG and a valid M0_3_TIMEOUT_MS are required\n",
+    "M0_3_MODE, M0_3_EVIDENCE_DIR, M0_3_SUMMARY_LOG, M0_3_SCENARIOS and a valid M0_3_TIMEOUT_MS are required\n",
   );
   process.exit(2);
 }
@@ -35,6 +45,34 @@ if (mode === "cross" && !sourceHomeB) {
 await fs.mkdir(evidenceDirectory, { recursive: true });
 await fs.writeFile(summaryLog, "", { mode: 0o600 });
 let summaryPending = Promise.resolve();
+let activeStage = "initialization";
+
+function shouldRun(group) {
+  return scenarioGroups.has("all") || scenarioGroups.has(group);
+}
+
+function safeErrorCategory(error) {
+  const message = error instanceof Error ? error.message : "";
+  if (message.endsWith(" timed out")) {
+    return "timeout";
+  }
+  if (message.includes("app-server exited")) {
+    return "app_server_exit";
+  }
+  if (message.includes("returned an app-server error")) {
+    return "app_server_rpc_error";
+  }
+  if (message.includes("distinct authorized identity")) {
+    return "account_identity_not_distinct";
+  }
+  if (message.includes("auth.json")) {
+    return "account_auth_slot_unavailable";
+  }
+  if (message.includes("WebSocket") || message.includes("upstream route")) {
+    return "relay_or_upstream_error";
+  }
+  return "experiment_error";
+}
 
 function emit(record) {
   const safeRecord = { timestamp: new Date().toISOString(), ...record };
@@ -458,18 +496,21 @@ async function runRestartResumeScenario({ homeA, fixtureDirectory }) {
 }
 
 async function runFailureBoundaryScenarios({ homeA, homeB, fixtureDirectory, crossFallback }) {
-  const beforeLog = path.join(evidenceDirectory, `${crossFallback ? "cross-" : ""}failure-before-relay.jsonl`);
+  const beforeLog = path.join(
+    evidenceDirectory,
+    `${crossFallback ? "cross-" : ""}failure-before-initial-relay.jsonl`,
+  );
   const fallbackAlias = crossFallback ? "account-b" : "account-a";
   const beforeRelay = await createContinuityRelay({
     upstreamOrigin,
     logPath: beforeLog,
     routePlan: [
-      { accountAlias: "account-a" },
       {
         accountAlias: "account-a",
         injectFailureBeforeSemantic: true,
         fallbackAlias,
       },
+      { accountAlias: fallbackAlias },
     ],
   });
   let beforeClient;
@@ -493,23 +534,35 @@ async function runFailureBoundaryScenarios({ homeA, homeB, fixtureDirectory, cro
     );
     await beforeRelay.flush();
     const records = await readRelayRecords(beforeLog);
-    const injected = records.some(
+    const injectedRecord = records.find(
       (record) =>
         record.kind === "failure_injected" &&
         record.boundary === "before_first_semantic_event" &&
         record.replay_allowed === true,
     );
+    const injectedRoute = records.find(
+      (record) =>
+        record.kind === "response_create_route" &&
+        record.message_sequence === injectedRecord?.message_sequence,
+    );
+    const injected = Boolean(injectedRecord);
+    const previousPresentAtInjection =
+      injectedRoute?.previous_response_id_present_after ?? null;
     const beforeResult = {
       kind: "scenario_result",
-      scenario: crossFallback ? "cross-failure-before-semantic" : "failure-before-semantic",
+      scenario: crossFallback
+        ? "cross-failure-before-initial-semantic"
+        : "failure-before-initial-semantic",
       fallback_account_alias: fallbackAlias,
       account_identity_distinct: crossFallback ? beforeRelay.identityStatus().distinct : null,
       terminal_method: turn.terminal_method,
       turn_status: turn.status,
       fixture_assertion: turn.fixture_assertion,
       failure_injected: injected,
+      failure_message_sequence: injectedRecord?.message_sequence ?? null,
+      previous_response_id_present_at_injection: previousPresentAtInjection,
       outcome:
-        injected && turn.fixture_assertion === true
+        injected && previousPresentAtInjection === false && turn.fixture_assertion === true
           ? "bounded_replay_succeeded"
           : "bounded_replay_failed",
       app_server_stderr_line_count: beforeClient.stderrLineCount,
@@ -613,98 +666,137 @@ try {
   await emit({
     kind: "run_started",
     mode,
+    scenario_groups: [...scenarioGroups].sort(),
     implementation_mode: "clean-room",
     source_account_paths_distinct: mode === "cross" ? realHomeA !== realHomeB : null,
     credentials_persisted_to_evidence: false,
   });
 
   if (mode === "control") {
-    const standard = await runTwoTurnScenario({
-      name: "control-a-to-a-with-previous",
-      routePlan: [
-        { accountAlias: "account-a" },
-        { accountAlias: "account-a" },
-        { accountAlias: "account-a" },
-      ],
-      homeA,
-      homeB,
-      fixtureDirectory,
-      requireDistinctAccounts: false,
-    });
-    const withoutPrevious = await runTwoTurnScenario({
-      name: "control-a-to-a-without-previous",
-      routePlan: [
-        { accountAlias: "account-a" },
-        { accountAlias: "account-a" },
-        { accountAlias: "account-a", omitPreviousResponseId: true },
-      ],
-      homeA,
-      homeB,
-      fixtureDirectory,
-      requireDistinctAccounts: false,
-    });
-    const restart = await runRestartResumeScenario({ homeA, fixtureDirectory });
-    const boundaries = await runFailureBoundaryScenarios({
-      homeA,
-      homeB,
-      fixtureDirectory,
-      crossFallback: false,
-    });
-    if (
-      standard.first_turn_fixture_assertion !== true ||
-      standard.second_turn_fixture_assertion !== true ||
-      restart.resumed_turn_fixture_assertion !== true ||
-      withoutPrevious.first_turn_fixture_assertion !== true ||
-      boundaries.before.outcome !== "bounded_replay_succeeded" ||
-      boundaries.after?.outcome !== "unsafe_to_replay_enforced"
-    ) {
-      exitCode = 1;
+    if (shouldRun("continuity")) {
+      activeStage = "control_continuity_with_previous";
+      const standard = await runTwoTurnScenario({
+        name: "control-a-to-a-with-previous",
+        routePlan: [
+          { accountAlias: "account-a" },
+          { accountAlias: "account-a" },
+          { accountAlias: "account-a" },
+        ],
+        homeA,
+        homeB,
+        fixtureDirectory,
+        requireDistinctAccounts: false,
+      });
+      activeStage = "control_continuity_without_previous";
+      const withoutPrevious = await runTwoTurnScenario({
+        name: "control-a-to-a-without-previous",
+        routePlan: [
+          { accountAlias: "account-a" },
+          { accountAlias: "account-a" },
+          { accountAlias: "account-a", omitPreviousResponseId: true },
+        ],
+        homeA,
+        homeB,
+        fixtureDirectory,
+        requireDistinctAccounts: false,
+      });
+      if (
+        standard.first_turn_fixture_assertion !== true ||
+        standard.second_turn_fixture_assertion !== true ||
+        withoutPrevious.first_turn_fixture_assertion !== true ||
+        withoutPrevious.second_turn_terminal !== "turn/completed" ||
+        withoutPrevious.previous_response_id_present_after !== false
+      ) {
+        exitCode = 1;
+      }
+    }
+    if (shouldRun("restart")) {
+      activeStage = "control_restart_resume";
+      const restart = await runRestartResumeScenario({ homeA, fixtureDirectory });
+      if (restart.resumed_turn_fixture_assertion !== true) {
+        exitCode = 1;
+      }
+    }
+    if (shouldRun("boundaries")) {
+      activeStage = "control_failure_boundaries";
+      const boundaries = await runFailureBoundaryScenarios({
+        homeA,
+        homeB,
+        fixtureDirectory,
+        crossFallback: false,
+      });
+      if (
+        boundaries.before.outcome !== "bounded_replay_succeeded" ||
+        boundaries.after?.outcome !== "unsafe_to_replay_enforced"
+      ) {
+        exitCode = 1;
+      }
     }
   } else {
-    await runTwoTurnScenario({
-      name: "cross-a-to-b-with-previous",
-      routePlan: [
-        { accountAlias: "account-a" },
-        { accountAlias: "account-a" },
-        { accountAlias: "account-b" },
-      ],
-      homeA,
-      homeB,
-      fixtureDirectory,
-      requireDistinctAccounts: true,
-    });
-    await runTwoTurnScenario({
-      name: "cross-a-to-b-without-previous",
-      routePlan: [
-        { accountAlias: "account-a" },
-        { accountAlias: "account-a" },
-        { accountAlias: "account-b", omitPreviousResponseId: true },
-      ],
-      homeA,
-      homeB,
-      fixtureDirectory,
-      requireDistinctAccounts: true,
-    });
-    await runFailureBoundaryScenarios({
-      homeA,
-      homeB,
-      fixtureDirectory,
-      crossFallback: true,
-    });
+    if (shouldRun("continuity")) {
+      activeStage = "cross_continuity_with_previous";
+      const withPrevious = await runTwoTurnScenario({
+        name: "cross-a-to-b-with-previous",
+        routePlan: [
+          { accountAlias: "account-a" },
+          { accountAlias: "account-a" },
+          { accountAlias: "account-b" },
+        ],
+        homeA,
+        homeB,
+        fixtureDirectory,
+        requireDistinctAccounts: true,
+      });
+      activeStage = "cross_continuity_without_previous";
+      const withoutPrevious = await runTwoTurnScenario({
+        name: "cross-a-to-b-without-previous",
+        routePlan: [
+          { accountAlias: "account-a" },
+          { accountAlias: "account-a" },
+          { accountAlias: "account-b", omitPreviousResponseId: true },
+        ],
+        homeA,
+        homeB,
+        fixtureDirectory,
+        requireDistinctAccounts: true,
+      });
+      if (
+        withPrevious.account_identity_distinct !== true ||
+        withPrevious.first_turn_fixture_assertion !== true ||
+        withPrevious.previous_response_id_present_after !== true ||
+        withoutPrevious.account_identity_distinct !== true ||
+        withoutPrevious.first_turn_fixture_assertion !== true ||
+        withoutPrevious.previous_response_id_present_after !== false
+      ) {
+        exitCode = 1;
+      }
+    }
+    if (shouldRun("boundaries")) {
+      activeStage = "cross_failure_boundaries";
+      const boundaries = await runFailureBoundaryScenarios({
+        homeA,
+        homeB,
+        fixtureDirectory,
+        crossFallback: true,
+      });
+      if (
+        boundaries.before.account_identity_distinct !== true ||
+        boundaries.before.outcome !== "bounded_replay_succeeded"
+      ) {
+        exitCode = 1;
+      }
+    }
   }
 
+  activeStage = "complete";
   await emit({ kind: "run_completed", mode, result: exitCode === 0 ? "passed" : "failed" });
 } catch (error) {
   exitCode = 1;
   await emit({
     kind: "run_failed",
     mode,
-    category:
-      error instanceof Error && error.message.includes("distinct authorized identity")
-        ? "account_identity_not_distinct"
-        : error instanceof Error && error.message.includes("auth.json")
-          ? "account_auth_slot_unavailable"
-          : "experiment_error",
+    stage: activeStage,
+    category: safeErrorCategory(error),
   });
 } finally {
   await summaryPending;
