@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M4.3",
-  "status": "in_progress",
+  "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-DEFER-M0.3-CROSS",
@@ -11,30 +11,85 @@
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2"
   },
-  "output_revision": null,
-  "output_revision_note": "Pending M4.3 optional minimal account UI implementation and evidence.",
+  "output_revision": "e7b3ccc1581f2f02ca0236e79cf7e6ee5bc5e07c",
+  "output_revision_note": "Commit e7b3ccc implements and verifies the optional minimal account panel and active-stream guard; this state commit records M4.3 completion and makes M5.1 ready under EX-DEFER-M0.3-CROSS.",
   "workspace_branch": "codex/m4-3-minimal-account-ui",
   "workspace_input_revision": "42ca3d157bb19d02182e156c172b9fbd3f9f1c2f",
   "depends_on": ["M4.2"],
   "expected_outputs": [
     "evidence/M4.3-minimal-ui.md",
+    "evidence/M4.3/test-summary.json",
+    "evidence/M4.3/browser-ui-summary.json",
     "integrations/codex-web/src/browser/router-account-panel.ts",
     "integrations/codex-web/src/server/router-status-bridge.ts",
+    "packages/account-router/scripts/run-codex-web-account-ui.mjs",
     "packages/account-router/test/codex-web-account-ui.test.mjs"
   ],
-  "tests": [],
-  "evidence": [],
+  "tests": [
+    {
+      "command": "M4_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test packages/account-router/test/codex-web-account-ui.test.mjs before implementation",
+      "result": "expected red state; overlay source missing, 0 passed and 4 failed, duration 565.454375 ms"
+    },
+    {
+      "command": "M4_2_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test packages/account-router/test/codex-web-status-bridge.test.mjs before switch route",
+      "result": "expected red state; switch route absent, 1 passed and 2 failed, duration 1392.418333 ms"
+    },
+    {
+      "command": "M4_2_CODEX_WEB_ROOT=<pinned-checkout> M4_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test packages/account-router/test/codex-web-account-ui.test.mjs packages/account-router/test/codex-web-status-bridge.test.mjs",
+      "result": "passed; 9 tests passed, 0 failed, duration 1591.110583 ms"
+    },
+    {
+      "command": "run-codex-web-account-ui.mjs active, exhausted, and disabled smoke plus serve scenarios",
+      "result": "passed; every scenario recorded switch_request_count 0 and account_switch_scenario_executed false"
+    },
+    {
+      "command": "in-app browser DOM, layout, disabled-control, all-exhausted, and no-panel inspection",
+      "result": "passed; active and exhausted panels rendered with two disabled buttons; disabled scenario attached no panel"
+    },
+    {
+      "command": "cd packages/account-router; M4_2_CODEX_WEB_ROOT=<pinned-checkout> M4_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test",
+      "result": "passed; 166 tests passed, 0 failed, 0 skipped, duration 2424.581292 ms"
+    },
+    {
+      "command": "cd packages/account-router; PATH=<bundled-node-and-pnpm> pnpm run check",
+      "result": "passed; all production modules, harnesses, and selected tests parsed"
+    },
+    {
+      "command": "git -C <pinned-codex-web> rev-parse HEAD; git -C <pinned-codex-web> diff --quiet --exit-code",
+      "result": "passed; exact revision 888692f7d885118c6a92bbaf60cf2121f5947adf and no tracked changes"
+    },
+    {
+      "command": "git diff --check; scan M4.3 scope for private-key, known-token, JWT, and email patterns",
+      "result": "passed; no whitespace errors and no secret-pattern matches"
+    }
+  ],
+  "evidence": [
+    "evidence/M4.3-minimal-ui.md",
+    "evidence/M4.3/test-summary.json",
+    "evidence/M4.3/browser-ui-summary.json",
+    "evidence/M4.3/active-smoke-summary.jsonl",
+    "evidence/M4.3/exhausted-smoke-summary.jsonl",
+    "evidence/M4.3/disabled-smoke-summary.jsonl",
+    "evidence/M4.3/browser-active-summary.jsonl",
+    "evidence/M4.3/browser-exhausted-summary.jsonl",
+    "evidence/M4.3/browser-disabled-summary.jsonl",
+    "packages/account-router/test/codex-web-account-ui.test.mjs",
+    "packages/account-router/test/codex-web-status-bridge.test.mjs"
+  ],
   "observations": {
-    "task_scope": "Add an optional minimal browser panel that consumes only the sanitized M4.2 same-origin bridge.",
-    "default_boundary": "When the bridge is disabled, no panel may be attached and standard codex-web behavior must remain unchanged.",
-    "manual_switch_boundary": "The UI must disable manual switch controls whenever active_streams is nonzero; the router remains authoritative and rejects active-stream requests server-side.",
-    "account_test_scope": "Development and verification use fixtures only; no real account switch will be executed."
+    "optional_ui": "The Shadow DOM panel is mounted only after enabled:true; the disabled browser fixture completed with no panel host attached.",
+    "minimal_fields": "Browser and view-model evidence contain only alias, state, two quota labels, cooldown, last switch reason, and current route.",
+    "active_stream_guard": "Every active-stream control was disabled in the browser and the server fixture returned only the sanitized active_semantic_stream error.",
+    "all_exhausted": "The exact all-enabled-accounts-exhausted message and zero quota values were visible with every switch control disabled.",
+    "upstream_mergeability": "The integration remains a pinned overlay with two minimal registration sites and no tracked changes in the upstream checkout.",
+    "account_test_scope": "No real account was accessed and every fixture recorded switch_request_count 0; no accepted manual switch was tested."
   },
   "blockers": [],
   "residual_risks": [
-    "The bundled Codex UI DOM is not a stable public extension surface, so the panel must isolate its layout and avoid selectors into upstream internals.",
-    "M0.3, M3.5, and M4.1 approved account-switch rows remain unrun and mandatory.",
+    "Future codex-web layout or source changes require visual placement review and new server/shim digests.",
+    "The accepted manual-switch UI path remains unrun because real or simulated switching was intentionally excluded; only request construction, disabled controls, and active-stream rejection were verified.",
+    "M0.3, M3.5, and M4.1 approved account-switch rows remain unrun and mandatory; M4.3 is not continuity evidence.",
     "No seamless cross-account conversation-continuity claim is permitted."
   ],
-  "updated_at": "2026-07-16T20:14:57+08:00"
+  "updated_at": "2026-07-16T20:38:51+08:00"
 }
