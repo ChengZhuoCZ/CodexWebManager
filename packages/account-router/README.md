@@ -170,3 +170,37 @@ The standalone CLI still starts only the health/admin listener: composing a prod
 resolver requires M3.3 account acquisition and failure-state logic. M3.2 tests use loopback fixture
 servers only. They do not access a real account, retry a request on another account, or establish
 cross-account conversation continuity.
+
+## Safe failover state machine
+
+M3.3 exports `createFailoverStateMachine()`, semantic-event classification, and fixed safe error
+bodies. A selector receives the cumulative `excludeAccountIds` set for every attempt. The machine
+permits retries only for explicitly classified quota, rate-limit, authentication, network, and
+upstream-5xx failures on a replayable initial request. Attempts, exponential backoff, `Retry-After`,
+and the overall operation deadline are all bounded; the deadline actively aborts a stalled selector,
+attempt, callback, or backoff.
+
+Only `response.created`, `response.in_progress`, `response.queued`, `codex.rate_limits`, and
+`codex.response.metadata` are considered preflight metadata. Text/reasoning/function-argument
+deltas, structural output events, completion/failure events, unknown JSON event types, non-JSON SSE
+data, and binary WebSocket output all commit the semantic boundary before they are sent downstream.
+Any later failure returns `unsafe_to_replay` and never invokes the selector again.
+
+In failover mode, HTTP request bytes are buffered within the configured request limit so a permitted
+retry replays identical bytes. SSE preflight events are held behind a bounded gate and discarded if
+that account fails; once the first semantic event is forwarded, a later failure ends the stream with
+a fixed `error` event. Non-streaming responses are buffered within the response limit before they
+are committed.
+
+The WebSocket path terminates and validates the handshake, strips compression, validates masked and
+unmasked frames, bounds event/message buffers, and applies backpressure in both directions. An
+initial `response.create` may reconnect before semantic output. A continuation carrying
+`previous_response_id` remains on its existing upstream WebSocket; if that connection is missing or
+fails, the relay returns `unsafe_to_replay` instead of assuming the ID is portable to another
+connection or account.
+
+`onAttemptFailure` is the integration boundary for the M2.3 circuit breaker; tests prove explicit
+failure kinds open the failed account circuit while the cumulative exclusion set selects another
+fixture account. Production scheduler/credential composition remains a later service-composition
+step. All M3.3 integration tests use loopback mock accounts from `test-fixtures/mock_scenarios.yaml`.
+They are not real account-switch evidence and do not prove seamless continuation.

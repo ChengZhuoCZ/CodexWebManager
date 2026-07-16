@@ -159,7 +159,7 @@ milestones:
           - Request/body size limits enforced
       - id: M3.3
         title: Implement safe failover state machine
-        status: ready
+        status: in_progress
         depends_on: [M3.2, M2.3]
         acceptance:
           - Failover allowed only before first semantic event

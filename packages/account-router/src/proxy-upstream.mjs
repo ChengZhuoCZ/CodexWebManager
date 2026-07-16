@@ -37,7 +37,8 @@ const FORBIDDEN_INJECTED_HEADERS = new Set([
   "transfer-encoding",
   "upgrade",
 ]);
-const UPSTREAM_FIELDS = new Set(["origin", "headers", "release"]);
+const UPSTREAM_FIELDS = new Set(["accountId", "origin", "headers", "release"]);
+const ACCOUNT_ID_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
 const HTTP_RESPONSE_HEADERS = new Set([
   "cache-control",
   "content-length",
@@ -89,10 +90,13 @@ export class UpstreamConfigurationError extends Error {
   }
 }
 
-export async function resolveUpstreamConfiguration(resolveUpstream, route) {
+export async function resolveUpstreamConfiguration(resolveUpstream, route, selectionContext) {
   let candidate;
   try {
-    candidate = await resolveUpstream(route);
+    candidate = await resolveUpstream(route, selectionContext);
+    if (candidate === null && selectionContext !== undefined) {
+      return null;
+    }
     if (!isPlainObject(candidate)) {
       throw new Error("invalid");
     }
@@ -105,6 +109,12 @@ export async function resolveUpstreamConfiguration(resolveUpstream, route) {
       throw new Error("invalid");
     }
     if (candidate.release !== undefined && typeof candidate.release !== "function") {
+      throw new Error("invalid");
+    }
+    if (
+      candidate.accountId !== undefined &&
+      (typeof candidate.accountId !== "string" || !ACCOUNT_ID_PATTERN.test(candidate.accountId))
+    ) {
       throw new Error("invalid");
     }
     const origin = new URL(candidate.origin);
@@ -120,6 +130,7 @@ export async function resolveUpstreamConfiguration(resolveUpstream, route) {
     }
     return Object.freeze({
       origin,
+      accountId: candidate.accountId ?? null,
       headers: candidate.headers ?? {},
       release: candidate.release ?? null,
     });

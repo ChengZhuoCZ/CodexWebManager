@@ -1,81 +1,45 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M3.2",
-  "status": "done",
+  "current_task": "M3.3",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "input_revisions": {
-    "workspace": "1b7e4e92d460cbcc249ec02a07d3bf0c5bb6b47d",
+    "workspace": "cdaa81cefb43a2ac205114d89882039d8c7eb8ef",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2"
   },
-  "output_revision": "b5564789f9e2eb8e547ff438a00530ea2bf63edc",
-  "output_revision_note": "b556478 implements and tests M3.2; this state commit records completion.",
-  "workspace_branch": "codex/m3-2-proxy-pass-through",
-  "workspace_input_revision": "1b7e4e92d460cbcc249ec02a07d3bf0c5bb6b47d",
-  "depends_on": ["M3.1", "M2.4"],
+  "output_revision": null,
+  "output_revision_note": "Pending the M3.3 safe failover state-machine commit.",
+  "workspace_branch": "codex/m3-3-safe-failover",
+  "workspace_input_revision": "cdaa81cefb43a2ac205114d89882039d8c7eb8ef",
+  "depends_on": ["M3.2", "M2.3"],
   "expected_outputs": [
-    "packages/account-router/src/proxy-handler.mjs",
-    "packages/account-router/src/model-service.mjs",
-    "packages/account-router/src/websocket-tunnel.mjs",
-    "packages/account-router/test/proxy-handler.test.mjs",
-    "packages/account-router/test/websocket-tunnel.test.mjs"
+    "packages/account-router/src/failover-http-handler.mjs",
+    "packages/account-router/src/failover-state-machine.mjs",
+    "packages/account-router/src/semantic-events.mjs",
+    "packages/account-router/src/sse-semantic-gate.mjs",
+    "packages/account-router/src/websocket-failover-relay.mjs",
+    "packages/account-router/src/websocket-frames.mjs",
+    "packages/account-router/test/failover-state-machine.test.mjs",
+    "packages/account-router/test/failover-fixtures.test.mjs",
+    "packages/account-router/test/failover-proxy.test.mjs",
+    "packages/account-router/test/semantic-gates.test.mjs",
+    "packages/account-router/test/websocket-failover.test.mjs"
   ],
-  "tests": [
-    {
-      "command": "node --test test/proxy-handler.test.mjs test/websocket-tunnel.test.mjs before implementation",
-      "result": "expected failure; 2 ERR_MODULE_NOT_FOUND failures proved the tests preceded implementation"
-    },
-    {
-      "command": "node --test test/proxy-handler.test.mjs test/websocket-tunnel.test.mjs in the restricted sandbox",
-      "result": "environment failure; 10 listen EPERM failures on 127.0.0.1, then rerun with local-loopback permission"
-    },
-    {
-      "command": "node --check src/proxy-upstream.mjs src/proxy-handler.mjs src/websocket-tunnel.mjs src/model-service.mjs test/proxy-handler.test.mjs test/websocket-tunnel.test.mjs",
-      "result": "passed; 0 syntax failures"
-    },
-    {
-      "command": "node --test --test-timeout=15000 test/proxy-handler.test.mjs test/websocket-tunnel.test.mjs",
-      "result": "passed; 10 tests passed, 0 failed, duration 2154.572334 ms"
-    },
-    {
-      "command": "cd packages/account-router; pnpm run check",
-      "result": "passed; all production and selected test modules parsed"
-    },
-    {
-      "command": "cd packages/account-router; node --test --test-timeout=30000",
-      "result": "passed; 97 tests passed, 0 failed, duration 2264.861958 ms"
-    },
-    {
-      "command": "scan production M3.2 scope for private keys, known token shapes, bearer values, and email addresses",
-      "result": "passed; no matches"
-    },
-    {
-      "command": "git diff --check",
-      "result": "passed"
-    }
-  ],
-  "evidence": [
-    "evidence/M3.2-model-proxy-pass-through.md",
-    "packages/account-router/test/proxy-handler.test.mjs",
-    "packages/account-router/test/websocket-tunnel.test.mjs"
-  ],
+  "tests": [],
+  "evidence": [],
   "observations": {
-    "http": "Bounded non-streaming Responses requests preserve body bytes while filtering client and upstream credential-bearing headers.",
-    "sse": "SSE is delivered incrementally through a backpressured pipeline and client cancellation closes the active upstream response.",
-    "websocket": "The exact M0.2-observed Responses upgrade path tunnels raw bytes with backpressure; cancellation closes the upstream socket and releases its lease.",
-    "limits": "Declared and chunked request overflow is rejected; declared non-SSE upstream overflow is rejected; SSE remains stream-bounded by backpressure and total deadline rather than aggregate bytes.",
-    "scope": "The resolver supplies one preselected upstream. Account acquisition, exclusion, and retry/failover remain M3.3."
+    "test_strategy": "Test-first virtual-clock and loopback-fixture coverage for pre-semantic retry, post-semantic replay denial, backoff, deadlines, attempt bounds, and account exclusion.",
+    "continuation_boundary": "M0.3 proves an initial request can be replayed before semantic output, but a continuation request with previous_response_id is not assumed portable across a replacement connection.",
+    "real_account_gate": "The user directed development to continue without account-switch testing; no mock result will be represented as real cross-account evidence."
   },
   "blockers": [],
   "residual_risks": [
-    "Safe multi-account retry and semantic-event gating remain M3.3.",
-    "Unknown-length non-SSE overflow can only terminate the downstream connection after response headers have been sent.",
-    "WebSocket compression extensions are deliberately stripped; compressed-frame compatibility is not claimed.",
-    "Auxiliary endpoint response compatibility remains M3.4.",
-    "The standalone CLI does not compose a production upstream resolver until M3.3.",
-    "No real account or cross-account test ran, and seamless continuation is not claimed."
+    "Real A-to-B failover before the first semantic event remains deferred until a second authorized account exists.",
+    "Codex App Server compatibility E2E remains M3.5.",
+    "No seamless conversation-continuity claim is permitted."
   ],
-  "updated_at": "2026-07-16T17:53:53+08:00"
+  "updated_at": "2026-07-16T17:58:27+08:00"
 }

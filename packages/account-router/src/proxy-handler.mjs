@@ -3,6 +3,7 @@ import https from "node:https";
 import { Transform } from "node:stream";
 import { pipeline } from "node:stream/promises";
 import { sendJson } from "./http-handler.mjs";
+import { createFailoverHttpHandler } from "./failover-http-handler.mjs";
 import { normalizeProxyRoute, ProxyRouteError } from "./proxy-routes.mjs";
 import {
   buildUpstreamRequestHeaders,
@@ -10,6 +11,7 @@ import {
   resolveUpstreamConfiguration,
 } from "./proxy-upstream.mjs";
 import { createWebSocketTunnelHandler } from "./websocket-tunnel.mjs";
+import { createWebSocketFailoverHandler } from "./websocket-failover-relay.mjs";
 
 class BodyLimitError extends Error {}
 
@@ -119,6 +121,8 @@ export function createProxyHandler({
   responseBodyLimitBytes = 64 * 1024 * 1024,
   upstreamHeadersTimeoutMs = 90_000,
   requestTotalTimeoutMs = 15 * 60_000,
+  failoverStateMachine = null,
+  onAttemptFailure = async () => undefined,
 } = {}) {
   if (typeof resolveUpstream !== "function") {
     throw new TypeError("resolveUpstream must be a function");
@@ -130,13 +134,37 @@ export function createProxyHandler({
   if (requestTotalTimeoutMs < upstreamHeadersTimeoutMs) {
     throw new Error("requestTotalTimeoutMs must be at least upstreamHeadersTimeoutMs");
   }
+  if (failoverStateMachine !== null && typeof failoverStateMachine?.execute !== "function") {
+    throw new TypeError("failoverStateMachine must provide execute or be null");
+  }
+  if (typeof onAttemptFailure !== "function") {
+    throw new TypeError("onAttemptFailure must be a function");
+  }
 
-  const handleUpgrade = createWebSocketTunnelHandler({
-    resolveUpstream,
-    upstreamHeadersTimeoutMs,
-    requestTotalTimeoutMs,
-    responseBodyLimitBytes,
-  });
+  const failoverHttpHandler = failoverStateMachine === null
+    ? null
+    : createFailoverHttpHandler({
+        failoverStateMachine,
+        onAttemptFailure,
+        requestBodyLimitBytes,
+        resolveUpstream,
+        responseBodyLimitBytes,
+        upstreamHeadersTimeoutMs,
+      });
+
+  const handleUpgrade = failoverStateMachine === null
+    ? createWebSocketTunnelHandler({
+        resolveUpstream,
+        upstreamHeadersTimeoutMs,
+        requestTotalTimeoutMs,
+        responseBodyLimitBytes,
+      })
+    : createWebSocketFailoverHandler({
+        failoverStateMachine,
+        onAttemptFailure,
+        resolveUpstream,
+        upstreamHeadersTimeoutMs,
+      });
 
   const handleHttpAsync = async (request, response) => {
     let route;
@@ -167,6 +195,11 @@ export function createProxyHandler({
         { error: error instanceof BodyLimitError ? "request_body_too_large" : "invalid_content_length" },
         { connection: "close" },
       );
+      return;
+    }
+
+    if (failoverHttpHandler !== null) {
+      await failoverHttpHandler({ request, response, route, contentLength });
       return;
     }
 

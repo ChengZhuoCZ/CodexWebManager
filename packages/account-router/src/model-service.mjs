@@ -46,6 +46,11 @@ export function createModelProxyService({
     throw new TypeError("proxyHandler must provide handleHttp and handleUpgrade");
   }
   const server = http.createServer((request, response) => proxyHandler.handleHttp(request, response));
+  const sockets = new Set();
+  server.on("connection", (socket) => {
+    sockets.add(socket);
+    socket.once("close", () => sockets.delete(socket));
+  });
   server.on("upgrade", (request, socket, head) => proxyHandler.handleUpgrade(request, socket, head));
   server.on("clientError", (_error, socket) => {
     if (!socket.destroyed) {
@@ -89,6 +94,7 @@ export function createModelProxyService({
       state = SERVICE_STATES.STOPPING;
       server.closeIdleConnections?.();
       server.closeAllConnections?.();
+      for (const socket of sockets) socket.destroy();
       await close(server);
       state = SERVICE_STATES.STOPPED;
     },
