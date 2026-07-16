@@ -194,7 +194,7 @@ milestones:
           - Document exact app-server/router configuration
       - id: M4.2
         title: Add optional account status bridge
-        status: in_progress
+        status: done
         depends_on: [M4.1, M1.3]
         acceptance:
           - codex-web receives only sanitized status/events
@@ -202,7 +202,7 @@ milestones:
           - No regression for standard single-account operation
       - id: M4.3
         title: Add minimal UI
-        status: pending
+        status: ready
         depends_on: [M4.2]
         acceptance:
           - Show alias, quota windows, cooldown, last switch reason

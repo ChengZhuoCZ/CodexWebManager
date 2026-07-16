@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M4.2",
-  "status": "in_progress",
+  "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-DEFER-M0.3-CROSS",
@@ -11,30 +11,76 @@
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2"
   },
-  "output_revision": null,
-  "output_revision_note": "Pending M4.2 optional sanitized status bridge implementation and evidence.",
+  "output_revision": "84c9b5271df0546d482c196d04a3894969204472",
+  "output_revision_note": "Commit 84c9b52 implements the optional sanitized status bridge and records its test evidence; this state commit records M4.2 completion and makes M4.3 ready.",
   "workspace_branch": "codex/m4-2-account-status-bridge",
   "workspace_input_revision": "06e84543c29d4b5042f5caaa366ac9aeb6a9a2b8",
   "depends_on": ["M4.1", "M1.3"],
   "expected_outputs": [
     "evidence/M4.2-account-status-bridge.md",
+    "evidence/M4.2/test-summary.json",
+    "integrations/codex-web/",
     "packages/account-router/src/status-bridge.mjs",
     "packages/account-router/test/status-bridge.test.mjs",
-    "integrations/codex-web/"
+    "packages/account-router/test/codex-web-status-bridge.test.mjs"
   ],
-  "tests": [],
-  "evidence": [],
+  "tests": [
+    {
+      "command": "<bundled-node> --test packages/account-router/test/status-bridge.test.mjs before implementation",
+      "result": "expected red state; module missing, exit code 1"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/status-bridge.test.mjs",
+      "result": "passed; 8 tests passed, 0 failed, duration 117.963083 ms"
+    },
+    {
+      "command": "M4_2_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test packages/account-router/test/codex-web-status-bridge.test.mjs",
+      "result": "passed; pinned overlay compiled and 3 integration tests passed, 0 failed, duration 1313.549375 ms"
+    },
+    {
+      "command": "M4_2_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test packages/account-router/test/status-bridge.test.mjs packages/account-router/test/codex-web-status-bridge.test.mjs",
+      "result": "passed; 11 tests passed, 0 failed, duration 1397.300125 ms"
+    },
+    {
+      "command": "cd packages/account-router; PATH=<bundled-node-and-pnpm> pnpm run check",
+      "result": "passed; all production modules, integration harnesses, and selected tests parsed"
+    },
+    {
+      "command": "cd packages/account-router; M4_2_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test",
+      "result": "passed; 160 tests passed, 0 failed, 0 skipped, duration 2342.754125 ms"
+    },
+    {
+      "command": "git -C <pinned-codex-web> rev-parse HEAD; git -C <pinned-codex-web> diff --quiet --exit-code",
+      "result": "passed; exact revision 888692f7d885118c6a92bbaf60cf2121f5947adf and no tracked changes"
+    },
+    {
+      "command": "git diff --check; scan M4.2 scope for private-key, known-token, JWT, and email patterns",
+      "result": "passed; no whitespace errors and no secret-pattern matches"
+    }
+  ],
+  "evidence": [
+    "evidence/M4.2-account-status-bridge.md",
+    "evidence/M4.2/test-summary.json",
+    "integrations/codex-web/README.md",
+    "integrations/codex-web/apply-status-bridge.mjs",
+    "integrations/codex-web/src/server/router-status-bridge.ts",
+    "packages/account-router/test/status-bridge.test.mjs",
+    "packages/account-router/test/codex-web-status-bridge.test.mjs"
+  ],
   "observations": {
-    "task_scope": "Provide an optional codex-web-facing bridge for router status and events using only the sanitized M1.3 admin contract.",
-    "default_boundary": "The standard codex-web single-account path must be byte-for-byte behaviorally unchanged when router bridge configuration is absent.",
-    "dependency_exception": "M4.1 is blocked only on its approved account-switch row; EX-DEFER-M0.3-CROSS permits M4.2 development without waiving that row.",
-    "privacy": "The bridge must never forward the admin bearer token, internal account IDs, credential bindings, raw quotas, child logs, or upstream bodies."
+    "default_disabled": "Without both server-side variables, no admin request occurs and the two reserved routes return an explicit disabled 404 while unrelated single-account behavior remains usable.",
+    "sanitized_boundary": "Status and router.switch events are independently revalidated and copied through exact browser-facing field whitelists.",
+    "credential_boundary": "The admin token is loaded on demand from a private regular file and is never returned to the browser, serialized, or persisted in evidence.",
+    "upstream_mergeability": "The adapter is a small overlay pinned by codex-web revision and source digest; tests changed only a temporary copy and the upstream tracked diff stayed clean.",
+    "account_test_scope": "Only fixture accounts and loopback mock services were used; no real account switch was executed."
   },
   "blockers": [],
   "residual_risks": [
-    "The M4.2 bridge cannot be treated as account-switch continuity evidence.",
-    "M4.3 UI remains a separate task and must consume only this sanitized boundary.",
+    "A future codex-web source revision requires explicit overlay review and a new pinned digest.",
+    "JavaScript bearer-token strings cannot be forcibly zeroed, although their lifetime and use are confined to the server-side authorization callback.",
+    "M4.3 must add the UI without expanding the sanitized bridge contract.",
+    "M0.3, M3.5, and M4.1 approved account-switch rows remain unrun and mandatory; M4.2 is not continuity evidence.",
     "No seamless cross-account conversation-continuity claim is permitted."
   ],
-  "updated_at": "2026-07-16T19:53:02+08:00"
+  "updated_at": "2026-07-16T20:12:56+08:00"
 }
