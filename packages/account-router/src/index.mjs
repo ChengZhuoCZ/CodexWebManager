@@ -4,6 +4,7 @@ export { createAdminState } from "./admin-state.mjs";
 export { createAccountCatalog, normalizeAccountDefinition } from "./accounts.mjs";
 export { assertLoopbackHost, defaults, loadRuntimeConfig, parsePort } from "./config.mjs";
 export { createHealthHandler } from "./http-handler.mjs";
+export { createQuotaSnapshotAdapter } from "./quota-snapshot.mjs";
 export { redactForLog, REDACTED, stringifyLogRecord } from "./redaction.mjs";
 export {
   createFileSecretProvider,

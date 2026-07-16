@@ -1,75 +1,37 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M1.3",
-  "status": "done",
+  "current_task": "M2.1",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "input_revisions": {
-    "workspace": "2118e69a7f87",
+    "workspace": "c11fd7924c4eb4d73e1c4570a1a06716760a4002",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
     "codex-cli": "codex-cli 0.144.2"
   },
-  "output_revision": "5c56b20b9a634c64edcf42aafbe7fc729f2b9911",
-  "output_revision_note": "5c56b20 implements and tests M1.3; this state commit records completion.",
-  "workspace_branch": "codex/m1-3-admin-api",
-  "workspace_input_revision": "2118e69a7f87",
-  "depends_on": ["M1.1"],
+  "output_revision": null,
+  "output_revision_note": "Pending the M2.1 quota snapshot adapter commit.",
+  "workspace_branch": "codex/m2-1-quota-snapshot",
+  "workspace_input_revision": "c11fd7924c4eb4d73e1c4570a1a06716760a4002",
+  "depends_on": ["M1.2"],
   "expected_outputs": [
-    "packages/account-router/src/admin-auth.mjs",
-    "packages/account-router/src/admin-state.mjs",
-    "packages/account-router/src/admin-handler.mjs",
-    "packages/account-router/src/event-broker.mjs"
+    "packages/account-router/src/quota-snapshot.mjs",
+    "packages/account-router/test/quota-snapshot.test.mjs",
+    "contracts/quota-snapshot.schema.json"
   ],
-  "tests": [
-    {
-      "command": "node --test test/admin-auth.test.mjs test/event-broker.test.mjs test/admin-state.test.mjs test/admin-handler.test.mjs before implementation",
-      "result": "expected failure; 4 ERR_MODULE_NOT_FOUND failures proved tests preceded implementation"
-    },
-    {
-      "command": "Node --check on all account-router source modules and the M1.3 contract test",
-      "result": "passed; 0 syntax failures"
-    },
-    {
-      "command": "cd packages/account-router; node --test",
-      "result": "passed; 44 tests passed, 0 failed, duration 190.43275 ms"
-    },
-    {
-      "command": "Ruby safe-load contracts/router.openapi.yaml and Node JSON.parse contract/state JSON",
-      "result": "passed"
-    },
-    {
-      "command": "scan production M1.3 scope for private keys, known token shapes, bearer values, and email addresses",
-      "result": "passed; no matches"
-    },
-    {
-      "command": "git diff --check",
-      "result": "passed"
-    }
-  ],
-  "evidence": [
-    "evidence/M1.3-admin-event-api.md",
-    "contracts/router.openapi.yaml",
-    "contracts/event.schema.json",
-    "packages/account-router/test/admin-auth.test.mjs",
-    "packages/account-router/test/admin-contracts.test.mjs",
-    "packages/account-router/test/admin-handler.test.mjs",
-    "packages/account-router/test/admin-state.test.mjs",
-    "packages/account-router/test/event-broker.test.mjs"
-  ],
+  "tests": [],
+  "evidence": [],
   "observations": {
-    "admin_auth": "A dedicated bearer authenticator accepts only the configured admin token; proxy-like credentials do not authenticate.",
-    "response_boundary": "Status and event outputs expose aliases and bounded runtime fields, not internal account IDs or credential bindings.",
-    "switch_semantics": "Manual switch execution is injected, rejected during active semantic streams, and always reports new_backend_session in LIMITED_MODE.",
-    "event_stream": "SSE replay is bounded, event values are sanitized, cursors are validated, and subscribers are removed on cancellation or callback failure.",
-    "deferred_gate": "All tests used fixture accounts and a fixture callback; no real account access or account switching occurred."
+    "test_strategy": "Test-first with a virtual clock and fixture-only upstream quota shapes.",
+    "scope": "Normalize five-hour and weekly windows, observation time, confidence, and staleness without real account access.",
+    "deferred_gate": "No live quota endpoint or real account switching will be tested."
   },
   "blockers": [],
   "residual_risks": [
-    "Scheduler-backed account selection and switch execution remain M2/M3.",
-    "Production admin credential loading remains M5.2.",
-    "Real A-to-B compatibility and continuity remain unverified and deferred.",
-    "The standalone CLI intentionally exposes only health/readiness until production credential wiring is implemented."
+    "Real upstream quota shape compatibility remains unverified until an authorized account test.",
+    "Scheduler scoring and selection remain M2.2.",
+    "Cooldown and persistence remain M2.3."
   ],
-  "updated_at": "2026-07-16T16:35:35+08:00"
+  "updated_at": "2026-07-16T16:37:36+08:00"
 }

@@ -74,3 +74,17 @@ cannot be forcibly zeroed, so consumers must not retain or log them.
 All service lifecycle logs pass through `stringifyLogRecord()`. It redacts credential-related keys,
 account email, bearer values, known token shapes, `SecretLease` instances, circular structures, and
 oversized/deep records. Request and response bodies remain excluded by default.
+
+## Quota snapshots
+
+M2.1 exports `createQuotaSnapshotAdapter()` as a strict boundary between provider-specific quota
+observations and later scheduler logic. An injected observer may report canonical `five_hour` and
+`weekly` windows with `remaining_ratio`, `resets_at`, and an explicit confidence level. The adapter
+adds the attempt time, preserves the source observation time, computes freshness with a configurable
+threshold, and can re-evaluate staleness with a virtual clock.
+
+Missing windows, unavailable sources, observer failures, ambiguous percentage fields, and malformed
+observations produce `remaining_ratio: null` with `confidence: unknown`; they are never interpreted
+as exhausted or full quota. The canonical shape is documented in
+`contracts/quota-snapshot.schema.json`. M2.1 uses injected fixture observations only and does not
+query a real account.

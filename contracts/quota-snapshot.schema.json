@@ -1,0 +1,74 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://local.invalid/codex-router/quota-snapshot.schema.json",
+  "title": "Canonical quota snapshot",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "adapter",
+    "source_state",
+    "attempted_at",
+    "observed_at",
+    "staleness",
+    "age_ms",
+    "stale_after_ms",
+    "confidence",
+    "windows"
+  ],
+  "properties": {
+    "adapter": {"type": "string", "pattern": "^[A-Za-z][A-Za-z0-9._-]{0,63}$"},
+    "source_state": {"enum": ["available", "partial", "unavailable"]},
+    "attempted_at": {"type": "string", "format": "date-time"},
+    "observed_at": {"type": ["string", "null"], "format": "date-time"},
+    "staleness": {"enum": ["fresh", "stale", "unknown"]},
+    "age_ms": {"type": ["integer", "null"], "minimum": 0},
+    "stale_after_ms": {"type": "integer", "minimum": 1, "maximum": 2592000000},
+    "confidence": {"enum": ["high", "medium", "low", "unknown"]},
+    "windows": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["five_hour", "weekly"],
+      "properties": {
+        "five_hour": {"$ref": "#/$defs/window"},
+        "weekly": {"$ref": "#/$defs/window"}
+      }
+    }
+  },
+  "$defs": {
+    "window": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["status", "remaining_ratio", "resets_at", "confidence", "reason"],
+      "properties": {
+        "status": {"enum": ["available", "unavailable"]},
+        "remaining_ratio": {"type": ["number", "null"], "minimum": 0, "maximum": 1},
+        "resets_at": {"type": ["string", "null"], "format": "date-time"},
+        "confidence": {"enum": ["high", "medium", "low", "unknown"]},
+        "reason": {
+          "type": ["string", "null"],
+          "enum": ["not_reported", "unsupported", "source_unavailable", "source_error", "invalid_observation", null]
+        }
+      },
+      "allOf": [
+        {
+          "if": {"properties": {"status": {"const": "available"}}, "required": ["status"]},
+          "then": {
+            "properties": {
+              "remaining_ratio": {"type": "number"},
+              "confidence": {"enum": ["high", "medium", "low"]},
+              "reason": {"type": "null"}
+            }
+          },
+          "else": {
+            "properties": {
+              "remaining_ratio": {"type": "null"},
+              "resets_at": {"type": "null"},
+              "confidence": {"const": "unknown"},
+              "reason": {"type": "string"}
+            }
+          }
+        }
+      ]
+    }
+  }
+}

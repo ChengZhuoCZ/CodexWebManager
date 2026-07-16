@@ -107,7 +107,7 @@ milestones:
     tasks:
       - id: M2.1
         title: Implement quota snapshot adapter
-        status: ready
+        status: in_progress
         depends_on: [M1.2]
         acceptance:
           - Supports 5-hour and weekly windows

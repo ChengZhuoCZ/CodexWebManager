@@ -12,7 +12,7 @@
   },
   "scripts": {
     "start": "node src/main.mjs",
-    "check": "node --check src/accounts.mjs && node --check src/admin-auth.mjs && node --check src/admin-handler.mjs && node --check src/admin-state.mjs && node --check src/config.mjs && node --check src/event-broker.mjs && node --check src/http-handler.mjs && node --check src/index.mjs && node --check src/redaction.mjs && node --check src/secrets.mjs && node --check src/service.mjs && node --check src/main.mjs && node --check test/admin-contracts.test.mjs",
+    "check": "node --check src/accounts.mjs && node --check src/admin-auth.mjs && node --check src/admin-handler.mjs && node --check src/admin-state.mjs && node --check src/config.mjs && node --check src/event-broker.mjs && node --check src/http-handler.mjs && node --check src/index.mjs && node --check src/quota-snapshot.mjs && node --check src/redaction.mjs && node --check src/secrets.mjs && node --check src/service.mjs && node --check src/main.mjs && node --check test/admin-contracts.test.mjs && node --check test/quota-snapshot.test.mjs",
     "test": "node --test"
   }
 }
