@@ -244,7 +244,6 @@ async function readBoundedBody(response, maxBytes) {
 function requestSignal(timeoutMs, outerSignal = undefined) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(new Error("request deadline exceeded")), timeoutMs);
-  timer.unref?.();
   const onAbort = () => controller.abort(outerSignal.reason);
   if (outerSignal) {
     if (outerSignal.aborted) {
