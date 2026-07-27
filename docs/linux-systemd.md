@@ -73,18 +73,23 @@ The router unit imports the matching names and sets `CODEX_ROUTER_CREDENTIAL_ROO
 credential-store file should be root-owned and mode `0600`. Never put credential contents in a unit,
 environment variable, shell argument, repository, or journal.
 
-Two explicit service credentials are also required:
+Three explicit service credentials are also required:
 
 ```text
 /etc/codex-account-router/credentials/admin-token
 /etc/codex-account-router/credentials/app-server-auth.json
+/etc/codex-web/credentials/browser-access-token
 ```
 
-Keep their parent directory root-owned `0700` and both files root-owned `0600`. The first is copied
-independently into the router and codex-web credential namespaces. The second is exposed to the App
-Server as a temporary `%d/codex-auth` file and linked from its private `CODEX_HOME`; the source value
-never appears in `Environment=` or `ExecStart=`. The admin-token file must contain only the bearer
-value, with no trailing newline; malformed whitespace is rejected rather than silently normalized.
+Keep their parent directories root-owned `0700` and all three files root-owned `0600`. The first is
+copied independently into the router and codex-web credential namespaces. The second is exposed to
+the App Server as a temporary `%d/codex-auth` file and linked from its private `CODEX_HOME`; the
+source value never appears in `Environment=` or `ExecStart=`. The admin-token file must contain only
+the bearer value, with no trailing newline; malformed whitespace is rejected rather than silently
+normalized.
+The browser access token follows the same no-newline rule and must contain at least 32 random
+characters. It authenticates the website only; never reuse a ChatGPT password, Cookie, Codex token,
+API key, or SSH password.
 
 The systemd credentials model intentionally exposes credential data as service-user-restricted
 files rather than inherited environment values. See the upstream
@@ -110,14 +115,16 @@ Check only the local endpoints and socket:
 
 ```sh
 curl --fail http://127.0.0.1:18318/healthz
-curl --fail http://127.0.0.1:8214/
+curl --fail http://127.0.0.1:8214/__backend/healthz
 ss -ltn
 ss -lx
 ```
 
 The empty-account router deliberately reports `503 no_accounts` from `/readyz`; do not weaken that
 signal. Do not change any listener to `0.0.0.0`, `[::]`, or public WebSocket. Remote access and a
-separately authenticated reverse proxy are outside M5.2.
+separately authenticated reverse proxy are outside M5.2. An operator-approved tailnet-only
+Tailscale TCP forwarder is documented in the current [operator guide](operator-guide.md); the
+application remains loopback-only in that topology.
 
 Each unit may be restarted without systemd stopping or restarting its peers:
 

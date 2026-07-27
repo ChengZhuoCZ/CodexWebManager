@@ -18,7 +18,13 @@ Environment=CODEX_REAL_CLI_PATH=/usr/local/bin/codex
 Environment=CODEX_APP_SERVER_SOCKET=/run/codex-app-server/app-server.sock
 Environment=CODEX_ROUTER_ADMIN_ORIGIN=http://127.0.0.1:18318
 Environment=CODEX_ROUTER_ADMIN_TOKEN_FILE=%d/router-admin-token
+Environment=CODEX_WEB_PUBLIC_ORIGIN=http://127.0.0.1:8214
+Environment=CODEX_WEB_ACCESS_TOKEN_FILE=%d/browser-access-token
+Environment=CODEX_WEB_CODEX_HOME=/var/lib/codex-app-server
+Environment=CODEX_WEB_WORKSPACE_ROOTS=/srv/codex-workspaces
+Environment=CODEX_WEB_UPLOAD_ROOT=/run/codex-browser-uploads
 LoadCredential=router-admin-token:/etc/codex-account-router/credentials/admin-token
+LoadCredential=browser-access-token:/etc/codex-web/credentials/browser-access-token
 ExecStart=/usr/bin/node /opt/codex-web/src/server/main.js --host 127.0.0.1 --port 8214
 Restart=on-failure
 RestartSec=3s
@@ -30,7 +36,7 @@ StateDirectory=codex-web
 StateDirectoryMode=0700
 RuntimeDirectory=codex-web
 RuntimeDirectoryMode=0700
-ReadWritePaths=/srv/codex-workspaces
+ReadWritePaths=/srv/codex-workspaces /run/codex-browser-uploads
 NoNewPrivileges=true
 PrivateTmp=true
 PrivateDevices=true

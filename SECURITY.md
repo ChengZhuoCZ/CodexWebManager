@@ -25,6 +25,18 @@
 
 不得默认监听 `0.0.0.0`。
 
+经操作员明确批准的 Tailscale 直连应保持应用监听 `127.0.0.1`，只通过 tailnet-only
+Tailscale TCP forwarder 暴露一个确定的 Tailnet IPv4 端口，并同时要求 codex-web 独立
+站点访问密钥、`HttpOnly`/`SameSite=Strict` 会话 Cookie、同源 CSRF 和严格 WebSocket
+Origin/Host/子协议校验。不得使用 Funnel，也不得让站点访问密钥复用 ChatGPT、Codex、
+API、SSH 或路由管理凭据。IP 直连 HTTP 无法使用 `Secure` Cookie；长期部署应优先使用
+HTTPS，但当前版本尚未批准 MagicDNS/Tailscale HTTPS 拓扑。启用该拓扑前必须增加精确
+本机 MagicDNS 名称校验、`Secure` Cookie 和真实浏览器证据，并作为独立安全变更复核。
+
+站点访问密钥虽然不是 ChatGPT/Codex 账号凭据，但认证后的 MCP/Codex 界面可以在已配置
+工作区内读写文件并启动受限进程，因此它是高权限操作凭据，不是普通只读网页密码。必须
+使用强随机值、最小化 Tailscale ACL、独立轮换，并按工作区访问权限同等级保护。
+
 ## 凭据存储
 
 优先级：

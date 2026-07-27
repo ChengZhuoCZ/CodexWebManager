@@ -51,6 +51,9 @@
       "test_files": [
         "test/app-server-compatibility.test.mjs",
         "test/codex-web-account-ui.test.mjs",
+        "test/codex-web-browser-auth.test.mjs",
+        "test/codex-web-browser-ipc-router.test.mjs",
+        "test/codex-web-browser-policy.test.mjs",
         "test/codex-web-integration.test.mjs",
         "test/codex-web-status-bridge.test.mjs",
         "test/deployment-manager.test.mjs",

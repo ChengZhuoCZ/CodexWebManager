@@ -127,7 +127,7 @@ async function processDetails(service) {
 async function assertEndpoints() {
   await waitForTcp("127.0.0.1", 18_317);
   await waitForHttp("http://127.0.0.1:18318/healthz", 200);
-  await waitForHttp("http://127.0.0.1:8214/healthz", 200);
+  await waitForHttp("http://127.0.0.1:8214/__backend/healthz", 200);
   await waitFor(async () => (await fs.stat(appServerSocket)).isSocket(), "App Server Unix socket");
   await waitFor(async () => (await fs.stat(proxyMarker)).isFile(), "codex-web Unix proxy connection");
 

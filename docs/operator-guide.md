@@ -30,6 +30,8 @@ Security and license boundaries are normative:
 - The pinned codex-web revision built at `/opt/codex-web`.
 - Root access for installation and credential provisioning, plus a separate non-root operator
   login over SSH or Tailscale.
+- One independent browser access key of at least 32 random characters. It must not be an account,
+  ChatGPT, API, Cookie, or SSH credential.
 
 Do not continue if a checksum, architecture, schema, pinned revision, unit syntax, or credential
 permission check fails.
@@ -55,8 +57,10 @@ sudo systemd-sysusers
 sudo systemd-tmpfiles --create
 sudo systemd-analyze verify /etc/systemd/system/codex-*.service
 sudo systemctl daemon-reload
-sudo systemctl enable --now codex-stack.target
 ```
+
+Provision the required credential files in the next section before enabling the target. The
+services deliberately fail closed when a credential is absent.
 
 All three units run as `codex`, use `UMask=0077`, load secrets from credential files, and set
 `LimitCORE=0`. Expected listeners are only:
@@ -71,7 +75,7 @@ Verify the process and listener boundary:
 ```sh
 systemctl is-active codex-account-router.service codex-app-server.service codex-web.service
 curl -fsS http://127.0.0.1:18318/healthz
-curl -fsS http://127.0.0.1:8214/
+curl -fsS http://127.0.0.1:8214/__backend/healthz
 ss -lnt
 ss -lx
 ```
@@ -90,20 +94,26 @@ It may contain public account metadata, aliases, and opaque credential reference
 not contain an email address, authorization value, cookie, access token, or refresh token.
 
 Store account credential files as root-owned mode `0600` entries under `/etc/credstore/` using
-names matching `codex-account-router.auth.*`. Provision these two service credentials separately:
+names matching `codex-account-router.auth.*`. Provision these three service credentials separately:
 
 ```text
 /etc/codex-account-router/credentials/admin-token
 /etc/codex-account-router/credentials/app-server-auth.json
+/etc/codex-web/credentials/browser-access-token
 ```
 
-Their parent directory is root-owned mode `0700`; both files are root-owned mode `0600`. The admin
-token is one value with no trailing newline. Never pass a credential through a command-line option,
-unit `Environment=`, repository file, ticket, or chat transcript.
+Each parent credential directory is root-owned mode `0700`; the files are root-owned mode `0600`.
+The admin and browser tokens are each one value with no trailing newline. Never pass a credential
+through a command-line option, unit `Environment=`, repository file, ticket, or chat transcript.
+The browser value is a separate site access key, not a ChatGPT/Codex account credential. It still
+grants high-privilege control of the configured Codex workspaces, including protocol operations that
+can read/write files and start restricted processes. Generate or enter it privately on the server,
+protect it like workspace access, use a strong random value, and do not reuse any other credential.
 
 After configuration changes:
 
 ```sh
+sudo systemctl enable --now codex-stack.target
 sudo systemctl restart codex-account-router.service
 curl -fsS http://127.0.0.1:18318/healthz
 curl -i http://127.0.0.1:18318/readyz
@@ -114,8 +124,8 @@ explicitly authorized gate.
 
 ## Private remote access
 
-Keep every service on loopback. From another device already authorized to reach the server over
-Tailscale or SSH, create a local port forward:
+The safest default keeps every service on loopback. From another device already authorized to reach
+the server over Tailscale or SSH, create a local port forward:
 
 ```sh
 ssh -L 8214:127.0.0.1:8214 operator@TAILSCALE_IP
@@ -123,8 +133,42 @@ ssh -L 8214:127.0.0.1:8214 operator@TAILSCALE_IP
 
 While that session remains open, browse to `http://127.0.0.1:8214` on the client device. The
 website is not bound to the tailnet address or a public interface; SSH provides the encrypted,
-authenticated data channel. Do not change a unit to a wildcard listener to make remote access
-easier.
+authenticated data channel.
+
+For explicitly approved direct Tailnet access, keep codex-web on loopback and expose only that
+single port through a tailnet-only Tailscale TCP forwarder. For this deployment, first create
+`/etc/systemd/system/codex-web.service.d/tailnet-listener.conf`:
+
+```ini
+[Service]
+Environment=CODEX_WEB_PUBLIC_ORIGIN=http://100.95.50.98:8214
+```
+
+Then reload, restart, configure the raw TCP forwarder, and verify that the application itself still
+has only a loopback listener:
+
+```sh
+sudo systemctl daemon-reload
+sudo systemctl restart codex-web.service
+sudo tailscale serve --bg --tcp=8214 tcp://127.0.0.1:8214
+sudo tailscale serve status
+curl -fsS http://127.0.0.1:8214/__backend/healthz
+curl -fsS http://100.95.50.98:8214/__backend/healthz
+ss -lnt
+```
+
+On another device signed into the authorized Tailscale network, open
+`http://100.95.50.98:8214`. The login form accepts only the separate site access key from
+`/etc/codex-web/credentials/browser-access-token`. Keep the router model/admin ports on loopback,
+restrict port 8214 to the intended operator through Tailscale ACLs, and never replace the raw TCP
+forwarder with Tailscale Funnel.
+
+Tailscale encrypts the data channel, but a direct IP HTTP origin cannot set a `Secure` cookie and
+cookies are not isolated by port. A dedicated MagicDNS name with Tailscale HTTPS is the intended
+longer-lived topology, but it is not supported by this release: the current origin validator accepts
+only loopback or an explicit Tailnet IPv4 address with a port. Do not switch this deployment to
+MagicDNS/HTTPS until an explicit implementation and security review add exact local DNS-name
+validation, `Secure` cookies, WebSocket coverage, and real-browser evidence.
 
 If a reverse proxy is later introduced, treat it as a separate security change: require
 authentication, TLS, request limits, WebSocket support, an explicit trusted-user model, and a new
@@ -170,8 +214,12 @@ sudo mv /etc/codex-account-router/credentials/admin-token.next \
   /etc/codex-account-router/credentials/admin-token
 sudo systemctl restart codex-account-router.service codex-web.service
 curl -fsS http://127.0.0.1:18318/healthz
-curl -fsS http://127.0.0.1:8214/
+curl -fsS http://127.0.0.1:8214/__backend/healthz
 ```
+
+Rotate `/etc/codex-web/credentials/browser-access-token` independently in the same way, then
+restart only `codex-web.service`. Rotation invalidates existing browser sessions because the
+process restarts.
 
 For an account credential, obtain the replacement through the approved secret manager, write it to
 a root-owned mode `0600` `.next` file under `/etc/credstore/`, atomically rename it to the existing
@@ -204,7 +252,21 @@ previous release, and use the coordinated upgrade command. Do not manually repla
 symlink during a normal change.
 
 If activation or the health deadline fails, the deployment command rolls back automatically. For
-an operator-initiated rollback:
+an operator-initiated rollback, first remove the persistent Tailnet listener when direct access was
+enabled:
+
+```sh
+sudo tailscale serve --tcp=8214 off
+sudo tailscale serve status
+```
+
+Do not continue until the status no longer contains a TCP 8214 handler. Background Tailscale Serve
+configuration survives service and host restarts, so stopping `codex-web.service` alone is not
+containment. The removal syntax follows the current
+[Tailscale Serve CLI](https://tailscale.com/docs/reference/tailscale-cli/serve) contract and keeps
+unrelated Serve handlers intact.
+
+Then roll back:
 
 ```sh
 sudo /opt/codex-account-router/current/bin/codex-stack-deploy rollback \
@@ -213,19 +275,37 @@ sudo /opt/codex-account-router/current/bin/codex-stack-deploy rollback \
 
 `codex-stack-deploy rollback` restores public configuration, circuit state, and the retained router
 release. It does not restore credential sources and does not claim that an in-flight computation
-survived.
+survived. Never select a codex-web release from before the authenticated browser-session gate. Keep
+the Tailnet listener off until the restored release has passed local health, wrong-host, and
+unauthenticated-route checks:
+
+```sh
+curl -fsS http://127.0.0.1:8214/__backend/healthz
+test "$(curl -sS -o /dev/null -w '%{http_code}' \
+  -H 'Host: 100.95.50.98:8214' \
+  http://127.0.0.1:8214/__backend/browser-config)" = 401
+test "$(curl -sS -o /dev/null -w '%{http_code}' \
+  http://127.0.0.1:8214/__backend/browser-config)" = 421
+```
+
+Only after these checks and release verification may an operator restore direct access with the
+documented `sudo tailscale serve --bg --tcp=8214 tcp://127.0.0.1:8214` command.
 
 ## Incident response
 
-1. Contain exposure: close any unintended listener or tunnel and, if needed, stop
-   `codex-stack.target`.
+1. Contain exposure: run `sudo tailscale serve --tcp=8214 off` for the direct Tailnet handler,
+   confirm port 8214 is absent from `sudo tailscale serve status`, close any other unintended
+   listener or tunnel, and, if needed, stop `codex-stack.target`.
 2. Revoke suspected credentials at their issuer; never wait for log analysis before revocation.
 3. Preserve only sanitized service status, timestamps, release names, restart counts, and bounded
    journal excerpts. Do not collect credential files or process environments.
 4. Compare the active release and unit files with their verified artifacts.
 5. Rotate affected account, admin, and App Server credentials independently.
-6. Restore a known-good immutable release with `codex-stack-deploy rollback`.
-7. Re-enable one service at a time and verify loopback listeners, `/healthz`, and `/readyz`.
+6. Restore only a known-good immutable release that contains the authenticated browser-session gate
+   with `codex-stack-deploy rollback`; never roll back codex-web to an unauthenticated bridge.
+7. Re-enable one service at a time and verify configured listeners, `/__backend/healthz`,
+   `/healthz`, `/readyz`, wrong-host rejection, and unauthenticated-route rejection. Re-enable the
+   Tailnet 8214 handler only after those local checks pass.
 8. Record the cause, affected interval, revoked identifiers, and corrective controls without secret
    values.
 

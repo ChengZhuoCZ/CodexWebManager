@@ -33,8 +33,23 @@ jobs:
         with:
           node-version: "22"
 
+      - name: Check out pinned codex-web
+        uses: actions/checkout@v6.0.1
+        with:
+          repository: 0xcaff/codex-web
+          ref: 888692f7d885118c6a92bbaf60cf2121f5947adf
+          path: .m6/codex-web
+          persist-credentials: false
+
+      - name: Prepare pinned codex-web assets
+        working-directory: .m6/codex-web
+        run: npm ci
+
       - name: Run fail-closed security audit
         shell: bash
+        env:
+          M4_2_CODEX_WEB_ROOT: ${{ github.workspace }}/.m6/codex-web
+          M6_3_CODEX_WEB_ROOT: ${{ github.workspace }}/.m6/codex-web
         run: |
           set -euo pipefail
           install -d -m 0700 artifacts/security-audit

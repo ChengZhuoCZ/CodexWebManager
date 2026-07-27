@@ -30,6 +30,9 @@
     "ui": {
       "test_files": [
         "test/codex-web-account-ui.test.mjs",
+        "test/codex-web-browser-auth.test.mjs",
+        "test/codex-web-browser-ipc-router.test.mjs",
+        "test/codex-web-browser-policy.test.mjs",
         "test/codex-web-status-bridge.test.mjs"
       ]
     },
@@ -59,6 +62,9 @@
     "test/admin-auth.test.mjs",
     "test/admin-contracts.test.mjs",
     "test/admin-handler.test.mjs",
+    "test/codex-web-browser-auth.test.mjs",
+    "test/codex-web-browser-ipc-router.test.mjs",
+    "test/codex-web-browser-policy.test.mjs",
     "test/proxy-handler.test.mjs",
     "test/proxy-routes.test.mjs",
     "test/redaction.test.mjs",
@@ -77,6 +83,9 @@
       "packages/account-router/scripts/run-codex-web-account-ui.mjs",
       "packages/account-router/scripts/run-codex-web-integration.mjs",
       "packages/account-router/test/codex-web-account-ui.test.mjs",
+      "packages/account-router/test/codex-web-browser-auth.test.mjs",
+      "packages/account-router/test/codex-web-browser-ipc-router.test.mjs",
+      "packages/account-router/test/codex-web-browser-policy.test.mjs",
       "packages/account-router/test/codex-web-status-bridge.test.mjs"
     ]
   }

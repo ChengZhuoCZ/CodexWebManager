@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M6.4",
-  "status": "done",
+  "current_task": "M6.3",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-SKIP-M6.2-SOAK",
@@ -10,65 +10,50 @@
     "EX-SKIP-M6.2-SOAK"
   ],
   "input_revisions": {
-    "workspace": "a2b970f",
+    "workspace": "3489382ae0d4dfa0f08a4a6c2969d570f0324e36",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "codex-cli-observed": "codex-cli 0.144.5"
   },
-  "output_revision": "c20087e69714dc1f13c56bfabb6497c6d3f4c070",
+  "output_revision": null,
   "workspace_branch": "codex/m6-4-release-operator-docs",
-  "workspace_input_revision": "a2b970f",
+  "workspace_input_revision": "3489382ae0d4dfa0f08a4a6c2969d570f0324e36",
   "depends_on": [
-    "M6.2 (rejected under EX-SKIP-M6.2-SOAK)",
-    "M6.3"
+    "M6.1",
+    "G-SECRETS"
   ],
   "expected_outputs": [
+    "integrations/codex-web/src/server/browser-session-auth.ts",
+    "integrations/codex-web/apply-status-bridge.mjs",
+    "packages/account-router/test/codex-web-browser-auth.test.mjs",
+    "systemd/codex-web.service",
     "docs/operator-guide.md",
-    "docs/release-status.md",
-    "packages/account-router/test/release-docs-contract.test.mjs",
-    "evidence/M6.4-release-operator-docs.md",
-    "evidence/M6.4/local-test-summary.json"
+    "evidence/M6.3-codex-web-remote-auth.md",
+    "evidence/M6.3/codex-web-remote-auth-test-summary.json"
   ],
-  "tests": [
-    {
-      "command": "<bundled-node> --test test/release-docs-contract.test.mjs before documentation",
-      "result": "expected red state; all 3 tests failed because the unified documents were absent"
-    },
-    {
-      "command": "<bundled-node> --test test/release-docs-contract.test.mjs test/test-matrix-contract.test.mjs",
-      "result": "passed; 7 total, 7 passed, 0 failed, 0 skipped"
-    },
-    {
-      "command": "<bundled-node> scripts/run-security-audit.mjs --summary <private-temp>",
-      "result": "passed; zero secret findings and zero focused-test skips"
-    },
-    {
-      "command": "cd packages/account-router; <bundled-node> --test with temporary loopback permission",
-      "result": "passed; 208 total, 201 passed, 0 failed, 7 local pinned-checkout skips"
-    },
-    {
-      "command": "GitHub Actions automated matrix run 30263647985",
-      "result": "passed on Node 22 and Node 24 with zero skipped rows"
-    },
-    {
-      "command": "GitHub Actions security/Linux/systemd runs 30263648033, 30263648074, 30263647991, and 30263647979",
-      "result": "passed"
-    }
-  ],
+  "tests": [],
   "evidence": [
-    "evidence/M6.4-release-operator-docs.md",
-    "evidence/M6.4/local-test-summary.json"
+    "evidence/M6.3-codex-web-remote-auth.md"
   ],
   "observations": {
-    "task_scope": "Unify installation, configuration, monitoring, credential rotation, backup, rollback, incident response, release status, and compliance boundaries.",
-    "operator_runbook": "The runbook keeps all services loopback or Unix-socket only and documents SSH port forwarding over an authorized Tailscale path.",
-    "release_decision": "The project is buildable and deployable for controlled LIMITED_MODE evaluation but is explicitly not production-release qualified.",
-    "protocol_boundary": "No real account was configured or switched, and no seamless or in-flight continuity claim is made."
+    "task_scope": "Reopened M6.3 after discovering that the deployed codex-web bridge accepted unauthenticated HTTP and WebSocket clients and forwarded privileged renderer IPC.",
+    "start_record": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-4-release-operator-docs",
+      "commit": "3489382ae0d4dfa0f08a4a6c2969d570f0324e36",
+      "dependencies": [
+        "M6.1",
+        "G-SECRETS"
+      ],
+      "expected_result": "Fail-closed browser session authentication, exact-origin WebSocket validation, privileged renderer request authorization, and credential-free negative regression evidence."
+    },
+    "containment": "codex-web.service was stopped before testing; the tailnet-facing port returned a connection reset.",
+    "protocol_boundary": "No real account is configured or tested, and no account-switch or continuity claim will be made."
   },
   "blockers": [],
   "residual_risks": [
+    "The direct tailnet URL remains offline until the negative authorization matrix passes.",
     "M6.2 remains rejected because the required 24-hour soak was skipped.",
-    "Real-account protocol and product E2E gates remain deferred.",
-    "Any reverse proxy or tailnet-wide publication requires a separate authentication and security review."
+    "Real-account protocol, switching, and product E2E gates remain deferred."
   ],
-  "updated_at": "2026-07-27T19:53:00+08:00"
+  "updated_at": "2026-07-27T22:55:52+08:00"
 }

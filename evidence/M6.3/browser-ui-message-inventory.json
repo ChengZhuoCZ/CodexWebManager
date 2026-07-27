@@ -1,0 +1,165 @@
+{
+  "schema_version": 1,
+  "task": "M6.3",
+  "observed_at": "2026-07-28T00:31:00+08:00",
+  "upstream_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf",
+  "fixture": {
+    "credentials": "synthetic-only",
+    "real_accounts_configured": false,
+    "payload_logging": false,
+    "recorded_fields": [
+      "outer message type",
+      "IPC channel",
+      "inner message type",
+      "MCP method name",
+      "fetch method",
+      "fetch scheme/host/path without query"
+    ]
+  },
+  "observed_startup_messages": [
+    {
+      "type": "log-message",
+      "required_disposition": "local-noop"
+    },
+    {
+      "type": "persisted-atom-sync-request",
+      "required_disposition": "secret-free-local-empty-state-response"
+    },
+    {
+      "type": "fetch",
+      "method": "POST",
+      "route": "vscode://codex/get-settings",
+      "required_disposition": "secret-free-local-response"
+    },
+    {
+      "type": "mcp-request",
+      "method": "remoteControl/status/read",
+      "required_disposition": "server-validated"
+    },
+    {
+      "type": "fetch",
+      "method": "POST",
+      "route": "vscode://codex/codex-home",
+      "required_disposition": "authenticated-local-browser-config-response"
+    },
+    {
+      "type": "shared-object-subscribe",
+      "required_disposition": "local-noop-subscription"
+    },
+    {
+      "type": "fetch",
+      "method": "POST",
+      "route": "vscode://codex/get-global-state",
+      "required_disposition": "secret-free-local-response"
+    },
+    {
+      "type": "fetch",
+      "method": "POST",
+      "route": "vscode://codex/list-pinned-threads",
+      "required_disposition": "secret-free-local-response"
+    },
+    {
+      "type": "fetch",
+      "method": "POST",
+      "route": "vscode://codex/os-info",
+      "required_disposition": "secret-free-local-response"
+    },
+    {
+      "type": "fetch",
+      "method": "POST",
+      "route": "vscode://codex/is-copilot-api-available",
+      "required_disposition": "secret-free-local-response"
+    },
+    {
+      "type": "mcp-request",
+      "method": "account/read",
+      "required_disposition": "server-validated"
+    },
+    {
+      "type": "mcp-request",
+      "method": "thread/list",
+      "required_disposition": "server-validated"
+    }
+  ],
+  "static_pinned_bundle_findings": [
+    {
+      "type": "ready",
+      "required_disposition": "server-validated-once-per-socket"
+    },
+    {
+      "type": "view-focused",
+      "required_disposition": "local-noop"
+    },
+    {
+      "type": "electron-avatar-overlay-restore-ready",
+      "required_disposition": "local-noop"
+    },
+    {
+      "type": "electron-avatar-overlay-feedback-diagnostics-changed",
+      "required_disposition": "local-noop"
+    },
+    {
+      "type": "electron-sparkle-gates-changed",
+      "required_disposition": "local-noop"
+    },
+    {
+      "type": "electron-desktop-features-changed",
+      "required_disposition": "local-noop"
+    }
+  ],
+  "pre_fix_result": {
+    "login_form": "passed with synthetic site key",
+    "asset_load": "passed",
+    "websocket": "connected",
+    "home_page": "blocked on startup spinner",
+    "cause": "required desktop compatibility messages were denied or returned without a compatible result"
+  },
+  "post_fix_result": {
+    "observed_at": "2026-07-28T01:53:00+08:00",
+    "build": "real pinned renderer with clean-room overlay",
+    "login_form": "passed with synthetic site key",
+    "browser_proxy_origin_adapter": "temporary fixture only; not present in repository or deployment",
+    "strict_origin_check": "passed separately through the production authentication integration test and same-origin HTTP 303 diagnostic",
+    "asset_load": "passed",
+    "authenticated_websocket_connections": 1,
+    "server_rejected_messages": 0,
+    "visible_page": "Sign in to ChatGPT",
+    "real_account_login_attempted": false,
+    "mcp_methods": [
+      "account/read",
+      "collaborationMode/list",
+      "config/read",
+      "configRequirements/read",
+      "experimentalFeature/enablement/set",
+      "experimentalFeature/list",
+      "fs/readFile",
+      "mcpServerStatus/list",
+      "model/list",
+      "plugin/list",
+      "remoteControl/status/read",
+      "thread/list"
+    ],
+    "transport_ordering": "ipc-renderer-ready was sent immediately after authenticated WebSocket open and before queued renderer requests",
+    "desktop_only_git_worker": "rejected locally without crossing the authenticated server boundary or closing the WebSocket"
+  },
+  "reconnect_result": {
+    "observed_at": "2026-07-28T02:16:00+08:00",
+    "build": "real pinned renderer with clean-room overlay",
+    "fixture": "synthetic account responses only",
+    "browser_proxy_origin_adapter": "temporary fixture only; not present in repository or deployment",
+    "visible_page_after_reconnect": "Sign in to ChatGPT",
+    "websocket_connections": 2,
+    "view_ready_announcements": 2,
+    "reconnect_triggered": true,
+    "server_rejected_messages": 0,
+    "page_reloaded": false,
+    "real_account_login_attempted": false,
+    "scope": "browser control-channel reconnect only; no running computation, account switch, or continuity claim"
+  },
+  "prohibitions_confirmed": [
+    "No real account was configured.",
+    "No account switch was attempted.",
+    "No request payload, header, cookie, token, email, or full quota response was recorded.",
+    "This evidence does not establish seamless session continuity or in-flight recovery."
+  ]
+}

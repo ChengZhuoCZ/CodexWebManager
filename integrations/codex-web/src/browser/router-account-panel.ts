@@ -1,3 +1,5 @@
+import { browserCsrfHeaders } from "./browser-session.js";
+
 const STATUS_PATH = "/__backend/codex-router/status";
 const EVENTS_PATH = "/__backend/codex-router/events";
 const SWITCH_PATH = "/__backend/codex-router/switch";
@@ -417,7 +419,11 @@ export async function installRouterAccountPanel(): Promise<() => void> {
     try {
       const response = await fetch(SWITCH_PATH, {
         method: "POST",
-        headers: { "content-type": "application/json", accept: "application/json" },
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+          ...(await browserCsrfHeaders()),
+        },
         body: JSON.stringify(body),
       });
       if (!response.ok) throw new Error("manual switch request failed");

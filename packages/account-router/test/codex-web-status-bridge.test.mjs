@@ -4,15 +4,67 @@ import { promises as fs } from "node:fs";
 import http from "node:http";
 import os from "node:os";
 import path from "node:path";
+import { Readable } from "node:stream";
+import { pathToFileURL } from "node:url";
 import test from "node:test";
 import {
   applyStatusBridge,
   EXPECTED_CODEX_WEB_REVISION,
+  replaceFilesRecoverably,
 } from "../../../integrations/codex-web/apply-status-bridge.mjs";
 
 const ADMIN_TOKEN = "fixture-admin-token-0123456789";
 const codexWebRoot = process.env.M4_2_CODEX_WEB_ROOT;
 const integrationTest = codexWebRoot && path.isAbsolute(codexWebRoot) ? test : test.skip;
+
+test("patch file transaction restores every installed file after a later failure", async (context) => {
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "m6-3-patch-transaction-"));
+  context.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const targets = ["main.ts", "shim.ts", "files.ts"].map((name) =>
+    path.join(directory, name)
+  );
+  await Promise.all(
+    targets.map((target, index) =>
+      fs.writeFile(target, `original-${index}`, { mode: 0o640 })
+    ),
+  );
+  const entries = targets.map((target, index) => ({
+    target,
+    original: `original-${index}`,
+    replacement: `replacement-${index}`,
+  }));
+
+  await assert.rejects(
+    replaceFilesRecoverably(entries, {
+      beforeInstall({ index }) {
+        if (index === 1) {
+          throw new Error("fixture install failure");
+        }
+      },
+    }),
+    /fixture install failure/,
+  );
+  assert.deepEqual(
+    await Promise.all(targets.map((target) => fs.readFile(target, "utf8"))),
+    ["original-0", "original-1", "original-2"],
+  );
+  assert.equal(
+    (await fs.readdir(directory)).some((name) => name.includes(".codex-patch-")),
+    false,
+  );
+
+  await replaceFilesRecoverably(entries);
+  assert.deepEqual(
+    await Promise.all(targets.map((target) => fs.readFile(target, "utf8"))),
+    ["replacement-0", "replacement-1", "replacement-2"],
+  );
+  assert.deepEqual(
+    await Promise.all(
+      targets.map(async (target) => (await fs.stat(target)).mode & 0o777),
+    ),
+    [0o640, 0o640, 0o640],
+  );
+});
 
 function safeStatus() {
   return {
@@ -50,6 +102,7 @@ async function preparePatchedServer(context) {
   await fs.mkdir(path.join(temporaryRoot, "src", "server"), { recursive: true });
   for (const relativePath of [
     "package.json",
+    "src/browser/files.ts",
     "src/browser/shim.ts",
     "src/server/main.ts",
     "src/server/module.ts",
@@ -88,14 +141,222 @@ main().catch(() => { process.stderr.write("fixture bridge failed\\n"); process.e
   assert.equal(build.status, 0, `${build.stdout}\n${build.stderr}`);
   const patchedMain = await fs.readFile(path.join(temporaryRoot, "src", "server", "main.ts"), "utf8");
   assert.match(patchedMain, /registerRouterStatusBridge/);
+  assert.match(patchedMain, /BrowserUploadStore\.create/);
+  assert.match(patchedMain, /browserSessionAuth\.onSessionRevoked/);
+  assert.doesNotMatch(patchedMain, /\.toBuffer\(\)|codex-web-uploads-/);
   const patchedShim = await fs.readFile(path.join(temporaryRoot, "src", "browser", "shim.ts"), "utf8");
   assert.match(patchedShim, /installRouterAccountPanel/);
+  assert.match(
+    patchedShim,
+    /addEventListener\("open"[\s\S]*announceRendererReady\(\);[\s\S]*announceViewReady\(\);[\s\S]*flushOutboundQueue\(\);/,
+  );
+  assert.doesNotMatch(patchedShim, /rendererReady/);
+  assert.match(
+    patchedShim,
+    /function announceRendererReady\(\)[\s\S]*ipc-renderer-ready[\s\S]*function announceViewReady\(\)[\s\S]*message-from-view[\s\S]*args: \[\{ type: "ready" \}\][\s\S]*function rejectPendingForSocket/,
+  );
+  assert.match(
+    patchedShim,
+    /let viewReady = false;[\s\S]*let viewReadyAnnouncedSocket: WebSocket \| null = null;/,
+  );
+  assert.match(
+    patchedShim,
+    /addEventListener\("close"[\s\S]*viewReadyAnnouncedSocket === nextSocket[\s\S]*viewReadyAnnouncedSocket = null;[\s\S]*rejectPendingForSocket/,
+  );
+  assert.doesNotMatch(
+    patchedShim,
+    /addEventListener\("close"[\s\S]*viewReady = false;[\s\S]*scheduleReconnect/,
+  );
+  assert.match(
+    patchedShim,
+    /message\.type === "ready"[\s\S]*viewReady = true;[\s\S]*announceViewReady\(\);[\s\S]*return undefined;[\s\S]*return invokeMain\(channel, args\);/,
+  );
+  assert.match(
+    patchedShim,
+    /LOCAL_DISABLED_INVOKE_CHANNELS\.has\(channel\)[\s\S]*channel unavailable in browser mode/,
+  );
+  assert.match(
+    patchedShim,
+    /LOCAL_NOOP_INVOKE_CHANNELS\.has\(channel\)[\s\S]*Promise\.resolve\(undefined\)/,
+  );
+  assert.match(patchedShim, /responseType: "success"/);
+  assert.match(patchedShim, /bodyJsonString: JSON\.stringify\(body\)/);
+  assert.match(patchedShim, /worktreesSegment:/);
+  assert.match(patchedShim, /canonicalPathByRoot:/);
   await fs.access(path.join(temporaryRoot, "src", "browser", "router-account-panel.ts"));
+  await fs.access(path.join(temporaryRoot, "src", "browser", "browser-session.ts"));
+  await fs.access(path.join(temporaryRoot, "src", "browser", "browser-message-policy.ts"));
+  await fs.access(path.join(temporaryRoot, "src", "server", "browser-ipc-router.ts"));
+  await fs.access(path.join(temporaryRoot, "src", "server", "browser-session-auth.ts"));
+  await fs.access(path.join(temporaryRoot, "src", "server", "browser-upload-store.ts"));
   return {
     temporaryRoot,
     harness: path.join(temporaryRoot, "src", "server", "bridge-harness.js"),
   };
 }
+
+integrationTest("browser upload store streams into a private shared root and cleans session files", async (context) => {
+  const prepared = await preparePatchedServer(context);
+  const sharedRoot = await fs.mkdtemp(path.join(os.tmpdir(), "m6-3-shared-uploads-"));
+  context.after(() => fs.rm(sharedRoot, { recursive: true, force: true }));
+  await fs.chmod(sharedRoot, 0o700);
+  const {
+    BROWSER_UPLOAD_LIMITS,
+    BrowserUploadStore,
+    isBrowserUploadLimitError,
+  } = await import(
+    pathToFileURL(
+      path.join(
+        prepared.temporaryRoot,
+        "src",
+        "server",
+        "browser-upload-store.js",
+      ),
+    ).href
+  );
+  const staleInstance = path.join(sharedRoot, "codex-web-Ab12Cd");
+  await fs.mkdir(staleInstance, { mode: 0o700 });
+  await fs.writeFile(path.join(staleInstance, "stale"), "fixture", {
+    mode: 0o600,
+  });
+  const store = await BrowserUploadStore.create({
+    CODEX_WEB_UPLOAD_ROOT: sharedRoot,
+  });
+  context.after(() => store.close());
+  await assert.rejects(fs.stat(staleInstance), { code: "ENOENT" });
+  const canonicalSharedRoot = await fs.realpath(sharedRoot);
+
+  const first = await store.write(
+    "session-a",
+    Readable.from([Buffer.from("fixture")]),
+    "text/plain",
+    BROWSER_UPLOAD_LIMITS.requestBytes,
+  );
+  assert.match(
+    first.path,
+    new RegExp(
+      `^${canonicalSharedRoot.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}/`,
+    ),
+  );
+  assert.equal((await fs.stat(first.path)).mode & 0o777, 0o600);
+  assert.equal(store.find(first.path, "session-a")?.size, 7);
+  assert.equal(store.find(first.path, "session-b"), null);
+
+  await assert.rejects(
+    store.write(
+      "session-a",
+      Readable.from([Buffer.from("four")]),
+      "text/plain",
+      3,
+    ),
+    (error) => isBrowserUploadLimitError(error),
+  );
+  const afterPartialFailure = await fs.readdir(path.dirname(first.path));
+  assert.equal(afterPartialFailure.some((entry) => entry.endsWith(".part")), false);
+
+  await store.removeSession("session-a");
+  await assert.rejects(fs.stat(first.path), { code: "ENOENT" });
+  assert.equal(store.find(first.path, "session-a"), null);
+
+  let releaseUpload;
+  let markStarted;
+  const uploadStarted = new Promise((resolve) => {
+    markStarted = resolve;
+  });
+  const uploadGate = new Promise((resolve) => {
+    releaseUpload = resolve;
+  });
+  const inFlight = store.write(
+    "session-revoked",
+    Readable.from(
+      (async function* () {
+        yield Buffer.from("before-revoke");
+        markStarted();
+        await uploadGate;
+        yield Buffer.from("after-revoke");
+      })(),
+    ),
+    "text/plain",
+    BROWSER_UPLOAD_LIMITS.requestBytes,
+  );
+  await uploadStarted;
+  await store.removeSession("session-revoked");
+  releaseUpload();
+  await assert.rejects(inFlight, /upload|aborted|session/i);
+  assert.deepEqual(await fs.readdir(store.root), []);
+});
+
+integrationTest("browser upload store fails closed on unsafe stale instance directories", async (context) => {
+  const prepared = await preparePatchedServer(context);
+  const sharedRoot = await fs.mkdtemp(path.join(os.tmpdir(), "m6-3-unsafe-stale-"));
+  context.after(() => fs.rm(sharedRoot, { recursive: true, force: true }));
+  await fs.chmod(sharedRoot, 0o700);
+  const unsafeStale = path.join(sharedRoot, "codex-web-Zz99Yy");
+  await fs.mkdir(unsafeStale, { mode: 0o755 });
+  const { BrowserUploadStore } = await import(
+    pathToFileURL(
+      path.join(
+        prepared.temporaryRoot,
+        "src",
+        "server",
+        "browser-upload-store.js",
+      ),
+    ).href
+  );
+  await assert.rejects(
+    BrowserUploadStore.create({ CODEX_WEB_UPLOAD_ROOT: sharedRoot }),
+    /unsafe stale entry/,
+  );
+});
+
+integrationTest("browser upload store enforces per-session and global file ceilings", async (context) => {
+  const prepared = await preparePatchedServer(context);
+  const sharedRoot = await fs.mkdtemp(path.join(os.tmpdir(), "m6-3-upload-limits-"));
+  context.after(() => fs.rm(sharedRoot, { recursive: true, force: true }));
+  await fs.chmod(sharedRoot, 0o700);
+  const {
+    BROWSER_UPLOAD_LIMITS,
+    BrowserUploadStore,
+    isBrowserUploadLimitError,
+  } = await import(
+    pathToFileURL(
+      path.join(
+        prepared.temporaryRoot,
+        "src",
+        "server",
+        "browser-upload-store.js",
+      ),
+    ).href
+  );
+  const store = await BrowserUploadStore.create({
+    CODEX_WEB_UPLOAD_ROOT: sharedRoot,
+  });
+  context.after(() => store.close());
+  const writeTiny = (sessionId) =>
+    store.write(
+      sessionId,
+      Readable.from([Buffer.from(".")]),
+      "text/plain",
+      BROWSER_UPLOAD_LIMITS.requestBytes,
+    );
+
+  for (let index = 0; index < BROWSER_UPLOAD_LIMITS.sessionFiles; index += 1) {
+    await writeTiny("bounded-session");
+  }
+  await assert.rejects(
+    writeTiny("bounded-session"),
+    (error) => isBrowserUploadLimitError(error),
+  );
+  await store.removeSession("bounded-session");
+
+  for (let index = 0; index < BROWSER_UPLOAD_LIMITS.globalFiles; index += 1) {
+    await writeTiny(`global-${index % 8}`);
+  }
+  await assert.rejects(
+    writeTiny("global-overflow"),
+    (error) => isBrowserUploadLimitError(error),
+  );
+});
 
 function startHarness(context, harness, cwd, environment = {}) {
   const child = spawn(process.execPath, [harness], {

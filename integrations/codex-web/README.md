@@ -12,11 +12,52 @@ npm run build:server
 ```
 
 The installer checks the exact upstream revision plus the SHA-256 digests of
-`src/server/main.ts` and `src/browser/shim.ts` before adding the server bridge, browser
-panel, and minimal registration lines. It fails closed for other source revisions so
-upstream changes can be reviewed deliberately.
+`src/server/main.ts`, `src/browser/shim.ts`, and `src/browser/files.ts` before adding
+the server bridge, browser panel, and minimal registration lines. It fails closed for
+other source revisions so upstream changes can be reviewed deliberately.
 
-## Configuration
+## Browser session configuration
+
+The patched server fails closed unless all five variables are present:
+
+```sh
+CODEX_WEB_PUBLIC_ORIGIN=http://127.0.0.1:8214
+CODEX_WEB_ACCESS_TOKEN_FILE=/absolute/private/browser-access-token
+CODEX_WEB_CODEX_HOME=/absolute/private/codex-home
+CODEX_WEB_UPLOAD_ROOT=/absolute/private/shared-uploads
+CODEX_WEB_WORKSPACE_ROOTS=/srv/codex-workspaces
+```
+
+`CODEX_WEB_PUBLIC_ORIGIN` is the one exact browser origin. It may use loopback or one explicit
+Tailscale IPv4 address and port while the application stays behind a tailnet-only TCP forwarder;
+wildcard listeners and origins inferred from an incoming `Host` header are rejected. The
+access-token file must be a non-symlink regular file, contain one random value of at least 32
+characters with no newline, and deny group/other access. It is a site login key, not a ChatGPT
+password, Cookie, API key, or Codex account token. Because the authenticated Codex protocol can
+operate on configured workspaces, treat this key as a high-privilege workspace credential rather
+than a read-only website password.
+
+`CODEX_WEB_CODEX_HOME` must be an existing, non-symlink directory dedicated to the Codex
+app-server runtime. It is returned only to an authenticated browser session as path
+configuration; credential files and their contents are never returned by this route.
+`CODEX_WEB_UPLOAD_ROOT` must likewise be an existing, non-symlink directory owned by the
+codex-web service identity with mode `0700`. The web service must be able to create private
+files there and the supervised app-server identity must be able to read the explicitly shared
+runtime path; the systemd units provision this boundary without exposing it as a public static
+directory.
+
+The browser receives only an `HttpOnly`, `SameSite=Strict` session cookie. Unsafe HTTP requests
+also require a session CSRF token, and the IPC WebSocket requires the exact origin, cookie, host,
+and `codex-ipc.v1` subprotocol. A new login revokes the previous browser session. The only
+unauthenticated endpoint is `GET /__backend/healthz`.
+
+Workspace browsing is restricted after `realpath` resolution to the configured roots. Renderer
+auth-status requests are accepted only with both `includeToken:false` and `refreshToken:false`;
+token-bearing or ambiguous variants are rejected. Requests for the OpenAI API key or dictation
+bearer connection information are also rejected before reaching the Electron compatibility
+handlers.
+
+## Router status configuration
 
 The bridge is disabled unless both variables are present:
 

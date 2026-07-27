@@ -124,6 +124,10 @@ test("App Server owns a private Unix socket and receives auth only as a credenti
   assert.equal(only(unit, "Service.ExecStartPre"), "/usr/bin/ln -sfn %d/codex-auth /var/lib/codex-app-server/auth.json");
   assert.equal(only(unit, "Service.ExecStopPost"), "/usr/bin/rm -f /var/lib/codex-app-server/auth.json");
   assert.equal(only(unit, "Service.RuntimeDirectory"), "codex-app-server");
+  assert.equal(
+    only(unit, "Service.ReadOnlyPaths"),
+    "/run/codex-browser-uploads",
+  );
   assert.doesNotMatch(content, /0\.0\.0\.0|\[::\]|--listen (?:stdio|ws):/);
 });
 
@@ -138,10 +142,20 @@ test("codex-web is loopback-only and proxies stdio to the supervised Unix socket
     "CODEX_APP_SERVER_SOCKET=/run/codex-app-server/app-server.sock",
     "CODEX_ROUTER_ADMIN_ORIGIN=http://127.0.0.1:18318",
     "CODEX_ROUTER_ADMIN_TOKEN_FILE=%d/router-admin-token",
+    "CODEX_WEB_PUBLIC_ORIGIN=http://127.0.0.1:8214",
+    "CODEX_WEB_ACCESS_TOKEN_FILE=%d/browser-access-token",
+    "CODEX_WEB_CODEX_HOME=/var/lib/codex-app-server",
+    "CODEX_WEB_WORKSPACE_ROOTS=/srv/codex-workspaces",
+    "CODEX_WEB_UPLOAD_ROOT=/run/codex-browser-uploads",
   ]));
   assert.deepEqual(unit.get("Service.LoadCredential"), [
     "router-admin-token:/etc/codex-account-router/credentials/admin-token",
+    "browser-access-token:/etc/codex-web/credentials/browser-access-token",
   ]);
+  assert.equal(
+    only(unit, "Service.ReadWritePaths"),
+    "/srv/codex-workspaces /run/codex-browser-uploads",
+  );
   assert.doesNotMatch(content, /0\.0\.0\.0|\[::\]|ws:\/\//);
 });
 
@@ -152,7 +166,7 @@ test("unit command lines and environments contain paths/configuration, never sec
       ...(unit.get("Service.ExecStart") ?? []),
       ...(unit.get("Service.Environment") ?? []),
     ].join("\n");
-    assert.doesNotMatch(publicConfiguration, /(?:Bearer\s+|Authorization=|refresh_token|access_token|sk-[A-Za-z0-9_-]{12,}|eyJ[A-Za-z0-9_-]{12,})/i, name);
+    assert.doesNotMatch(publicConfiguration, /(?:Bearer\s+|Authorization=|refresh_token|access_token(?!_file)|sk-[A-Za-z0-9_-]{12,}|eyJ[A-Za-z0-9_-]{12,})/i, name);
     for (const line of unit.get("Service.Environment") ?? []) {
       if (/(?:TOKEN|AUTH|CREDENTIAL)/.test(line)) {
         assert.match(line, /(?:_FILE=|_ROOT=)(?:%d(?:\/[^\s]+)?|\/[^\s]+)/, `${name}: ${line}`);
@@ -170,8 +184,47 @@ test("provisioning files create only a locked service identity and private direc
   assert.equal(tmpfiles, [
     "d /etc/codex-account-router 0750 root codex -",
     "d /etc/codex-account-router/credentials 0700 root root -",
+    "d /etc/codex-web 0750 root codex -",
+    "d /etc/codex-web/credentials 0700 root root -",
+    "d /run/codex-browser-uploads 0700 codex codex -",
     "d /srv/codex-workspaces 0750 codex codex -",
     "",
   ].join("\n"));
   assert.doesNotMatch(`${sysusers}\n${tmpfiles}`, /(?:token|cookie|authorization|@)/i);
+});
+
+test("PrivateTmp services share attachments only through the explicit private upload directory", async () => {
+  const [{ unit: web }, { unit: appServer }] = await Promise.all([
+    loadUnit("codex-web.service"),
+    loadUnit("codex-app-server.service"),
+  ]);
+  assert.equal(only(web, "Service.PrivateTmp"), "true");
+  assert.equal(only(appServer, "Service.PrivateTmp"), "true");
+  assert.match(
+    only(web, "Service.ReadWritePaths"),
+    /(?:^| )\/run\/codex-browser-uploads(?: |$)/,
+  );
+  assert.equal(
+    only(appServer, "Service.ReadOnlyPaths"),
+    "/run/codex-browser-uploads",
+  );
+  assert.doesNotMatch(
+    `${only(web, "Service.ReadWritePaths")}\n${only(appServer, "Service.ReadOnlyPaths")}`,
+    /\/tmp(?:\/|$)/,
+  );
+});
+
+test("native systemd workflow provisions the browser credential without exposing its value", async () => {
+  const workflow = await fs.readFile(
+    path.resolve(repositoryRoot, ".github/workflows/systemd-units.yml"),
+    "utf8",
+  );
+  assert.match(
+    workflow,
+    /openssl rand -hex 32 \| tr -d '\\n' \| sudo tee \/etc\/codex-web\/credentials\/browser-access-token >\/dev\/null/,
+  );
+  assert.match(
+    workflow,
+    /sudo chmod 0600 \/etc\/codex-web\/credentials\/browser-access-token/,
+  );
 });
