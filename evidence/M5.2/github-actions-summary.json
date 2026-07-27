@@ -1,0 +1,28 @@
+{
+  "schema_version": 1,
+  "task": "M5.2",
+  "workflow": "systemd least privilege",
+  "workflow_file": ".github/workflows/systemd-units.yml",
+  "run_id": 30245335738,
+  "run_number": 3,
+  "event": "push",
+  "branch": "codex/m5-2-systemd-least-privilege",
+  "head_sha": "66fcc6313924d9a1af60419a5a18f76c6fab1af3",
+  "conclusion": "success",
+  "total_duration_seconds": 18,
+  "job": {
+    "name": "Verify systemd lifecycle",
+    "job_id": 89911023697,
+    "conclusion": "success",
+    "duration_seconds": 13
+  },
+  "artifact": {
+    "name": "systemd-lifecycle-evidence",
+    "artifact_id": 8644763612,
+    "archive_sha256": "b629f0812b4617a938a154b87f128580aa2c449e11437199975946a72ed73971"
+  },
+  "run_url": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/30245335738",
+  "real_account_configured": false,
+  "account_switch_tested": false,
+  "seamless_account_continuity_claimed": false
+}

@@ -222,7 +222,7 @@ milestones:
           - Reproducible install command
       - id: M5.2
         title: Add systemd units and least privilege
-        status: in_progress
+        status: done
         depends_on: [M5.1]
         acceptance:
           - Router, app-server and codex-web restart independently
@@ -230,7 +230,7 @@ milestones:
           - Secrets loaded without command-line exposure
       - id: M5.3
         title: Add upgrade, backup and rollback
-        status: pending
+        status: ready
         depends_on: [M5.2]
         acceptance:
           - Configuration schema migration is reversible or backed up

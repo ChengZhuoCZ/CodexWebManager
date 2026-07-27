@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task": "M5.2",
-  "generated_at": "2026-07-16T21:37:37+08:00",
+  "generated_at": "2026-07-27T15:16:45+08:00",
   "input_revision": "078af2627d95b963b5ac60f614cfc1828c57ecc3",
   "branch": "codex/m5-2-systemd-least-privilege",
   "host": {
@@ -29,11 +29,20 @@
   "full_suite": {
     "command": "cd packages/account-router; <bundled-node> --test with temporary loopback permission",
     "result": "passed",
-    "total": 177,
-    "passed": 170,
+    "total": 179,
+    "passed": 172,
     "failed": 0,
     "skipped": 7,
     "skipped_note": "The seven browser-gated rows pre-date M5.2."
+  },
+  "systemd_credential_regression": {
+    "red_command": "<bundled-node> --test packages/account-router/test/secrets.test.mjs",
+    "red_result": "expected failure before createSystemdCredentialSecretProvider was implemented",
+    "green_command": "<bundled-node> --test packages/account-router/test/secrets.test.mjs packages/account-router/test/codex-credentials.test.mjs packages/account-router/test/runtime-bootstrap.test.mjs packages/account-router/test/status-bridge.test.mjs packages/account-router/test/systemd-units.test.mjs with temporary loopback permission",
+    "green_result": "passed",
+    "total": 31,
+    "passed": 31,
+    "failed": 0
   },
   "static_checks": {
     "package_check": "passed",
@@ -41,8 +50,16 @@
     "git_diff_check": "passed"
   },
   "native_linux": {
-    "status": "pending GitHub Actions",
-    "required_evidence": "systemd-analyze verify plus supervised independent lifecycle on Ubuntu 24.04"
+    "status": "passed on the authorized Ubuntu 24.04 host and GitHub Actions",
+    "evidence": [
+      "evidence/M5.2/systemd-lifecycle.json",
+      "evidence/M5.2/github-actions-summary.json"
+    ],
+    "initial_failures": [
+      "systemd credentials are root-owned read-only mounts, while the ordinary file provider intentionally requires service-user ownership",
+      "the fixture generator appended a newline to the bearer token"
+    ],
+    "resolution": "Use a path-scoped systemd credential provider without relaxing ordinary files, and generate the fixture bearer value without trailing whitespace."
   },
   "architecture_mode": "LIMITED_MODE",
   "real_account_configured": false,
