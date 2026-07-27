@@ -67,6 +67,18 @@ function assertAuthenticator(value) {
   return value;
 }
 
+function assertCircuitStateStore(value) {
+  if (
+    value !== null &&
+    (typeof value !== "object" ||
+      typeof value.load !== "function" ||
+      typeof value.save !== "function")
+  ) {
+    throw new TypeError("runtime circuitStateStore is invalid");
+  }
+  return value;
+}
+
 function publicAddresses(admin, model) {
   return Object.freeze({ admin, model });
 }
@@ -76,6 +88,8 @@ export function createRuntimeComposition({
   secretRegistry,
   upstreamOrigin,
   adminAuthenticator = null,
+  circuitStateStore = null,
+  initialCircuitState = null,
   adminHost = defaults.adminHost,
   adminPort = defaults.adminPort,
   modelHost = defaults.modelHost,
@@ -87,6 +101,7 @@ export function createRuntimeComposition({
   if (typeof now !== "function") throw new TypeError("runtime clock must be a function");
   const registry = assertSecretRegistry(secretRegistry);
   const authenticator = assertAuthenticator(adminAuthenticator);
+  const stateStore = assertCircuitStateStore(circuitStateStore);
   const origin = validateOrigin(upstreamOrigin);
   const accountCatalog = createAccountCatalog(accounts);
   for (const account of accountCatalog.listPublic()) {
@@ -97,7 +112,7 @@ export function createRuntimeComposition({
   }
 
   const scheduler = createDeterministicScheduler({ now });
-  const circuitBreaker = createCircuitBreaker({ now });
+  const circuitBreaker = createCircuitBreaker({ now, initialState: initialCircuitState });
   const quotaAdapter = createQuotaSnapshotAdapter({
     name: "runtime-unavailable",
     now,
@@ -107,6 +122,47 @@ export function createRuntimeComposition({
   const adminState = createAdminState({ accountCatalog, eventBroker });
   const activeRequests = new Map(accountCatalog.listPublic().map(({ id }) => [id, 0]));
   const probeTokens = new Map();
+  let pendingPersistence = Promise.resolve();
+  let persistenceFailure = null;
+
+  function persistenceUnavailable() {
+    return new Error("runtime state persistence is unavailable");
+  }
+
+  async function persistCircuitState() {
+    if (stateStore === null) return;
+    if (persistenceFailure !== null) throw persistenceUnavailable();
+    try {
+      await stateStore.save(circuitBreaker.exportState());
+    } catch (error) {
+      persistenceFailure = error;
+      throw persistenceUnavailable();
+    }
+  }
+
+  function queueCircuitStatePersistence() {
+    if (stateStore === null) return;
+    const operation = pendingPersistence.then(() =>
+      stateStore.save(circuitBreaker.exportState()));
+    pendingPersistence = operation.catch((error) => {
+      persistenceFailure = error;
+    });
+  }
+
+  for (const account of accountCatalog.listPublic()) {
+    if (!account.enabled) continue;
+    const restored = circuitBreaker.snapshot(account.id);
+    if (restored.phase === "closed" && restored.last_failure_kind === null) continue;
+    adminState.updateAccountStatus(account.id, {
+      state: restored.phase === "half_open"
+        ? "half_open"
+        : restored.phase === "closed"
+          ? "healthy"
+          : FAILURE_ADMIN_STATES[restored.last_failure_kind],
+      cooldown_until: restored.phase === "closed" ? null : restored.cooldown_until,
+      last_switch_reason: restored.last_failure_kind,
+    });
+  }
 
   function circuitAllowsReadiness(account) {
     if (!account.enabled || activeRequests.get(account.id) >= account.max_concurrency) return false;
@@ -117,6 +173,7 @@ export function createRuntimeComposition({
   }
 
   function usableAccountCount() {
+    if (persistenceFailure !== null) return 0;
     return accountCatalog.listPublic().filter(circuitAllowsReadiness).length;
   }
 
@@ -142,6 +199,8 @@ export function createRuntimeComposition({
   }
 
   async function onAttemptFailure({ accountId, kind, retryAfterMs }) {
+    await pendingPersistence;
+    if (persistenceFailure !== null) throw persistenceUnavailable();
     const probeToken = probeTokens.get(accountId) ?? null;
     circuitBreaker.recordFailure(accountId, {
       kind,
@@ -150,6 +209,7 @@ export function createRuntimeComposition({
     });
     probeTokens.delete(accountId);
     updateFailureStatus(accountId, kind);
+    await persistCircuitState();
   }
 
   async function resolveUpstream(_route, selectionContext = {}) {
@@ -166,7 +226,10 @@ export function createRuntimeComposition({
         excluded.add(accountId);
         continue;
       }
-      if (circuitLease.probe) probeTokens.set(accountId, circuitLease.probe_token);
+      if (circuitLease.probe) {
+        probeTokens.set(accountId, circuitLease.probe_token);
+        await persistCircuitState();
+      }
 
       const binding = accountCatalog.getCredentialBinding(accountId);
       let secretLease;
@@ -182,6 +245,7 @@ export function createRuntimeComposition({
         });
         probeTokens.delete(accountId);
         updateFailureStatus(accountId, "auth_expired");
+        await persistCircuitState();
         excluded.add(accountId);
         continue;
       }
@@ -204,6 +268,7 @@ export function createRuntimeComposition({
           if (circuitLease.probe && activeProbe === circuitLease.probe_token) {
             circuitBreaker.recordSuccess(accountId, { probeToken: circuitLease.probe_token });
             probeTokens.delete(accountId);
+            queueCircuitStatePersistence();
           }
           if (circuitBreaker.snapshot(accountId).phase === "closed") {
             adminState.updateAccountStatus(accountId, {
@@ -276,6 +341,8 @@ export function createRuntimeComposition({
       if (state === RUNTIME_STATES.STOPPING) return;
       state = RUNTIME_STATES.STOPPING;
       await Promise.allSettled([modelService.stop(), adminService.stop()]);
+      await pendingPersistence;
+      await persistCircuitState();
       state = RUNTIME_STATES.STOPPED;
     },
     toString() {

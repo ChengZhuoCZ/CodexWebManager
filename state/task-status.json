@@ -1,97 +1,45 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M5.2",
-  "status": "done",
+  "current_task": "M5.3",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-DEFER-M0.3-CROSS",
   "input_revisions": {
-    "workspace": "078af2627d95b963b5ac60f614cfc1828c57ecc3",
+    "workspace": "fb00514474acdd9b91112959c0e2540aabe03a20",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
-    "CodexManager": "9f9a67df44354da37a8b4ba2bb423a75473b56b6",
-    "codex-cli-observed": "codex-cli 0.144.5",
-    "codex-cli-task-baseline": "codex-cli 0.144.2"
+    "codex-cli-observed": "codex-cli 0.144.5"
   },
-  "output_revision": "66fcc6313924d9a1af60419a5a18f76c6fab1af3",
-  "output_revision_note": "M5.2 implementation commit validated on the authorized Ubuntu 24.04 host and by successful GitHub Actions run 30245335738.",
-  "workspace_branch": "codex/m5-2-systemd-least-privilege",
-  "workspace_input_revision": "078af2627d95b963b5ac60f614cfc1828c57ecc3",
-  "depends_on": ["M5.1"],
+  "output_revision": null,
+  "output_revision_note": "Pending M5.3 upgrade, private snapshot, one-command rollback, and restart-persistence evidence.",
+  "workspace_branch": "codex/m5-3-upgrade-backup-rollback",
+  "workspace_input_revision": "fb00514474acdd9b91112959c0e2540aabe03a20",
+  "depends_on": ["M5.2"],
   "expected_outputs": [
-    "evidence/M5.2-systemd-least-privilege.md",
+    "packages/account-router/src/deployment-manager.mjs",
+    "packages/account-router/bin/codex-stack-deploy.mjs",
+    "packages/account-router/test/deployment-manager.test.mjs",
+    "packages/account-router/test/runtime-persistence.test.mjs",
     "systemd/codex-account-router.service",
-    "systemd/codex-app-server.service",
-    "systemd/codex-web.service",
-    "systemd/codex-stack.target",
-    "packages/account-router/test/systemd-units.test.mjs",
-    "packages/account-router/scripts/verify-systemd-lifecycle.mjs",
-    "docs/linux-systemd.md",
-    ".github/workflows/systemd-units.yml",
-    "evidence/M5.2/local-test-summary.json",
-    "evidence/M5.2/systemd-lifecycle.json",
-    "evidence/M5.2/github-actions-summary.json"
+    "docs/linux-upgrade-rollback.md",
+    ".github/workflows/systemd-upgrade-rollback.yml",
+    "evidence/M5.3-upgrade-backup-rollback.md",
+    "evidence/M5.3/local-test-summary.json",
+    "evidence/M5.3/systemd-upgrade-rollback.json",
+    "evidence/M5.3/github-actions-summary.json"
   ],
-  "tests": [
-    {
-      "command": "<bundled-node> --test packages/account-router/test/codex-web-integration.test.mjs packages/account-router/test/systemd-units.test.mjs before implementation",
-      "result": "expected red state; 12 total, 6 passed, and 6 failed on the provisional wrapper and units"
-    },
-    {
-      "command": "<bundled-node> --test packages/account-router/test/codex-web-integration.test.mjs packages/account-router/test/systemd-units.test.mjs packages/account-router/test/linux-release.test.mjs",
-      "result": "passed; 15 total, 15 passed, 0 failed, and 0 skipped"
-    },
-    {
-      "command": "cd packages/account-router; <bundled-node> --run check",
-      "result": "passed"
-    },
-    {
-      "command": "cd packages/account-router; <bundled-node> --test with temporary loopback permission",
-      "result": "passed; 179 total, 172 passed, 0 failed, and 7 pre-existing browser-gated rows skipped"
-    },
-    {
-      "command": "Ruby Psych parse .github/workflows/systemd-units.yml; git diff --check",
-      "result": "passed"
-    },
-    {
-      "command": "<bundled-node> packages/account-router/scripts/verify-systemd-lifecycle.mjs --summary <private-temp> on Darwin",
-      "result": "expected fail-closed rejection; native Linux with systemd as PID 1 is required"
-    },
-    {
-      "command": "<bundled-node> --test packages/account-router/test/secrets.test.mjs before the systemd credential provider implementation",
-      "result": "expected red state; missing createSystemdCredentialSecretProvider export"
-    },
-    {
-      "command": "<bundled-node> --test packages/account-router/test/secrets.test.mjs packages/account-router/test/codex-credentials.test.mjs packages/account-router/test/runtime-bootstrap.test.mjs packages/account-router/test/status-bridge.test.mjs packages/account-router/test/systemd-units.test.mjs with temporary loopback permission",
-      "result": "passed; 31 total, 31 passed, 0 failed"
-    },
-    {
-      "command": "sudo /usr/bin/node verify-systemd-lifecycle.mjs --summary <sanitized-output> on the authorized Ubuntu 24.04 host",
-      "result": "passed; systemd 255, Node.js 22.23.1, non-root identity, loopback/Unix-only endpoints, zero secret-like command-line matches, and independent peer PIDs"
-    },
-    {
-      "command": "GitHub Actions systemd least privilege run 30245335738",
-      "result": "passed at implementation commit 66fcc6313924d9a1af60419a5a18f76c6fab1af3; lifecycle artifact uploaded"
-    }
-  ],
-  "evidence": [
-    "evidence/M5.2-systemd-least-privilege.md",
-    "evidence/M5.2/local-test-summary.json",
-    "evidence/M5.2/systemd-lifecycle.json",
-    "evidence/M5.2/github-actions-summary.json"
-  ],
+  "tests": [],
+  "evidence": [],
   "observations": {
-    "task_scope": "Replace provisional units with least-privilege services, systemd credential paths, an independent App Server Unix socket, and native lifecycle evidence.",
-    "provisional_unit_defects": "The checked-in router entrypoint and config argument do not match M5.1, while the app-server/web units assume an unverified socket integration and use Requires dependencies that weaken restart independence.",
-    "local_cli_observation": "The read-only Codex 0.144.5 help exposes app-server --listen unix://PATH and app-server proxy --sock PATH; no account or model request was used.",
-    "pinned_codex_web_observation": "The pinned MIT codex-web bundle invokes CODEX_CLI_PATH with -c features.code_mode_host=true app-server --analytics-default-enabled over stdio, so the wrapper needs an explicit proxy mode for a separately supervised server.",
-    "systemd_credential_model": "Use LoadCredential/ImportCredential plus %d file paths; systemd root-owned read-only mounts are accepted only for the exact CREDENTIALS_DIRECTORY under /run/credentials, while ordinary files retain service-user ownership checks.",
-    "native_linux_result": "The authorized Ubuntu 24.04 host and GitHub Actions both passed the sanitized independent lifecycle verification with no real account configured."
+    "task_scope": "Add fail-closed release activation, private configuration/state snapshots, one-command rollback, and live circuit-health persistence across router restarts.",
+    "existing_release_model": "M5.1 already retains immutable versioned releases and atomically swaps /opt/codex-account-router/current, but it has no coordinated configuration/state snapshot or rollback command.",
+    "existing_state_model": "The circuit state store already performs private atomic files, but it is not wired into runtime startup, failure mutations, shutdown, or the systemd unit.",
+    "protocol_boundary": "M5.3 uses fixture accounts and local services only; it does not run or waive M0.3, M3.5, or M4.1 real-account continuity tests."
   },
   "blockers": [],
   "residual_risks": [
-    "The installed Ubuntu validation stack uses fixture Codex/App Server and codex-web processes; it is deployment-topology evidence, not a production account deployment.",
-    "The deployment proxy path is pinned to a Codex CLI that exposes app-server proxy; the local observed binary is 0.144.5 while the earlier task baseline was 0.144.2.",
-    "M0.3, M3.5, and M4.1 real-account switching rows remain unrun by user direction; M5.2 used no real account or switch test and makes no seamless continuity claim."
+    "Native Linux upgrade/rollback and process-restart evidence is still pending.",
+    "Real-account switching remains outside M5.3 by user direction."
   ],
-  "updated_at": "2026-07-27T15:16:45+08:00"
+  "updated_at": "2026-07-27T15:30:00+08:00"
 }

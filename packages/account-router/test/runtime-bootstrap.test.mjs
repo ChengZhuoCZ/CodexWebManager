@@ -3,7 +3,9 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { createCircuitBreaker } from "../src/circuit-breaker.mjs";
 import { loadRuntimeBootstrap } from "../src/runtime-bootstrap.mjs";
+import { createCircuitStateStore } from "../src/state-store.mjs";
 
 async function privateTemporaryDirectory(context) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "router-bootstrap-test-"));
@@ -73,6 +75,23 @@ test("loads an optional private admin token file without retaining plaintext", a
   assert.equal(options.adminAuthenticator.authenticate({ authorization: `Bearer ${token}` }), true);
   assert.equal(JSON.stringify(options.adminAuthenticator), '"[REDACTED AdminAuthenticator]"');
   assert.doesNotMatch(JSON.stringify(options), new RegExp(token));
+});
+
+test("loads the private circuit state selected by the runtime state directory", async (context) => {
+  const directory = await privateTemporaryDirectory(context);
+  const store = createCircuitStateStore({ directory });
+  const breaker = createCircuitBreaker({
+    now: () => Date.parse("2026-07-27T08:00:00.000Z"),
+  });
+  breaker.recordFailure("account-a", { kind: "network_error" });
+  await store.save(breaker.exportState());
+
+  const options = await loadRuntimeBootstrap({
+    CODEX_ROUTER_STATE_DIRECTORY: directory,
+  });
+  assert.equal(options.initialCircuitState.accounts[0].account_id, "account-a");
+  assert.equal(options.initialCircuitState.accounts[0].last_failure_kind, "network_error");
+  assert.equal(options.circuitStateStore.toString(), "[CircuitStateStore]");
 });
 
 test("rejects incomplete, permissive, symlinked, and credential-bearing account configuration", async (context) => {

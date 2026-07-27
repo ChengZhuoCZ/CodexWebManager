@@ -102,6 +102,7 @@ test("router uses the M5.1 launcher, loopback listeners, and credential file pat
     "CODEX_ROUTER_ACCOUNTS_FILE=/etc/codex-account-router/accounts.json",
     "CODEX_ROUTER_CREDENTIAL_ROOT=%d",
     "CODEX_ROUTER_ADMIN_TOKEN_FILE=%d/admin-token",
+    "CODEX_ROUTER_STATE_DIRECTORY=/var/lib/codex-account-router",
   ]));
   assert.deepEqual(unit.get("Service.LoadCredential"), [
     "admin-token:/etc/codex-account-router/credentials/admin-token",

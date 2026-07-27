@@ -31,6 +31,7 @@ Environment=CODEX_ROUTER_MODEL_PORT=18317
 Environment=CODEX_ROUTER_ACCOUNTS_FILE=/etc/codex-account-router/accounts.json
 Environment=CODEX_ROUTER_CREDENTIAL_ROOT=%d
 Environment=CODEX_ROUTER_ADMIN_TOKEN_FILE=%d/admin-token
+Environment=CODEX_ROUTER_STATE_DIRECTORY=/var/lib/codex-account-router
 NoNewPrivileges=true
 PrivateTmp=true
 PrivateDevices=true
