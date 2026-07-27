@@ -277,7 +277,7 @@ milestones:
           - Path and SSRF/open-proxy tests pass
       - id: M6.4
         title: Produce release and operator docs
-        status: in_progress
+        status: done
         depends_on: [M6.2, M6.3]
         acceptance:
           - Install, configure, monitor, rotate, backup and rollback documented

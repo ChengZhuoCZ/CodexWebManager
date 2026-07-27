@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M6.4",
-  "status": "in_progress",
+  "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-SKIP-M6.2-SOAK",
@@ -14,7 +14,7 @@
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "codex-cli-observed": "codex-cli 0.144.5"
   },
-  "output_revision": null,
+  "output_revision": "c20087e69714dc1f13c56bfabb6497c6d3f4c070",
   "workspace_branch": "codex/m6-4-release-operator-docs",
   "workspace_input_revision": "a2b970f",
   "depends_on": [
@@ -28,17 +28,47 @@
     "evidence/M6.4-release-operator-docs.md",
     "evidence/M6.4/local-test-summary.json"
   ],
-  "tests": [],
-  "evidence": [],
+  "tests": [
+    {
+      "command": "<bundled-node> --test test/release-docs-contract.test.mjs before documentation",
+      "result": "expected red state; all 3 tests failed because the unified documents were absent"
+    },
+    {
+      "command": "<bundled-node> --test test/release-docs-contract.test.mjs test/test-matrix-contract.test.mjs",
+      "result": "passed; 7 total, 7 passed, 0 failed, 0 skipped"
+    },
+    {
+      "command": "<bundled-node> scripts/run-security-audit.mjs --summary <private-temp>",
+      "result": "passed; zero secret findings and zero focused-test skips"
+    },
+    {
+      "command": "cd packages/account-router; <bundled-node> --test with temporary loopback permission",
+      "result": "passed; 208 total, 201 passed, 0 failed, 7 local pinned-checkout skips"
+    },
+    {
+      "command": "GitHub Actions automated matrix run 30263647985",
+      "result": "passed on Node 22 and Node 24 with zero skipped rows"
+    },
+    {
+      "command": "GitHub Actions security/Linux/systemd runs 30263648033, 30263648074, 30263647991, and 30263647979",
+      "result": "passed"
+    }
+  ],
+  "evidence": [
+    "evidence/M6.4-release-operator-docs.md",
+    "evidence/M6.4/local-test-summary.json"
+  ],
   "observations": {
     "task_scope": "Unify installation, configuration, monitoring, credential rotation, backup, rollback, incident response, release status, and compliance boundaries.",
-    "starting_point": "Existing M5 documents cover build, systemd installation, and upgrade/rollback separately, but no single operator runbook or explicit release-readiness document covers monitoring, rotation, incident actions, and the rejected M6.2 gate.",
-    "protocol_boundary": "Documentation must keep LIMITED_MODE explicit and must not claim real-account switching, in-flight recovery, seamless continuity, or 24-hour qualification."
+    "operator_runbook": "The runbook keeps all services loopback or Unix-socket only and documents SSH port forwarding over an authorized Tailscale path.",
+    "release_decision": "The project is buildable and deployable for controlled LIMITED_MODE evaluation but is explicitly not production-release qualified.",
+    "protocol_boundary": "No real account was configured or switched, and no seamless or in-flight continuity claim is made."
   },
   "blockers": [],
   "residual_risks": [
-    "M6.4 documentation contracts have not yet run.",
-    "M6.2 remains rejected and must be listed as a release limitation."
+    "M6.2 remains rejected because the required 24-hour soak was skipped.",
+    "Real-account protocol and product E2E gates remain deferred.",
+    "Any reverse proxy or tailnet-wide publication requires a separate authentication and security review."
   ],
-  "updated_at": "2026-07-27T19:47:00+08:00"
+  "updated_at": "2026-07-27T19:53:00+08:00"
 }

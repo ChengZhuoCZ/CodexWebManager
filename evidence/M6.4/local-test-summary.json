@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "task": "M6.4",
+  "generated_at": "2026-07-27T19:52:00+08:00",
+  "input_revision": "a2b970f",
+  "validated_implementation_revision": "c20087e69714dc1f13c56bfabb6497c6d3f4c070",
+  "branch": "codex/m6-4-release-operator-docs",
+  "test_first": {
+    "command": "<bundled-node> --test test/release-docs-contract.test.mjs before documentation",
+    "result": "expected red state; 0 passed and 3 failed because both unified documents were absent"
+  },
+  "focused": {
+    "command": "<bundled-node> --test test/release-docs-contract.test.mjs test/test-matrix-contract.test.mjs",
+    "tests": 7,
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0
+  },
+  "security_audit": {
+    "command": "<bundled-node> scripts/run-security-audit.mjs --summary <private-temp>",
+    "result": "passed with zero secret findings and zero focused-test skips"
+  },
+  "full_local_suite": {
+    "command": "cd packages/account-router; <bundled-node> --test with temporary loopback permission",
+    "tests": 208,
+    "passed": 201,
+    "failed": 0,
+    "skipped": 7,
+    "skipped_note": "The local host lacks the pinned codex-web checkout; both Linux CI runtimes executed the complete matrix with zero skips."
+  },
+  "github_actions": [
+    {
+      "workflow": "Automated test matrix",
+      "run_id": 30263647985,
+      "conclusion": "success"
+    },
+    {
+      "workflow": "Security and secret audit",
+      "run_id": 30263648033,
+      "conclusion": "success"
+    },
+    {
+      "workflow": "Linux headless release",
+      "run_id": 30263648074,
+      "conclusion": "success"
+    },
+    {
+      "workflow": "systemd least privilege",
+      "run_id": 30263647991,
+      "conclusion": "success"
+    },
+    {
+      "workflow": "systemd upgrade and rollback",
+      "run_id": 30263647979,
+      "conclusion": "success"
+    }
+  ],
+  "real_account_configured": false,
+  "account_switch_tested": false,
+  "seamless_account_continuity_claimed": false,
+  "production_release_qualified": false
+}
