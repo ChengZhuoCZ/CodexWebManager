@@ -1,0 +1,107 @@
+{
+  "schema_version": 1,
+  "task": "M6.2",
+  "mode": "smoke",
+  "platform": "linux",
+  "architecture": "x64",
+  "node_version": "v22.23.1",
+  "started_at": "2026-07-27T11:03:23.177Z",
+  "ended_at": "2026-07-27T11:03:28.223Z",
+  "elapsed_ms": 5046,
+  "required_duration_ms": 86400000,
+  "completed": true,
+  "qualified_24_hour_soak": false,
+  "checks": {
+    "linux_acceptance": true,
+    "full_wall_clock": true,
+    "sample_coverage": true,
+    "traffic_volume": true,
+    "no_unexpected_worker_exit": true,
+    "no_request_error": true,
+    "retry_bound": true,
+    "client_concurrency_bound": true,
+    "worker_concurrency_bound": true,
+    "upstream_concurrency_bound": true,
+    "worker_rss_bound": true,
+    "worker_rss_growth_bound": true,
+    "worker_fd_bound": true,
+    "worker_fd_growth_bound": true,
+    "restart_drills": true
+  },
+  "sampling": {
+    "samples": 11,
+    "minimum_samples": 6,
+    "interval_ms": 500
+  },
+  "traffic": {
+    "client_requests": 198,
+    "minimum_client_requests": 25,
+    "successful_responses": 196,
+    "expected_unsafe_to_replay": 2,
+    "bounded_error_responses": 0,
+    "request_errors": 0,
+    "maximum_client_concurrency": 4,
+    "configured_concurrency": 4,
+    "upstream_attempts": 211,
+    "maximum_upstream_active_requests": 1,
+    "max_attempts": 3,
+    "fault_counts": {
+      "success": 196,
+      "quota": 3,
+      "http_429": 2,
+      "auth": 2,
+      "network": 2,
+      "upstream_5xx": 2,
+      "malformed_sse": 2,
+      "after_semantic_disconnect": 2
+    }
+  },
+  "resources": {
+    "maximum_worker_rss_bytes": 69824512,
+    "worker_rss_growth_bytes": 4444160,
+    "maximum_worker_fd_count": 31,
+    "worker_fd_growth": 8,
+    "maximum_worker_active_requests": 4,
+    "rss_limit_bytes": 268435456,
+    "rss_growth_limit_bytes": 67108864,
+    "fd_limit": 256,
+    "fd_growth_limit": 16
+  },
+  "restart_drills": [
+    {
+      "sequence": 1,
+      "scheduled_elapsed_ms": 1666,
+      "completed_elapsed_ms": 1742,
+      "downtime_ms": 61,
+      "process_changed": true,
+      "active_requests_at_stop": 0,
+      "recovered": true,
+      "recovery_scope": "new_fixture_request",
+      "in_flight_computation_resume_claimed": false
+    },
+    {
+      "sequence": 2,
+      "scheduled_elapsed_ms": 3333,
+      "completed_elapsed_ms": 3401,
+      "downtime_ms": 59,
+      "process_changed": true,
+      "active_requests_at_stop": 0,
+      "recovered": true,
+      "recovery_scope": "new_fixture_request",
+      "in_flight_computation_resume_claimed": false
+    }
+  ],
+  "process_health": {
+    "unexpected_worker_exits": 0,
+    "worker_fatal_messages": 0,
+    "worker_stdout_lines": 3,
+    "worker_stderr_lines": 0
+  },
+  "termination": "deadline",
+  "error_category": null,
+  "architecture_mode": "LIMITED_MODE",
+  "real_account_configured": false,
+  "account_switch_tested": false,
+  "in_flight_computation_resume_claimed": false,
+  "seamless_account_continuity_claimed": false
+}

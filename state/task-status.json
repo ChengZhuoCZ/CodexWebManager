@@ -23,6 +23,7 @@
     "evidence/M6.2-24-hour-soak.md",
     "evidence/M6.2/deployment-package.json",
     "evidence/M6.2/linux-preflight-summary.json",
+    "evidence/M6.2/linux-host-smoke-summary.json",
     "evidence/M6.2/soak-summary.json",
     "evidence/M6.2/soak-checkpoints.jsonl",
     "evidence/M6.2/local-test-summary.json"
@@ -59,6 +60,18 @@
     {
       "command": "GitHub Actions Linux release/systemd runs 30254101305, 30254100868, and 30254100782",
       "result": "passed; Linux headless release, least-privilege service lifecycle, and upgrade/rollback gates are green"
+    },
+    {
+      "command": "Verify the uploaded git archive on the authorized Linux host and run <system-node> --check on the soak runner and worker",
+      "result": "passed; source commit 33892581ed3d730333d4136211c749a46f049942 matched SHA-256 ec8bb0a5738200efe2f806ee70cfe6500876200219e897b936eca3cf2749f76b"
+    },
+    {
+      "command": "<system-node> packages/account-router/scripts/run-soak.mjs --mode smoke --duration-ms 5000 on Linux",
+      "result": "passed; 198 client requests, 0 request errors, 2 recovered new-traffic restart drills, RSS/FD/concurrency within limits, and no real account configured"
+    },
+    {
+      "command": "Start codex-router-soak-m6-2.service as a restricted transient systemd unit and inspect its first minute checkpoint",
+      "result": "running; 236 client requests, 0 errors, 0 unexpected worker exits, RSS 68161536 bytes, 31 file descriptors, and maximum client concurrency 4 at 60011 ms"
     }
   ],
   "evidence": [
@@ -66,7 +79,8 @@
     "evidence/M6.2-24-hour-soak.md",
     "evidence/M6.2/local-test-summary.json",
     "evidence/M6.2/deployment-package.json",
-    "evidence/M6.2/linux-preflight-summary.json"
+    "evidence/M6.2/linux-preflight-summary.json",
+    "evidence/M6.2/linux-host-smoke-summary.json"
   ],
   "observations": {
     "task_scope": "Run a real wall-clock 24-hour fixture soak with bounded retries, resource sampling, restart drills, and sanitized checkpoints.",
@@ -76,14 +90,14 @@
     "local_smoke": "The five-second macOS smoke completed 194 client requests with zero request errors and exercised every configured fixture failure category; it cannot qualify the Linux 24-hour gate.",
     "linux_preflight": "GitHub Actions source commit 33892581ed3d730333d4136211c749a46f049942 passed 200/200 with zero skips on Node 22 and Node 24 Linux, plus all Linux release and systemd workflows.",
     "deployment_package": "An immutable 101-entry git archive was built from source commit 33892581ed3d730333d4136211c749a46f049942 with SHA-256 ec8bb0a5738200efe2f806ee70cfe6500876200219e897b936eca3cf2749f76b.",
+    "linux_host_smoke": "The verified archive passed a five-second Linux x64 Node 22.23.1 smoke with 198 requests, zero request errors, bounded resources, and two new-traffic restart recoveries.",
+    "acceptance_run": "The fixed 24-hour acceptance run started at 2026-07-27T11:04:20Z as codex-router-soak-m6-2.service, with MemoryMax 512 MiB, TasksMax 64, LimitNOFILE 512, and an expected earliest completion at 2026-07-28T11:04:20Z.",
     "protocol_boundary": "M6.2 uses fixture services only and resumes new traffic after restart; it does not configure a real account or claim that an in-flight computation resumes."
   },
-  "blockers": [
-    "The exit node is selected and online. The target reports control-plane online/active through a relay but exposes no current endpoint; Tailscale data-plane probes, proxied SSH, and direct SSH time out before authentication. The target-side Tailscale service or network path must recover before the verified archive can be uploaded and the 24-hour run can start."
-  ],
+  "blockers": [],
   "residual_risks": [
-    "The verified deployment archive has not reached the host, and the required wall-clock 24-hour Linux run has not started.",
+    "The 24-hour Linux acceptance run is in progress; it cannot qualify until the full wall-clock duration, three restart drills, final summary, and checkpoint review complete.",
     "Real-account switching remains outside M6.2 by user direction."
   ],
-  "updated_at": "2026-07-27T17:51:00+08:00"
+  "updated_at": "2026-07-27T19:06:52+08:00"
 }
