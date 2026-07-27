@@ -41,7 +41,12 @@ const SWITCH_ERRORS = new Set([
 
 type BridgeConfig =
   | { enabled: false }
-  | { enabled: true; adminOrigin: string; tokenFile: string };
+  | {
+      enabled: true;
+      adminOrigin: string;
+      tokenFile: string;
+      credentialsDirectory: string | undefined;
+    };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -186,33 +191,62 @@ function loadConfig(environment: NodeJS.ProcessEnv): BridgeConfig {
   ) {
     throw new Error("codex router status bridge configuration is invalid");
   }
-  return { enabled: true, adminOrigin: origin.origin, tokenFile };
+  const credentialsDirectory = environment.CREDENTIALS_DIRECTORY;
+  if (credentialsDirectory !== undefined) {
+    const relative = path.relative("/run/credentials", credentialsDirectory);
+    if (
+      !path.isAbsolute(credentialsDirectory) ||
+      path.dirname(tokenFile) !== credentialsDirectory ||
+      relative === "" ||
+      relative.startsWith(`..${path.sep}`) ||
+      relative.includes(path.sep) ||
+      !/^[A-Za-z0-9:_.@-]+\.(?:service|scope)$/.test(relative)
+    ) {
+      throw new Error("codex router status bridge configuration is invalid");
+    }
+  }
+  return {
+    enabled: true,
+    adminOrigin: origin.origin,
+    tokenFile,
+    credentialsDirectory,
+  };
 }
 
-function assertPrivate(stat: Awaited<ReturnType<typeof fs.stat>>): void {
-  if (
-    (typeof process.getuid === "function" && Number(stat.uid) !== process.getuid()) ||
-    (Number(stat.mode) & 0o077) !== 0
-  ) {
+function assertPrivate(
+  stat: Awaited<ReturnType<typeof fs.stat>>,
+  systemdCredential: boolean,
+  directory: boolean,
+): void {
+  const ownerIsInvalid = systemdCredential
+    ? Number(stat.uid) !== 0
+    : typeof process.getuid === "function" && Number(stat.uid) !== process.getuid();
+  const forbiddenMode = systemdCredential ? (directory ? 0o027 : 0o337) : 0o077;
+  if (ownerIsInvalid || (Number(stat.mode) & forbiddenMode) !== 0) {
     throw new Error("admin token is unavailable");
   }
 }
 
-async function withAdminToken<T>(tokenFile: string, callback: (token: string) => Promise<T>): Promise<T> {
+async function withAdminToken<T>(
+  tokenFile: string,
+  credentialsDirectory: string | undefined,
+  callback: (token: string) => Promise<T>,
+): Promise<T> {
   let handle: Awaited<ReturnType<typeof fs.open>> | undefined;
   let bytes: Buffer | undefined;
+  const systemdCredential = credentialsDirectory !== undefined;
   try {
     const directoryStat = await fs.lstat(path.dirname(tokenFile));
     if (!directoryStat.isDirectory() || directoryStat.isSymbolicLink()) {
       throw new Error("admin token is unavailable");
     }
-    assertPrivate(directoryStat);
+    assertPrivate(directoryStat, systemdCredential, true);
     handle = await fs.open(tokenFile, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
     const stat = await handle.stat();
     if (!stat.isFile() || stat.size < 24 || stat.size > 4_096) {
       throw new Error("admin token is unavailable");
     }
-    assertPrivate(stat);
+    assertPrivate(stat, systemdCredential, false);
     bytes = await handle.readFile();
     const token = bytes.toString("utf8");
     if (token.length < 24 || token.length > 4_096 || !TOKEN_PATTERN.test(token)) {
@@ -275,7 +309,7 @@ async function forwardManualSwitch(
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   timer.unref();
   try {
-    const response = await withAdminToken(config.tokenFile, (token) =>
+    const response = await withAdminToken(config.tokenFile, config.credentialsDirectory, (token) =>
       fetch(`${config.adminOrigin}/v1/switch`, {
         method: "POST",
         headers: {
@@ -331,7 +365,7 @@ async function fetchStatus(config: Extract<BridgeConfig, { enabled: true }>) {
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
   timer.unref();
   try {
-    const response = await withAdminToken(config.tokenFile, (token) =>
+    const response = await withAdminToken(config.tokenFile, config.credentialsDirectory, (token) =>
       fetch(`${config.adminOrigin}/v1/status`, {
         headers: { accept: "application/json", authorization: `Bearer ${token}` },
         signal: controller.signal,
@@ -434,7 +468,7 @@ export async function registerRouterStatusBridge(
     request.raw.once("aborted", cancel);
     reply.raw.once("close", cancel);
     try {
-      const response = await withAdminToken(config.tokenFile, (token) =>
+      const response = await withAdminToken(config.tokenFile, config.credentialsDirectory, (token) =>
         fetch(`${config.adminOrigin}/v1/events`, {
           headers: {
             accept: "text/event-stream",

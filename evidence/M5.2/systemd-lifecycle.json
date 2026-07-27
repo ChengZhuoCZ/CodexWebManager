@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "task": "M5.2",
+  "platform": "linux x64",
+  "systemd_version": "systemd 255 (255.4-1ubuntu8.16)",
+  "node_version": "v22.23.1",
+  "architecture_mode": "LIMITED_MODE",
+  "service_identity": {
+    "name": "codex",
+    "non_root": true,
+    "shared_by_services": true
+  },
+  "endpoints": {
+    "router_model": "127.0.0.1:18317",
+    "router_admin": "127.0.0.1:18318",
+    "codex_web": "127.0.0.1:8214",
+    "app_server": "/run/codex-app-server/app-server.sock",
+    "public_listener_detected": false
+  },
+  "credential_delivery": {
+    "systemd_credential_files": true,
+    "secret_like_command_line_matches": 0
+  },
+  "independent_restarts": [
+    {
+      "restarted_service": "codex-account-router.service",
+      "restarted_pid_changed": true,
+      "peer_pids_unchanged": true
+    },
+    {
+      "restarted_service": "codex-app-server.service",
+      "restarted_pid_changed": true,
+      "peer_pids_unchanged": true
+    },
+    {
+      "restarted_service": "codex-web.service",
+      "restarted_pid_changed": true,
+      "peer_pids_unchanged": true
+    }
+  ],
+  "real_account_configured": false,
+  "account_switch_tested": false,
+  "seamless_account_continuity_claimed": false
+}

@@ -83,7 +83,8 @@ Two explicit service credentials are also required:
 Keep their parent directory root-owned `0700` and both files root-owned `0600`. The first is copied
 independently into the router and codex-web credential namespaces. The second is exposed to the App
 Server as a temporary `%d/codex-auth` file and linked from its private `CODEX_HOME`; the source value
-never appears in `Environment=` or `ExecStart=`.
+never appears in `Environment=` or `ExecStart=`. The admin-token file must contain only the bearer
+value, with no trailing newline; malformed whitespace is rejected rather than silently normalized.
 
 The systemd credentials model intentionally exposes credential data as service-user-restricted
 files rather than inherited environment values. See the upstream

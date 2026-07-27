@@ -6,6 +6,7 @@ import test from "node:test";
 import { inspect } from "node:util";
 import {
   createFileSecretProvider,
+  createSystemdCredentialSecretProvider,
   defineSecretProvider,
   SecretLease,
   SecretProviderRegistry,
@@ -110,6 +111,35 @@ test("file provider rejects symlinks, traversal, empty, and oversized files", as
   await assert.rejects(provider.acquire("empty"), /credential file size/);
   await fs.writeFile(path.join(directory, "large"), "x".repeat(33), { mode: 0o600 });
   await assert.rejects(provider.acquire("large"), /credential file size/);
+});
+
+test("systemd credential provider is limited to the exact runtime credential directory", () => {
+  const credentialsDirectory = "/run/credentials/codex-account-router.service";
+  assert.doesNotThrow(() =>
+    createSystemdCredentialSecretProvider({
+      rootDirectory: credentialsDirectory,
+      credentialsDirectory,
+    }),
+  );
+  for (const options of [
+    {
+      rootDirectory: "/etc/codex-account-router/credentials",
+      credentialsDirectory: "/etc/codex-account-router/credentials",
+    },
+    {
+      rootDirectory: credentialsDirectory,
+      credentialsDirectory: "/run/credentials/other.service",
+    },
+    {
+      rootDirectory: "/run/credentials/codex-account-router.service/nested",
+      credentialsDirectory: "/run/credentials/codex-account-router.service/nested",
+    },
+  ]) {
+    assert.throws(
+      () => createSystemdCredentialSecretProvider(options),
+      /systemd credential directory/i,
+    );
+  }
 });
 
 test("registry rejects invalid providers and never includes references in lookup errors", async () => {

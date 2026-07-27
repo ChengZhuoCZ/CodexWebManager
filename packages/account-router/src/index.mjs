@@ -48,6 +48,7 @@ export {
 } from "./semantic-events.mjs";
 export {
   createFileSecretProvider,
+  createSystemdCredentialSecretProvider,
   defineSecretProvider,
   SecretLease,
   SecretProviderRegistry,

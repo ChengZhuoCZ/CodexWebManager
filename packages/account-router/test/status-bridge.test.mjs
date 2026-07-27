@@ -262,6 +262,35 @@ test("private token consumer rejects symlinks and permissive token files", async
   await assert.rejects(linkedConsumer(async () => undefined), /admin token is unavailable/);
 });
 
+test("private token consumer only enables systemd ownership for the exact runtime directory", () => {
+  const credentialsDirectory = "/run/credentials/codex-web.service";
+  assert.doesNotThrow(() =>
+    createPrivateFileTokenConsumer({
+      tokenFile: `${credentialsDirectory}/router-admin-token`,
+      credentialsDirectory,
+    }),
+  );
+  for (const options of [
+    {
+      tokenFile: "/etc/codex-web/router-admin-token",
+      credentialsDirectory: "/etc/codex-web",
+    },
+    {
+      tokenFile: `${credentialsDirectory}/router-admin-token`,
+      credentialsDirectory: "/run/credentials/other.service",
+    },
+    {
+      tokenFile: "/run/credentials/codex-web.service/nested/router-admin-token",
+      credentialsDirectory: "/run/credentials/codex-web.service/nested",
+    },
+  ]) {
+    assert.throws(
+      () => createPrivateFileTokenConsumer(options),
+      /admin token file configuration is invalid/,
+    );
+  }
+});
+
 test("bridge works against the real loopback admin status contract", async (context) => {
   let observedAuthorization = null;
   const server = http.createServer((request, response) => {

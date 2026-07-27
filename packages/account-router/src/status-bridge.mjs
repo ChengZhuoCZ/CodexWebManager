@@ -452,7 +452,27 @@ export function createStatusBridge({
   });
 }
 
-function assertPrivateStat(stat, label) {
+function isSystemdCredentialDirectory(directory) {
+  const relative = path.relative("/run/credentials", directory);
+  return (
+    relative !== "" &&
+    !relative.startsWith(`..${path.sep}`) &&
+    !relative.includes(path.sep) &&
+    /^[A-Za-z0-9:_.@-]+\.(?:service|scope)$/.test(relative)
+  );
+}
+
+function assertPrivateStat(stat, label, systemdCredential, directory) {
+  if (systemdCredential) {
+    if (stat.uid !== 0) {
+      throw new Error(`${label} owner is invalid`);
+    }
+    const forbiddenMode = directory ? 0o027 : 0o337;
+    if ((stat.mode & forbiddenMode) !== 0) {
+      throw new Error(`${label} permissions are invalid`);
+    }
+    return;
+  }
   if (typeof process.getuid === "function" && stat.uid !== process.getuid()) {
     throw new Error(`${label} owner is invalid`);
   }
@@ -461,12 +481,24 @@ function assertPrivateStat(stat, label) {
   }
 }
 
-export function createPrivateFileTokenConsumer({ tokenFile, maxBytes = 4_096 } = {}) {
+export function createPrivateFileTokenConsumer({
+  tokenFile,
+  credentialsDirectory,
+  maxBytes = 4_096,
+} = {}) {
   if (typeof tokenFile !== "string" || !path.isAbsolute(tokenFile)) {
     throw new Error("admin token file configuration is invalid");
   }
   const limit = assertBoundedInteger(maxBytes, "admin token file limit", 24, 4_096);
   const parentDirectory = path.dirname(tokenFile);
+  const systemdCredential = credentialsDirectory !== undefined;
+  if (
+    systemdCredential &&
+    (credentialsDirectory !== parentDirectory ||
+      !isSystemdCredentialDirectory(credentialsDirectory))
+  ) {
+    throw new Error("admin token file configuration is invalid");
+  }
 
   return async (callback) => {
     if (typeof callback !== "function") {
@@ -478,13 +510,13 @@ export function createPrivateFileTokenConsumer({ tokenFile, maxBytes = 4_096 } =
       if (!directoryStat.isDirectory() || directoryStat.isSymbolicLink()) {
         throw new Error("invalid token directory");
       }
-      assertPrivateStat(directoryStat, "admin token directory");
+      assertPrivateStat(directoryStat, "admin token directory", systemdCredential, true);
       handle = await fs.open(tokenFile, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
       const stat = await handle.stat();
       if (!stat.isFile() || stat.size < 24 || stat.size > limit) {
         throw new Error("invalid token file");
       }
-      assertPrivateStat(stat, "admin token file");
+      assertPrivateStat(stat, "admin token file", systemdCredential, false);
       const bytes = await handle.readFile();
       if (bytes.length < 24 || bytes.length > limit) {
         bytes.fill(0);

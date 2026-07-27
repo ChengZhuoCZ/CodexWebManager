@@ -6,6 +6,8 @@ const PROVIDER_NAME_PATTERN = /^[A-Za-z][A-Za-z0-9._-]{0,63}$/;
 const CREDENTIAL_REFERENCE_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,127}$/;
 const DEFAULT_MAX_BYTES = 64 * 1024;
 const REDACTED_LEASE = "[REDACTED SecretLease]";
+const SYSTEMD_CREDENTIAL_ROOT = "/run/credentials";
+const SYSTEMD_UNIT_DIRECTORY_PATTERN = /^[A-Za-z0-9:_.@-]+\.(?:service|scope)$/;
 
 function assertProviderName(value) {
   if (typeof value !== "string" || !PROVIDER_NAME_PATTERN.test(value)) {
@@ -33,7 +35,36 @@ function assertPrivateMode(stat, label) {
   }
 }
 
-async function assertPrivateDirectory(rootDirectory) {
+function assertSystemdCredentialMetadata(stat, label, type) {
+  if (stat.uid !== 0) {
+    throw new Error(`${label} must be owned by root`);
+  }
+  const forbiddenMode = type === "directory" ? 0o027 : 0o337;
+  if ((stat.mode & forbiddenMode) !== 0) {
+    throw new Error(`${label} systemd credential permissions are invalid`);
+  }
+}
+
+function assertSystemdCredentialDirectory(rootDirectory, credentialsDirectory) {
+  if (
+    typeof credentialsDirectory !== "string" ||
+    !path.isAbsolute(credentialsDirectory) ||
+    rootDirectory !== credentialsDirectory
+  ) {
+    throw new Error("systemd credential directory configuration is invalid");
+  }
+  const relative = path.relative(SYSTEMD_CREDENTIAL_ROOT, rootDirectory);
+  if (
+    relative === "" ||
+    relative.startsWith(`..${path.sep}`) ||
+    relative.includes(path.sep) ||
+    !SYSTEMD_UNIT_DIRECTORY_PATTERN.test(relative)
+  ) {
+    throw new Error("systemd credential directory configuration is invalid");
+  }
+}
+
+async function assertPrivateDirectory(rootDirectory, ownershipMode) {
   let stat;
   try {
     stat = await fs.lstat(rootDirectory);
@@ -43,8 +74,12 @@ async function assertPrivateDirectory(rootDirectory) {
   if (!stat.isDirectory() || stat.isSymbolicLink()) {
     throw new Error("credential directory must be a private regular directory");
   }
-  assertOwnedByCurrentUser(stat, "credential directory");
-  assertPrivateMode(stat, "credential directory");
+  if (ownershipMode === "systemd") {
+    assertSystemdCredentialMetadata(stat, "credential directory", "directory");
+  } else {
+    assertOwnedByCurrentUser(stat, "credential directory");
+    assertPrivateMode(stat, "credential directory");
+  }
 }
 
 export class SecretLease {
@@ -162,10 +197,11 @@ export class SecretProviderRegistry {
   }
 }
 
-export function createFileSecretProvider({
+function createFileSecretProviderWithOwnership({
   rootDirectory,
   name = "file",
   maxBytes = DEFAULT_MAX_BYTES,
+  ownershipMode,
 } = {}) {
   if (typeof rootDirectory !== "string" || !path.isAbsolute(rootDirectory)) {
     throw new Error("credential root directory must be an absolute path");
@@ -178,7 +214,7 @@ export function createFileSecretProvider({
     name,
     async acquire(credentialReference) {
       const reference = assertCredentialReference(credentialReference);
-      await assertPrivateDirectory(rootDirectory);
+      await assertPrivateDirectory(rootDirectory, ownershipMode);
       const credentialPath = path.join(rootDirectory, reference);
       let handle;
       try {
@@ -194,8 +230,12 @@ export function createFileSecretProvider({
         if (!stat.isFile()) {
           throw new Error("credential path must be a regular credential file");
         }
-        assertOwnedByCurrentUser(stat, "credential file");
-        assertPrivateMode(stat, "credential file");
+        if (ownershipMode === "systemd") {
+          assertSystemdCredentialMetadata(stat, "credential file", "file");
+        } else {
+          assertOwnedByCurrentUser(stat, "credential file");
+          assertPrivateMode(stat, "credential file");
+        }
         if (stat.size < 1 || stat.size > maxBytes) {
           throw new Error("credential file size is outside the configured bound");
         }
@@ -211,5 +251,30 @@ export function createFileSecretProvider({
         await handle.close();
       }
     },
+  });
+}
+
+export function createFileSecretProvider(options = {}) {
+  return createFileSecretProviderWithOwnership({
+    ...options,
+    ownershipMode: "service-user",
+  });
+}
+
+export function createSystemdCredentialSecretProvider({
+  rootDirectory,
+  credentialsDirectory,
+  name = "file",
+  maxBytes = DEFAULT_MAX_BYTES,
+} = {}) {
+  if (typeof rootDirectory !== "string" || !path.isAbsolute(rootDirectory)) {
+    throw new Error("credential root directory must be an absolute path");
+  }
+  assertSystemdCredentialDirectory(rootDirectory, credentialsDirectory);
+  return createFileSecretProviderWithOwnership({
+    rootDirectory,
+    name,
+    maxBytes,
+    ownershipMode: "systemd",
   });
 }

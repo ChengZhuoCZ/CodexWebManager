@@ -2,6 +2,7 @@ import { validateHeaderValue } from "node:http";
 import { TextDecoder } from "node:util";
 import {
   createFileSecretProvider,
+  createSystemdCredentialSecretProvider,
   defineSecretProvider,
   SecretLease,
 } from "./secrets.mjs";
@@ -66,11 +67,16 @@ export function parseCodexCredentialBundle(value) {
 
 export function createCodexAuthSecretProvider({
   rootDirectory,
+  credentialsDirectory,
   name = "codex-auth",
   maxBytes = 1024 * 1024,
 } = {}) {
-  const rawProvider = createFileSecretProvider({
+  const providerFactory = credentialsDirectory === undefined
+    ? createFileSecretProvider
+    : createSystemdCredentialSecretProvider;
+  const rawProvider = providerFactory({
     rootDirectory,
+    ...(credentialsDirectory === undefined ? {} : { credentialsDirectory }),
     name: `${name}.raw`,
     maxBytes,
   });

@@ -82,8 +82,8 @@ jobs:
           printf '%s\n' '{"version":1,"accounts":[]}' | sudo tee /etc/codex-account-router/accounts.json >/dev/null
           sudo chown codex:codex /etc/codex-account-router/accounts.json
           sudo chmod 0600 /etc/codex-account-router/accounts.json
-          openssl rand -hex 32 | sudo tee /etc/codex-account-router/credentials/admin-token >/dev/null
-          openssl rand -hex 32 | sudo tee /etc/codex-account-router/credentials/app-server-auth.json >/dev/null
+          openssl rand -hex 32 | tr -d '\n' | sudo tee /etc/codex-account-router/credentials/admin-token >/dev/null
+          openssl rand -hex 32 | tr -d '\n' | sudo tee /etc/codex-account-router/credentials/app-server-auth.json >/dev/null
           sudo chmod 0600 /etc/codex-account-router/credentials/admin-token
           sudo chmod 0600 /etc/codex-account-router/credentials/app-server-auth.json
 

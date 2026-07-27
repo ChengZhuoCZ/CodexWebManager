@@ -5,7 +5,11 @@ import { createAdminAuthenticator } from "./admin-auth.mjs";
 import { createCodexAuthSecretProvider } from "./codex-credentials.mjs";
 import { loadRuntimeConfig } from "./config.mjs";
 import { createRuntimeComposition } from "./runtime-composition.mjs";
-import { createFileSecretProvider, SecretProviderRegistry } from "./secrets.mjs";
+import {
+  createFileSecretProvider,
+  createSystemdCredentialSecretProvider,
+  SecretProviderRegistry,
+} from "./secrets.mjs";
 
 const DEFAULT_UPSTREAM_ORIGIN = "https://chatgpt.com";
 const MAX_CONFIG_BYTES = 1024 * 1024;
@@ -69,11 +73,28 @@ async function readAccountsDocument(filePath) {
   }
 }
 
-async function loadAdminAuthenticator(filePath) {
+function systemdCredentialsFor(rootDirectory, credentialsDirectory) {
+  return typeof credentialsDirectory === "string" && rootDirectory === credentialsDirectory
+    ? credentialsDirectory
+    : undefined;
+}
+
+async function loadAdminAuthenticator(filePath, credentialsDirectory) {
   if (filePath === undefined) return null;
   const absolutePath = assertAbsolutePath(filePath, "admin token file");
-  const provider = createFileSecretProvider({
-    rootDirectory: path.dirname(absolutePath),
+  const rootDirectory = path.dirname(absolutePath);
+  const systemdCredentialsDirectory = systemdCredentialsFor(
+    rootDirectory,
+    credentialsDirectory,
+  );
+  const providerFactory = systemdCredentialsDirectory === undefined
+    ? createFileSecretProvider
+    : createSystemdCredentialSecretProvider;
+  const provider = providerFactory({
+    rootDirectory,
+    ...(systemdCredentialsDirectory === undefined
+      ? {}
+      : { credentialsDirectory: systemdCredentialsDirectory }),
     name: "admin-token-file",
     maxBytes: 4_096,
   });
@@ -97,11 +118,21 @@ export async function loadRuntimeBootstrap(environment = process.env) {
   let accounts = Object.freeze([]);
   if (accountsFile !== undefined) {
     const rootDirectory = assertAbsolutePath(credentialRoot, "credential root");
+    const credentialsDirectory = systemdCredentialsFor(
+      rootDirectory,
+      environment.CREDENTIALS_DIRECTORY,
+    );
     accounts = await readAccountsDocument(accountsFile);
-    secretRegistry.register(createCodexAuthSecretProvider({ rootDirectory }));
+    secretRegistry.register(
+      createCodexAuthSecretProvider({
+        rootDirectory,
+        ...(credentialsDirectory === undefined ? {} : { credentialsDirectory }),
+      }),
+    );
   }
   const adminAuthenticator = await loadAdminAuthenticator(
     environment.CODEX_ROUTER_ADMIN_TOKEN_FILE,
+    environment.CREDENTIALS_DIRECTORY,
   );
 
   return Object.freeze({
