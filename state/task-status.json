@@ -79,11 +79,11 @@
     "protocol_boundary": "M6.2 uses fixture services only and resumes new traffic after restart; it does not configure a real account or claim that an in-flight computation resumes."
   },
   "blockers": [
-    "The authorized Linux host is online in the tailnet, but TCP/22 times out and Tailscale SSH does not complete a session; the host-side SSH service, firewall, or tailnet access policy must be corrected before the 24-hour run can start."
+    "A bounded password login through the Tailscale TCP proxy succeeded and confirmed Linux x64, Node 22.23.1, systemd 255, and sufficient disk space. The target then went offline before the verified archive could be uploaded; it must be powered on or awakened before the 24-hour run can start."
   ],
   "residual_risks": [
-    "The required wall-clock 24-hour Linux run and its resource evidence have not started.",
+    "The verified deployment archive has not reached the host, and the required wall-clock 24-hour Linux run has not started.",
     "Real-account switching remains outside M6.2 by user direction."
   ],
-  "updated_at": "2026-07-27T17:36:00+08:00"
+  "updated_at": "2026-07-27T17:42:00+08:00"
 }
