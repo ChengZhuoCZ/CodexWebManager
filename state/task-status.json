@@ -1,17 +1,21 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M6.2",
-  "status": "in_progress",
+  "status": "rejected",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
-  "execution_exception": "EX-DEFER-M0.3-CROSS",
+  "execution_exception": "EX-SKIP-M6.2-SOAK",
+  "execution_exceptions": [
+    "EX-DEFER-M0.3-CROSS",
+    "EX-SKIP-M6.2-SOAK"
+  ],
   "input_revisions": {
     "workspace": "dcb44b621af8e962799fb6e9643dbc54375dc9e3",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "codex-cli-observed": "codex-cli 0.144.5"
   },
-  "output_revision": null,
-  "output_revision_note": "Pending a complete wall-clock 24-hour soak run with bounded resource, retry, and restart/resume evidence.",
+  "output_revision": "33892581ed3d730333d4136211c749a46f049942",
+  "output_revision_note": "The soak harness implementation is preserved at this revision, but M6.2 is rejected under EX-SKIP-M6.2-SOAK because the user stopped the acceptance run after 1,023,164 ms; no 24-hour qualification is claimed.",
   "workspace_branch": "codex/m6-2-24h-soak",
   "workspace_input_revision": "dcb44b621af8e962799fb6e9643dbc54375dc9e3",
   "depends_on": ["M6.1"],
@@ -72,6 +76,10 @@
     {
       "command": "Start codex-router-soak-m6-2.service as a restricted transient systemd unit and inspect its first minute checkpoint",
       "result": "running; 236 client requests, 0 errors, 0 unexpected worker exits, RSS 68161536 bytes, 31 file descriptors, and maximum client concurrency 4 at 60011 ms"
+    },
+    {
+      "command": "Stop codex-router-soak-m6-2.service on explicit user direction and validate the fail-closed final summary",
+      "result": "expected non-qualification; completed=false, qualified_24_hour_soak=false, elapsed 1023164 ms, 4088 requests, 0 request errors, 0 restart drills, termination=signal, and the interrupted worker exit made the process-health gate false"
     }
   ],
   "evidence": [
@@ -80,7 +88,9 @@
     "evidence/M6.2/local-test-summary.json",
     "evidence/M6.2/deployment-package.json",
     "evidence/M6.2/linux-preflight-summary.json",
-    "evidence/M6.2/linux-host-smoke-summary.json"
+    "evidence/M6.2/linux-host-smoke-summary.json",
+    "evidence/M6.2/soak-summary.json",
+    "evidence/M6.2/soak-checkpoints.jsonl"
   ],
   "observations": {
     "task_scope": "Run a real wall-clock 24-hour fixture soak with bounded retries, resource sampling, restart drills, and sanitized checkpoints.",
@@ -91,13 +101,15 @@
     "linux_preflight": "GitHub Actions source commit 33892581ed3d730333d4136211c749a46f049942 passed 200/200 with zero skips on Node 22 and Node 24 Linux, plus all Linux release and systemd workflows.",
     "deployment_package": "An immutable 101-entry git archive was built from source commit 33892581ed3d730333d4136211c749a46f049942 with SHA-256 ec8bb0a5738200efe2f806ee70cfe6500876200219e897b936eca3cf2749f76b.",
     "linux_host_smoke": "The verified archive passed a five-second Linux x64 Node 22.23.1 smoke with 198 requests, zero request errors, bounded resources, and two new-traffic restart recoveries.",
-    "acceptance_run": "The fixed 24-hour acceptance run started at 2026-07-27T11:04:20Z as codex-router-soak-m6-2.service, with MemoryMax 512 MiB, TasksMax 64, LimitNOFILE 512, and an expected earliest completion at 2026-07-28T11:04:20Z.",
+    "acceptance_run": "The fixed acceptance run started at 2026-07-27T11:04:20Z and was stopped on explicit user direction at 2026-07-27T11:21:23Z after 1023164 ms. It is not a 24-hour result and completed none of the three scheduled restart drills.",
+    "skip_decision": "EX-SKIP-M6.2-SOAK records the explicit user decision to skip the remaining wall-clock run; M6.2 is rejected, not done.",
     "protocol_boundary": "M6.2 uses fixture services only and resumes new traffic after restart; it does not configure a real account or claim that an in-flight computation resumes."
   },
   "blockers": [],
   "residual_risks": [
-    "The 24-hour Linux acceptance run is in progress; it cannot qualify until the full wall-clock duration, three restart drills, final summary, and checkpoint review complete.",
+    "The required 24-hour Linux acceptance, sample coverage, traffic volume, and three restart drills are unverified because the user stopped the run after approximately 17 minutes.",
+    "The interrupted systemd stop produced one unexpected worker exit in the final fail-closed summary; the pre-stop checkpoints recorded zero unexpected exits.",
     "Real-account switching remains outside M6.2 by user direction."
   ],
-  "updated_at": "2026-07-27T19:06:52+08:00"
+  "updated_at": "2026-07-27T19:24:53+08:00"
 }

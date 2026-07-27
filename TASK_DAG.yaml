@@ -15,6 +15,18 @@ execution_exceptions:
       - M0.3 real A-to-B acceptance
       - M3.5 and M4.1 approved account-switch E2E
       - Final release, security, and product-claim gates
+  - id: EX-SKIP-M6.2-SOAK
+    authorized_at: "2026-07-27T19:21:00+08:00"
+    source: user_directive
+    reason: The user directed that the 24-hour soak test be skipped so development can continue.
+    permits:
+      - Stop the in-progress fixture soak and mark M6.2 rejected
+      - Continue to M6.3 without claiming the M6.2 release gate passed
+      - Prepare M6.4 documentation with the missing soak gate listed as a release limitation
+    does_not_waive:
+      - The M6.2 acceptance criteria
+      - The requirement to retain the incomplete summary and checkpoints
+      - The prohibition on claiming 24-hour qualification, in-flight recovery, or seamless account continuity
 
 hard_gates:
   - id: G-LICENSE
@@ -249,7 +261,7 @@ milestones:
           - Failure injection covers quota, 429, auth, network, 5xx and malformed SSE
       - id: M6.2
         title: Run 24-hour soak test
-        status: in_progress
+        status: rejected
         depends_on: [M6.1]
         acceptance:
           - No unhandled crash or infinite retry
@@ -257,7 +269,7 @@ milestones:
           - Restart and resume drills completed
       - id: M6.3
         title: Security and secret audit
-        status: pending
+        status: ready
         depends_on: [M6.1, G-SECRETS]
         acceptance:
           - Logs, crash dumps, API responses and UI contain no secrets
