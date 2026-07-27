@@ -1,28 +1,28 @@
 {
   "schema_version": 1,
   "task": "M6.3",
-  "generated_at": "2026-07-27T11:40:28.526Z",
-  "input_revision": "374500e53b460541ac767ffe318e6f0aca702152",
-  "branch": "codex/m6-3-security-audit",
+  "generated_at": "2026-07-27T18:32:48.660Z",
+  "input_revision": "0ed0507df0bc308608db2cd2b2e3054f614e2512",
+  "branch": "codex/m6-4-release-operator-docs",
   "implementation_mode": "clean-room",
   "qualified": true,
   "secret_scan": {
-    "files_scanned": 250,
+    "files_scanned": 268,
     "findings": []
   },
   "focused_security_tests": {
-    "test_files": 12,
-    "tests": 61,
-    "passed": 61,
+    "test_files": 15,
+    "tests": 74,
+    "passed": 74,
     "failed": 0,
     "skipped": 0
   },
   "strict_ui_evidence": {
     "evidence_file": "evidence/M6.1/github-actions-summary.json",
-    "head_sha": "7869d9b5a5fa93187a0ffa89ef846102eb65d9f1",
+    "head_sha": "0ed0507df0bc308608db2cd2b2e3054f614e2512",
     "jobs": 2,
-    "tests": 392,
-    "passed": 392,
+    "tests": 450,
+    "passed": 450,
     "failed": 0,
     "skipped": 0,
     "protected_paths_unchanged": true
@@ -52,6 +52,9 @@
       "qualified": true,
       "test_files": [
         "test/codex-web-account-ui.test.mjs",
+        "test/codex-web-browser-auth.test.mjs",
+        "test/codex-web-browser-ipc-router.test.mjs",
+        "test/codex-web-browser-policy.test.mjs",
         "test/codex-web-status-bridge.test.mjs"
       ]
     },

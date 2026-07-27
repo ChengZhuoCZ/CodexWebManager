@@ -1,45 +1,53 @@
 {
   "schema_version": 1,
   "task": "M6.3",
-  "generated_at": "2026-07-27T19:43:00+08:00",
-  "input_revision": "f940ea3a9125e342abb566711ee22576b6f9991a",
-  "validated_implementation_revision": "374500e53b460541ac767ffe318e6f0aca702152",
-  "branch": "codex/m6-3-security-audit",
-  "test_first": [
-    {
-      "command": "<bundled-node> --test test/security-audit-contract.test.mjs before implementation",
-      "result": "expected red state",
-      "reason": "The security audit runner did not exist."
-    },
-    {
-      "command": "<bundled-node> scripts/run-security-audit.mjs --summary <private-temp> after initial implementation",
-      "result": "expected red state",
-      "reason": "The fail-closed scanner found three live-shaped synthetic fixtures; the fixtures were changed to runtime composition without broad allowlisting."
-    }
-  ],
-  "focused_contracts": {
-    "command": "<bundled-node> --test test/security-audit-contract.test.mjs test/systemd-units.test.mjs test/redaction.test.mjs test/test-matrix-contract.test.mjs",
-    "total": 20,
-    "passed": 20,
+  "generated_at": "2026-07-28T02:33:00+08:00",
+  "input_revision": "3489382ae0d4dfa0f08a4a6c2969d570f0324e36",
+  "validated_implementation_revision": "0ed0507df0bc308608db2cd2b2e3054f614e2512",
+  "branch": "codex/m6-4-release-operator-docs",
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "targeted_browser_security": {
+    "command": "<node-24> --test test/codex-web-status-bridge.test.mjs test/codex-web-browser-ipc-router.test.mjs test/codex-web-browser-auth.test.mjs",
+    "tests": 14,
+    "passed": 14,
+    "failed": 0,
+    "skipped": 0
+  },
+  "real_pinned_browser_smoke": {
+    "fixture": "synthetic site access key and synthetic account responses only",
+    "visible_page": "Sign in to ChatGPT",
+    "websocket_connections": 2,
+    "view_ready_announcements": 2,
+    "server_rejected_messages": 0,
+    "page_reloaded": false,
+    "real_account_login_attempted": false
+  },
+  "csp_asset_variants": {
+    "zero_inline_scripts": "passed",
+    "one_exact_sha_inline_script": "passed",
+    "script_src_unsafe_inline": false
+  },
+  "full_local_matrix": {
+    "command": "<node-24> scripts/run-test-matrix.mjs --summary <private-temp>",
+    "tests": 225,
+    "passed": 225,
     "failed": 0,
     "skipped": 0
   },
   "security_audit": {
-    "command": "<bundled-node> scripts/run-security-audit.mjs --summary <private-temp> with temporary loopback permission",
-    "files_scanned": 250,
+    "command": "<node-24> scripts/run-security-audit.mjs --summary <private-temp>",
+    "files_scanned": 268,
     "findings": 0,
-    "tests": 61,
-    "passed": 61,
+    "test_files": 15,
+    "tests": 74,
+    "passed": 74,
     "failed": 0,
-    "skipped": 0
-  },
-  "full_local_suite": {
-    "command": "cd packages/account-router; <bundled-node> --test with temporary loopback permission",
-    "total": 205,
-    "passed": 198,
-    "failed": 0,
-    "skipped": 7,
-    "skipped_note": "The local host has no prepared pinned codex-web checkout; both Linux CI runtimes executed all 205 rows with zero skips."
+    "skipped": 0,
+    "strict_ci_tests": 450,
+    "strict_ci_passed": 450,
+    "strict_ci_failed": 0,
+    "strict_ci_skipped": 0
   },
   "static_checks": {
     "package_check": "passed",
@@ -47,8 +55,14 @@
     "json_parse": "passed",
     "git_diff_check": "passed"
   },
-  "architecture_mode": "LIMITED_MODE",
+  "remote_connectivity": {
+    "tailscale_node_online": true,
+    "path": "DERP(syd)",
+    "ssh_service_reachable": true,
+    "public_key_authentication": "blocked"
+  },
   "real_account_configured": false,
   "account_switch_tested": false,
+  "in_flight_computation_resume_claimed": false,
   "seamless_account_continuity_claimed": false
 }

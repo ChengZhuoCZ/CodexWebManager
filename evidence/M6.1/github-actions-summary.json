@@ -3,32 +3,32 @@
   "task": "M6.1",
   "workflow": "Automated test matrix",
   "workflow_file": ".github/workflows/test-matrix.yml",
-  "run_id": 30250040183,
+  "run_id": 30293857707,
   "event": "push",
-  "branch": "codex/m6-1-automated-test-matrix",
-  "head_sha": "7869d9b5a5fa93187a0ffa89ef846102eb65d9f1",
+  "branch": "codex/m6-4-release-operator-docs",
+  "head_sha": "0ed0507df0bc308608db2cd2b2e3054f614e2512",
   "conclusion": "success",
-  "total_duration_seconds": 100,
+  "total_duration_seconds": 108,
   "jobs": [
     {
       "name": "Node 22 unit, integration, and E2E",
-      "job_id": 89925733519,
+      "job_id": 90069889795,
       "runner": "ubuntu-24.04",
       "conclusion": "success",
-      "duration_seconds": 97,
-      "tests": 196,
-      "passed": 196,
+      "duration_seconds": 104,
+      "tests": 225,
+      "passed": 225,
       "failed": 0,
       "skipped": 0
     },
     {
       "name": "Node 24 unit, integration, and E2E",
-      "job_id": 89925733446,
+      "job_id": 90069889747,
       "runner": "ubuntu-24.04",
       "conclusion": "success",
-      "duration_seconds": 90,
-      "tests": 196,
-      "passed": 196,
+      "duration_seconds": 84,
+      "tests": 225,
+      "passed": 225,
       "failed": 0,
       "skipped": 0
     }
@@ -36,20 +36,20 @@
   "artifacts": [
     {
       "name": "automated-test-matrix-node-22",
-      "artifact_id": 8646619976,
-      "size_in_bytes": 3380,
-      "archive_sha256": "44d23d07356d93d7d7c6b2ef0c9846786b2a56e1543228020aea1703f354ea87",
-      "summary_sha256": "133a68e309adf2fee41c5b5fa5424aedd7815241f6db2e4419333054b664ede4"
+      "artifact_id": 8663858630,
+      "size_in_bytes": 3382,
+      "archive_sha256": "c390945382b2052602a80580b6b85f1c8c0840f7897f08f9f7588601c27c2c36",
+      "summary_sha256": "e1e753e4901ff4a6d0b20966277b5e2f72d940b19201ee6c6045e378f04fadbc"
     },
     {
       "name": "automated-test-matrix-node-24",
-      "artifact_id": 8646617001,
-      "size_in_bytes": 3380,
-      "archive_sha256": "10e94e4ff23d248ca721d225fbed73e3a9cbd244da0f944490027f8bdb870d5c",
-      "summary_sha256": "c44717808e6610eb4f1a60073c6b7276e2a682e1f29baddefe38a474f5dc869d"
+      "artifact_id": 8663850172,
+      "size_in_bytes": 3382,
+      "archive_sha256": "3c9ce74566b8569824b6f6bb7aff101a5816464b70192e74a14173e1330a7852",
+      "summary_sha256": "5c4e75eaaeafc54523a47155f922fddd0ab1233612ce2a6c0c918a0cc8db66ce"
     }
   ],
-  "run_url": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/30250040183",
+  "run_url": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/30293857707",
   "real_account_configured": false,
   "account_switch_tested": false,
   "seamless_account_continuity_claimed": false
