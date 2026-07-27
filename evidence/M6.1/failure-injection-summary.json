@@ -1,0 +1,46 @@
+{
+  "schema_version": 1,
+  "task": "M6.1",
+  "validated_implementation_revision": "7869d9b5a5fa93187a0ffa89ef846102eb65d9f1",
+  "runtime_evidence": [
+    "evidence/M6.1/node-22-summary.json",
+    "evidence/M6.1/node-24-summary.json"
+  ],
+  "required_failures": {
+    "quota": {
+      "expected_classification": "quota_exhausted",
+      "before_semantic_failover_passed": true
+    },
+    "http_429": {
+      "expected_classification": "rate_limited",
+      "bounded_retry_after_passed": true,
+      "before_semantic_failover_passed": true
+    },
+    "auth": {
+      "expected_classification": "auth_expired",
+      "before_semantic_failover_passed": true
+    },
+    "network": {
+      "expected_classification": "network_error",
+      "before_semantic_failover_passed": true
+    },
+    "upstream_5xx": {
+      "expected_classification": "upstream_5xx",
+      "before_semantic_failover_passed": true
+    },
+    "malformed_sse": {
+      "expected_classification": "network_error",
+      "truncated_pre_semantic_bytes_discarded": true,
+      "before_semantic_failover_passed": true
+    }
+  },
+  "sse_safety_boundaries": {
+    "before_semantic_output_replay_only": true,
+    "after_semantic_output_unsafe_to_replay": true
+  },
+  "node_22_passed": true,
+  "node_24_passed": true,
+  "real_account_configured": false,
+  "account_switch_tested": false,
+  "seamless_account_continuity_claimed": false
+}

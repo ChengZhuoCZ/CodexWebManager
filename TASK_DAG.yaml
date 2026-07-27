@@ -242,14 +242,14 @@ milestones:
     tasks:
       - id: M6.1
         title: Complete automated test matrix
-        status: in_progress
+        status: done
         depends_on: [M4.3, M5.3]
         acceptance:
           - Unit, integration and E2E suites pass
           - Failure injection covers quota, 429, auth, network, 5xx and malformed SSE
       - id: M6.2
         title: Run 24-hour soak test
-        status: pending
+        status: ready
         depends_on: [M6.1]
         acceptance:
           - No unhandled crash or infinite retry

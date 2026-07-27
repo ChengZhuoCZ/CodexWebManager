@@ -1,0 +1,73 @@
+{
+  "schema_version": 1,
+  "task": "M6.1",
+  "generated_at": "2026-07-27T16:43:30+08:00",
+  "input_revision": "af53caf6e0658b8d0b85da48e13dcb1886f3f350",
+  "validated_implementation_revision": "7869d9b5a5fa93187a0ffa89ef846102eb65d9f1",
+  "branch": "codex/m6-1-automated-test-matrix",
+  "host": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "node": "v24.14.0"
+  },
+  "test_first": [
+    {
+      "command": "<bundled-node> --test test/test-matrix-contract.test.mjs before implementation",
+      "result": "expected red state",
+      "reason": "The strict matrix runner and manifest did not exist."
+    },
+    {
+      "command": "<bundled-node> scripts/run-test-matrix.mjs --suite e2e --summary <private-temp> without a pinned codex-web checkout",
+      "result": "expected red state; 23 total, 16 passed, 0 failed, and 7 skipped",
+      "reason": "The release gate rejects every skipped E2E row."
+    },
+    {
+      "command": "GitHub Actions run 30249408726 on the first implementation commit",
+      "result": "expected compatibility red state on Node 22 while Node 24 passed",
+      "reason": "An unreferenced deadline timer allowed Node 22 to resolve the event loop while a timeout-protected status request was still pending."
+    }
+  ],
+  "focused_tests": [
+    {
+      "command": "<bundled-node> --test test/test-matrix-contract.test.mjs test/failure-injection-matrix.test.mjs",
+      "result": "passed; 10 total, 10 passed, 0 failed, and 0 skipped"
+    },
+    {
+      "command": "<bundled-node> scripts/run-test-matrix.mjs --suite unit --summary <private-temp>",
+      "result": "passed; 108 total, 108 passed, 0 failed, and 0 skipped"
+    },
+    {
+      "command": "<bundled-node> scripts/run-test-matrix.mjs --suite integration --summary <private-temp>",
+      "result": "passed; 65 total, 65 passed, 0 failed, and 0 skipped"
+    },
+    {
+      "command": "<bundled-node> --test test/status-bridge.test.mjs after the Node 22 deadline fix",
+      "result": "passed; 9 total, 9 passed, 0 failed, and 0 skipped"
+    }
+  ],
+  "full_local_suite": {
+    "command": "cd packages/account-router; <bundled-node> --test with temporary loopback permission",
+    "result": "passed",
+    "total": 196,
+    "passed": 189,
+    "failed": 0,
+    "skipped": 7,
+    "skipped_note": "The local host has no prepared pinned codex-web checkout; the same seven rows ran with zero skips in both Linux CI jobs."
+  },
+  "strict_linux_matrix": {
+    "workflow_run": 30250040183,
+    "node_22": "196 passed, 0 failed, 0 skipped",
+    "node_24": "196 passed, 0 failed, 0 skipped",
+    "e2e_smoke_scenarios_per_runtime": 3
+  },
+  "static_checks": {
+    "package_check": "passed",
+    "workflow_yaml_parse": "passed",
+    "matrix_and_state_json_parse": "passed",
+    "git_diff_check": "passed"
+  },
+  "architecture_mode": "LIMITED_MODE",
+  "real_account_configured": false,
+  "account_switch_tested": false,
+  "seamless_account_continuity_claimed": false
+}

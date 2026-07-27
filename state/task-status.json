@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M6.1",
-  "status": "in_progress",
+  "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-DEFER-M0.3-CROSS",
@@ -10,31 +10,89 @@
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "codex-cli-observed": "codex-cli 0.144.5"
   },
-  "output_revision": null,
-  "output_revision_note": "Pending M6.1 unit, integration, E2E, and failure-injection matrix evidence.",
+  "output_revision": "7869d9b5a5fa93187a0ffa89ef846102eb65d9f1",
+  "output_revision_note": "M6.1 implementation commit validated by strict zero-skip Node 22 and Node 24 Ubuntu matrices in successful GitHub Actions run 30250040183.",
   "workspace_branch": "codex/m6-1-automated-test-matrix",
   "workspace_input_revision": "af53caf6e0658b8d0b85da48e13dcb1886f3f350",
   "depends_on": ["M4.3", "M5.3"],
   "expected_outputs": [
     ".github/workflows/test-matrix.yml",
+    "packages/account-router/test-matrix.json",
     "packages/account-router/test/test-matrix-contract.test.mjs",
+    "packages/account-router/test/failure-injection-matrix.test.mjs",
     "packages/account-router/scripts/run-test-matrix.mjs",
     "evidence/M6.1-automated-test-matrix.md",
     "evidence/M6.1/local-test-summary.json",
     "evidence/M6.1/github-actions-summary.json",
-    "evidence/M6.1/failure-injection-summary.json"
+    "evidence/M6.1/failure-injection-summary.json",
+    "evidence/M6.1/node-22-summary.json",
+    "evidence/M6.1/node-24-summary.json"
   ],
-  "tests": [],
-  "evidence": [],
+  "tests": [
+    {
+      "command": "<bundled-node> --test test/test-matrix-contract.test.mjs before implementation",
+      "result": "expected red state; the strict matrix runner and manifest did not exist"
+    },
+    {
+      "command": "<bundled-node> scripts/run-test-matrix.mjs --suite e2e --summary <private-temp> without a prepared pinned codex-web checkout",
+      "result": "expected red state; 23 total, 16 passed, 0 failed, and 7 skipped; the strict release gate rejected the skips"
+    },
+    {
+      "command": "<bundled-node> --test test/test-matrix-contract.test.mjs test/failure-injection-matrix.test.mjs",
+      "result": "passed; 10 total, 10 passed, 0 failed, and 0 skipped"
+    },
+    {
+      "command": "<bundled-node> scripts/run-test-matrix.mjs --suite unit --summary <private-temp>",
+      "result": "passed; 108 total, 108 passed, 0 failed, and 0 skipped"
+    },
+    {
+      "command": "<bundled-node> scripts/run-test-matrix.mjs --suite integration --summary <private-temp>",
+      "result": "passed; 65 total, 65 passed, 0 failed, and 0 skipped"
+    },
+    {
+      "command": "<bundled-node> --test test/status-bridge.test.mjs after the Node 22 deadline-timer fix",
+      "result": "passed; 9 total, 9 passed, 0 failed, and 0 skipped"
+    },
+    {
+      "command": "cd packages/account-router; <bundled-node> --test with temporary loopback permission",
+      "result": "passed; 196 total, 189 passed, 0 failed, and 7 local pinned-checkout rows skipped"
+    },
+    {
+      "command": "cd packages/account-router; <bundled-node> --run check; parse workflow/task YAML and matrix/state/evidence JSON; secret-pattern scan; git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "GitHub Actions automated test matrix run 30249408726",
+      "result": "expected compatibility red state; Node 24 passed and Node 22 exposed an unreferenced deadline timer that allowed a pending timeout test to leave the event loop"
+    },
+    {
+      "command": "GitHub Actions automated test matrix run 30250040183",
+      "result": "passed at implementation commit 7869d9b5a5fa93187a0ffa89ef846102eb65d9f1; Node 22 and Node 24 each passed 196/196 with zero failures and zero skips"
+    }
+  ],
+  "evidence": [
+    "evidence/M6.1-automated-test-matrix.md",
+    "evidence/M6.1/local-test-summary.json",
+    "evidence/M6.1/failure-injection-summary.json",
+    "evidence/M6.1/github-actions-summary.json",
+    "evidence/M6.1/node-22-summary.json",
+    "evidence/M6.1/node-24-summary.json"
+  ],
   "observations": {
     "task_scope": "Create an auditable automated unit, integration, E2E, and failure-injection matrix covering quota, 429, auth, network, 5xx, and malformed SSE behavior.",
     "starting_point": "The package has 186 Node test rows and separate Linux/systemd workflows, but no single manifest proves suite classification, required fault coverage, or matrix completeness.",
+    "implemented_matrix": "Every checked-in Node test file belongs to exactly one unit, integration, or E2E suite; unclassified, duplicate, failed, inconsistent, timed-out, or skipped rows fail the release gate.",
+    "required_faults": "Dedicated loopback proxy tests cover quota, generic 429 with bounded Retry-After, auth, network disconnect, upstream 5xx, and truncated malformed SSE, plus explicit before/after semantic SSE boundaries.",
+    "runtime_compatibility_fix": "The first Node 22 CI run exposed that unref on the status-bridge deadline timer could let the process exit while a timeout-protected request remained pending; keeping the timer referenced restores the bounded deadline contract.",
+    "strict_linux_result": "GitHub Actions run 30250040183 passed 196/196 with zero skips on both Node 22.23.1 and Node 24.18.0, including three fixture UI smoke scenarios per runtime.",
     "protocol_boundary": "M6.1 may automate fixture and pinned-checkout E2E paths, but it does not waive the user-deferred M0.3, M3.5, or M4.1 real-account evidence gates."
   },
   "blockers": [],
   "residual_risks": [
-    "Automated matrix coverage and native CI evidence are pending.",
-    "Real-account switching remains outside M6.1 by user direction."
+    "Automated E2E uses pinned upstream source and fixture services/UI states; it does not invoke a real account or prove account-bound response-chain portability.",
+    "The strict matrix ran on Ubuntu x64; the complete M6.1 suite did not run on arm64.",
+    "Real-account switching remains outside M6.1 by user direction; no seamless continuity claim is supported.",
+    "The mandatory M6.2 24-hour soak test remains pending."
   ],
-  "updated_at": "2026-07-27T16:05:00+08:00"
+  "updated_at": "2026-07-27T16:45:48+08:00"
 }
