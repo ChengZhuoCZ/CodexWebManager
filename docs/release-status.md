@@ -5,10 +5,12 @@
 The current project is **not production-release qualified**.
 
 The source is buildable for controlled `LIMITED_MODE` evaluation, and its automated security, Linux
-packaging, systemd, upgrade, rollback, and fixture integration gates are green. Remote deployment is
-currently blocked because the target host does not authorize passwordless SSH, so the Tailnet
-HTTP/WebSocket authentication matrix has not run. M6.2 is also `rejected` under the user's explicit
-skip decision: the required 24-hour soak was not completed and therefore was not qualified.
+packaging, systemd, upgrade, rollback, and fixture integration gates are green. The protected
+Tailnet site is reachable and its credential-free negative HTTP/WebSocket authentication matrix
+passed. Remote qualification remains blocked because the target host does not authorize
+passwordless SSH and the positive authenticated-session matrix and deployed revision have not been
+verified. M6.2 is also `rejected` under the user's explicit skip decision: the required 24-hour soak
+was not completed and therefore was not qualified.
 
 Real-account protocol continuity and account-switch E2E are also deferred. An accepted routing
 change means a **new backend session**; it is not proof that an existing response chain or running
@@ -24,7 +26,7 @@ calculation moved between accounts.
 | Security and secret audit | Passed | 268 files scanned with zero findings; 75/75 focused security tests passed. |
 | Linux x64/arm64 packaging | Passed | Native Ubuntu build/install/health verification passed. |
 | systemd lifecycle and rollback | Passed | Least-privilege lifecycle, persistence, upgrade, and rollback fixtures passed. |
-| Remote Tailnet web authentication | Blocked | Node is online, but system SSH rejects the client key and Tailscale SSH does not advertise a host key. |
+| Remote Tailnet web authentication | Partial | Protected site is reachable; the negative HTTP/WS matrix passed, but positive session checks and deployed-revision verification remain blocked by SSH/site-key access. |
 | M6.2 24-hour soak | Rejected | Stopped after about 17 minutes by user direction; no 24-hour qualification. |
 | Real-account switching | Deferred | No second authorized Codex account was configured or switched. |
 | Seamless/in-flight continuity | Not claimed | No evidence supports such a product claim. |
@@ -49,8 +51,8 @@ Do not claim that this revision:
 
 ## Remaining release work
 
-1. Authorize passwordless SSH to the target, deploy the qualified loopback service, and complete the
-   remote HTTP/WebSocket authentication matrix without configuring a real account.
+1. Authorize passwordless SSH to the target, verify the installed loopback service revision, and
+   complete the positive remote HTTP/WebSocket session matrix without configuring a real account.
 2. Run the full procedure in [soak-test.md](soak-test.md) for 24 continuous hours on the target
    Linux topology and complete every scheduled restart drill.
 3. With explicit authorization and two suitable accounts, complete the deferred real-account

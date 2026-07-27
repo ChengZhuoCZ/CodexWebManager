@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "task": "M6.3",
-  "generated_at": "2026-07-27T18:40:48.771Z",
-  "input_revision": "44c1aaa8de9765da90b637d1bbe7b100b0280505",
+  "generated_at": "2026-07-27T18:59:54.844Z",
+  "input_revision": "5aa1d674d59e81c377809e8d6c8f727c3fd7138b",
   "branch": "codex/m6-4-release-operator-docs",
   "implementation_mode": "clean-room",
   "qualified": true,
   "secret_scan": {
-    "files_scanned": 268,
+    "files_scanned": 271,
     "findings": []
   },
   "focused_security_tests": {

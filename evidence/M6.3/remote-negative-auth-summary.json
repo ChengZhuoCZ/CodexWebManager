@@ -1,0 +1,23 @@
+{
+  "schema_version": 1,
+  "task": "M6.3",
+  "target": "http://100.95.50.98:8214",
+  "tested_at": "2026-07-28T02:55:41+08:00",
+  "credential_material_used": false,
+  "http": {
+    "health": 200,
+    "unauthenticated_browser_config": 401,
+    "unauthenticated_root": 303,
+    "unauthenticated_root_location": "/__backend/session/login",
+    "wrong_host": 421,
+    "invalid_login": 401,
+    "invalid_login_set_cookie": false
+  },
+  "websocket": {
+    "unauthenticated": 401,
+    "wrong_origin": 403,
+    "missing_subprotocol": 400
+  },
+  "result": "passed",
+  "scope": "Negative remote authentication matrix only; no valid site access key or real account was used."
+}

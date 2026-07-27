@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task": "M6.3",
-  "generated_at": "2026-07-28T02:42:00+08:00",
+  "generated_at": "2026-07-28T02:57:11+08:00",
   "status": "blocked",
   "repository": "ChengZhuoCZ/CodexWebManager",
   "branch": "codex/m6-4-release-operator-docs",
@@ -71,26 +71,31 @@
     "strict_ci_passed": 450
   },
   "final_evidence_scan": {
-    "files_scanned": 270,
+    "files_scanned": 271,
     "findings": 0
   },
   "remote_target": {
     "tailscale_ip": "100.95.50.98",
     "node_online": true,
-    "probe_count": 5,
-    "successful_pongs": 5,
+    "probe_count": 3,
+    "successful_pongs": 3,
     "path": "DERP(syd)",
     "direct_connection_established": false,
     "system_ssh_reachable": true,
     "system_ssh_public_key_authentication": "rejected",
     "tailscale_ssh": "host key not advertised",
     "remote_commands_executed": false,
-    "deployment_attempted": false,
-    "remote_http_authentication_matrix_executed": false
+    "deployment_revision_verified_over_ssh": false,
+    "site_reachable": true,
+    "health_status": 200,
+    "observed_security_profile": "authenticated codex-web bridge behavior",
+    "remote_negative_http_authentication_matrix": "passed",
+    "remote_negative_websocket_authentication_matrix": "passed",
+    "remote_positive_authentication_matrix_executed": false
   },
   "blocker": {
-    "id": "SSH-PUBLIC-KEY-NOT-AUTHORIZED",
-    "summary": "The target is online, but neither system SSH public-key authentication nor Tailscale SSH authorizes a remote command.",
+    "id": "REMOTE-POSITIVE-AUTH-AND-SSH-NOT-AVAILABLE",
+    "summary": "The protected site is reachable and its negative HTTP/WS matrix passed, but valid site-session authentication and the deployed revision cannot be verified without the private site access key or passwordless SSH.",
     "operator_actions": [
       "Enable Tailscale SSH on the server and allow the current tailnet identity to log in as calm.",
       "Or install the current client public key for calm and verify authorized_keys and sshd public-key policy."

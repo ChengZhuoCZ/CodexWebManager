@@ -74,6 +74,14 @@
     {
       "command": "passwordless system SSH and tailscale ssh read-only probes",
       "result": "blocked before any remote command: system public key rejected; Tailscale SSH host key not advertised"
+    },
+    {
+      "command": "<node-24> /private/tmp/m63-remote-negative-probe.mjs http://100.95.50.98:8214",
+      "result": "passed: HTTP health/unauthenticated/wrong-host/invalid-key and WebSocket unauthenticated/wrong-origin/missing-subprotocol checks"
+    },
+    {
+      "command": "M6_3_CODEX_WEB_ROOT=<pinned-private-temp> <node-24> scripts/run-security-audit.mjs --summary <private-temp>",
+      "result": "passed: 271 files, 0 findings; 75/75 focused tests; 450/450 strict UI baseline"
     }
   ],
   "evidence": [
@@ -82,6 +90,7 @@
     "evidence/M6.3/local-test-summary.json",
     "evidence/M6.3/security-audit-summary.json",
     "evidence/M6.3/github-actions-summary.json",
+    "evidence/M6.3/remote-negative-auth-summary.json",
     "evidence/M6.3/codex-web-remote-auth-test-summary.json",
     "evidence/M6.3-codex-web-remote-auth.md"
   ],
@@ -98,23 +107,23 @@
       "expected_result": "Fail-closed browser session authentication, exact-origin WebSocket validation, privileged renderer authorization, and credential-free negative regression evidence."
     },
     "qualified_result": "Local and GitHub authentication, IPC, secret-scan, Linux packaging, systemd, and upgrade/rollback gates passed.",
-    "remote_result": "The Tailscale node is online, but passwordless SSH authorization is not available, so deployment and the remote HTTP/WS matrix were not executed.",
+    "remote_result": "The protected Tailnet site is reachable and the credential-free negative HTTP/WS matrix passed. Passwordless SSH is still unavailable, so the deployed revision and positive site-session matrix are not verified.",
     "protocol_boundary": "No real account is configured or tested, and no account-switch, in-flight recovery, or seamless continuity claim is made."
   },
   "blockers": [
     {
-      "id": "SSH-PUBLIC-KEY-NOT-AUTHORIZED",
-      "summary": "The target system sshd rejects the current public key, and Tailscale SSH does not advertise a host key.",
-      "required_action": "Enable and authorize Tailscale SSH for local user calm, or install the current client public key in calm's authorized_keys."
+      "id": "REMOTE-POSITIVE-AUTH-AND-SSH-NOT-AVAILABLE",
+      "summary": "The negative remote matrix passed, but valid site-session authentication and the deployed revision are not verified.",
+      "required_action": "Enable and authorize Tailscale SSH for local user calm, install the current client public key in calm's authorized_keys, or provide the private site access key through an approved private channel for the positive session probe."
     }
   ],
   "residual_risks": [
-    "Remote deployment and Tailnet HTTP/WS authentication remain untested until passwordless SSH is authorized.",
+    "The negative Tailnet HTTP/WS matrix passed, but the deployed revision and valid-session behavior remain unverified.",
     "The pinned upstream preparation downloads an application asset from a non-content-addressed URL; a future release should pin the archive digest.",
     "The direct Tailscale path was not established and traffic currently relays through DERP(syd).",
     "The browser overlay intentionally rejects the desktop-only Git worker channel.",
     "M6.2 remains rejected because the required 24-hour soak was skipped.",
     "Real-account protocol, switching, and cross-account response-chain portability gates remain deferred."
   ],
-  "updated_at": "2026-07-28T02:42:00+08:00"
+  "updated_at": "2026-07-28T02:57:11+08:00"
 }
