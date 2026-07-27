@@ -1,5 +1,8 @@
 # 安全设计
 
+可执行的安全运维步骤见 [`docs/operator-guide.md`](docs/operator-guide.md)，当前未通过的发布
+门禁与禁止声明见 [`docs/release-status.md`](docs/release-status.md)。
+
 ## 威胁模型
 
 能够访问 codex-web 的用户，通常能够让 Codex 以服务用户权限执行命令。因此本项目不是普通只读网站。

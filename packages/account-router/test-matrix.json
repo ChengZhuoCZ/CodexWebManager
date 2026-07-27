@@ -18,6 +18,7 @@
         "test/proxy-routes.test.mjs",
         "test/quota-snapshot.test.mjs",
         "test/redaction.test.mjs",
+        "test/release-docs-contract.test.mjs",
         "test/scheduler.test.mjs",
         "test/security-audit-contract.test.mjs",
         "test/secrets.test.mjs",

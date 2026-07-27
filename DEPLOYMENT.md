@@ -1,5 +1,10 @@
 # Linux 部署方案
 
+统一的安装、配置、私网访问、监控、凭据轮换、备份、回滚和故障处置入口见
+[`docs/operator-guide.md`](docs/operator-guide.md)。当前发布门禁状态见
+[`docs/release-status.md`](docs/release-status.md)；M6.2 的 24 小时耐久测试未通过，不得据此
+声称生产发布就绪。
+
 ## 目录建议
 
 ```text
