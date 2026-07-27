@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "task": "M5.3",
+  "generated_at": "2026-07-27T15:57:25+08:00",
+  "input_revision": "fb00514474acdd9b91112959c0e2540aabe03a20",
+  "validated_implementation_revision": "a79782f50f45c312f96173f1a10115c8ba8be7ea",
+  "branch": "codex/m5-3-upgrade-backup-rollback",
+  "host": {
+    "platform": "darwin",
+    "architecture": "arm64",
+    "node": "v24.14.0",
+    "systemd_available": false
+  },
+  "test_first": [
+    {
+      "command": "<bundled-node> --test packages/account-router/test/deployment-manager.test.mjs before implementation",
+      "result": "expected red state",
+      "reason": "The deployment-manager module did not exist."
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/runtime-persistence.test.mjs before runtime wiring",
+      "result": "expected red state",
+      "reason": "The simulated restart loaded no persisted circuit state, so the saved account health document was null."
+    }
+  ],
+  "targeted_tests": {
+    "deployment_manager": {
+      "command": "<bundled-node> --test packages/account-router/test/deployment-manager.test.mjs",
+      "result": "passed",
+      "total": 4,
+      "passed": 4,
+      "failed": 0
+    },
+    "runtime_persistence": {
+      "command": "<bundled-node> --test packages/account-router/test/runtime-persistence.test.mjs",
+      "result": "passed",
+      "total": 2,
+      "passed": 2,
+      "failed": 0
+    }
+  },
+  "full_suite": {
+    "command": "cd packages/account-router; <bundled-node> --test with temporary loopback permission",
+    "result": "passed",
+    "total": 186,
+    "passed": 179,
+    "failed": 0,
+    "skipped": 7,
+    "skipped_note": "The seven browser/upstream-gated rows pre-date M5.3 and require their explicit evidence gates."
+  },
+  "static_checks": {
+    "package_check": "passed",
+    "workflow_yaml_parse": "passed",
+    "json_parse": "passed",
+    "git_diff_check": "passed"
+  },
+  "native_linux": {
+    "status": "passed in GitHub Actions on Ubuntu 24.04 x64",
+    "workflow_run": 30247454366,
+    "evidence": [
+      "evidence/M5.3/systemd-upgrade-rollback.json",
+      "evidence/M5.3/github-actions-summary.json"
+    ],
+    "initial_failure": "The first workflow run attempted to provision fixture state before systemd had created StateDirectory.",
+    "resolution": "Provision the private state directory explicitly with mode 0700 and codex ownership before writing the fixture state."
+  },
+  "architecture_mode": "LIMITED_MODE",
+  "real_account_configured": false,
+  "account_switch_tested": false,
+  "in_flight_computation_resume_claimed": false,
+  "seamless_account_continuity_claimed": false
+}

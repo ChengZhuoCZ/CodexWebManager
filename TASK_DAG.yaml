@@ -230,7 +230,7 @@ milestones:
           - Secrets loaded without command-line exposure
       - id: M5.3
         title: Add upgrade, backup and rollback
-        status: in_progress
+        status: done
         depends_on: [M5.2]
         acceptance:
           - Configuration schema migration is reversible or backed up
@@ -242,7 +242,7 @@ milestones:
     tasks:
       - id: M6.1
         title: Complete automated test matrix
-        status: pending
+        status: ready
         depends_on: [M4.3, M5.3]
         acceptance:
           - Unit, integration and E2E suites pass

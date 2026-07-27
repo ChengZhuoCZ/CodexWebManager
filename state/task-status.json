@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M5.3",
-  "status": "in_progress",
+  "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-DEFER-M0.3-CROSS",
@@ -10,8 +10,8 @@
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "codex-cli-observed": "codex-cli 0.144.5"
   },
-  "output_revision": null,
-  "output_revision_note": "Pending M5.3 upgrade, private snapshot, one-command rollback, and restart-persistence evidence.",
+  "output_revision": "a79782f50f45c312f96173f1a10115c8ba8be7ea",
+  "output_revision_note": "M5.3 implementation commit validated by the full local suite and successful native Ubuntu 24.04 GitHub Actions run 30247454366.",
   "workspace_branch": "codex/m5-3-upgrade-backup-rollback",
   "workspace_input_revision": "fb00514474acdd9b91112959c0e2540aabe03a20",
   "depends_on": ["M5.2"],
@@ -28,18 +28,60 @@
     "evidence/M5.3/systemd-upgrade-rollback.json",
     "evidence/M5.3/github-actions-summary.json"
   ],
-  "tests": [],
-  "evidence": [],
+  "tests": [
+    {
+      "command": "<bundled-node> --test packages/account-router/test/deployment-manager.test.mjs before implementation",
+      "result": "expected red state; the deployment-manager module did not exist"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/runtime-persistence.test.mjs before runtime wiring",
+      "result": "expected red state; the simulated restart loaded no persisted circuit state"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/deployment-manager.test.mjs",
+      "result": "passed; 4 total, 4 passed, and 0 failed"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/runtime-persistence.test.mjs",
+      "result": "passed; 2 total, 2 passed, and 0 failed"
+    },
+    {
+      "command": "cd packages/account-router; <bundled-node> --run check",
+      "result": "passed"
+    },
+    {
+      "command": "cd packages/account-router; <bundled-node> --test with temporary loopback permission",
+      "result": "passed; 186 total, 179 passed, 0 failed, and 7 pre-existing browser/upstream-gated rows skipped"
+    },
+    {
+      "command": "Ruby Psych parse .github/workflows/systemd-upgrade-rollback.yml; parse task/package JSON; git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "GitHub Actions systemd upgrade and rollback run 30247454366",
+      "result": "passed at implementation commit a79782f50f45c312f96173f1a10115c8ba8be7ea; restart-persistence and rollback artifact uploaded"
+    }
+  ],
+  "evidence": [
+    "evidence/M5.3-upgrade-backup-rollback.md",
+    "evidence/M5.3/local-test-summary.json",
+    "evidence/M5.3/systemd-upgrade-rollback.json",
+    "evidence/M5.3/github-actions-summary.json"
+  ],
   "observations": {
     "task_scope": "Add fail-closed release activation, private configuration/state snapshots, one-command rollback, and live circuit-health persistence across router restarts.",
     "existing_release_model": "M5.1 already retains immutable versioned releases and atomically swaps /opt/codex-account-router/current, but it has no coordinated configuration/state snapshot or rollback command.",
-    "existing_state_model": "The circuit state store already performs private atomic files, but it is not wired into runtime startup, failure mutations, shutdown, or the systemd unit.",
+    "existing_state_model": "The circuit state store already performed private atomic files but was not wired into runtime startup, failure mutations, shutdown, or the systemd unit.",
+    "implemented_release_model": "A schema-gated upgrade takes a private configuration/state snapshot, installs an immutable release, atomically activates it, and automatically restores the previous release on failed start or health.",
+    "implemented_state_model": "Circuit failures, probes, recovery, and shutdown are persisted; restart restores health history while discarding in-flight probes, and persistence failure makes readiness and selection fail closed.",
+    "native_linux_result": "GitHub Actions run 30247454366 passed on Ubuntu 24.04 x64, including a real systemctl restart and one-command 0.2.0-to-0.1.0 rollback with configuration/state restoration.",
     "protocol_boundary": "M5.3 uses fixture accounts and local services only; it does not run or waive M0.3, M3.5, or M4.1 real-account continuity tests."
   },
   "blockers": [],
   "residual_risks": [
-    "Native Linux upgrade/rollback and process-restart evidence is still pending.",
-    "Real-account switching remains outside M5.3 by user direction."
+    "Native upgrade/rollback acceptance ran on Ubuntu 24.04 x64; the M5.3 systemd drill has not run on arm64 hardware.",
+    "Fixture services validate deployment behavior, not a real Codex account or upstream protocol.",
+    "Real-account switching remains outside M5.3 by user direction; no seamless continuity or in-flight computation recovery is claimed."
   ],
-  "updated_at": "2026-07-27T15:30:00+08:00"
+  "updated_at": "2026-07-27T15:57:25+08:00"
 }

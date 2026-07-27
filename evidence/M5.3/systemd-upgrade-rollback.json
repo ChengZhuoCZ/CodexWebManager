@@ -1,0 +1,35 @@
+{
+  "schema_version": 1,
+  "task": "M5.3",
+  "platform": "linux x64",
+  "systemd_version": "systemd 255 (255.4-1ubuntu8.16)",
+  "node_version": "v22.23.1",
+  "architecture_mode": "LIMITED_MODE",
+  "releases": {
+    "previous": "codex-account-router-0.1.0-linux-x64",
+    "upgraded": "codex-account-router-0.2.0-linux-x64",
+    "rollback_restored_previous": true
+  },
+  "schemas": {
+    "accounts": 1,
+    "circuit_state": 1,
+    "dry_run_before_activation": true
+  },
+  "snapshot": {
+    "private_directory": true,
+    "configuration_saved": true,
+    "circuit_state_saved": true,
+    "credentials_included": false
+  },
+  "verification": {
+    "post_upgrade_health_passed": true,
+    "restart_preserved_health_history": true,
+    "one_command_rollback_passed": true,
+    "configuration_restored": true,
+    "circuit_state_restored": true
+  },
+  "real_account_configured": false,
+  "account_switch_tested": false,
+  "in_flight_computation_resume_claimed": false,
+  "seamless_account_continuity_claimed": false
+}

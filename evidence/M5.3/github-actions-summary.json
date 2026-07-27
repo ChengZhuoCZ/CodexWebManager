@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "task": "M5.3",
+  "workflow": "systemd upgrade and rollback",
+  "workflow_file": ".github/workflows/systemd-upgrade-rollback.yml",
+  "run_id": 30247454366,
+  "event": "push",
+  "branch": "codex/m5-3-upgrade-backup-rollback",
+  "head_sha": "a79782f50f45c312f96173f1a10115c8ba8be7ea",
+  "conclusion": "success",
+  "total_duration_seconds": 18,
+  "job": {
+    "name": "Verify upgrade, restart persistence, and rollback",
+    "job_id": 89917592880,
+    "runner": "ubuntu-24.04",
+    "conclusion": "success",
+    "duration_seconds": 14
+  },
+  "artifact": {
+    "name": "systemd-upgrade-rollback-evidence",
+    "artifact_id": 8645571257,
+    "size_in_bytes": 1183,
+    "archive_sha256": "5c61710061aea91a1a283b0ff2af1af18cca7b0f8f06248473f07a78e15c1252",
+    "downloaded_archive_sha256_matches": true
+  },
+  "run_url": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/30247454366",
+  "real_account_configured": false,
+  "account_switch_tested": false,
+  "in_flight_computation_resume_claimed": false,
+  "seamless_account_continuity_claimed": false
+}
