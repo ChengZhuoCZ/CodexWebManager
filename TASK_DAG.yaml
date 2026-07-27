@@ -242,7 +242,7 @@ milestones:
     tasks:
       - id: M6.1
         title: Complete automated test matrix
-        status: ready
+        status: in_progress
         depends_on: [M4.3, M5.3]
         acceptance:
           - Unit, integration and E2E suites pass

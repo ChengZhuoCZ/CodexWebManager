@@ -1,0 +1,103 @@
+name: Automated test matrix
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "codex/**"
+    paths:
+      - ".github/workflows/test-matrix.yml"
+      - "configs/**"
+      - "contracts/**"
+      - "integrations/codex-web/**"
+      - "packages/account-router/**"
+      - "systemd/**"
+      - "test-fixtures/**"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Node ${{ matrix.node-version }} unit, integration, and E2E
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ["22", "24"]
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v6.0.1
+
+      - name: Check out pinned codex-web
+        uses: actions/checkout@v6.0.1
+        with:
+          repository: 0xcaff/codex-web
+          ref: 888692f7d885118c6a92bbaf60cf2121f5947adf
+          path: .m6/codex-web
+          persist-credentials: false
+
+      - name: Select Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v6.5.0
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: npm
+          cache-dependency-path: .m6/codex-web/package-lock.json
+
+      - name: Prepare pinned codex-web assets
+        working-directory: .m6/codex-web
+        run: npm ci
+
+      - name: Verify pinned upstream integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git -C .m6/codex-web rev-parse HEAD)" = \
+            "888692f7d885118c6a92bbaf60cf2121f5947adf"
+          git -C .m6/codex-web diff --quiet --exit-code
+          git -C .m6/codex-web diff --cached --quiet --exit-code
+
+      - name: Run strict zero-skip matrix
+        shell: bash
+        env:
+          M4_2_CODEX_WEB_ROOT: ${{ github.workspace }}/.m6/codex-web
+          M4_3_CODEX_WEB_ROOT: ${{ github.workspace }}/.m6/codex-web
+        run: |
+          set -euo pipefail
+          install -d -m 0700 artifacts/test-matrix
+          node packages/account-router/scripts/run-test-matrix.mjs \
+            --summary "$PWD/artifacts/test-matrix/node-${{ matrix.node-version }}.json"
+
+      - name: Verify sanitized matrix summary
+        env:
+          SUMMARY_PATH: artifacts/test-matrix/node-${{ matrix.node-version }}.json
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const summary = JSON.parse(fs.readFileSync(process.env.SUMMARY_PATH, "utf8"));
+            if (
+              summary.task !== "M6.1" ||
+              summary.selected_suite !== "all" ||
+              summary.suites.length !== 3 ||
+              summary.totals.failed !== 0 ||
+              summary.totals.skipped !== 0 ||
+              summary.totals.tests !== summary.totals.passed ||
+              summary.e2e_smoke_scenarios.length !== 3 ||
+              !Object.values(summary.failure_injections).every((entry) => entry.passed) ||
+              !Object.values(summary.sse_safety_boundaries).every((entry) => entry.passed) ||
+              summary.real_account_configured !== false ||
+              summary.account_switch_tested !== false ||
+              summary.seamless_account_continuity_claimed !== false
+            ) process.exit(1);
+          '
+          cat "$SUMMARY_PATH" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload matrix evidence
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: automated-test-matrix-node-${{ matrix.node-version }}
+          path: artifacts/test-matrix/node-${{ matrix.node-version }}.json
+          if-no-files-found: error
+          compression-level: 0

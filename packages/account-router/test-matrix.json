@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "task": "M6.1",
+  "suites": [
+    {
+      "id": "unit",
+      "test_files": [
+        "test/accounts.test.mjs",
+        "test/admin-auth.test.mjs",
+        "test/admin-contracts.test.mjs",
+        "test/admin-state.test.mjs",
+        "test/circuit-breaker.test.mjs",
+        "test/codex-credentials.test.mjs",
+        "test/config.test.mjs",
+        "test/event-broker.test.mjs",
+        "test/failover-fixtures.test.mjs",
+        "test/failover-state-machine.test.mjs",
+        "test/proxy-routes.test.mjs",
+        "test/quota-snapshot.test.mjs",
+        "test/redaction.test.mjs",
+        "test/scheduler.test.mjs",
+        "test/secrets.test.mjs",
+        "test/semantic-gates.test.mjs",
+        "test/session-stickiness.test.mjs",
+        "test/state-store.test.mjs",
+        "test/systemd-units.test.mjs",
+        "test/test-matrix-contract.test.mjs"
+      ]
+    },
+    {
+      "id": "integration",
+      "test_files": [
+        "test/admin-handler.test.mjs",
+        "test/auxiliary-endpoints.test.mjs",
+        "test/failure-injection-matrix.test.mjs",
+        "test/failover-proxy.test.mjs",
+        "test/proxy-handler.test.mjs",
+        "test/runtime-bootstrap.test.mjs",
+        "test/runtime-composition.test.mjs",
+        "test/runtime-persistence.test.mjs",
+        "test/service.test.mjs",
+        "test/status-bridge.test.mjs",
+        "test/websocket-failover.test.mjs",
+        "test/websocket-tunnel.test.mjs"
+      ]
+    },
+    {
+      "id": "e2e",
+      "test_files": [
+        "test/app-server-compatibility.test.mjs",
+        "test/codex-web-account-ui.test.mjs",
+        "test/codex-web-integration.test.mjs",
+        "test/codex-web-status-bridge.test.mjs",
+        "test/deployment-manager.test.mjs",
+        "test/linux-release.test.mjs"
+      ]
+    }
+  ],
+  "e2e_smoke_scenarios": [
+    {
+      "id": "codex_web_ui_active",
+      "scenario": "active"
+    },
+    {
+      "id": "codex_web_ui_exhausted",
+      "scenario": "exhausted"
+    },
+    {
+      "id": "codex_web_ui_disabled",
+      "scenario": "disabled"
+    }
+  ],
+  "failure_injections": {
+    "quota": {
+      "test_file": "test/failure-injection-matrix.test.mjs",
+      "test_name": "failure matrix: quota exhaustion before semantic output fails over"
+    },
+    "http_429": {
+      "test_file": "test/failure-injection-matrix.test.mjs",
+      "test_name": "failure matrix: generic HTTP 429 is bounded and fails over"
+    },
+    "auth": {
+      "test_file": "test/failure-injection-matrix.test.mjs",
+      "test_name": "failure matrix: authentication rejection before semantic output fails over"
+    },
+    "network": {
+      "test_file": "test/failure-injection-matrix.test.mjs",
+      "test_name": "failure matrix: network disconnect before headers fails over"
+    },
+    "upstream_5xx": {
+      "test_file": "test/failure-injection-matrix.test.mjs",
+      "test_name": "failure matrix: upstream 5xx before semantic output fails over"
+    },
+    "malformed_sse": {
+      "test_file": "test/failure-injection-matrix.test.mjs",
+      "test_name": "failure matrix: truncated pre-semantic SSE is discarded before failover"
+    }
+  },
+  "sse_safety_boundaries": {
+    "before_semantic_output": {
+      "test_file": "test/failure-injection-matrix.test.mjs",
+      "test_name": "failure matrix: truncated pre-semantic SSE is discarded before failover"
+    },
+    "after_semantic_output": {
+      "test_file": "test/failover-proxy.test.mjs",
+      "test_name": "returns an in-stream unsafe_to_replay error after a semantic SSE event"
+    }
+  }
+}
