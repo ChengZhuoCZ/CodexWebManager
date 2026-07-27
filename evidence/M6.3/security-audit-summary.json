@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "task": "M6.3",
-  "generated_at": "2026-07-27T18:38:31.354Z",
-  "input_revision": "67f44c326a68438648e692f6d0457e1cbeb3d14d",
+  "generated_at": "2026-07-27T18:40:48.771Z",
+  "input_revision": "44c1aaa8de9765da90b637d1bbe7b100b0280505",
   "branch": "codex/m6-4-release-operator-docs",
   "implementation_mode": "clean-room",
   "qualified": true,

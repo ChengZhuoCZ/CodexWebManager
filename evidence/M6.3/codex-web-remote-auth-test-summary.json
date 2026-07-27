@@ -1,0 +1,106 @@
+{
+  "schema_version": 1,
+  "task": "M6.3",
+  "generated_at": "2026-07-28T02:42:00+08:00",
+  "status": "blocked",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-4-release-operator-docs",
+  "input_revision": "3489382ae0d4dfa0f08a4a6c2969d570f0324e36",
+  "implementation_revision": "0ed0507df0bc308608db2cd2b2e3054f614e2512",
+  "validated_security_revision": "44c1aaa8de9765da90b637d1bbe7b100b0280505",
+  "codex_web_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf",
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "local_authentication_and_ipc": {
+    "targeted_tests": 14,
+    "passed": 14,
+    "failed": 0,
+    "skipped": 0,
+    "controls": [
+      "exact public origin and host validation",
+      "private site access-key file",
+      "single browser session and CSRF validation",
+      "authenticated WebSocket subprotocol and renderer authorization",
+      "bounded upload storage and cleanup",
+      "credential-shaped renderer output rejection",
+      "view-ready replay after WebSocket reconnect"
+    ]
+  },
+  "real_pinned_browser_smoke": {
+    "fixture": "synthetic-only",
+    "visible_page": "Sign in to ChatGPT",
+    "websocket_connections": 2,
+    "view_ready_announcements": 2,
+    "server_rejected_messages": 0,
+    "page_reloaded": false,
+    "real_account_login_attempted": false
+  },
+  "local_matrix": {
+    "tests": 225,
+    "passed": 225,
+    "failed": 0,
+    "skipped": 0
+  },
+  "github_qualification": {
+    "security_audit_run_id": 30294759670,
+    "security_audit": "success",
+    "final_matrix_run_id": 30294759637,
+    "node_22": {
+      "tests": 226,
+      "passed": 226,
+      "failed": 0,
+      "skipped": 0
+    },
+    "node_24": {
+      "tests": 226,
+      "passed": 226,
+      "failed": 0,
+      "skipped": 0
+    },
+    "systemd_lifecycle": "success",
+    "linux_x64": "success",
+    "linux_arm64": "success",
+    "upgrade_and_rollback": "success"
+  },
+  "security_audit": {
+    "files_scanned": 268,
+    "findings": 0,
+    "focused_tests": 75,
+    "focused_passed": 75,
+    "strict_ci_tests": 450,
+    "strict_ci_passed": 450
+  },
+  "final_evidence_scan": {
+    "files_scanned": 270,
+    "findings": 0
+  },
+  "remote_target": {
+    "tailscale_ip": "100.95.50.98",
+    "node_online": true,
+    "probe_count": 5,
+    "successful_pongs": 5,
+    "path": "DERP(syd)",
+    "direct_connection_established": false,
+    "system_ssh_reachable": true,
+    "system_ssh_public_key_authentication": "rejected",
+    "tailscale_ssh": "host key not advertised",
+    "remote_commands_executed": false,
+    "deployment_attempted": false,
+    "remote_http_authentication_matrix_executed": false
+  },
+  "blocker": {
+    "id": "SSH-PUBLIC-KEY-NOT-AUTHORIZED",
+    "summary": "The target is online, but neither system SSH public-key authentication nor Tailscale SSH authorizes a remote command.",
+    "operator_actions": [
+      "Enable Tailscale SSH on the server and allow the current tailnet identity to log in as calm.",
+      "Or install the current client public key for calm and verify authorized_keys and sshd public-key policy."
+    ]
+  },
+  "prohibitions_confirmed": [
+    "No password was used or recorded.",
+    "No real account was configured.",
+    "No account switch was attempted.",
+    "No request payload, cookie, token, email, authorization value, or full quota response was recorded.",
+    "No seamless account continuity or in-flight computation recovery is claimed."
+  ]
+}

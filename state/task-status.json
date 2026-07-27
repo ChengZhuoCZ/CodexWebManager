@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M6.3",
-  "status": "in_progress",
+  "status": "blocked",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-SKIP-M6.2-SOAK",
@@ -14,7 +14,7 @@
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "codex-cli-observed": "codex-cli 0.144.5"
   },
-  "output_revision": null,
+  "output_revision": "44c1aaa8de9765da90b637d1bbe7b100b0280505",
   "workspace_branch": "codex/m6-4-release-operator-docs",
   "workspace_input_revision": "3489382ae0d4dfa0f08a4a6c2969d570f0324e36",
   "depends_on": [
@@ -30,12 +30,63 @@
     "evidence/M6.3-codex-web-remote-auth.md",
     "evidence/M6.3/codex-web-remote-auth-test-summary.json"
   ],
-  "tests": [],
+  "tests": [
+    {
+      "command": "npm run check",
+      "result": "passed"
+    },
+    {
+      "command": "<node-24> --test test/codex-web-status-bridge.test.mjs test/codex-web-browser-ipc-router.test.mjs test/codex-web-browser-auth.test.mjs",
+      "result": "14 passed, 0 failed, 0 skipped"
+    },
+    {
+      "command": "<node-24> scripts/run-test-matrix.mjs --summary <private-temp>",
+      "result": "225 passed, 0 failed, 0 skipped"
+    },
+    {
+      "command": "real pinned renderer synthetic reconnect smoke",
+      "result": "2 authenticated WebSockets, 2 view-ready announcements, 0 rejected messages; no real login"
+    },
+    {
+      "command": "<node-24> scripts/run-security-audit.mjs --summary <private-temp>",
+      "result": "268 files, 0 findings; 75/75 focused tests; 450/450 strict CI tests"
+    },
+    {
+      "command": "GitHub Actions automated matrix run 30294759637",
+      "result": "Node 22 226/226 and Node 24 226/226; zero skipped"
+    },
+    {
+      "command": "GitHub Actions security audit run 30294759670",
+      "result": "success"
+    },
+    {
+      "command": "scanRepository after final evidence files",
+      "result": "270 files scanned, 0 findings"
+    },
+    {
+      "command": "<node-24> scripts/run-security-audit.mjs --summary <private-temp> after final evidence files",
+      "result": "passed; 270 files, 0 findings; 75/75 focused tests; 450/450 strict CI tests"
+    },
+    {
+      "command": "tailscale ping --c 5 --timeout 3s 100.95.50.98",
+      "result": "5 successful pongs through DERP(syd); no direct path"
+    },
+    {
+      "command": "passwordless system SSH and tailscale ssh read-only probes",
+      "result": "blocked before any remote command: system public key rejected; Tailscale SSH host key not advertised"
+    }
+  ],
   "evidence": [
+    "evidence/M6.1/github-actions-summary.json",
+    "evidence/M6.3/browser-ui-message-inventory.json",
+    "evidence/M6.3/local-test-summary.json",
+    "evidence/M6.3/security-audit-summary.json",
+    "evidence/M6.3/github-actions-summary.json",
+    "evidence/M6.3/codex-web-remote-auth-test-summary.json",
     "evidence/M6.3-codex-web-remote-auth.md"
   ],
   "observations": {
-    "task_scope": "Reopened M6.3 after discovering that the deployed codex-web bridge accepted unauthenticated HTTP and WebSocket clients and forwarded privileged renderer IPC.",
+    "task_scope": "M6.3 was reopened after discovering that the prior codex-web bridge accepted unauthenticated HTTP and WebSocket clients and forwarded privileged renderer IPC.",
     "start_record": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-4-release-operator-docs",
@@ -44,16 +95,26 @@
         "M6.1",
         "G-SECRETS"
       ],
-      "expected_result": "Fail-closed browser session authentication, exact-origin WebSocket validation, privileged renderer request authorization, and credential-free negative regression evidence."
+      "expected_result": "Fail-closed browser session authentication, exact-origin WebSocket validation, privileged renderer authorization, and credential-free negative regression evidence."
     },
-    "containment": "codex-web.service was stopped before testing; the tailnet-facing port returned a connection reset.",
-    "protocol_boundary": "No real account is configured or tested, and no account-switch or continuity claim will be made."
+    "qualified_result": "Local and GitHub authentication, IPC, secret-scan, Linux packaging, systemd, and upgrade/rollback gates passed.",
+    "remote_result": "The Tailscale node is online, but passwordless SSH authorization is not available, so deployment and the remote HTTP/WS matrix were not executed.",
+    "protocol_boundary": "No real account is configured or tested, and no account-switch, in-flight recovery, or seamless continuity claim is made."
   },
-  "blockers": [],
-  "residual_risks": [
-    "The direct tailnet URL remains offline until the negative authorization matrix passes.",
-    "M6.2 remains rejected because the required 24-hour soak was skipped.",
-    "Real-account protocol, switching, and product E2E gates remain deferred."
+  "blockers": [
+    {
+      "id": "SSH-PUBLIC-KEY-NOT-AUTHORIZED",
+      "summary": "The target system sshd rejects the current public key, and Tailscale SSH does not advertise a host key.",
+      "required_action": "Enable and authorize Tailscale SSH for local user calm, or install the current client public key in calm's authorized_keys."
+    }
   ],
-  "updated_at": "2026-07-27T22:55:52+08:00"
+  "residual_risks": [
+    "Remote deployment and Tailnet HTTP/WS authentication remain untested until passwordless SSH is authorized.",
+    "The pinned upstream preparation downloads an application asset from a non-content-addressed URL; a future release should pin the archive digest.",
+    "The direct Tailscale path was not established and traffic currently relays through DERP(syd).",
+    "The browser overlay intentionally rejects the desktop-only Git worker channel.",
+    "M6.2 remains rejected because the required 24-hour soak was skipped.",
+    "Real-account protocol, switching, and cross-account response-chain portability gates remain deferred."
+  ],
+  "updated_at": "2026-07-28T02:42:00+08:00"
 }

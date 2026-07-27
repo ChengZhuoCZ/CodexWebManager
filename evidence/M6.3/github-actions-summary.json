@@ -1,71 +1,96 @@
 {
   "schema_version": 1,
   "task": "M6.3",
-  "branch": "codex/m6-3-security-audit",
-  "head_sha": "374500e53b460541ac767ffe318e6f0aca702152",
+  "branch": "codex/m6-4-release-operator-docs",
+  "head_sha": "44c1aaa8de9765da90b637d1bbe7b100b0280505",
   "conclusion": "success",
   "security_audit": {
-    "run_id": 30262812402,
-    "job_id": 89966452126,
+    "run_id": 30294759670,
+    "job_id": 90072934913,
     "runner": "ubuntu-24.04",
     "conclusion": "success",
     "artifact_name": "m6-3-security-audit",
-    "summary_sha256": "b47198f253b1e1c2b4013ee330ad52edeedf50675cd7a83be5a40b49ea37cb2c",
-    "run_url": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/30262812402"
+    "artifact_id": 8664192473,
+    "size_in_bytes": 2402,
+    "archive_sha256": "a9865eb39ef9aee04af5dea4150a94ff72c6083c903cda4671536edea212655c",
+    "summary_sha256": "49addf1d54915e6242aaf887593b73d5398237fd7cd3e075a4b7453d15384776",
+    "files_scanned": 268,
+    "findings": 0,
+    "focused_tests": 75,
+    "focused_passed": 75,
+    "strict_baseline_head_sha": "0ed0507df0bc308608db2cd2b2e3054f614e2512",
+    "strict_baseline_tests": 450,
+    "strict_baseline_passed": 450,
+    "run_url": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/30294759670"
   },
-  "strict_test_matrix": {
-    "run_id": 30262812267,
+  "final_regression_matrix": {
+    "run_id": 30294759637,
+    "head_sha": "44c1aaa8de9765da90b637d1bbe7b100b0280505",
     "conclusion": "success",
     "node_22": {
-      "job_id": 89966451850,
-      "tests": 205,
-      "passed": 205,
+      "job_id": 90072935115,
+      "tests": 226,
+      "passed": 226,
       "failed": 0,
       "skipped": 0,
-      "summary_sha256": "633449bd41059af416971a7fe03a47d070f66a7e33c81ba98121a5a93b0ad850"
+      "artifact_id": 8664207565,
+      "archive_sha256": "8fdb5571920e385eb253533dbba0c5fc161850a318156a6265427ad4c0e53e99",
+      "summary_sha256": "b6fa2770c55063db372c2b19034bae449460a5f344686696391948641c72c5da"
     },
     "node_24": {
-      "job_id": 89966452053,
-      "tests": 205,
-      "passed": 205,
+      "job_id": 90072935066,
+      "tests": 226,
+      "passed": 226,
       "failed": 0,
       "skipped": 0,
-      "summary_sha256": "eb646dce4d58002a70865914f465072ad3e1a60c7949f467c7aba0f0f0e3ce1c"
+      "artifact_id": 8664204042,
+      "archive_sha256": "f38d04f4e7e8d1f5ce09caef6940b2b335b11a0349d8fd3dd69236c0da7861dd",
+      "summary_sha256": "581391b5ffcb49a32170e4a9aa87dd98d340a72e8740c8170f2ef973be6b5d02"
     },
-    "run_url": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/30262812267"
+    "run_url": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/30294759637"
+  },
+  "strict_ui_baseline": {
+    "run_id": 30293857707,
+    "head_sha": "0ed0507df0bc308608db2cd2b2e3054f614e2512",
+    "node_22_tests": 225,
+    "node_24_tests": 225,
+    "failed": 0,
+    "skipped": 0,
+    "run_url": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/30293857707"
   },
   "linux_regressions": [
     {
       "workflow": "systemd least privilege",
-      "run_id": 30262812286,
+      "run_id": 30294759621,
       "job_ids": [
-        89966451712
+        90072935138
       ],
       "conclusion": "success"
     },
     {
       "workflow": "Linux headless release",
-      "run_id": 30262812293,
+      "run_id": 30294759799,
       "job_ids": [
-        89966451910,
-        89966451926
+        90072935437,
+        90072935610
       ],
       "architectures": [
-        "x64",
-        "arm64"
+        "arm64",
+        "x64"
       ],
       "conclusion": "success"
     },
     {
       "workflow": "systemd upgrade and rollback",
-      "run_id": 30262812301,
+      "run_id": 30294759708,
       "job_ids": [
-        89966451731
+        90072935265
       ],
       "conclusion": "success"
     }
   ],
   "real_account_configured": false,
   "account_switch_tested": false,
+  "in_flight_computation_resume_claimed": false,
   "seamless_account_continuity_claimed": false
 }

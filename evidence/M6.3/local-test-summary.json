@@ -5,6 +5,7 @@
   "input_revision": "3489382ae0d4dfa0f08a4a6c2969d570f0324e36",
   "validated_implementation_revision": "0ed0507df0bc308608db2cd2b2e3054f614e2512",
   "validated_security_baseline_revision": "67f44c326a68438648e692f6d0457e1cbeb3d14d",
+  "validated_security_revision": "44c1aaa8de9765da90b637d1bbe7b100b0280505",
   "branch": "codex/m6-4-release-operator-docs",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
@@ -55,6 +56,14 @@
     "purpose": "workflow-owned nested checkout only",
     "upstream_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "nested_checkout_reproduction_findings": 0
+  },
+  "final_evidence_security_audit": {
+    "files_scanned": 270,
+    "findings": 0,
+    "tests": 75,
+    "passed": 75,
+    "failed": 0,
+    "skipped": 0
   },
   "static_checks": {
     "package_check": "passed",
