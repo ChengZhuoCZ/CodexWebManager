@@ -81,6 +81,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          sudo install -d -m 0700 -o codex -g codex /var/lib/codex-account-router
           printf '%s\n' '{"version":1,"accounts":[{"id":"fixture-account-a","alias":"Fixture A","enabled":true,"priority":1,"max_concurrency":1,"provider":"openai-codex","secret_provider":"codex-auth","credential_ref":"fixture-a"}]}' \
             | sudo tee /etc/codex-account-router/accounts.json >/dev/null
           node -e '
