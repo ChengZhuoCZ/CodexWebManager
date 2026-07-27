@@ -21,6 +21,7 @@ const serviceNames = [
 
 test("security policy maps every M6.3 acceptance boundary to executable evidence", async () => {
   const policy = await loadSecurityAuditPolicy(policyPath);
+  assert.deepEqual(policy.ignored_paths, [".m6"]);
   assert.deepEqual(Object.keys(policy.controls), [
     "logs",
     "crash_dumps",
@@ -36,6 +37,16 @@ test("security policy maps every M6.3 acceptance boundary to executable evidence
       await fs.access(path.join(packageDirectory, relativePath));
     }
   }
+});
+
+test("security scan excludes only the workflow-owned pinned upstream checkout", async () => {
+  const workflow = await fs.readFile(
+    path.join(repositoryRoot, ".github", "workflows", "security-audit.yml"),
+    "utf8",
+  );
+  assert.match(workflow, /ref: 888692f7d885118c6a92bbaf60cf2121f5947adf/u);
+  assert.match(workflow, /path: \.m6\/codex-web/u);
+  assert.match(workflow, /persist-credentials: false/u);
 });
 
 test("security policy rejects omitted controls and unsafe test references", async () => {

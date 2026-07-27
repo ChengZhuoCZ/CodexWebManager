@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "task": "M6.3",
-  "generated_at": "2026-07-27T18:32:48.660Z",
-  "input_revision": "0ed0507df0bc308608db2cd2b2e3054f614e2512",
+  "generated_at": "2026-07-27T18:38:31.354Z",
+  "input_revision": "67f44c326a68438648e692f6d0457e1cbeb3d14d",
   "branch": "codex/m6-4-release-operator-docs",
   "implementation_mode": "clean-room",
   "qualified": true,
@@ -12,8 +12,8 @@
   },
   "focused_security_tests": {
     "test_files": 15,
-    "tests": 74,
-    "passed": 74,
+    "tests": 75,
+    "passed": 75,
     "failed": 0,
     "skipped": 0
   },

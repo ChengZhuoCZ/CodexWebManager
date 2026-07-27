@@ -2,7 +2,9 @@
   "schema_version": 1,
   "task": "M6.3",
   "max_file_bytes": 2097152,
-  "ignored_paths": [],
+  "ignored_paths": [
+    ".m6"
+  ],
   "synthetic_markers": [
     "fixture-",
     "[REDACTED]",
