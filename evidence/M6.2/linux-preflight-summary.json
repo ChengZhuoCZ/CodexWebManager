@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "task": "M6.2",
+  "source_commit": "33892581ed3d730333d4136211c749a46f049942",
+  "observed_at": "2026-07-27T09:30:00Z",
+  "github_actions": {
+    "automated_test_matrix": {
+      "run_id": 30254103792,
+      "conclusion": "success",
+      "node_22": {
+        "platform": "linux",
+        "architecture": "x64",
+        "node_version": "v22.23.1",
+        "tests": 200,
+        "passed": 200,
+        "failed": 0,
+        "skipped": 0
+      },
+      "node_24": {
+        "platform": "linux",
+        "architecture": "x64",
+        "node_version": "v24.18.0",
+        "tests": 200,
+        "passed": 200,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "linux_headless_release": {
+      "run_id": 30254101305,
+      "conclusion": "success"
+    },
+    "systemd_least_privilege": {
+      "run_id": 30254100868,
+      "conclusion": "success"
+    },
+    "systemd_upgrade_and_rollback": {
+      "run_id": 30254100782,
+      "conclusion": "success"
+    }
+  },
+  "soak_contract_in_matrix": true,
+  "qualified_24_hour_soak": false,
+  "real_account_configured": false,
+  "account_switch_tested": false,
+  "in_flight_computation_resume_claimed": false,
+  "seamless_account_continuity_claimed": false
+}

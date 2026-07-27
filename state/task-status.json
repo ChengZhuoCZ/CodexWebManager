@@ -21,6 +21,8 @@
     "packages/account-router/test/soak-contract.test.mjs",
     "docs/soak-test.md",
     "evidence/M6.2-24-hour-soak.md",
+    "evidence/M6.2/deployment-package.json",
+    "evidence/M6.2/linux-preflight-summary.json",
     "evidence/M6.2/soak-summary.json",
     "evidence/M6.2/soak-checkpoints.jsonl",
     "evidence/M6.2/local-test-summary.json"
@@ -49,12 +51,22 @@
     {
       "command": "<bundled-node> packages/account-router/scripts/run-soak.mjs --mode smoke --duration-ms 5000 with private absolute evidence paths",
       "result": "passed; 194 client requests, 0 request errors, bounded resources and retries, and 2 recovered new-traffic restart drills"
+    },
+    {
+      "command": "GitHub Actions automated test matrix run 30254103792",
+      "result": "passed at source commit 33892581ed3d730333d4136211c749a46f049942; Node 22 and Node 24 each passed 200/200 with zero failures and zero skips, including the soak contract"
+    },
+    {
+      "command": "GitHub Actions Linux release/systemd runs 30254101305, 30254100868, and 30254100782",
+      "result": "passed; Linux headless release, least-privilege service lifecycle, and upgrade/rollback gates are green"
     }
   ],
   "evidence": [
     "docs/soak-test.md",
     "evidence/M6.2-24-hour-soak.md",
-    "evidence/M6.2/local-test-summary.json"
+    "evidence/M6.2/local-test-summary.json",
+    "evidence/M6.2/deployment-package.json",
+    "evidence/M6.2/linux-preflight-summary.json"
   ],
   "observations": {
     "task_scope": "Run a real wall-clock 24-hour fixture soak with bounded retries, resource sampling, restart drills, and sanitized checkpoints.",
@@ -62,12 +74,16 @@
     "implemented_harness": "The fixture runner samples process memory, Linux file descriptors, client/worker/upstream concurrency, bounded attempts, crashes, and sanitized failure counts while flushing private checkpoints.",
     "restart_semantics": "Smoke mode drained traffic, replaced the worker process twice, and recovered a new fixture request; it did not attempt or claim in-flight computation recovery.",
     "local_smoke": "The five-second macOS smoke completed 194 client requests with zero request errors and exercised every configured fixture failure category; it cannot qualify the Linux 24-hour gate.",
+    "linux_preflight": "GitHub Actions source commit 33892581ed3d730333d4136211c749a46f049942 passed 200/200 with zero skips on Node 22 and Node 24 Linux, plus all Linux release and systemd workflows.",
+    "deployment_package": "An immutable 101-entry git archive was built from source commit 33892581ed3d730333d4136211c749a46f049942 with SHA-256 ec8bb0a5738200efe2f806ee70cfe6500876200219e897b936eca3cf2749f76b.",
     "protocol_boundary": "M6.2 uses fixture services only and resumes new traffic after restart; it does not configure a real account or claim that an in-flight computation resumes."
   },
-  "blockers": [],
+  "blockers": [
+    "The authorized Linux host is online in the tailnet, but TCP/22 times out and Tailscale SSH does not complete a session; the host-side SSH service, firewall, or tailnet access policy must be corrected before the 24-hour run can start."
+  ],
   "residual_risks": [
     "The required wall-clock 24-hour Linux run and its resource evidence have not started.",
     "Real-account switching remains outside M6.2 by user direction."
   ],
-  "updated_at": "2026-07-27T17:26:45+08:00"
+  "updated_at": "2026-07-27T17:36:00+08:00"
 }

@@ -1,0 +1,14 @@
+{
+  "schema_version": 1,
+  "task": "M6.2",
+  "source_commit": "33892581ed3d730333d4136211c749a46f049942",
+  "format": "git-archive-tar-gzip",
+  "included_roots": [
+    "packages/account-router",
+    "docs/soak-test.md"
+  ],
+  "file_entries": 101,
+  "sha256": "ec8bb0a5738200efe2f806ee70cfe6500876200219e897b936eca3cf2749f76b",
+  "contains_real_account_configuration": false,
+  "contains_credentials": false
+}
