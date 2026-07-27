@@ -52,7 +52,8 @@
         "test/codex-web-integration.test.mjs",
         "test/codex-web-status-bridge.test.mjs",
         "test/deployment-manager.test.mjs",
-        "test/linux-release.test.mjs"
+        "test/linux-release.test.mjs",
+        "test/soak-contract.test.mjs"
       ]
     }
   ],

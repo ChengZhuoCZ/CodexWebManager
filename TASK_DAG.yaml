@@ -249,7 +249,7 @@ milestones:
           - Failure injection covers quota, 429, auth, network, 5xx and malformed SSE
       - id: M6.2
         title: Run 24-hour soak test
-        status: ready
+        status: in_progress
         depends_on: [M6.1]
         acceptance:
           - No unhandled crash or infinite retry
