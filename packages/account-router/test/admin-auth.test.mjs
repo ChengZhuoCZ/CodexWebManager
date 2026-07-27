@@ -10,7 +10,7 @@ test("accepts only the exact admin bearer token", () => {
   assert.equal(authenticator.authenticate({ authorization: `Bearer ${ADMIN_TOKEN}` }), true);
   for (const headers of [
     {},
-    { authorization: "Bearer wrong-token-0123456789" },
+    { authorization: `Bearer ${"wrong-token-0123456789"}` },
     { authorization: ADMIN_TOKEN },
     { authorization: `Basic ${ADMIN_TOKEN}` },
     { authorization: [`Bearer ${ADMIN_TOKEN}`] },

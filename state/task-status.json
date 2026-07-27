@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M6.2",
-  "status": "rejected",
+  "current_task": "M6.3",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-SKIP-M6.2-SOAK",
@@ -10,106 +10,36 @@
     "EX-SKIP-M6.2-SOAK"
   ],
   "input_revisions": {
-    "workspace": "dcb44b621af8e962799fb6e9643dbc54375dc9e3",
+    "workspace": "f940ea3a9125e342abb566711ee22576b6f9991a",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "codex-cli-observed": "codex-cli 0.144.5"
   },
-  "output_revision": "33892581ed3d730333d4136211c749a46f049942",
-  "output_revision_note": "The soak harness implementation is preserved at this revision, but M6.2 is rejected under EX-SKIP-M6.2-SOAK because the user stopped the acceptance run after 1,023,164 ms; no 24-hour qualification is claimed.",
-  "workspace_branch": "codex/m6-2-24h-soak",
-  "workspace_input_revision": "dcb44b621af8e962799fb6e9643dbc54375dc9e3",
-  "depends_on": ["M6.1"],
+  "output_revision": null,
+  "workspace_branch": "codex/m6-3-security-audit",
+  "workspace_input_revision": "f940ea3a9125e342abb566711ee22576b6f9991a",
+  "depends_on": [
+    "M6.1",
+    "G-SECRETS"
+  ],
   "expected_outputs": [
-    "packages/account-router/scripts/run-soak.mjs",
-    "packages/account-router/fixtures/soak/router-worker.mjs",
-    "packages/account-router/test/soak-contract.test.mjs",
-    "docs/soak-test.md",
-    "evidence/M6.2-24-hour-soak.md",
-    "evidence/M6.2/deployment-package.json",
-    "evidence/M6.2/linux-preflight-summary.json",
-    "evidence/M6.2/linux-host-smoke-summary.json",
-    "evidence/M6.2/soak-summary.json",
-    "evidence/M6.2/soak-checkpoints.jsonl",
-    "evidence/M6.2/local-test-summary.json"
+    "packages/account-router/scripts/run-security-audit.mjs",
+    "packages/account-router/security-audit.json",
+    "packages/account-router/test/security-audit-contract.test.mjs",
+    ".github/workflows/security-audit.yml",
+    "evidence/M6.3-security-secret-audit.md",
+    "evidence/M6.3/security-audit-summary.json"
   ],
-  "tests": [
-    {
-      "command": "<bundled-node> --test test/soak-contract.test.mjs before implementation",
-      "result": "expected red state; the soak runner module did not exist"
-    },
-    {
-      "command": "<bundled-node> --test test/soak-contract.test.mjs with temporary loopback permission",
-      "result": "passed; 4 total, 4 passed, 0 failed, including a five-second traffic and two-restart smoke"
-    },
-    {
-      "command": "<bundled-node> --test test/test-matrix-contract.test.mjs",
-      "result": "passed; 4 total, 4 passed, 0 failed, and the new soak contract is classified exactly once"
-    },
-    {
-      "command": "cd packages/account-router; check every bin, source, script, fixture, and test module with <bundled-node> --check",
-      "result": "passed"
-    },
-    {
-      "command": "cd packages/account-router; <bundled-node> --test with temporary loopback permission",
-      "result": "passed; 200 total, 193 passed, 0 failed, and 7 local pinned-checkout rows skipped"
-    },
-    {
-      "command": "<bundled-node> packages/account-router/scripts/run-soak.mjs --mode smoke --duration-ms 5000 with private absolute evidence paths",
-      "result": "passed; 194 client requests, 0 request errors, bounded resources and retries, and 2 recovered new-traffic restart drills"
-    },
-    {
-      "command": "GitHub Actions automated test matrix run 30254103792",
-      "result": "passed at source commit 33892581ed3d730333d4136211c749a46f049942; Node 22 and Node 24 each passed 200/200 with zero failures and zero skips, including the soak contract"
-    },
-    {
-      "command": "GitHub Actions Linux release/systemd runs 30254101305, 30254100868, and 30254100782",
-      "result": "passed; Linux headless release, least-privilege service lifecycle, and upgrade/rollback gates are green"
-    },
-    {
-      "command": "Verify the uploaded git archive on the authorized Linux host and run <system-node> --check on the soak runner and worker",
-      "result": "passed; source commit 33892581ed3d730333d4136211c749a46f049942 matched SHA-256 ec8bb0a5738200efe2f806ee70cfe6500876200219e897b936eca3cf2749f76b"
-    },
-    {
-      "command": "<system-node> packages/account-router/scripts/run-soak.mjs --mode smoke --duration-ms 5000 on Linux",
-      "result": "passed; 198 client requests, 0 request errors, 2 recovered new-traffic restart drills, RSS/FD/concurrency within limits, and no real account configured"
-    },
-    {
-      "command": "Start codex-router-soak-m6-2.service as a restricted transient systemd unit and inspect its first minute checkpoint",
-      "result": "running; 236 client requests, 0 errors, 0 unexpected worker exits, RSS 68161536 bytes, 31 file descriptors, and maximum client concurrency 4 at 60011 ms"
-    },
-    {
-      "command": "Stop codex-router-soak-m6-2.service on explicit user direction and validate the fail-closed final summary",
-      "result": "expected non-qualification; completed=false, qualified_24_hour_soak=false, elapsed 1023164 ms, 4088 requests, 0 request errors, 0 restart drills, termination=signal, and the interrupted worker exit made the process-health gate false"
-    }
-  ],
-  "evidence": [
-    "docs/soak-test.md",
-    "evidence/M6.2-24-hour-soak.md",
-    "evidence/M6.2/local-test-summary.json",
-    "evidence/M6.2/deployment-package.json",
-    "evidence/M6.2/linux-preflight-summary.json",
-    "evidence/M6.2/linux-host-smoke-summary.json",
-    "evidence/M6.2/soak-summary.json",
-    "evidence/M6.2/soak-checkpoints.jsonl"
-  ],
+  "tests": [],
+  "evidence": [],
   "observations": {
-    "task_scope": "Run a real wall-clock 24-hour fixture soak with bounded retries, resource sampling, restart drills, and sanitized checkpoints.",
-    "starting_point": "M6.1 proves short deterministic matrices, while no long-running harness currently records memory, file descriptors, concurrency, crashes, or post-restart traffic recovery.",
-    "implemented_harness": "The fixture runner samples process memory, Linux file descriptors, client/worker/upstream concurrency, bounded attempts, crashes, and sanitized failure counts while flushing private checkpoints.",
-    "restart_semantics": "Smoke mode drained traffic, replaced the worker process twice, and recovered a new fixture request; it did not attempt or claim in-flight computation recovery.",
-    "local_smoke": "The five-second macOS smoke completed 194 client requests with zero request errors and exercised every configured fixture failure category; it cannot qualify the Linux 24-hour gate.",
-    "linux_preflight": "GitHub Actions source commit 33892581ed3d730333d4136211c749a46f049942 passed 200/200 with zero skips on Node 22 and Node 24 Linux, plus all Linux release and systemd workflows.",
-    "deployment_package": "An immutable 101-entry git archive was built from source commit 33892581ed3d730333d4136211c749a46f049942 with SHA-256 ec8bb0a5738200efe2f806ee70cfe6500876200219e897b936eca3cf2749f76b.",
-    "linux_host_smoke": "The verified archive passed a five-second Linux x64 Node 22.23.1 smoke with 198 requests, zero request errors, bounded resources, and two new-traffic restart recoveries.",
-    "acceptance_run": "The fixed acceptance run started at 2026-07-27T11:04:20Z and was stopped on explicit user direction at 2026-07-27T11:21:23Z after 1023164 ms. It is not a 24-hour result and completed none of the three scheduled restart drills.",
-    "skip_decision": "EX-SKIP-M6.2-SOAK records the explicit user decision to skip the remaining wall-clock run; M6.2 is rejected, not done.",
-    "protocol_boundary": "M6.2 uses fixture services only and resumes new traffic after restart; it does not configure a real account or claim that an in-flight computation resumes."
+    "task_scope": "Audit repository and runtime boundaries for secret disclosure, crash-dump exposure, admin authorization, path traversal, SSRF, and open-proxy behavior.",
+    "starting_point": "M6.1 passed the automated matrix and existing redaction, authorization, proxy-path, and systemd tests; M6.3 must assemble a fail-closed audit, close uncovered gaps, and preserve sanitized evidence.",
+    "protocol_boundary": "The audit uses synthetic fixtures only. It does not configure a real account, test account switching, or claim in-flight or seamless continuity."
   },
   "blockers": [],
   "residual_risks": [
-    "The required 24-hour Linux acceptance, sample coverage, traffic volume, and three restart drills are unverified because the user stopped the run after approximately 17 minutes.",
-    "The interrupted systemd stop produced one unexpected worker exit in the final fail-closed summary; the pre-stop checkpoints recorded zero unexpected exits.",
-    "Real-account switching remains outside M6.2 by user direction."
+    "The security audit has not yet run.",
+    "The skipped M6.2 24-hour acceptance remains an explicit release-gate exception."
   ],
-  "updated_at": "2026-07-27T19:24:53+08:00"
+  "updated_at": "2026-07-27T19:30:00+08:00"
 }

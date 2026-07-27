@@ -1,0 +1,76 @@
+name: Security and secret audit
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "codex/**"
+    paths:
+      - ".github/workflows/security-audit.yml"
+      - "evidence/M6.1/github-actions-summary.json"
+      - "integrations/codex-web/**"
+      - "packages/account-router/**"
+      - "systemd/**"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify M6.3 security boundaries
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out complete source history
+        uses: actions/checkout@v6.0.1
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      - name: Select Node.js 22
+        uses: actions/setup-node@v6.5.0
+        with:
+          node-version: "22"
+
+      - name: Run fail-closed security audit
+        shell: bash
+        run: |
+          set -euo pipefail
+          install -d -m 0700 artifacts/security-audit
+          node packages/account-router/scripts/run-security-audit.mjs \
+            --summary "$PWD/artifacts/security-audit/summary.json"
+
+      - name: Verify sanitized security evidence
+        env:
+          SUMMARY_PATH: artifacts/security-audit/summary.json
+        run: |
+          node -e '
+            const fs = require("node:fs");
+            const summary = JSON.parse(fs.readFileSync(process.env.SUMMARY_PATH, "utf8"));
+            if (
+              summary.task !== "M6.3" ||
+              summary.implementation_mode !== "clean-room" ||
+              summary.qualified !== true ||
+              summary.secret_scan.findings.length !== 0 ||
+              summary.focused_security_tests.failed !== 0 ||
+              summary.focused_security_tests.skipped !== 0 ||
+              summary.focused_security_tests.tests !== summary.focused_security_tests.passed ||
+              summary.strict_ui_evidence.failed !== 0 ||
+              summary.strict_ui_evidence.skipped !== 0 ||
+              summary.strict_ui_evidence.protected_paths_unchanged !== true ||
+              !Object.values(summary.controls).every((entry) => entry.qualified === true) ||
+              summary.real_account_configured !== false ||
+              summary.account_switch_tested !== false ||
+              summary.seamless_account_continuity_claimed !== false
+            ) process.exit(1);
+          '
+          cat "$SUMMARY_PATH" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload security evidence
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: m6-3-security-audit
+          path: artifacts/security-audit/summary.json
+          if-no-files-found: error
+          compression-level: 0

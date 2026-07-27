@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "task": "M6.3",
+  "max_file_bytes": 2097152,
+  "ignored_paths": [],
+  "synthetic_markers": [
+    "fixture-",
+    "[REDACTED]",
+    "must-not-pass",
+    "must-not-be-accepted"
+  ],
+  "controls": {
+    "logs": {
+      "test_files": [
+        "test/redaction.test.mjs"
+      ]
+    },
+    "crash_dumps": {
+      "test_files": [
+        "test/security-audit-contract.test.mjs",
+        "test/systemd-units.test.mjs"
+      ]
+    },
+    "api_responses": {
+      "test_files": [
+        "test/admin-contracts.test.mjs",
+        "test/admin-handler.test.mjs"
+      ]
+    },
+    "ui": {
+      "test_files": [
+        "test/codex-web-account-ui.test.mjs",
+        "test/codex-web-status-bridge.test.mjs"
+      ]
+    },
+    "admin_authorization": {
+      "test_files": [
+        "test/admin-auth.test.mjs",
+        "test/admin-handler.test.mjs"
+      ]
+    },
+    "path_and_open_proxy": {
+      "test_files": [
+        "test/proxy-handler.test.mjs",
+        "test/proxy-routes.test.mjs",
+        "test/websocket-tunnel.test.mjs"
+      ]
+    },
+    "ssrf_boundary": {
+      "test_files": [
+        "test/proxy-handler.test.mjs",
+        "test/proxy-routes.test.mjs",
+        "test/runtime-bootstrap.test.mjs",
+        "test/runtime-composition.test.mjs"
+      ]
+    }
+  },
+  "audit_test_files": [
+    "test/admin-auth.test.mjs",
+    "test/admin-contracts.test.mjs",
+    "test/admin-handler.test.mjs",
+    "test/proxy-handler.test.mjs",
+    "test/proxy-routes.test.mjs",
+    "test/redaction.test.mjs",
+    "test/runtime-bootstrap.test.mjs",
+    "test/runtime-composition.test.mjs",
+    "test/security-audit-contract.test.mjs",
+    "test/status-bridge.test.mjs",
+    "test/systemd-units.test.mjs",
+    "test/websocket-tunnel.test.mjs"
+  ],
+  "strict_ci_baseline": {
+    "evidence_file": "evidence/M6.1/github-actions-summary.json",
+    "head_sha": "7869d9b5a5fa93187a0ffa89ef846102eb65d9f1",
+    "protected_paths": [
+      "integrations/codex-web",
+      "packages/account-router/scripts/run-codex-web-account-ui.mjs",
+      "packages/account-router/scripts/run-codex-web-integration.mjs",
+      "packages/account-router/test/codex-web-account-ui.test.mjs",
+      "packages/account-router/test/codex-web-status-bridge.test.mjs"
+    ]
+  }
+}

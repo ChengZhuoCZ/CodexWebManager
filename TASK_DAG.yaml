@@ -269,7 +269,7 @@ milestones:
           - Restart and resume drills completed
       - id: M6.3
         title: Security and secret audit
-        status: ready
+        status: in_progress
         depends_on: [M6.1, G-SECRETS]
         acceptance:
           - Logs, crash dumps, API responses and UI contain no secrets

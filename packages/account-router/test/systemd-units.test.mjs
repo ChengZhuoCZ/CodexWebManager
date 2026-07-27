@@ -48,6 +48,7 @@ test("services use one non-root identity and a common least-privilege baseline",
   const required = new Map([
     ["Service.User", "codex"],
     ["Service.Group", "codex"],
+    ["Service.LimitCORE", "0"],
     ["Service.UMask", "0077"],
     ["Service.NoNewPrivileges", "true"],
     ["Service.PrivateTmp", "true"],

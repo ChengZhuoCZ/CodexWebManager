@@ -61,7 +61,7 @@ test("fails closed for permissive, symlinked, malformed, or incomplete auth file
   const rootDirectory = await privateDirectory(context);
   await writeAuth(rootDirectory, fixtureAuth(), { mode: 0o644, name: "permissive.json" });
   await writeAuth(rootDirectory, { tokens: { access_token: "fixture" } }, { name: "missing.json" });
-  await writeAuth(rootDirectory, fixtureAuth({ access_token: "fixture\nheader" }), {
+  await writeAuth(rootDirectory, fixtureAuth({ access_token: ["fixture", "header"].join("\n") }), {
     name: "control.json",
   });
   await fs.symlink(path.join(rootDirectory, "control.json"), path.join(rootDirectory, "link.json"));

@@ -10,6 +10,7 @@ StartLimitBurst=5
 Type=simple
 User=codex
 Group=codex
+LimitCORE=0
 WorkingDirectory=/var/lib/codex-account-router
 ExecStart=/opt/codex-account-router/current/bin/codex-account-router
 Restart=on-failure

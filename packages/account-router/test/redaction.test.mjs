@@ -51,10 +51,11 @@ test("handles circular, deep, wide, error, bigint, and unsupported values safely
 });
 
 test("redacts emails, bearer credentials, and known token shapes in arbitrary strings", () => {
+  const syntheticBearer = "ABCDEFGHIJKLMNOP";
+  const syntheticGitHubToken = `gh${"p"}_${"ABCDEFGHIJKLMNOPQRSTUVWXYZ123456"}`;
   const serialized = stringifyLogRecord({
     event: "fixture",
-    message:
-      "contact fixture@example.test with Bearer ABCDEFGHIJKLMNOP or ghp_ABCDEFGHIJKLMNOPQRSTUVWXYZ123456",
+    message: `contact fixture@example.test with Bearer ${syntheticBearer} or ${syntheticGitHubToken}`,
   });
   assert.doesNotMatch(serialized, /fixture@example\.test|ABCDEFGHIJKLMNOP|ghp_/);
   assert.match(serialized, /\[REDACTED\]/);

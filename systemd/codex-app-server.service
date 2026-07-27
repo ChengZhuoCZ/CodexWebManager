@@ -9,6 +9,7 @@ StartLimitBurst=5
 Type=simple
 User=codex
 Group=codex
+LimitCORE=0
 WorkingDirectory=/srv/codex-workspaces
 Environment=HOME=/var/lib/codex-app-server
 Environment=CODEX_HOME=/var/lib/codex-app-server
