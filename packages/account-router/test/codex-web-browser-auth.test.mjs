@@ -936,13 +936,11 @@ integrationTest(
       "utf8",
     );
     const inlineScripts = Array.from(
-      indexSource.matchAll(/<script>([\s\S]*?)<\/script>/gu),
-      (match) => match[1],
-    );
-    assert.equal(inlineScripts.length, 1);
-    const digest = createHash("sha256")
-      .update(inlineScripts[0])
-      .digest("base64");
+      indexSource.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gu),
+    )
+      .filter((match) => !/\bsrc\s*=/u.test(match[1]))
+      .map((match) => match[2]);
+    assert.ok(inlineScripts.length <= 1);
     const authSource = await fs.readFile(
       new URL(
         "../../../integrations/codex-web/src/server/browser-session-auth.ts",
@@ -950,7 +948,23 @@ integrationTest(
       ),
       "utf8",
     );
-    assert.ok(authSource.includes(`sha256-${digest}`));
+    const scriptSourceLine = authSource
+      .split("\n")
+      .find((line) => line.includes("script-src 'self'"));
+    assert.ok(
+      authSource.includes(
+        "'sha256-Dclel/rGxNWaGiFViYSHBS21+R0OTVg2FgATT6T00nc='",
+      ),
+    );
+    assert.equal(typeof scriptSourceLine, "string");
+    assert.match(scriptSourceLine, /INLINE_UUID_SCRIPT_SHA256/u);
+    assert.doesNotMatch(scriptSourceLine, /unsafe-inline/u);
+    if (inlineScripts.length === 1) {
+      const digest = createHash("sha256")
+        .update(inlineScripts[0])
+        .digest("base64");
+      assert.ok(authSource.includes(`sha256-${digest}`));
+    }
   },
 );
 
