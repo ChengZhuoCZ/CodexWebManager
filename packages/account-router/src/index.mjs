@@ -62,4 +62,5 @@ export {
   StatusBridgeError,
 } from "./status-bridge.mjs";
 export { createCircuitStateStore } from "./state-store.mjs";
+export { createDeploymentManager } from "./deployment-manager.mjs";
 export { createEventBroker } from "./event-broker.mjs";

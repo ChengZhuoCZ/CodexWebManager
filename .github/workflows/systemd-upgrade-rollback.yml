@@ -1,0 +1,145 @@
+name: systemd upgrade and rollback
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - "codex/**"
+    paths:
+      - ".github/workflows/systemd-upgrade-rollback.yml"
+      - "docs/linux-upgrade-rollback.md"
+      - "packages/account-router/**"
+      - "systemd/**"
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify upgrade, restart persistence, and rollback
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out source and M5.2 history
+        uses: actions/checkout@v6.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Select Node.js 22
+        uses: actions/setup-node@v6.5.0
+        with:
+          node-version: "22"
+
+      - name: Run upgrade and persistence contracts
+        run: >-
+          node --test
+          packages/account-router/test/deployment-manager.test.mjs
+          packages/account-router/test/linux-release.test.mjs
+          packages/account-router/test/runtime-bootstrap.test.mjs
+          packages/account-router/test/runtime-persistence.test.mjs
+          packages/account-router/test/state-store.test.mjs
+          packages/account-router/test/systemd-units.test.mjs
+
+      - name: Build M5.2 and M5.3 releases
+        shell: bash
+        run: |
+          set -euo pipefail
+          git worktree add --detach /tmp/codex-m5-2-baseline fb00514474acdd9b91112959c0e2540aabe03a20
+          node /tmp/codex-m5-2-baseline/packages/account-router/scripts/build-linux-release.mjs \
+            --arch x64 \
+            --output "$PWD/artifacts/old"
+          node packages/account-router/scripts/build-linux-release.mjs \
+            --arch x64 \
+            --output "$PWD/artifacts/new"
+
+      - name: Provision isolated service identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo install -m 0644 systemd/codex-stack.sysusers.conf /usr/lib/sysusers.d/codex-stack.conf
+          sudo install -m 0644 systemd/codex-stack.tmpfiles.conf /usr/lib/tmpfiles.d/codex-stack.conf
+          sudo systemd-sysusers /usr/lib/sysusers.d/codex-stack.conf
+          sudo systemd-tmpfiles --create /usr/lib/tmpfiles.d/codex-stack.conf
+
+      - name: Install M5.2 baseline and M5.3 unit
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo ln -sfn "$(command -v node)" /usr/bin/node
+          old_version=$(node -p "require('/tmp/codex-m5-2-baseline/packages/account-router/package.json').version")
+          old_archive="$PWD/artifacts/old/codex-account-router-${old_version}-linux-x64.tar.gz"
+          old_extract=$(mktemp -d)
+          tar -xzf "$old_archive" -C "$old_extract"
+          sudo env NODE_BINARY=/usr/bin/node \
+            sh "$old_extract/codex-account-router-${old_version}-linux-x64/install.sh"
+          sudo install -m 0644 \
+            systemd/codex-account-router.service \
+            /etc/systemd/system/codex-account-router.service
+
+      - name: Provision fixture-only configuration and state
+        shell: bash
+        run: |
+          set -euo pipefail
+          printf '%s\n' '{"version":1,"accounts":[{"id":"fixture-account-a","alias":"Fixture A","enabled":true,"priority":1,"max_concurrency":1,"provider":"openai-codex","secret_provider":"codex-auth","credential_ref":"fixture-a"}]}' \
+            | sudo tee /etc/codex-account-router/accounts.json >/dev/null
+          node -e '
+            const now = Date.now();
+            const iso = new Date(now).toISOString();
+            process.stdout.write(JSON.stringify({
+              version: 1,
+              saved_at: iso,
+              accounts: [{
+                account_id: "fixture-account-a",
+                phase: "open",
+                last_failure_kind: "quota_exhausted",
+                opened_at: iso,
+                cooldown_until: new Date(now + 60 * 60_000).toISOString(),
+                consecutive_failures: 1,
+                last_failure_at: iso,
+                last_success_at: null,
+                generation: 1
+              }]
+            }) + "\n");
+          ' | sudo tee /var/lib/codex-account-router/circuit-state.json >/dev/null
+          openssl rand -hex 32 | tr -d '\n' \
+            | sudo tee /etc/codex-account-router/credentials/admin-token >/dev/null
+          sudo chown codex:codex \
+            /etc/codex-account-router/accounts.json \
+            /var/lib/codex-account-router/circuit-state.json
+          sudo chmod 0600 \
+            /etc/codex-account-router/accounts.json \
+            /var/lib/codex-account-router/circuit-state.json \
+            /etc/codex-account-router/credentials/admin-token
+          sudo systemctl daemon-reload
+
+      - name: Extract M5.3 release
+        shell: bash
+        run: |
+          set -euo pipefail
+          new_version=$(node -p "require('./packages/account-router/package.json').version")
+          mkdir -p artifacts/new-extracted
+          tar -xzf \
+            "artifacts/new/codex-account-router-${new_version}-linux-x64.tar.gz" \
+            -C artifacts/new-extracted
+
+      - name: Verify native upgrade and one-command rollback
+        shell: bash
+        run: |
+          set -euo pipefail
+          new_version=$(node -p "require('./packages/account-router/package.json').version")
+          sudo /usr/bin/node \
+            packages/account-router/scripts/verify-upgrade-rollback.mjs \
+            --new-release-dir "$PWD/artifacts/new-extracted/codex-account-router-${new_version}-linux-x64" \
+            --summary "$PWD/artifacts/systemd-upgrade-rollback.json"
+
+      - name: Show sanitized evidence
+        run: cat artifacts/systemd-upgrade-rollback.json >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload upgrade and rollback evidence
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: systemd-upgrade-rollback-evidence
+          path: artifacts/systemd-upgrade-rollback.json
+          if-no-files-found: error
+          compression-level: 0

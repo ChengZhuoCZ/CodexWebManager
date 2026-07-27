@@ -66,3 +66,6 @@ http://127.0.0.1:18317/v1
 - 配置 migration 前生成带版本号快照；
 - 回滚时先停服务，再恢复兼容状态；
 - 不删除 account auth 数据作为普通回滚步骤。
+
+M5.3 的可执行升级、私有快照、健康检查和单命令回滚流程见
+[`docs/linux-upgrade-rollback.md`](docs/linux-upgrade-rollback.md)。

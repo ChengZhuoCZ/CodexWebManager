@@ -101,6 +101,10 @@ async function verifyArchive(artifactPath, architecture) {
   assert(manifest.runtime.electron_required === false, "release requires Electron");
   assert(manifest.runtime.display_server_required === false, "release requires a display server");
   assert(
+    manifest.schemas?.accounts === 1 && manifest.schemas?.circuit_state === 1,
+    "release schema compatibility is unsupported",
+  );
+  assert(
     Array.isArray(manifest.runtime.native_package_dependencies) &&
       manifest.runtime.native_package_dependencies.length === 0,
     "release declares native package dependencies",

@@ -140,3 +140,6 @@ each service. The fixtures use bounded retry and an overall deadline.
 
 That job does not configure a real Codex account, send a model request, or switch accounts. A native
 fixture pass is deployment evidence only; it cannot satisfy M0.3, M3.5, or M4.1 account-switch rows.
+
+Upgrade, private snapshot, restart-persistence, and one-command rollback procedures are documented
+in [`linux-upgrade-rollback.md`](linux-upgrade-rollback.md).
