@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M6.3",
-  "status": "in_progress",
+  "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-SKIP-M6.2-SOAK",
@@ -14,7 +14,7 @@
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "codex-cli-observed": "codex-cli 0.144.5"
   },
-  "output_revision": null,
+  "output_revision": "374500e53b460541ac767ffe318e6f0aca702152",
   "workspace_branch": "codex/m6-3-security-audit",
   "workspace_input_revision": "f940ea3a9125e342abb566711ee22576b6f9991a",
   "depends_on": [
@@ -27,19 +27,65 @@
     "packages/account-router/test/security-audit-contract.test.mjs",
     ".github/workflows/security-audit.yml",
     "evidence/M6.3-security-secret-audit.md",
-    "evidence/M6.3/security-audit-summary.json"
+    "evidence/M6.3/security-audit-summary.json",
+    "evidence/M6.3/github-actions-summary.json",
+    "evidence/M6.3/local-test-summary.json"
   ],
-  "tests": [],
-  "evidence": [],
+  "tests": [
+    {
+      "command": "<bundled-node> --test test/security-audit-contract.test.mjs before implementation",
+      "result": "expected red state; the security audit runner did not exist"
+    },
+    {
+      "command": "<bundled-node> scripts/run-security-audit.mjs --summary <private-temp> after initial implementation",
+      "result": "expected red state; three live-shaped synthetic fixtures were found and rewritten without broad allowlisting"
+    },
+    {
+      "command": "<bundled-node> --test focused M6.3 contract set",
+      "result": "passed; 20 total, 20 passed, 0 failed, 0 skipped"
+    },
+    {
+      "command": "<bundled-node> scripts/run-security-audit.mjs --summary <private-temp> with temporary loopback permission",
+      "result": "passed; 250 files scanned, zero findings, 61 tests passed, zero failed, zero skipped"
+    },
+    {
+      "command": "cd packages/account-router; <bundled-node> --test with temporary loopback permission",
+      "result": "passed; 205 total, 198 passed, 0 failed, and 7 local pinned-checkout rows skipped"
+    },
+    {
+      "command": "GitHub Actions security audit run 30262812402",
+      "result": "passed on Ubuntu 24.04 at 374500e53b460541ac767ffe318e6f0aca702152; 250 files, zero findings, 61/61 focused tests"
+    },
+    {
+      "command": "GitHub Actions automated matrix run 30262812267",
+      "result": "passed; Node 22 and Node 24 each passed 205/205 with zero failures and zero skips"
+    },
+    {
+      "command": "GitHub Actions Linux/systemd runs 30262812286, 30262812293, and 30262812301",
+      "result": "passed; least-privilege lifecycle, x64/arm64 release, and upgrade/rollback gates are green"
+    }
+  ],
+  "evidence": [
+    "evidence/M6.3-security-secret-audit.md",
+    "evidence/M6.3/security-audit-summary.json",
+    "evidence/M6.3/github-actions-summary.json",
+    "evidence/M6.3/local-test-summary.json"
+  ],
   "observations": {
     "task_scope": "Audit repository and runtime boundaries for secret disclosure, crash-dump exposure, admin authorization, path traversal, SSRF, and open-proxy behavior.",
-    "starting_point": "M6.1 passed the automated matrix and existing redaction, authorization, proxy-path, and systemd tests; M6.3 must assemble a fail-closed audit, close uncovered gaps, and preserve sanitized evidence.",
-    "protocol_boundary": "The audit uses synthetic fixtures only. It does not configure a real account, test account switching, or claim in-flight or seamless continuity."
+    "test_first": "The first contract lacked a runner; the first repository audit then failed closed on three live-shaped synthetic fixtures before the clean run.",
+    "implemented_audit": "The policy and runner scan tracked and non-ignored untracked files, reject unscanned or dangerous files, execute zero-skip focused tests, and bind unchanged UI code to a strict prior Linux baseline.",
+    "crash_dump_hardening": "All three systemd services set LimitCORE=0 before credential loading, enforced by a shared contract and native Linux lifecycle verification.",
+    "security_result": "The downloaded GitHub summary scanned 250 files with no findings and passed 61/61 focused tests; the complete Node 22 and Node 24 matrices each passed 205/205 with zero skips.",
+    "protocol_boundary": "Only synthetic fixtures and loopback services were used. No real account was configured or switched, and no seamless or in-flight continuity claim is made.",
+    "next_task": "M6.4 is ready under EX-SKIP-M6.2-SOAK, but its release documentation must list the rejected 24-hour soak gate explicitly."
   },
   "blockers": [],
   "residual_risks": [
-    "The security audit has not yet run.",
-    "The skipped M6.2 24-hour acceptance remains an explicit release-gate exception."
+    "M6.2 remains rejected because the required 24-hour soak was skipped; M6.3 does not waive it.",
+    "Real-account protocol and account-switch E2E gates remain deferred and no cross-account continuity is verified.",
+    "The upstream origin is trusted operator configuration; inbound request targets and headers cannot select it.",
+    "Pattern scanning cannot prove absence of every possible secret encoding."
   ],
-  "updated_at": "2026-07-27T19:30:00+08:00"
+  "updated_at": "2026-07-27T19:44:00+08:00"
 }

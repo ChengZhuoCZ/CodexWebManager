@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "task": "M6.3",
+  "branch": "codex/m6-3-security-audit",
+  "head_sha": "374500e53b460541ac767ffe318e6f0aca702152",
+  "conclusion": "success",
+  "security_audit": {
+    "run_id": 30262812402,
+    "job_id": 89966452126,
+    "runner": "ubuntu-24.04",
+    "conclusion": "success",
+    "artifact_name": "m6-3-security-audit",
+    "summary_sha256": "b47198f253b1e1c2b4013ee330ad52edeedf50675cd7a83be5a40b49ea37cb2c",
+    "run_url": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/30262812402"
+  },
+  "strict_test_matrix": {
+    "run_id": 30262812267,
+    "conclusion": "success",
+    "node_22": {
+      "job_id": 89966451850,
+      "tests": 205,
+      "passed": 205,
+      "failed": 0,
+      "skipped": 0,
+      "summary_sha256": "633449bd41059af416971a7fe03a47d070f66a7e33c81ba98121a5a93b0ad850"
+    },
+    "node_24": {
+      "job_id": 89966452053,
+      "tests": 205,
+      "passed": 205,
+      "failed": 0,
+      "skipped": 0,
+      "summary_sha256": "eb646dce4d58002a70865914f465072ad3e1a60c7949f467c7aba0f0f0e3ce1c"
+    },
+    "run_url": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/30262812267"
+  },
+  "linux_regressions": [
+    {
+      "workflow": "systemd least privilege",
+      "run_id": 30262812286,
+      "job_ids": [
+        89966451712
+      ],
+      "conclusion": "success"
+    },
+    {
+      "workflow": "Linux headless release",
+      "run_id": 30262812293,
+      "job_ids": [
+        89966451910,
+        89966451926
+      ],
+      "architectures": [
+        "x64",
+        "arm64"
+      ],
+      "conclusion": "success"
+    },
+    {
+      "workflow": "systemd upgrade and rollback",
+      "run_id": 30262812301,
+      "job_ids": [
+        89966451731
+      ],
+      "conclusion": "success"
+    }
+  ],
+  "real_account_configured": false,
+  "account_switch_tested": false,
+  "seamless_account_continuity_claimed": false
+}
