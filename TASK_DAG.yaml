@@ -331,7 +331,7 @@ milestones:
           - Revocation and credential rotation remain explicit operator actions
       - id: M6.7
         title: Persist the authorized real account in the web session
-        status: in_progress
+        status: done
         depends_on: [M6.6, G-SECRETS]
         acceptance:
           - App Server and codex-web read the same user-authorized ChatGPT credential from private server-only files

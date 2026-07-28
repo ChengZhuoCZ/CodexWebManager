@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M6.7",
-  "status": "in_progress",
+  "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-SKIP-M6.2-SOAK",
@@ -14,7 +14,7 @@
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf"
   },
-  "output_revision": null,
+  "output_revision": "6ef78847a9b8b8fccc55b5f3014529e022ca9d09",
   "workspace_branch": "codex/m6-7-persistent-real-account",
   "workspace_input_revision": "25ad185a85526c96ef6aad2b8b5f04f8ad39d958",
   "depends_on": [
@@ -28,7 +28,20 @@
     "evidence/M6.7/test-summary.json",
     "evidence/M6.7/linux-deployment-summary.json"
   ],
-  "tests": [],
+  "tests": [
+    {
+      "command": "/Users/chengzhuo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --test packages/account-router/test/release-docs-contract.test.mjs packages/account-router/test/security-audit-contract.test.mjs packages/account-router/test/systemd-units.test.mjs",
+      "result": "18 passed, 0 failed, 0 skipped"
+    },
+    {
+      "command": "M6_3_CODEX_WEB_ROOT=/private/tmp/m67-pristine-codex-web /Users/chengzhuo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node packages/account-router/scripts/run-security-audit.mjs --summary /private/tmp/codex-m6-7-security/summary-final.json",
+      "result": "78 passed, 0 failed, 0 skipped; 291 repository files scanned, 0 secret findings"
+    },
+    {
+      "command": "private production browser IPC account probe before and after restarting codex-app-server.service and codex-web.service",
+      "result": "HTTP 200, browser IPC open, ChatGPT account present, sign-in absent, composer present before and after restart"
+    }
+  ],
   "evidence": [
     "evidence/M6.7-persistent-real-account.md",
     "evidence/M6.7/test-summary.json",
@@ -48,13 +61,15 @@
       "expected_result": "Use the already authorized real ChatGPT account in App Server and codex-web private homes so fresh Tailnet pages show the account and open the composer without login."
     },
     "scope_boundary": "This task persists one already user-authorized real account in private server files. It does not add or switch accounts, test model execution, claim cross-account continuity, or expose credentials in evidence.",
-    "result": "in progress"
+    "result": "The already authorized ChatGPT credential is persisted in the App Server and codex-web private homes. Fresh browser sessions opened the composer without a login prompt before and after service restarts. Temporary probe and backup files were removed."
   },
   "blockers": [],
   "residual_risks": [
     "Every Tailnet device allowed to reach port 8214 will receive the same high-privilege real account and workspace access.",
+    "Three private copies of the live account credential increase the impact of a server or service-user compromise.",
     "The real account login can expire or be revoked and must then be authorized again.",
+    "Host reboot persistence was not tested; only independent service restarts were verified.",
     "Account switching and cross-account continuity remain outside M6.7."
   ],
-  "updated_at": "2026-07-28T19:48:51+08:00"
+  "updated_at": "2026-07-28T20:06:41+08:00"
 }
