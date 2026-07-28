@@ -13,12 +13,13 @@ new-request A-to-B switch cannot be executed.
 - weekly quota and explicit pre-semantic HTTP/SSE/WebSocket failure matrices
   pass with bounded attempts, backoff, and total deadline;
 - no replay after semantic output is enforced;
-- 8216 Brotli delivery, startup background, signed-in composer, single-account
-  model request, and post-fix log boundary are verified;
+- 8216 reproducible esbuild minification, Brotli delivery, startup background,
+  signed-in composer, single-account model request, and post-fix log boundary
+  are verified in release r10;
 - 8215 remained active, independent, and HTTP 200;
-- strict matrix: 253/253;
+- strict matrix: 255/255;
 - focused security tests: 82/82;
-- repository secret scan: 316 files, zero findings.
+- repository secret scan: 317 files, zero findings.
 
 ## Required external input
 

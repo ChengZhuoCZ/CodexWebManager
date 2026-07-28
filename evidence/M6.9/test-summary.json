@@ -2,15 +2,15 @@
   "schema_version": 1,
   "task": "M6.9",
   "input_revision": "d41f2f282390f3f95e6795dd713d657b51788cc5",
-  "implementation_revision": "3a4c669642c06132bebae5ab9333fc2839f2541c",
+  "implementation_revision": "628aa851010c11649681efc3e64fc9ee08added4",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "commands": [
     {
       "command": "<bundled-node> --test",
       "result": {
-        "tests": 253,
-        "passed": 228,
+        "tests": 255,
+        "passed": 230,
         "failed": 0,
         "skipped": 25,
         "skip_reason": "Pinned codex-web fixture variables were intentionally absent."
@@ -19,11 +19,11 @@
     {
       "command": "M4_2_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_3_CODEX_WEB_ROOT=<clean-888692f-fixture> M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
       "result": {
-        "tests": 253,
-        "passed": 253,
+        "tests": 255,
+        "passed": 255,
         "failed": 0,
         "skipped": 0,
-        "unit": 137,
+        "unit": 139,
         "integration": 69,
         "e2e": 47
       }
@@ -36,7 +36,7 @@
         "security_tests_passed": 82,
         "security_tests_failed": 0,
         "security_tests_skipped": 0,
-        "repository_files_scanned": 316,
+        "repository_files_scanned": 317,
         "findings": 0,
         "strict_ui_tests": 492,
         "strict_ui_passed": 492
@@ -54,6 +54,18 @@
         "passed": true,
         "upstream_connection_count_for_two_requests": 1
       }
+    },
+    {
+      "command": "<bundled-node> integrations/codex-web-upstream/build-minified-precompressed-asset.mjs --asset <absolute-final-patched-asset> --esbuild <absolute-esbuild-0.27.0> --expected-sha256 2b7df9ee...",
+      "result": {
+        "passed": true,
+        "esbuild_version": "0.27.0",
+        "input_bytes": 22822120,
+        "output_bytes": 14138809,
+        "gzip_bytes": 4345029,
+        "brotli_bytes": 3293232,
+        "output_sha256": "3376a894219534630a550a314f4e64f1fa3e85cd12e76d32d0fdb7381c2645a9"
+      }
     }
   ],
   "failure_injections": {
@@ -66,23 +78,46 @@
     "sse_after_semantic_output": "unsafe_to_replay",
     "websocket_after_semantic_output": "unsafe_to_replay"
   },
+  "non_final_test_attempts": [
+    {
+      "command": "<bundled-node> --test in restricted filesystem sandbox",
+      "result": "environment failure: loopback listen returned EPERM; the identical command passed outside that restriction"
+    },
+    {
+      "command": "strict matrix with the existing temporary 888692f scratch fixture",
+      "result": "one E2E fixture-copy failure caused by five stale ?v=m68r22 references in /private/tmp; the temporary fixture was cleaned without changing the repository and the full rerun passed 255/255"
+    }
+  ],
   "live_browser": {
     "composer_present": true,
     "account_signed_in": true,
     "dark_startup_background": "rgb(24 24 24)",
     "r9_usable_screen_ms": 6531,
+    "r10_usable_screen_ms": [
+      4280,
+      1861,
+      2002
+    ],
     "single_account_model_request_completed": true,
-    "single_account_model_request_ms": 7652,
+    "r10_single_account_model_request_completed": true,
     "active_generation_observed": true,
     "prompt_or_response_body_recorded": false
   },
   "log_boundary": {
     "standard_output": "null",
     "standard_error": "journal",
-    "post_fix_journal_lines": 5,
+    "r10_model_check_journal_lines": 0,
     "sentinel_matches": 0,
     "electron_ipc_matches": 0,
     "credential_account_cookie_or_body_pattern_matches": 0
+  },
+  "deployed_asset": {
+    "release": "c3e92f0f-20260729-m69-router-r10",
+    "served_identity_sha256": "3376a894219534630a550a314f4e64f1fa3e85cd12e76d32d0fdb7381c2645a9",
+    "syntax_checked": true,
+    "gzip_and_brotli_decode_to_identity": true,
+    "browser_syntax_or_chunk_load_errors": 0,
+    "existing_immutable_cache_may_require_one_reload": true
   },
   "real_two_account_e2e": {
     "executed": false,

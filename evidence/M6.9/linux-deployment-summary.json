@@ -4,15 +4,14 @@
   "implementation_mode": "clean-room",
   "router_release": "codex-account-router-0.2.2-linux-x64",
   "router_artifact_sha256": "c9c35a4f13550b6559c41d480da94f943bd6e315f5dc0d71cbb6d26e835de191",
-  "routed_codex_web_release": "c3e92f0f-20260729-m69-router-r9",
+  "routed_codex_web_release": "c3e92f0f-20260729-m69-router-r10",
   "standalone_codex_web_port": 8215,
   "routed_codex_web_port": 8216,
   "services": {
     "codex_account_router": "active",
     "codex_web_router_app_server": "active",
     "codex_web_router": "active",
-    "codex_web_upstream_app_server": "active",
-    "codex_web_upstream": "active"
+    "standalone_codex_web_8215": "active"
   },
   "http": {
     "standalone_8215": 200,
@@ -20,7 +19,12 @@
   },
   "standalone_8215": {
     "restarted_or_reconfigured_by_m6_9": false,
-    "active_enter_timestamp": "2026-07-29 04:02:49 CST"
+    "active_enter_timestamp": "2026-07-29 02:33:56 CST"
+  },
+  "routed_8216": {
+    "active_enter_timestamp": "2026-07-29 06:05:16 CST",
+    "standard_output": "null",
+    "standard_error": "journal"
   },
   "router": {
     "status": "ready",
@@ -31,18 +35,30 @@
     "atomic_enrollment_cli_installed": true
   },
   "main_bundle": {
-    "identity_bytes": 22822120,
-    "gzip_bytes": 5116196,
-    "brotli_bytes": 3739265,
-    "brotli_reduction_from_gzip_percent": 26.9,
+    "patched_input_bytes": 22822120,
+    "identity_bytes": 14138809,
+    "gzip_bytes": 4345029,
+    "brotli_bytes": 3293232,
+    "decoded_size_reduction_percent": 38.0,
+    "gzip_reduction_from_r9_percent": 15.1,
+    "brotli_reduction_from_r9_percent": 11.9,
+    "brotli_reduction_from_gzip_percent": 24.2,
+    "input_sha256": "2b7df9eeaaeb95d4c268f5cc4ad5539fa1ea1c87bbcec8a7df0ab87c0da368cf",
+    "identity_sha256": "3376a894219534630a550a314f4e64f1fa3e85cd12e76d32d0fdb7381c2645a9",
+    "esbuild_version": "0.27.0",
     "decoded_bodies_equal": true,
     "cache_control": "public, max-age=31536000, immutable",
     "vary": "Accept-Encoding"
   },
   "browser": {
     "composer_present": true,
-    "dark_startup_background": "rgb(24 24 24)",
-    "single_account_model_request_completed": true
+    "r10_usable_screen_ms": [
+      4280,
+      1861,
+      2002
+    ],
+    "single_account_model_request_completed": true,
+    "syntax_or_chunk_load_errors": 0
   },
   "logging": {
     "routed_standard_output": "null",
@@ -50,9 +66,12 @@
     "post_fix_sensitive_pattern_matches": 0,
     "historical_pre_fix_journal_retention_risk": true
   },
+  "cache_rollout": {
+    "same_upstream_content_hashed_filename_retained": true,
+    "existing_r9_immutable_cache_may_require_one_reload": true
+  },
   "real_two_account_e2e_executed": false,
   "account_switch_scenario_executed": false,
   "seamless_account_continuity_claimed": false,
   "in_flight_computation_resume_claimed": false
 }
-
