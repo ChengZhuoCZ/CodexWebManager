@@ -2,7 +2,7 @@
   "schema_version": 1,
   "task": "M6.9",
   "input_revision": "d41f2f282390f3f95e6795dd713d657b51788cc5",
-  "implementation_revision": "628aa851010c11649681efc3e64fc9ee08added4",
+  "implementation_revision": "d2f5b03ce9746a72a6580a01e21dad17b2cec03b",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "commands": [
@@ -43,28 +43,25 @@
       }
     },
     {
-      "command": "<bundled-node> --test test/account-enrollment.test.mjs test/codex-credentials.test.mjs test/linux-release.test.mjs test/release-docs-contract.test.mjs test/test-matrix-contract.test.mjs",
-      "result": {
-        "passed": true
-      }
-    },
-    {
-      "command": "<bundled-node> --test test/failover-proxy.test.mjs test/codex-web-upstream-fastpath.test.mjs",
+      "command": "<bundled-node> --check integrations/codex-web-upstream/build-minified-precompressed-asset.mjs && <bundled-node> --test test/codex-web-upstream-fastpath.test.mjs",
       "result": {
         "passed": true,
-        "upstream_connection_count_for_two_requests": 1
+        "focused_tests": 7
       }
     },
     {
-      "command": "<bundled-node> integrations/codex-web-upstream/build-minified-precompressed-asset.mjs --asset <absolute-final-patched-asset> --esbuild <absolute-esbuild-0.27.0> --expected-sha256 2b7df9ee...",
+      "command": "<bundled-node> integrations/codex-web-upstream/build-minified-precompressed-asset.mjs --asset <absolute-final-patched-asset> --expected-sha256 2b7df9ee... --index <absolute-index> --expected-index-sha256 e4f70043... --esbuild <absolute-esbuild-0.27.0>",
       "result": {
         "passed": true,
         "esbuild_version": "0.27.0",
+        "asset_url": "./assets/app-initial-BTphDPeq.js?v=3376a89421953463",
         "input_bytes": 22822120,
         "output_bytes": 14138809,
         "gzip_bytes": 4345029,
         "brotli_bytes": 3293232,
-        "output_sha256": "3376a894219534630a550a314f4e64f1fa3e85cd12e76d32d0fdb7381c2645a9"
+        "output_sha256": "3376a894219534630a550a314f4e64f1fa3e85cd12e76d32d0fdb7381c2645a9",
+        "index_input_sha256": "e4f70043d26d402c93abdf9e9ecbbdb3a4af4b1f92aaf49d6b3b77f486706139",
+        "index_output_sha256": "1ea73bdcd7a5ef303e9435796b58dc2cb66ba7916084c0afe7c9c1b8851c13fc"
       }
     }
   ],
@@ -85,39 +82,56 @@
     },
     {
       "command": "strict matrix with the existing temporary 888692f scratch fixture",
-      "result": "one E2E fixture-copy failure caused by five stale ?v=m68r22 references in /private/tmp; the temporary fixture was cleaned without changing the repository and the full rerun passed 255/255"
+      "result": "one E2E fixture-copy failure caused by five stale cache-query suffixes in /private/tmp; the temporary fixture was cleaned without changing the repository and the full rerun passed 255/255"
     }
   ],
   "live_browser": {
     "composer_present": true,
     "account_signed_in": true,
-    "dark_startup_background": "rgb(24 24 24)",
     "r9_usable_screen_ms": 6531,
     "r10_usable_screen_ms": [
       4280,
       1861,
       2002
     ],
+    "r11_usable_screen_ms": [
+      15271,
+      6332
+    ],
+    "r11_import_map_count": 1,
+    "r11_import_map_and_preload_url_match": true,
     "single_account_model_request_completed": true,
-    "r10_single_account_model_request_completed": true,
-    "active_generation_observed": true,
+    "r11_single_account_model_request_completed": true,
     "prompt_or_response_body_recorded": false
+  },
+  "server_local_timing": {
+    "root_total_ms": [
+      1.46,
+      1.185,
+      0.474
+    ],
+    "brotli_asset_total_ms": [
+      4.391,
+      3.731,
+      4.3
+    ]
   },
   "log_boundary": {
     "standard_output": "null",
     "standard_error": "journal",
-    "r10_model_check_journal_lines": 0,
-    "sentinel_matches": 0,
-    "electron_ipc_matches": 0,
-    "credential_account_cookie_or_body_pattern_matches": 0
+    "r11_model_check_journal_lines": 13,
+    "syntax_chunk_or_unhandled_error_matches": 0,
+    "prompt_credential_account_cookie_or_body_pattern_matches": 0
   },
   "deployed_asset": {
-    "release": "c3e92f0f-20260729-m69-router-r10",
+    "release": "c3e92f0f-20260729-m69-router-r11",
+    "asset_url": "./assets/app-initial-BTphDPeq.js?v=3376a89421953463",
     "served_identity_sha256": "3376a894219534630a550a314f4e64f1fa3e85cd12e76d32d0fdb7381c2645a9",
+    "served_index_sha256": "1ea73bdcd7a5ef303e9435796b58dc2cb66ba7916084c0afe7c9c1b8851c13fc",
     "syntax_checked": true,
     "gzip_and_brotli_decode_to_identity": true,
-    "browser_syntax_or_chunk_load_errors": 0,
-    "existing_immutable_cache_may_require_one_reload": true
+    "blocking_browser_syntax_or_chunk_load_error_observed": false,
+    "normal_navigation_busts_pre_r11_immutable_main_module": true
   },
   "real_two_account_e2e": {
     "executed": false,
