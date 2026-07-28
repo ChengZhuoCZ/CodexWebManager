@@ -285,6 +285,11 @@ ss -lnt
 Logs are structured and redacted, but still treat journals as sensitive operational data. Do not
 enable request/response body logging.
 
+The routed `codex-web-router.service` deliberately uses `StandardOutput=null`
+because the upstream Electron compatibility layer may print complete IPC
+messages. Keep `StandardError=journal` for bounded startup failures, and do not
+enable routed standard-output journaling until message-level redaction exists.
+
 ## Rotate credentials
 
 Schedule rotation through the credential provider and keep old values valid only for the shortest

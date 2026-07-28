@@ -40,7 +40,10 @@ RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 StateDirectory=codex-web-router
 StateDirectoryMode=0700
 ReadWritePaths=/srv/codex-workspaces /var/lib/codex-web-router
-StandardOutput=journal
+# The upstream Electron compatibility stub logs complete IPC messages, which
+# can contain prompt/response bodies. Keep its standard output out of journald;
+# bounded operational failures remain available on standard error.
+StandardOutput=null
 StandardError=journal
 SyslogIdentifier=codex-web-router
 

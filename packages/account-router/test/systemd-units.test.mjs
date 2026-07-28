@@ -179,6 +179,12 @@ test("routed upstream codex-web uses separate state, socket, and port without to
     "codex-web-router-app-server",
   );
   assert.equal(
+    only(web, "Service.StandardOutput"),
+    "null",
+    "the upstream Electron compatibility layer must not journal IPC or model bodies",
+  );
+  assert.equal(only(web, "Service.StandardError"), "journal");
+  assert.equal(
     only(web, "Service.ExecStart"),
     "/usr/bin/node /opt/0xcaff-codex-web-router/current/src/server/main.js --host 127.0.0.1 --port 8216",
   );

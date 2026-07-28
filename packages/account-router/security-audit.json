@@ -14,7 +14,8 @@
   "controls": {
     "logs": {
       "test_files": [
-        "test/redaction.test.mjs"
+        "test/redaction.test.mjs",
+        "test/systemd-units.test.mjs"
       ]
     },
     "crash_dumps": {
