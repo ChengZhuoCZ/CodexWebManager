@@ -192,13 +192,15 @@ main().catch(() => { process.stderr.write("fixture bridge failed\\n"); process.e
     patchedShim,
     /LOCAL_DISABLED_INVOKE_CHANNELS\.has\(channel\)[\s\S]*channel unavailable in browser mode/,
   );
-  assert.match(
-    patchedShim,
-    /LOCAL_DISABLED_INVOKE_CHANNELS = new Set\(\[[\s\S]*codex_desktop:connect-app-host[\s\S]*\]\)/,
-  );
+  const disabledInvokeChannels =
+    /LOCAL_DISABLED_INVOKE_CHANNELS = new Set\(\[([\s\S]*?)\]\);/u.exec(
+      patchedShim,
+    )?.[1];
+  assert.equal(typeof disabledInvokeChannels, "string");
+  assert.match(disabledInvokeChannels, /codex_desktop:connect-app-host/u);
   assert.doesNotMatch(
-    patchedShim,
-    /LOCAL_DISABLED_INVOKE_CHANNELS = new Set\(\[[\s\S]*codex_desktop:worker:git:from-view[\s\S]*\]\)/,
+    disabledInvokeChannels,
+    /codex_desktop:worker:git:from-view/u,
   );
   assert.match(
     patchedShim,
