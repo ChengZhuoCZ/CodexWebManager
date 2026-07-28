@@ -1,6 +1,6 @@
 --- a/src/server/main.js
 +++ b/src/server/main.js
-@@ -258,11 +258,17 @@
+@@ -258,9 +258,14 @@
      await app.register(static_1.default, {
          root: node_path_1.default.resolve(__dirname, "../../scratch/asar/webview"),
          prefix: "/",

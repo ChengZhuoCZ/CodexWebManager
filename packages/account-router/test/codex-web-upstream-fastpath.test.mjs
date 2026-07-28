@@ -1,9 +1,11 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import { gunzipSync, brotliDecompressSync } from "node:zlib";
 
 import {
@@ -100,7 +102,7 @@ test("fails closed for malformed or oversized input without reflecting it", () =
   assert.equal(localStartupRpcResponse("x".repeat(1024 * 1024 + 1)), null);
 });
 
-test("precompressed asset patch delegates negotiation and validators to the pinned static plugin", async () => {
+test("precompressed asset patch delegates negotiation and validators to the pinned static plugin", async (context) => {
   const patch = await readFile(precompressedAssetPatch, "utf8");
 
   assert.match(patch, /preCompressed:\s*true/);
@@ -111,6 +113,34 @@ test("precompressed asset patch delegates negotiation and validators to the pinn
   assert.match(patch, /setHeader\(["']Vary["'],\s*["']Accept-Encoding["']\)/);
   assert.doesNotMatch(patch, /createReadStream|acceptsEncoding|Content-Encoding/);
   assert.doesNotMatch(patch, /backend-api|responses|Authorization|Cookie/);
+
+  const directory = await mkdtemp(path.join(os.tmpdir(), "codex-static-patch-"));
+  context.after(() => rm(directory, { recursive: true, force: true }));
+  const serverDirectory = path.join(directory, "src", "server");
+  await mkdir(serverDirectory, { recursive: true });
+  await writeFile(
+    path.join(serverDirectory, "main.js"),
+    `    await app.register(static_1.default, {
+        root: node_path_1.default.resolve(__dirname, "../../scratch/asar/webview"),
+        prefix: "/",
+        cacheControl: false,
+        setHeaders(response, filePath) {
+            response.setHeader("Cache-Control", cacheControlForWebviewFile(filePath));
+        },
+    });
+    app.get("/", async (_request, reply) => {
+`,
+  );
+  const dryRun = spawnSync(
+    "patch",
+    ["-p1", "--dry-run", "-i", fileURLToPath(precompressedAssetPatch)],
+    { cwd: directory, encoding: "utf8" },
+  );
+  assert.equal(
+    dryRun.status,
+    0,
+    `patch dry-run failed: ${dryRun.stderr || dryRun.stdout}`,
+  );
 });
 
 test("startup background patch replaces the transparent white flash without changing requests", async () => {
