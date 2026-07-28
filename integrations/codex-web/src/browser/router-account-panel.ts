@@ -47,7 +47,6 @@ type RouterAccountStatus = {
   alias: string;
   state: AccountState;
   enabled: boolean;
-  five_hour_remaining_ratio: number | null;
   weekly_remaining_ratio: number | null;
   snapshot_observed_at: string | null;
   cooldown_until: string | null;
@@ -67,7 +66,6 @@ export type RouterAccountPanelItem = {
   alias: string;
   state: AccountState;
   stateLabel: string;
-  fiveHourLabel: string;
   weeklyLabel: string;
   cooldownLabel: string;
   lastSwitchLabel: string;
@@ -154,7 +152,6 @@ function readRouterStatus(value: unknown): RouterStatus {
       alias: readAlias(candidate.alias),
       state: candidate.state as AccountState,
       enabled: candidate.enabled,
-      five_hour_remaining_ratio: readRatio(candidate.five_hour_remaining_ratio),
       weekly_remaining_ratio: readRatio(candidate.weekly_remaining_ratio),
       snapshot_observed_at: readTimestamp(candidate.snapshot_observed_at),
       cooldown_until: readTimestamp(candidate.cooldown_until),
@@ -231,7 +228,6 @@ export function deriveRouterAccountPanelModel(value: unknown): RouterAccountPane
           alias: account.alias,
           state: account.state,
           stateLabel: titleCase(account.state),
-          fiveHourLabel: ratioLabel(account.five_hour_remaining_ratio),
           weeklyLabel: ratioLabel(account.weekly_remaining_ratio),
           cooldownLabel:
             account.cooldown_until === null ? "None" : `Until ${account.cooldown_until}`,
@@ -320,7 +316,6 @@ function renderPanel(
     if (account.isCurrent) head.append(element("span", "current", "Current"));
     const description = element("dl");
     description.append(
-      detailRow("5-hour quota", account.fiveHourLabel),
       detailRow("Weekly quota", account.weeklyLabel),
       detailRow("Cooldown", account.cooldownLabel),
       detailRow("Last switch", account.lastSwitchLabel),

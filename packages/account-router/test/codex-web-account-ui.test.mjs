@@ -77,17 +77,19 @@ async function compilePanel(context) {
   return import(pathToFileURL(path.join(directory, "router-account-panel.js")).href);
 }
 
-integrationTest("derives only the minimal sanitized account fields and labels unknown quota", async (context) => {
+integrationTest("derives weekly-only quota display while ignoring the legacy five-hour field", async (context) => {
   const { deriveRouterAccountPanelModel } = await compilePanel(context);
   const status = statusFixture();
   status.accounts[0].credential_ref = "must-not-pass";
   status.accounts[0].token = "must-not-pass";
+  status.accounts[0].five_hour_remaining_ratio = "legacy-value-is-ignored";
+  delete status.accounts[1].five_hour_remaining_ratio;
   const model = deriveRouterAccountPanelModel(status);
 
   assert.equal(model.activeStreams, 0);
   assert.equal(model.allExhausted, false);
   assert.equal(model.accounts[0].alias, "Fixture A");
-  assert.equal(model.accounts[0].fiveHourLabel, "76%");
+  assert.equal(Object.hasOwn(model.accounts[0], "fiveHourLabel"), false);
   assert.equal(model.accounts[0].weeklyLabel, "Unavailable");
   assert.equal(model.accounts[0].cooldownLabel, "None");
   assert.equal(model.accounts[0].lastSwitchLabel, "Startup");
@@ -174,6 +176,7 @@ integrationTest("pinned browser overlay bundles without writing to the upstream 
   assert.equal(build.status, 0, `${build.stdout}\n${build.stderr}`);
   const output = await fs.readFile(path.join(directory, "scratch", "asar", "webview", "assets", "preload.js"), "utf8");
   assert.match(output, /Router accounts/);
+  assert.doesNotMatch(output, /5-hour quota|fiveHourLabel/);
   assert.match(output, /Cross-account continuity is not verified/);
   const trackedDiff = spawnSync("git", ["-C", codexWebRoot, "diff", "--quiet", "--exit-code"]);
   assert.equal(trackedDiff.status, 0);

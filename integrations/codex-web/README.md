@@ -84,8 +84,9 @@ same-origin, `no-store`, size-bounded, and use fixed error codes.
 ## Minimal account panel
 
 When status reports `enabled:true`, a Shadow DOM panel shows only account alias, state,
-five-hour and weekly quota, cooldown, last switch reason, and the current route. Unknown
-quota is displayed as `Unavailable`; it is never guessed as zero or full. When every
+weekly quota, cooldown, last switch reason, and the current route. Unknown weekly quota
+is displayed as `Unavailable`; it is never guessed as zero or full. Legacy five-hour
+status input is tolerated but ignored by the browser view model. When every
 enabled account is quota exhausted, the panel displays that condition explicitly.
 
 Manual switch buttons are disabled while `active_streams` is nonzero, for the current

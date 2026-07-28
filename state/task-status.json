@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M5.4",
-  "status": "done",
+  "current_task": "M4.4",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-SKIP-M6.2-SOAK",
@@ -10,109 +10,48 @@
     "EX-SKIP-M6.2-SOAK"
   ],
   "input_revisions": {
-    "workspace": "9c853aec4bc6b170f4dd873537a655bf25929587",
-    "server_release": "codex-account-router-0.2.0-linux-x64",
-    "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
-    "server_codex_cli": "codex-cli 0.145.0"
+    "workspace": "bddb821e9763f80d7a3c45c6f0bde090d84d3066",
+    "server_router_release": "codex-account-router-0.2.1-linux-x64",
+    "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf"
   },
-  "output_revision": "2bb326708c57311549a8a58f61a95c0b299cb256",
-  "workspace_branch": "codex/m5-4-weekly-quota-deploy",
-  "workspace_input_revision": "9c853aec4bc6b170f4dd873537a655bf25929587",
+  "output_revision": null,
+  "workspace_branch": "codex/m4-4-remove-five-hour-display",
+  "workspace_input_revision": "bddb821e9763f80d7a3c45c6f0bde090d84d3066",
   "depends_on": [
     "M2.5",
-    "M5.3"
+    "M4.3",
+    "M5.4"
   ],
   "expected_outputs": [
-    "packages/account-router/package.json",
-    "packages/account-router/test/linux-release.test.mjs",
-    "docs/operator-guide.md",
-    "docs/linux-upgrade-rollback.md",
-    "packages/account-router/README.md",
-    "evidence/M5.4-weekly-quota-deployment.md",
-    "evidence/M5.4/local-test-summary.json",
-    "evidence/M5.4/linux-deployment-summary.json"
+    "integrations/codex-web/src/browser/router-account-panel.ts",
+    "packages/account-router/test/codex-web-account-ui.test.mjs",
+    "packages/account-router/scripts/run-codex-web-account-ui.mjs",
+    "integrations/codex-web/README.md",
+    "evidence/M4.4-remove-five-hour-display.md",
+    "evidence/M4.4/test-summary.json",
+    "evidence/M4.4/linux-deployment-summary.json"
   ],
-  "tests": [
-    {
-      "stage": "test_first",
-      "command": "<bundled-node> --test test/linux-release.test.mjs",
-      "result": "expected failure: 1 passed, 1 failed because the release still identified itself as 0.2.0"
-    },
-    {
-      "stage": "focused_release_regression",
-      "command": "<bundled-node> --test test/linux-release.test.mjs test/deployment-manager.test.mjs test/release-docs-contract.test.mjs",
-      "result": "passed: 9 passed, 0 failed, 0 skipped"
-    },
-    {
-      "stage": "syntax_check",
-      "command": "PATH=<bundled-node> npm run check",
-      "result": "passed"
-    },
-    {
-      "stage": "full_matrix",
-      "command": "M4_1_CODEX_WEB_ROOT=<pinned-checkout> M4_2_CODEX_WEB_ROOT=<pinned-checkout> M4_3_CODEX_WEB_ROOT=<pinned-checkout> M6_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> scripts/run-test-matrix.mjs --suite all --summary <private-summary>",
-      "result": "passed: 235 passed, 0 failed, 0 skipped"
-    },
-    {
-      "stage": "security_audit",
-      "command": "M4_2_CODEX_WEB_ROOT=<pinned-checkout> M6_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> scripts/run-security-audit.mjs --summary <private-summary>",
-      "result": "passed after evidence generation: 279 files scanned, 0 findings; 75 passed, 0 failed, 0 skipped"
-    },
-    {
-      "stage": "reproducible_build",
-      "command": "<bundled-node> scripts/build-linux-release.mjs --arch x64 --output <private-output> --source-date-epoch 0",
-      "result": "passed: SHA-256 c65babdc487da9bb9a6859bf6efdb5b51558319c7c759c1a794f1e8cc2247896 before and after commit metadata correction"
-    },
-    {
-      "stage": "native_linux_release",
-      "command": "node scripts/verify-linux-release.mjs --artifact <uploaded-archive> --arch x64 --summary <private-summary>",
-      "result": "passed: archive checksum and 44 payload files verified; temporary install health 200; empty readiness 503/no_accounts; clean SIGTERM"
-    },
-    {
-      "stage": "controlled_upgrade",
-      "command": "sudo <staged-release>/bin/codex-stack-deploy upgrade --release-dir <staged-release>",
-      "result": "passed: activated 0.2.1 with private snapshot and credentials excluded"
-    },
-    {
-      "stage": "single_account_real_smoke",
-      "command": "CODEX_HOME=<private-login> timeout 120 codex -c openai_base_url=<loopback-router> exec <fixed-output-prompt>",
-      "result": "passed: exit 0, fixed response matched, router readiness remained 200, no account switch"
-    },
-    {
-      "stage": "tailnet_web_health",
-      "command": "curl --max-time 8 http://<tailnet-server>:8214/__backend/healthz",
-      "result": "passed: HTTP 200 with sanitized ok response"
-    }
-  ],
-  "evidence": [
-    "evidence/M5.4-weekly-quota-deployment.md",
-    "evidence/M5.4/local-test-summary.json",
-    "evidence/M5.4/linux-deployment-summary.json",
-    "packages/account-router/test/linux-release.test.mjs"
-  ],
+  "tests": [],
+  "evidence": [],
   "observations": {
     "start_record": {
       "repository": "ChengZhuoCZ/CodexWebManager",
-      "branch": "codex/m5-4-weekly-quota-deploy",
-      "commit": "9c853aec4bc6b170f4dd873537a655bf25929587",
+      "branch": "codex/m4-4-remove-five-hour-display",
+      "commit": "bddb821e9763f80d7a3c45c6f0bde090d84d3066",
       "dependencies": [
         "M2.5",
-        "M5.3"
+        "M4.3",
+        "M5.4"
       ],
-      "expected_result": "Build and deploy a distinct immutable release containing M2.5 while preserving rollback and the configured Primary account."
+      "expected_result": "Remove the obsolete five-hour quota row from the browser account panel, retain weekly quota, and deploy the rebuilt codex-web overlay."
     },
-    "server_precondition": "Primary is healthy, router readiness is HTTP 200, and a bounded real request returned ROUTER_OK through the 0.2.0 router.",
-    "deployment_boundary": "The server is a controlled evaluation target. No account switch, cross-account continuation, 24-hour soak, or seamless continuity claim is in scope.",
-    "artifact": "The immutable 0.2.1 Linux x64 archive contains the M2.5 weekly runtime and has SHA-256 c65babdc487da9bb9a6859bf6efdb5b51558319c7c759c1a794f1e8cc2247896.",
-    "deployment": "The checked deployment workflow upgraded 0.2.0 to 0.2.1, created snapshot 20260728T053940720Z-bed713d062e5, excluded credentials, and preserved the single Primary configuration and private credential slots.",
-    "server_result": "Router, App Server, and codex-web are active; router health/readiness and the direct Tailnet web health endpoint return HTTP 200.",
-    "real_account_result": "A bounded single-account request passed through 0.2.1 and produced a sanitized weekly remaining ratio of 1; five-hour remains unavailable and no switch reason was recorded."
+    "scope_boundary": "This is a display-only compatibility change. The router may continue accepting legacy five-hour fields internally; no account switch or protocol continuity experiment is performed."
   },
   "blockers": [],
   "residual_risks": [
-    "Only one real account is configured, so account switching cannot be tested.",
-    "Five-hour quota remains unavailable and weekly observations are not persisted across restart.",
-    "M6.2 remains rejected and this deployment is not production-release qualification."
+    "Only weekly quota is exposed in the current deployed UI.",
+    "One real account remains configured, so automatic account switching is not tested.",
+    "M6.2 remains rejected under the user-directed soak exception."
   ],
-  "updated_at": "2026-07-28T13:46:00+08:00"
+  "updated_at": "2026-07-28T13:57:22+08:00"
 }
