@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M2.5",
-  "status": "in_progress",
+  "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-SKIP-M6.2-SOAK",
@@ -14,7 +14,7 @@
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf",
     "codex-cli-observed": "codex-cli 0.144.5"
   },
-  "output_revision": null,
+  "output_revision": "ab57a1143aeb021a5a9c40d18132e5ea586a0d48",
   "workspace_branch": "codex/m2-5-weekly-quota-runtime",
   "workspace_input_revision": "c5f94baf951cae75456afaab4f1bd3ec85a4f328",
   "depends_on": [
@@ -34,8 +34,47 @@
     "evidence/M2.5-weekly-quota-runtime.md",
     "evidence/M2.5/test-summary.json"
   ],
-  "tests": [],
-  "evidence": [],
+  "tests": [
+    {
+      "stage": "test_first",
+      "command": "<bundled-node> --test test/weekly-quota-tracker.test.mjs test/scheduler.test.mjs test/failover-proxy.test.mjs test/websocket-failover.test.mjs test/runtime-weekly-quota.test.mjs",
+      "result": "expected failure: 22 passed, 5 failed"
+    },
+    {
+      "stage": "focused_regression",
+      "command": "<bundled-node> --test test/weekly-quota-tracker.test.mjs test/scheduler.test.mjs test/failover-proxy.test.mjs test/websocket-failover.test.mjs test/runtime-weekly-quota.test.mjs",
+      "result": "passed: 31 passed, 0 failed, 0 skipped"
+    },
+    {
+      "stage": "syntax_check",
+      "command": "PATH=<bundled-node> npm run check",
+      "result": "passed"
+    },
+    {
+      "stage": "full_matrix",
+      "command": "M4_1_CODEX_WEB_ROOT=<pinned-checkout> M4_2_CODEX_WEB_ROOT=<pinned-checkout> M4_3_CODEX_WEB_ROOT=<pinned-checkout> M6_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> scripts/run-test-matrix.mjs --suite all --summary <private-summary>",
+      "result": "passed: 235 passed, 0 failed, 0 skipped"
+    },
+    {
+      "stage": "security_audit",
+      "command": "M4_2_CODEX_WEB_ROOT=<pinned-checkout> M6_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "passed: 274 files scanned, 0 findings; 75 passed, 0 failed, 0 skipped"
+    },
+    {
+      "stage": "format_and_state_validation",
+      "command": "git diff --check; parse state/task-status.json and packages/account-router/test-matrix.json",
+      "result": "passed"
+    }
+  ],
+  "evidence": [
+    "evidence/M2.5-weekly-quota-runtime.md",
+    "evidence/M2.5/test-summary.json",
+    "packages/account-router/test/weekly-quota-tracker.test.mjs",
+    "packages/account-router/test/runtime-weekly-quota.test.mjs",
+    "packages/account-router/test/failover-proxy.test.mjs",
+    "packages/account-router/test/websocket-failover.test.mjs",
+    "packages/account-router/test/scheduler.test.mjs"
+  ],
   "observations": {
     "task_scope": "M2.5 wires the currently available weekly Codex quota into the production router; five-hour quota remains explicitly unavailable.",
     "start_record": {
@@ -51,13 +90,17 @@
       "expected_result": "Parse sanitized weekly rate-limit observations from HTTP/WS traffic and use fresh weekly remaining quota for scheduling and admin status."
     },
     "protocol_source": "OpenAI Codex documents used_percent, window duration, reset timestamp, and codex.rate_limits primary/secondary windows; a weekly window is 10080 minutes.",
-    "protocol_boundary": "No real account is configured or tested, and no account-switch, in-flight recovery, or seamless continuity claim is made."
+    "protocol_boundary": "No real account is configured or tested, and no account-switch, in-flight recovery, or seamless continuity claim is made.",
+    "result": "HTTP SSE and WebSocket observations now feed a sanitized weekly-only runtime tracker; fresh zero weekly quota excludes an account from scheduling and updates admin status.",
+    "full_matrix": "235 passed, 0 failed, 0 skipped using only synthetic local fixtures; UI smoke fixtures executed no account switch.",
+    "security": "274 repository files scanned with zero findings and 75 focused security tests passed."
   },
   "blockers": [],
   "residual_risks": [
     "Only the documented weekly window is in scope; five-hour quota remains unavailable.",
-    "Malformed or unrecognized upstream quota events must not replace the last valid observation.",
+    "Weekly observations are learned from account-specific traffic after process start and are not persisted across restart.",
+    "A user-authorized real-account E2E is still required to confirm the deployed upstream emits the same weekly event shape.",
     "Real-account protocol, switching, and cross-account response-chain portability gates remain deferred."
   ],
-  "updated_at": "2026-07-28T00:00:00+08:00"
+  "updated_at": "2026-07-28T13:05:00+08:00"
 }

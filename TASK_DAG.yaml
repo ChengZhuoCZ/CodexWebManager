@@ -151,7 +151,7 @@ milestones:
           - Architecture-specific continuity behavior documented
       - id: M2.5
         title: Wire live weekly quota observations into runtime
-        status: in_progress
+        status: done
         depends_on: [M2.1, M2.2, M3.2, G-PROTOCOL]
         acceptance:
           - Parse only the documented Codex weekly rate-limit window into a sanitized snapshot
