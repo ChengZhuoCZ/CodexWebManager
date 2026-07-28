@@ -36,6 +36,11 @@ account/session control plane. Provider credentials for model requests remain
 inside the account router. Neither credential is embedded in the codex-web
 bundle, command line, environment value, or repository.
 
+The upstream Electron compatibility layer can print complete IPC messages.
+The routed systemd unit therefore discards its standard output and retains only
+standard error for operational failures. Do not re-enable stdout journaling
+without an upstream message-level redaction boundary.
+
 Automatic failover is request-scoped:
 
 - quota, authentication, rate-limit, network, and upstream-5xx failures may
@@ -68,3 +73,9 @@ server does not negotiate compression for it, the routed release pre-generates
 `tailnet-precompressed-asset.patch`. Only the exact content-hashed asset route
 is handled by the adapter; it returns gzip only when the client explicitly
 accepts it, emits `Vary: Accept-Encoding`, and preserves immutable caching.
+
+The upstream loader already paints before the main bundle is ready, but its
+background is transparent. `tailnet-startup-background.patch` gives the
+existing loader explicit light and dark backgrounds so a direct HTTP browser
+does not show its default white canvas while parsing the desktop bundle. It
+does not add scripts, requests, or protocol behavior.

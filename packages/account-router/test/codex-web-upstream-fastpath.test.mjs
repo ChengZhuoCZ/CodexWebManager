@@ -8,6 +8,10 @@ const precompressedAssetPatch = new URL(
   "../../../integrations/codex-web-upstream/tailnet-precompressed-asset.patch",
   import.meta.url,
 );
+const startupBackgroundPatch = new URL(
+  "../../../integrations/codex-web-upstream/tailnet-startup-background.patch",
+  import.meta.url,
+);
 
 test("locally terminates only default empty startup catalog reads", () => {
   const cases = [
@@ -80,4 +84,13 @@ test("precompressed asset patch prefers Brotli and is limited to the pinned cont
   assert.match(patch, /Vary/);
   assert.match(patch, /immutable/);
   assert.doesNotMatch(patch, /backend-api|responses|Authorization|Cookie/);
+});
+
+test("startup background patch replaces the transparent white flash without changing requests", async () => {
+  const patch = await readFile(startupBackgroundPatch, "utf8");
+
+  assert.match(patch, /--startup-background: rgb\(/);
+  assert.match(patch, /prefers-color-scheme: dark/);
+  assert.match(patch, /electron-dark/);
+  assert.doesNotMatch(patch, /backend-api|responses|Authorization|Cookie|fetch\(/);
 });
