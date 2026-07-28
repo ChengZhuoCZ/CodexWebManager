@@ -25,6 +25,7 @@ const MAX_LOGIN_BODY_BYTES = 8 * 1_024;
 const MAX_FAILED_LOGIN_IPS = 1_024;
 const MAX_FAILED_LOGINS_PER_WINDOW = 5;
 const FAILED_LOGIN_WINDOW_MS = 60_000;
+const MAX_TRUSTED_TAILNET_SESSIONS = 64;
 const IPC_SUBPROTOCOL = "codex-ipc.v1";
 const INLINE_UUID_SCRIPT_SHA256 =
   "'sha256-Dclel/rGxNWaGiFViYSHBS21+R0OTVg2FgATT6T00nc='";
@@ -69,11 +70,10 @@ export type BrowserSessionAuth = {
 };
 
 type AuthConfig = {
-  accessTokenDigest: Buffer;
+  accessTokenDigest: Buffer | null;
   codexHome: string;
-  credentialsDirectory: string | undefined;
   publicOrigin: URL;
-  tokenFile: string;
+  trustedTailnetAccess: boolean;
   workspaceRoots: string[];
 };
 
@@ -194,6 +194,23 @@ function parsePublicOrigin(rawOrigin: string | undefined): URL {
   return origin;
 }
 
+function parseTrustedTailnetAccess(
+  rawValue: string | undefined,
+  publicOrigin: URL,
+): boolean {
+  if (rawValue === undefined || rawValue === "0") {
+    return false;
+  }
+  if (
+    rawValue !== "1" ||
+    publicOrigin.protocol !== "http:" ||
+    !isTailnetIpv4(publicOrigin.hostname)
+  ) {
+    throw new Error("codex web trusted Tailnet access configuration is invalid");
+  }
+  return true;
+}
+
 function assertPrivate(
   stat: Awaited<ReturnType<typeof fs.stat>>,
   systemdCredential: boolean,
@@ -298,36 +315,45 @@ async function resolveCodexHome(rawCodexHome: string | undefined): Promise<strin
 async function loadConfig(
   environment: NodeJS.ProcessEnv,
 ): Promise<AuthConfig> {
-  const tokenFile = environment.CODEX_WEB_ACCESS_TOKEN_FILE;
-  if (tokenFile === undefined || !path.isAbsolute(tokenFile)) {
-    throw new Error("codex web browser authentication configuration is incomplete");
-  }
-  const credentialsDirectory = environment.CREDENTIALS_DIRECTORY;
-  if (credentialsDirectory !== undefined) {
-    const relative = path.relative("/run/credentials", credentialsDirectory);
-    if (
-      !path.isAbsolute(credentialsDirectory) ||
-      path.dirname(tokenFile) !== credentialsDirectory ||
-      relative === "" ||
-      relative.startsWith(`..${path.sep}`) ||
-      relative.includes(path.sep) ||
-      !/^[A-Za-z0-9:_.@-]+\.(?:service|scope)$/.test(relative)
-    ) {
-      throw new Error("codex web browser authentication configuration is invalid");
-    }
-  }
   const publicOrigin = parsePublicOrigin(environment.CODEX_WEB_PUBLIC_ORIGIN);
-  const [accessTokenDigest, codexHome, workspaceRoots] = await Promise.all([
-    readAccessTokenDigest(tokenFile, credentialsDirectory),
+  const trustedTailnetAccess = parseTrustedTailnetAccess(
+    environment.CODEX_WEB_TRUSTED_TAILNET_ACCESS,
+    publicOrigin,
+  );
+  let accessTokenDigest: Buffer | null = null;
+  if (!trustedTailnetAccess) {
+    const tokenFile = environment.CODEX_WEB_ACCESS_TOKEN_FILE;
+    if (tokenFile === undefined || !path.isAbsolute(tokenFile)) {
+      throw new Error("codex web browser authentication configuration is incomplete");
+    }
+    const credentialsDirectory = environment.CREDENTIALS_DIRECTORY;
+    if (credentialsDirectory !== undefined) {
+      const relative = path.relative("/run/credentials", credentialsDirectory);
+      if (
+        !path.isAbsolute(credentialsDirectory) ||
+        path.dirname(tokenFile) !== credentialsDirectory ||
+        relative === "" ||
+        relative.startsWith(`..${path.sep}`) ||
+        relative.includes(path.sep) ||
+        !/^[A-Za-z0-9:_.@-]+\.(?:service|scope)$/.test(relative)
+      ) {
+        throw new Error("codex web browser authentication configuration is invalid");
+      }
+    }
+    accessTokenDigest = await readAccessTokenDigest(
+      tokenFile,
+      credentialsDirectory,
+    );
+  }
+  const [codexHome, workspaceRoots] = await Promise.all([
     resolveCodexHome(environment.CODEX_WEB_CODEX_HOME),
     resolveWorkspaceRoots(environment.CODEX_WEB_WORKSPACE_ROOTS),
   ]);
   return {
     accessTokenDigest,
     codexHome,
-    credentialsDirectory,
     publicOrigin,
-    tokenFile,
+    trustedTailnetAccess,
     workspaceRoots,
   };
 }
@@ -820,9 +846,21 @@ export async function registerBrowserSessionAuth(
     return session;
   }
 
-  function createSession(): { session: Session; token: string } {
-    for (const session of sessions.values()) {
-      revokeSession(session);
+  function createSession(
+    revokeExisting = true,
+  ): { session: Session; token: string } {
+    if (revokeExisting) {
+      for (const session of sessions.values()) {
+        revokeSession(session);
+      }
+    } else {
+      while (sessions.size >= MAX_TRUSTED_TAILNET_SESSIONS) {
+        const oldest = sessions.values().next().value;
+        if (oldest === undefined) {
+          break;
+        }
+        revokeSession(oldest);
+      }
     }
     const token = randomBytes(32).toString("base64url");
     const session: Session = {
@@ -894,6 +932,12 @@ export async function registerBrowserSessionAuth(
       return reply.code(421).send({ error: "misdirected_request" });
     }
     if (requestPath === LOGIN_PATH) {
+      if (config.trustedTailnetAccess) {
+        if (request.method === "GET") {
+          return reply.code(303).header("location", "/").send();
+        }
+        return reply.code(403).send({ error: "request_forbidden" });
+      }
       if (
         request.method !== "GET" &&
         (!requestOriginMatches(request, config.publicOrigin) ||
@@ -903,18 +947,23 @@ export async function registerBrowserSessionAuth(
       }
       return;
     }
-    const session = activeSession(request.headers.cookie);
+    let session = activeSession(request.headers.cookie);
     if (session === null) {
       const acceptsHtml =
         request.method === "GET" &&
         (request.headers.accept ?? "").includes("text/html");
-      if (acceptsHtml) {
+      if (config.trustedTailnetAccess && acceptsHtml) {
+        const created = createSession(false);
+        session = created.session;
+        reply.header("set-cookie", sessionCookie(created.token, secureCookie));
+      } else if (acceptsHtml) {
         return reply
           .code(303)
           .header("location", LOGIN_PATH)
           .send();
+      } else {
+        return reply.code(401).send({ error: "authentication_required" });
       }
-      return reply.code(401).send({ error: "authentication_required" });
     }
     requestSessions.set(request, session);
     session.responses.add(reply.raw);
@@ -973,6 +1022,7 @@ export async function registerBrowserSessionAuth(
         supplied.length >= 32 &&
         supplied.length <= 4_096 &&
         ACCESS_TOKEN_PATTERN.test(supplied) &&
+        config.accessTokenDigest !== null &&
         equalDigest(suppliedDigest, config.accessTokenDigest);
       if (!accepted) {
         recordFailedLogin(remoteAddress);

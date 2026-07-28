@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
+import http from "node:http";
 import net from "node:net";
 import os from "node:os";
 import path from "node:path";
@@ -192,9 +193,10 @@ main().catch(() => {
   };
 }
 
-async function startHarness(context, prepared) {
+async function startHarness(context, prepared, options = {}) {
   const port = await reservePort();
   const origin = `http://127.0.0.1:${port}`;
+  const publicOrigin = options.publicOrigin ?? origin;
   const privateDirectory = await fs.mkdtemp(
     path.join(os.tmpdir(), "m6-3-browser-auth-secret-"),
   );
@@ -222,9 +224,14 @@ async function startHarness(context, prepared) {
     cwd: prepared.temporaryRoot,
     env: {
       ...process.env,
-      CODEX_WEB_ACCESS_TOKEN_FILE: tokenFile,
+      ...(options.omitAccessToken
+        ? {}
+        : { CODEX_WEB_ACCESS_TOKEN_FILE: tokenFile }),
       CODEX_WEB_CODEX_HOME: codexHome,
-      CODEX_WEB_PUBLIC_ORIGIN: origin,
+      CODEX_WEB_PUBLIC_ORIGIN: publicOrigin,
+      ...(options.trustedTailnet
+        ? { CODEX_WEB_TRUSTED_TAILNET_ACCESS: "1" }
+        : {}),
       CODEX_WEB_WORKSPACE_ROOTS: workspaceRoot,
       FIXTURE_PORT: String(port),
     },
@@ -266,6 +273,7 @@ async function startHarness(context, prepared) {
     child,
     codexHome: await fs.realpath(codexHome),
     origin,
+    publicOrigin,
     workspaceRoot: resolvedWorkspaceRoot,
   };
 }
@@ -279,11 +287,48 @@ function sameOriginHeaders(origin, extra = {}) {
   };
 }
 
-async function login(origin, token) {
+async function httpRequest(origin, requestPath, options = {}) {
+  const target = new URL(origin);
+  const body = options.body ?? "";
+  return new Promise((resolve, reject) => {
+    const request = http.request(
+      {
+        hostname: target.hostname,
+        port: target.port,
+        path: requestPath,
+        method: options.method ?? "GET",
+        headers: {
+          ...(options.headers ?? {}),
+          ...(body === ""
+            ? {}
+            : { "content-length": Buffer.byteLength(body) }),
+        },
+      },
+      (response) => {
+        const chunks = [];
+        response.on("data", (chunk) => chunks.push(chunk));
+        response.once("end", () => {
+          const responseBody = Buffer.concat(chunks).toString("utf8");
+          resolve({
+            headers: new Headers(response.headers),
+            json: async () => JSON.parse(responseBody),
+            status: response.statusCode,
+            text: async () => responseBody,
+          });
+        });
+      },
+    );
+    request.once("error", reject);
+    request.end(body);
+  });
+}
+
+async function login(origin, token, options = {}) {
+  const publicOrigin = options.publicOrigin ?? origin;
   return fetch(`${origin}/__backend/session/login`, {
     method: "POST",
     redirect: "manual",
-    headers: sameOriginHeaders(origin, {
+    headers: sameOriginHeaders(publicOrigin, {
       "content-type": "application/x-www-form-urlencoded",
     }),
     body: new URLSearchParams({ access_token: token }).toString(),
@@ -802,6 +847,141 @@ integrationTest(
 );
 
 integrationTest(
+  "trusted Tailnet access creates a bounded browser session without a site-key login",
+  async (context) => {
+    const prepared = await prepareSecureOverlay(context);
+    const publicOrigin = "http://100.95.50.98:8214";
+    const fixture = await startHarness(context, prepared, {
+      omitAccessToken: true,
+      publicOrigin,
+      trustedTailnet: true,
+    });
+
+    const firstPage = await httpRequest(fixture.origin, "/private", {
+      headers: sameOriginHeaders(publicOrigin, {
+        accept: "text/html",
+      }),
+    });
+    assert.equal(firstPage.status, 200);
+    const setCookie = firstPage.headers.get("set-cookie");
+    assert.ok(setCookie);
+    assert.match(setCookie, /HttpOnly/);
+    assert.match(setCookie, /SameSite=Strict/);
+    assert.doesNotMatch(setCookie, /fixture-browser-access-token/);
+    const cookie = setCookie.split(";", 1)[0];
+
+    const session = await httpRequest(
+      fixture.origin,
+      "/__backend/session",
+      {
+        headers: sameOriginHeaders(publicOrigin, { cookie }),
+      },
+    );
+    assert.equal(session.status, 200);
+    const sessionBody = await session.json();
+    assert.match(sessionBody.csrfToken, /^[A-Za-z0-9_-]{43}$/);
+
+    const loginPage = await httpRequest(
+      fixture.origin,
+      "/__backend/session/login",
+      {
+        headers: sameOriginHeaders(publicOrigin, {
+          accept: "text/html",
+        }),
+      },
+    );
+    assert.equal(loginPage.status, 303);
+    assert.equal(loginPage.headers.get("location"), "/");
+
+    const rejectedLogin = await httpRequest(
+      fixture.origin,
+      "/__backend/session/login",
+      {
+        method: "POST",
+        headers: sameOriginHeaders(publicOrigin, {
+          "content-type": "application/x-www-form-urlencoded",
+        }),
+        body: new URLSearchParams({
+          access_token: ACCESS_TOKEN,
+        }).toString(),
+      },
+    );
+    assert.equal(rejectedLogin.status, 403);
+
+    const missingCsrf = await httpRequest(fixture.origin, "/write", {
+      method: "POST",
+      headers: sameOriginHeaders(publicOrigin, { cookie }),
+    });
+    assert.equal(missingCsrf.status, 403);
+    const acceptedWrite = await httpRequest(fixture.origin, "/write", {
+      method: "POST",
+      headers: sameOriginHeaders(publicOrigin, {
+        cookie,
+        "x-codex-csrf": sessionBody.csrfToken,
+      }),
+    });
+    assert.equal(acceptedWrite.status, 200);
+
+    const endpoint =
+      `${fixture.origin.replace("http:", "ws:")}/__backend/ipc`;
+    assert.equal(
+      await rejectedWebSocket(
+        codexWebRoot,
+        endpoint,
+        cookie,
+        {
+          origin: "https://attacker.invalid",
+          headers: { host: new URL(publicOrigin).host },
+        },
+      ),
+      403,
+    );
+    const socket = websocketClient(
+      codexWebRoot,
+      endpoint,
+      cookie,
+      {
+        origin: publicOrigin,
+        headers: { host: new URL(publicOrigin).host },
+      },
+    );
+    await bounded(
+      new Promise((resolve, reject) => {
+        socket.once("open", resolve);
+        socket.once("error", reject);
+      }),
+      "trusted Tailnet websocket",
+    );
+    socket.close();
+  },
+);
+
+integrationTest(
+  "trusted Tailnet access rejects a loopback public origin",
+  async (context) => {
+    const prepared = await prepareSecureOverlay(context);
+    await assert.rejects(
+      startHarness(context, prepared, {
+        omitAccessToken: true,
+        trustedTailnet: true,
+      }),
+      /secure browser fixture exited 1/u,
+    );
+  },
+);
+
+integrationTest(
+  "default browser access still rejects a missing site-key file",
+  async (context) => {
+    const prepared = await prepareSecureOverlay(context);
+    await assert.rejects(
+      startHarness(context, prepared, { omitAccessToken: true }),
+      /secure browser fixture exited 1/u,
+    );
+  },
+);
+
+integrationTest(
   "renderer output filter rejects nested credential canaries without blocking usage metadata",
   async (context) => {
     const prepared = await prepareSecureOverlay(context);
@@ -978,6 +1158,7 @@ test("browser auth policy is fail-closed even when the pinned checkout is unavai
   );
   assert.match(source, /CODEX_WEB_ACCESS_TOKEN_FILE/);
   assert.match(source, /CODEX_WEB_PUBLIC_ORIGIN/);
+  assert.match(source, /CODEX_WEB_TRUSTED_TAILNET_ACCESS/);
   assert.match(source, /CODEX_WEB_CODEX_HOME/);
   assert.match(source, /CODEX_WEB_WORKSPACE_ROOTS/);
   assert.match(source, /request\.method !== "getAuthStatus"/);

@@ -163,6 +163,31 @@ On another device signed into the authorized Tailscale network, open
 restrict port 8214 to the intended operator through Tailscale ACLs, and never replace the raw TCP
 forwarder with Tailscale Funnel.
 
+If the owner explicitly accepts every Tailnet device allowed by ACL as a high-privilege workspace
+operator, enable trusted Tailnet access in the same drop-in:
+
+```ini
+[Service]
+Environment=CODEX_WEB_PUBLIC_ORIGIN=http://100.95.50.98:8214
+Environment=CODEX_WEB_TRUSTED_TAILNET_ACCESS=1
+Environment=CODEX_WEB_ACCESS_TOKEN_FILE=
+Environment=CODEX_WEB_CODEX_HOME=/var/lib/codex-app-server
+Environment=CODEX_WEB_UPLOAD_ROOT=/run/codex-browser-uploads
+LoadCredential=
+LoadCredential=router-admin-token:<private-router-admin-credential-file>
+```
+
+The empty `LoadCredential=` resets the base credential list; the following line restores only the
+router admin credential. The browser access key is then neither loaded nor required, and a
+top-level HTML request receives a bounded `HttpOnly`, `SameSite=Strict` browser session
+automatically. Exact Host/Origin checks, CSRF protection, WebSocket authorization, renderer-message
+filtering, and workspace-root restrictions remain active. Keep the old browser key file private if
+rollback to site-key mode is required.
+
+Trusted mode starts only for an exact HTTP Tailnet IPv4 origin in `100.64.0.0/10`; it rejects
+loopback, hostnames, and wildcard origins. Restrict TCP 8214 with Tailnet ACLs because every device
+allowed to reach it can operate the configured workspaces.
+
 Tailscale encrypts the data channel, but a direct IP HTTP origin cannot set a `Secure` cookie and
 cookies are not isolated by port. A dedicated MagicDNS name with Tailscale HTTPS is the intended
 longer-lived topology, but it is not supported by this release: the current origin validator accepts

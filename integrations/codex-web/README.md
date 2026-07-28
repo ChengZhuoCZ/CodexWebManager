@@ -18,7 +18,7 @@ other source revisions so upstream changes can be reviewed deliberately.
 
 ## Browser session configuration
 
-The patched server fails closed unless all five variables are present:
+The default site-key mode fails closed unless all five variables are present:
 
 ```sh
 CODEX_WEB_PUBLIC_ORIGIN=http://127.0.0.1:8214
@@ -37,6 +37,24 @@ password, Cookie, API key, or Codex account token. Because the authenticated Cod
 operate on configured workspaces, treat this key as a high-privilege workspace credential rather
 than a read-only website password.
 
+For an explicitly approved deployment where every device permitted by Tailnet ACLs may control the
+configured workspaces, the separate site-key prompt can be disabled:
+
+```sh
+CODEX_WEB_PUBLIC_ORIGIN=http://100.95.50.98:8214
+CODEX_WEB_TRUSTED_TAILNET_ACCESS=1
+CODEX_WEB_CODEX_HOME=/absolute/private/codex-home
+CODEX_WEB_UPLOAD_ROOT=/absolute/private/shared-uploads
+CODEX_WEB_WORKSPACE_ROOTS=/srv/codex-workspaces
+```
+
+Trusted Tailnet access accepts only the literal value `1`, an exact HTTP origin with an explicit
+port, and an IPv4 address inside Tailscale's `100.64.0.0/10` range. It rejects loopback origins,
+hostnames, wildcard origins, and other flag values. In this mode
+`CODEX_WEB_ACCESS_TOKEN_FILE` is not loaded or required. The application must still listen only on
+loopback behind a tailnet-only Tailscale TCP forwarder; never combine this mode with a public
+listener or Tailscale Funnel.
+
 `CODEX_WEB_CODEX_HOME` must be an existing, non-symlink directory dedicated to the Codex
 app-server runtime. It is returned only to an authenticated browser session as path
 configuration; credential files and their contents are never returned by this route.
@@ -48,8 +66,10 @@ directory.
 
 The browser receives only an `HttpOnly`, `SameSite=Strict` session cookie. Unsafe HTTP requests
 also require a session CSRF token, and the IPC WebSocket requires the exact origin, cookie, host,
-and `codex-ipc.v1` subprotocol. A new login revokes the previous browser session. The only
-unauthenticated endpoint is `GET /__backend/healthz`.
+and `codex-ipc.v1` subprotocol. In site-key mode, a new login revokes the previous browser session.
+Trusted Tailnet mode creates a bounded set of up to 64 independent browser sessions when a
+top-level HTML page is requested; it does not bypass CSRF, Host/Origin, renderer-message, workspace,
+or WebSocket checks. The health endpoint remains unauthenticated.
 
 Workspace browsing is restricted after `realpath` resolution to the configured roots. Renderer
 auth-status requests are accepted only with both `includeToken:false` and `refreshToken:false`;
