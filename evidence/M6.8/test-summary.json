@@ -1,0 +1,121 @@
+{
+  "schema_version": 1,
+  "task": "M6.8",
+  "generated_at": "2026-07-29T04:32:07+08:00",
+  "input_revision": "7ef1c457f82e66ddbb116d0a96fd82df369ab545",
+  "output_revision": "140993147bff64d049f14761dc9bb0e215e9cbe1",
+  "branch": "codex/m6-8-browser-startup-model-e2e",
+  "implementation_mode": "clean-room",
+  "standalone_upstream_commit": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7",
+  "standalone_deployment_qualified": true,
+  "task_qualified": true,
+  "tests": [
+    {
+      "name": "upstream browser and server build",
+      "command": "node node_modules/vite/bin/vite.js build --config vite.browser.config.ts && node node_modules/typescript/bin/tsc -p src/server/tsconfig.json",
+      "result": "passed",
+      "modules_transformed": 67
+    },
+    {
+      "name": "standalone server syntax and CLI contract",
+      "command": "node --check src/server/main.js && node src/server/main.js --help",
+      "result": "passed",
+      "bind_default": "127.0.0.1",
+      "configured_port": 8215
+    },
+    {
+      "name": "Unix WebSocket to stdio proxy initialize probe",
+      "command": "sanitized initialize request through codex-remote-proxy.mjs",
+      "result": "passed",
+      "initialized": true,
+      "error_present": false
+    },
+    {
+      "name": "standalone Linux service and Tailnet exposure",
+      "command": "systemctl status plus loopback HTTP and Tailscale Serve checks",
+      "result": "passed",
+      "standalone_app_server_active": true,
+      "standalone_web_active": true,
+      "existing_web_active": true,
+      "loopback_http_status": 200,
+      "loopback_listener": "127.0.0.1:8215",
+      "public_listener_configured": false
+    },
+    {
+      "name": "fresh browser startup and persistent login",
+      "command": "fresh Tailnet browser navigation after standalone service restart",
+      "result": "passed",
+      "initialization_handshake_ms": 50,
+      "sign_in_visible": false,
+      "composer_visible": true
+    },
+    {
+      "name": "minimal authorized real-account model request",
+      "command": "browser composer request followed by sanitized thread/read status",
+      "result": "passed",
+      "thread_start_error": null,
+      "turn_start_error": null,
+      "turn_count": 1,
+      "last_turn_status": "completed",
+      "prompt_body_recorded": false,
+      "response_body_recorded": false
+    },
+    {
+      "name": "routed codex-web isolation and startup fast path",
+      "command": "separate 8216 systemd deployment, sanitized catalog timings, and exact-asset gzip probes",
+      "result": "passed",
+      "standalone_8215_modified": false,
+      "catalog_max_after_ms": 1,
+      "identity_bytes": 22822120,
+      "gzip_bytes": 5114549
+    },
+    {
+      "name": "routed account-router request",
+      "command": "one authorized non-private browser request followed by sanitized App Server status",
+      "result": "passed",
+      "thread_start_error": null,
+      "turn_start_error": null,
+      "completed": true,
+      "account_switch_executed": false,
+      "prompt_body_recorded": false,
+      "response_body_recorded": false
+    },
+    {
+      "name": "bounded HTTP SSE and WebSocket failover matrix",
+      "command": "node --test test/codex-web-upstream-fastpath.test.mjs test/systemd-units.test.mjs test/failover-state-machine.test.mjs test/failover-proxy.test.mjs test/websocket-failover.test.mjs test/runtime-weekly-quota.test.mjs",
+      "result": "43 passed, 0 failed"
+    },
+    {
+      "name": "complete Node test matrix",
+      "command": "node --test",
+      "result": "221 passed, 0 failed, 25 skipped",
+      "skip_reason": "tests requiring a local pinned upstream checkout are covered by deployed pinned-release evidence"
+    },
+    {
+      "name": "repository secret scan",
+      "command": "scanRepository(loadSecurityAuditPolicy(security-audit.json))",
+      "result": "308 files scanned, 0 findings"
+    },
+    {
+      "name": "routed restart persistence",
+      "command": "restart codex-web-router-app-server.service and codex-web-router.service; verify both sites and fresh composer",
+      "result": "passed",
+      "routed_services_active": true,
+      "standalone_services_active": true,
+      "standalone_http_status": 200,
+      "routed_http_status": 200,
+      "router_usable_accounts": 1,
+      "composer_visible": true,
+      "composer_enabled": true
+    }
+  ],
+  "unqualified_areas": [
+    "Linux terminal native module",
+    "real two-account A-to-B switch",
+    "cross-account continuity",
+    "strict M6.3 CI baseline re-qualification after protected-path changes"
+  ],
+  "account_switch_tested": false,
+  "cross_account_continuity_tested": false,
+  "seamless_account_continuity_claimed": false
+}

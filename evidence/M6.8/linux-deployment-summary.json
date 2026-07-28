@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "task": "M6.8",
+  "generated_at": "2026-07-29T04:32:07+08:00",
+  "implementation_revision": "140993147bff64d049f14761dc9bb0e215e9cbe1",
+  "deployment": {
+    "source_repository": "0xcaff/codex-web",
+    "source_commit": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7",
+    "network_scope": "authorized Tailnet path",
+    "website_url": "http://100.95.50.98:8215",
+    "application_listener": "127.0.0.1:8215",
+    "public_listener_configured": false,
+    "existing_8214_modified": false
+  },
+  "routed_deployment": {
+    "website_url": "http://100.95.50.98:8216",
+    "application_listener": "127.0.0.1:8216",
+    "release": "c3e92f0f-20260729-m68-router-r7",
+    "model_router_origin": "http://127.0.0.1:18317/backend-api/codex",
+    "standalone_8215_modified": false,
+    "public_listener_configured": false
+  },
+  "services": {
+    "codex_web_upstream": "active",
+    "codex_web_upstream_app_server": "active",
+    "codex_web_router": "active",
+    "codex_web_router_app_server": "active",
+    "codex_account_router": "active",
+    "existing_codex_web": "active",
+    "existing_codex_app_server": "active"
+  },
+  "isolation": {
+    "release_root": "/opt/0xcaff-codex-web",
+    "web_state_directory": "/var/lib/codex-web-upstream",
+    "app_server_state_directory": "/var/lib/codex-web-upstream-app-server",
+    "app_server_socket": "/run/codex-web-upstream-app-server/app-server.sock",
+    "app_server_socket_mode": "0600",
+    "model_traffic_uses_account_switch_router": false,
+    "credential_content_copied_by_deployment": false,
+    "credential_content_logged": false
+  },
+  "routed_isolation": {
+    "release_root": "/opt/0xcaff-codex-web-router",
+    "web_state_directory": "/var/lib/codex-web-router",
+    "app_server_state_directory": "/var/lib/codex-web-router-app-server",
+    "app_server_socket": "/run/codex-web-router-app-server/app-server.sock",
+    "model_traffic_uses_account_switch_router": true,
+    "standalone_8215_router_dependency": false
+  },
+  "startup": {
+    "raw_proxy_handshake_timeout_ms": 30002,
+    "final_proxy_handshake_ms_before_restart": 49,
+    "final_proxy_handshake_ms_after_restart": 50,
+    "fresh_browser_sign_in_visible_after_restart": false,
+    "fresh_browser_composer_visible_after_restart": true,
+    "routed_catalog_before_ms": {
+      "app_list": 5840,
+      "plugin_list": 3967,
+      "mcp_server_status_list": 2256
+    },
+    "routed_catalog_after_ms": {
+      "app_list": 1,
+      "plugin_list": 0,
+      "mcp_server_status_list": 1
+    },
+    "main_bundle_identity_bytes": 22822120,
+    "main_bundle_gzip_bytes": 5114549,
+    "fresh_routed_navigation_ms": 8686,
+    "post_restart_navigation_ms": 6274,
+    "post_restart_composer_visible": true,
+    "post_restart_composer_enabled": true
+  },
+  "model_e2e": {
+    "authorized_real_account": true,
+    "thread_start_error": null,
+    "turn_start_error": null,
+    "turn_count": 1,
+    "last_turn_status": "completed",
+    "prompt_body_recorded": false,
+    "response_body_recorded": false
+  },
+  "routed_model_e2e": {
+    "authorized_real_account": true,
+    "thread_start_error": null,
+    "turn_start_error": null,
+    "completed": true,
+    "prompt_body_recorded": false,
+    "response_body_recorded": false,
+    "account_switch_executed": false
+  },
+  "router_readiness": {
+    "status": "ready",
+    "usable_accounts": 1
+  },
+  "tests": {
+    "targeted_passed": 43,
+    "targeted_failed": 0,
+    "complete_passed": 221,
+    "complete_failed": 0,
+    "complete_skipped": 25,
+    "repository_files_scanned": 308,
+    "secret_findings": 0
+  },
+  "scope_exclusions": {
+    "account_switch": false,
+    "quota_failover": false,
+    "cross_account_continuity": false,
+    "seamless_continuity_claim": false,
+    "existing_8214_qualified": false
+  },
+  "residual_risks": [
+    "All Tailnet principals allowed to reach port 8215 share the configured account and workspace authority.",
+    "The direct HTTP compatibility fallback is not cryptographically secure; an HTTPS Tailnet origin is preferred.",
+    "Provider expiry or revocation requires explicit user-authorized credential replacement.",
+    "The Linux terminal native module was not qualified.",
+    "Only one usable real account is configured; real A-to-B switching is not qualified.",
+    "Cross-account conversation continuity is unverified and no seamless-continuity claim is made.",
+    "The strict M6.3 CI baseline must be re-qualified after protected browser paths change."
+  ]
+}

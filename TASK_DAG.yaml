@@ -339,3 +339,15 @@ milestones:
           - Service restarts retain the same authenticated account state
           - No credential value, email, account identifier, OAuth callback or complete auth response enters the repository or logs
           - Account switching, cross-account continuity and model execution remain outside this task
+      - id: M6.8
+        title: Remove the initial blank screen and restore model requests
+        status: done
+        depends_on: [M6.7, G-SECRETS]
+        acceptance:
+          - Startup timing evidence identifies and removes the avoidable blank-screen delay
+          - The first visible page provides bounded progress or usable Codex UI while the backend becomes ready
+          - One minimal user-authorized real-account model request completes through the deployed Tailnet site
+          - Request failures remain bounded and expose a sanitized actionable error
+          - Service restarts preserve the real-account login and the repaired request path
+          - No credential value, email, account identifier, prompt response body or complete authentication response enters the repository or logs
+          - Account switching and cross-account continuity remain outside this task

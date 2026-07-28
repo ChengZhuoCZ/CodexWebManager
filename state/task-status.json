@@ -1,6 +1,6 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M6.7",
+  "current_task": "M6.8",
   "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
@@ -10,66 +10,126 @@
     "EX-SKIP-M6.2-SOAK"
   ],
   "input_revisions": {
-    "workspace": "25ad185a85526c96ef6aad2b8b5f04f8ad39d958",
+    "workspace": "7ef1c457f82e66ddbb116d0a96fd82df369ab545",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf"
   },
-  "output_revision": "6ef78847a9b8b8fccc55b5f3014529e022ca9d09",
-  "workspace_branch": "codex/m6-7-persistent-real-account",
-  "workspace_input_revision": "25ad185a85526c96ef6aad2b8b5f04f8ad39d958",
+  "output_revision": "140993147bff64d049f14761dc9bb0e215e9cbe1",
+  "workspace_branch": "codex/m6-8-browser-startup-model-e2e",
+  "workspace_input_revision": "7ef1c457f82e66ddbb116d0a96fd82df369ab545",
   "depends_on": [
-    "M6.6",
+    "M6.7",
     "G-SECRETS"
   ],
   "expected_outputs": [
-    "docs/linux-systemd.md",
-    "docs/operator-guide.md",
-    "evidence/M6.7-persistent-real-account.md",
-    "evidence/M6.7/test-summary.json",
-    "evidence/M6.7/linux-deployment-summary.json"
+    "minimal startup and model-request fix",
+    "evidence/M6.8-browser-startup-model-e2e.md",
+    "evidence/M6.8/test-summary.json",
+    "evidence/M6.8/linux-deployment-summary.json"
   ],
   "tests": [
     {
-      "command": "/Users/chengzhuo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --test packages/account-router/test/release-docs-contract.test.mjs packages/account-router/test/security-audit-contract.test.mjs packages/account-router/test/systemd-units.test.mjs",
-      "result": "18 passed, 0 failed, 0 skipped"
+      "name": "upstream browser and server build",
+      "command": "node node_modules/vite/bin/vite.js build --config vite.browser.config.ts && node node_modules/typescript/bin/tsc -p src/server/tsconfig.json",
+      "result": "passed"
     },
     {
-      "command": "M6_3_CODEX_WEB_ROOT=/private/tmp/m67-pristine-codex-web /Users/chengzhuo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node packages/account-router/scripts/run-security-audit.mjs --summary /private/tmp/codex-m6-7-security/summary-final.json",
-      "result": "78 passed, 0 failed, 0 skipped; 291 repository files scanned, 0 secret findings"
+      "name": "Unix WebSocket to stdio proxy initialize probe",
+      "command": "sanitized initialize request through codex-remote-proxy.mjs",
+      "result": "passed",
+      "initialized": true
     },
     {
-      "command": "private production browser IPC account probe before and after restarting codex-app-server.service and codex-web.service",
-      "result": "HTTP 200, browser IPC open, ChatGPT account present, sign-in absent, composer present before and after restart"
+      "name": "standalone Linux deployment and Tailnet checks",
+      "command": "systemctl status plus loopback HTTP and Tailscale Serve checks",
+      "result": "passed",
+      "http_status": 200
+    },
+    {
+      "name": "minimal authorized real-account model request",
+      "command": "browser request plus sanitized thread/read status",
+      "result": "passed",
+      "last_turn_status": "completed"
+    },
+    {
+      "name": "standalone service restart and fresh browser",
+      "command": "restart standalone App Server and Web service, then open a fresh Tailnet browser page",
+      "result": "passed",
+      "sign_in_visible": false,
+      "composer_visible": true
+    },
+    {
+      "name": "routed startup and bounded failover matrix",
+      "command": "node --test test/codex-web-upstream-fastpath.test.mjs test/systemd-units.test.mjs test/failover-state-machine.test.mjs test/failover-proxy.test.mjs test/websocket-failover.test.mjs test/runtime-weekly-quota.test.mjs",
+      "result": "43 passed, 0 failed"
+    },
+    {
+      "name": "complete Node matrix",
+      "command": "node --test",
+      "result": "221 passed, 0 failed, 25 skipped"
+    },
+    {
+      "name": "repository secret scan",
+      "command": "scanRepository(loadSecurityAuditPolicy(security-audit.json))",
+      "result": "308 files scanned, 0 findings"
+    },
+    {
+      "name": "routed service restart and fresh browser",
+      "command": "restart only codex-web-router-app-server.service and codex-web-router.service; verify 8215/8216 and a fresh composer",
+      "result": "passed",
+      "standalone_http_status": 200,
+      "routed_http_status": 200,
+      "composer_visible": true,
+      "composer_enabled": true
     }
   ],
   "evidence": [
-    "evidence/M6.7-persistent-real-account.md",
-    "evidence/M6.7/test-summary.json",
-    "evidence/M6.7/linux-deployment-summary.json",
-    "docs/linux-systemd.md",
-    "docs/operator-guide.md"
+    "evidence/M6.8-browser-startup-model-e2e.md",
+    "evidence/M6.8/test-summary.json",
+    "evidence/M6.8/linux-deployment-summary.json"
   ],
   "observations": {
     "start_record": {
       "repository": "ChengZhuoCZ/CodexWebManager",
-      "branch": "codex/m6-7-persistent-real-account",
-      "commit": "25ad185a85526c96ef6aad2b8b5f04f8ad39d958",
+      "branch": "codex/m6-8-browser-startup-model-e2e",
+      "commit": "7ef1c457f82e66ddbb116d0a96fd82df369ab545",
       "dependencies": [
-        "M6.6",
+        "M6.7",
         "G-SECRETS"
       ],
-      "expected_result": "Use the already authorized real ChatGPT account in App Server and codex-web private homes so fresh Tailnet pages show the account and open the composer without login."
+      "expected_result": "Reduce avoidable initial blank-screen time and restore one bounded real-account model request through the deployed Tailnet website."
     },
-    "scope_boundary": "This task persists one already user-authorized real account in private server files. It does not add or switch accounts, test model execution, claim cross-account continuity, or expose credentials in evidence.",
-    "result": "The already authorized ChatGPT credential is persisted in the App Server and codex-web private homes. Fresh browser sessions opened the composer without a login prompt before and after service restarts. Temporary probe and backup files were removed."
+    "scope_boundary": "This task diagnoses and repairs page startup and a single-account model request. It does not add or switch accounts, test quota failover, or claim cross-account continuity.",
+    "standalone_upstream_deployment": {
+      "source": "0xcaff/codex-web",
+      "commit": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7",
+      "url": "http://100.95.50.98:8215",
+      "result": "passed",
+      "model_turn_status": "completed",
+      "existing_8214_modified": false
+    },
+    "routed_upstream_deployment": {
+      "source": "0xcaff/codex-web",
+      "commit": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7",
+      "url": "http://100.95.50.98:8216",
+      "result": "passed",
+      "standalone_8215_modified": false,
+      "router_usable_accounts": 1,
+      "real_model_request_completed": true,
+      "account_switch_executed": false
+    },
+    "result": "M6.8 passed. The standalone 8215 site stayed active, while an isolated 8216 codex-web integration completed one authorized model request through the router, reduced avoidable startup delays, preserved login across routed service restarts, and passed bounded pre/post-semantic failure tests."
   },
   "blockers": [],
   "residual_risks": [
     "Every Tailnet device allowed to reach port 8214 will receive the same high-privilege real account and workspace access.",
-    "Three private copies of the live account credential increase the impact of a server or service-user compromise.",
+    "Every Tailnet device allowed to reach port 8215 can operate the standalone codex service user and consume the configured real account.",
+    "The direct HTTP compatibility fallback is not cryptographically secure; prefer a Tailscale HTTPS origin.",
     "The real account login can expire or be revoked and must then be authorized again.",
-    "Host reboot persistence was not tested; only independent service restarts were verified.",
-    "Account switching and cross-account continuity remain outside M6.7."
+    "The upstream Linux terminal native module was not qualified.",
+    "Only one usable real account is configured, so a real A-to-B switch is not qualified.",
+    "Cross-account continuity remains unverified; switching starts a new backend session.",
+    "The M6.3 strict CI baseline must be re-qualified after protected browser paths change."
   ],
-  "updated_at": "2026-07-28T20:06:41+08:00"
+  "updated_at": "2026-07-29T04:32:07+08:00"
 }
