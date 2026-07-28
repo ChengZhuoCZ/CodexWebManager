@@ -100,17 +100,12 @@ test("fails closed for malformed or oversized input without reflecting it", () =
   assert.equal(localStartupRpcResponse("x".repeat(1024 * 1024 + 1)), null);
 });
 
-test("precompressed asset patch prefers Brotli and is limited to the pinned content-hashed bundle", async () => {
+test("precompressed asset patch delegates negotiation and validators to the pinned static plugin", async () => {
   const patch = await readFile(precompressedAssetPatch, "utf8");
 
-  assert.match(patch, /app-initial-BTphDPeq\.js/);
-  assert.match(patch, /accept-encoding/);
-  assert.match(patch, /acceptsEncoding/);
-  assert.match(patch, /["']br["']/);
-  assert.match(patch, /\.br/);
-  assert.match(patch, /Content-Encoding/);
-  assert.match(patch, /Vary/);
-  assert.match(patch, /immutable/);
+  assert.match(patch, /preCompressed:\s*true/);
+  assert.match(patch, /scratch\/asar\/webview/);
+  assert.doesNotMatch(patch, /createReadStream|acceptsEncoding|Content-Encoding/);
   assert.doesNotMatch(patch, /backend-api|responses|Authorization|Cookie/);
 });
 
@@ -129,13 +124,28 @@ test("builds deterministic precompressed files only after a pinned minifier prod
   const assets = path.join(directory, "assets");
   await mkdir(assets);
   const asset = path.join(assets, "app-initial-BTphDPeq.js");
+  const preloadFile = path.join(assets, "preload.js");
+  const stylesheetFile = path.join(assets, "app-initial-Czet5G9g.css");
   const indexFile = path.join(directory, "index.html");
   const original = Buffer.from("const intentionallyLongFixtureName = 40 + 2;\n");
   const minified = Buffer.from("const a=42;\n");
+  const originalPreload = Buffer.from(
+    "const intentionallyLongPreloadFixtureName = 41 + 1;\n",
+  );
+  const minifiedPreload = Buffer.from("const p=42;\n");
+  const stylesheet = Buffer.from("body { color: rgb(1, 2, 3); }\n");
   const originalIndex = Buffer.from(indexFixture());
   await writeFile(asset, original, { mode: 0o640 });
+  await writeFile(preloadFile, originalPreload, { mode: 0o640 });
+  await writeFile(stylesheetFile, stylesheet, { mode: 0o640 });
   await writeFile(indexFile, originalIndex, { mode: 0o640 });
   const expectedSha256 = createHash("sha256").update(original).digest("hex");
+  const expectedPreloadSha256 = createHash("sha256")
+    .update(originalPreload)
+    .digest("hex");
+  const expectedStylesheetSha256 = createHash("sha256")
+    .update(stylesheet)
+    .digest("hex");
   const expectedIndexSha256 = createHash("sha256")
     .update(originalIndex)
     .digest("hex");
@@ -143,11 +153,19 @@ test("builds deterministic precompressed files only after a pinned minifier prod
   const result = await buildMinifiedPrecompressedAsset({
     assetFile: asset,
     expectedSha256,
+    preloadFile,
+    expectedPreloadSha256,
+    stylesheetFile,
+    expectedStylesheetSha256,
     indexFile,
     expectedIndexSha256,
     minify: async ({ inputFile, outputFile }) => {
-      assert.equal(inputFile, asset);
-      await writeFile(outputFile, minified);
+      if (inputFile === asset) {
+        await writeFile(outputFile, minified);
+        return;
+      }
+      assert.equal(inputFile, preloadFile);
+      await writeFile(outputFile, minifiedPreload);
     },
   });
 
@@ -157,7 +175,30 @@ test("builds deterministic precompressed files only after a pinned minifier prod
   assert.deepEqual(await readFile(asset), minified);
   assert.deepEqual(gunzipSync(await readFile(`${asset}.gz`)), minified);
   assert.deepEqual(brotliDecompressSync(await readFile(`${asset}.br`)), minified);
+  assert.deepEqual(await readFile(preloadFile), minifiedPreload);
+  assert.deepEqual(
+    gunzipSync(await readFile(`${preloadFile}.gz`)),
+    minifiedPreload,
+  );
+  assert.deepEqual(
+    brotliDecompressSync(await readFile(`${preloadFile}.br`)),
+    minifiedPreload,
+  );
+  assert.deepEqual(await readFile(stylesheetFile), stylesheet);
+  assert.deepEqual(
+    gunzipSync(await readFile(`${stylesheetFile}.gz`)),
+    stylesheet,
+  );
+  assert.deepEqual(
+    brotliDecompressSync(await readFile(`${stylesheetFile}.br`)),
+    stylesheet,
+  );
   assert.equal((await stat(asset)).mode & 0o777, 0o640);
+  assert.equal((await stat(preloadFile)).mode & 0o777, 0o640);
+  assert.equal((await stat(stylesheetFile)).mode & 0o777, 0o640);
+  assert.equal(result.preload_input_bytes, originalPreload.length);
+  assert.equal(result.preload_output_bytes, minifiedPreload.length);
+  assert.equal(result.stylesheet_bytes, stylesheet.length);
   const versionedIndex = await readFile(indexFile, "utf8");
   const outputSha256 = createHash("sha256").update(minified).digest("hex");
   const versionedUrl = versionedAssetUrl(outputSha256);
@@ -185,12 +226,24 @@ test("minified asset builder rejects unpinned input and fixes the esbuild contra
   const assets = path.join(directory, "assets");
   await mkdir(assets);
   const asset = path.join(assets, "app-initial-BTphDPeq.js");
+  const preloadFile = path.join(assets, "preload.js");
+  const stylesheetFile = path.join(assets, "app-initial-Czet5G9g.css");
   const indexFile = path.join(directory, "index.html");
   const assetBytes = Buffer.from("const fixture = true;\n");
+  const preloadBytes = Buffer.from("const preloadFixture = true;\n");
+  const stylesheetBytes = Buffer.from("body { color: black; }\n");
   const indexBytes = Buffer.from(indexFixture());
   await writeFile(asset, assetBytes, { mode: 0o600 });
+  await writeFile(preloadFile, preloadBytes, { mode: 0o600 });
+  await writeFile(stylesheetFile, stylesheetBytes, { mode: 0o600 });
   await writeFile(indexFile, indexBytes, { mode: 0o600 });
   const assetSha256 = createHash("sha256").update(assetBytes).digest("hex");
+  const preloadSha256 = createHash("sha256")
+    .update(preloadBytes)
+    .digest("hex");
+  const stylesheetSha256 = createHash("sha256")
+    .update(stylesheetBytes)
+    .digest("hex");
   const indexSha256 = createHash("sha256").update(indexBytes).digest("hex");
   let called = false;
 
@@ -198,6 +251,10 @@ test("minified asset builder rejects unpinned input and fixes the esbuild contra
     buildMinifiedPrecompressedAsset({
       assetFile: asset,
       expectedSha256: "0".repeat(64),
+      preloadFile,
+      expectedPreloadSha256: preloadSha256,
+      stylesheetFile,
+      expectedStylesheetSha256: stylesheetSha256,
       indexFile,
       expectedIndexSha256: indexSha256,
       minify: async () => {
@@ -211,6 +268,44 @@ test("minified asset builder rejects unpinned input and fixes the esbuild contra
     buildMinifiedPrecompressedAsset({
       assetFile: asset,
       expectedSha256: assetSha256,
+      preloadFile,
+      expectedPreloadSha256: "0".repeat(64),
+      stylesheetFile,
+      expectedStylesheetSha256: stylesheetSha256,
+      indexFile,
+      expectedIndexSha256: indexSha256,
+      minify: async () => {
+        called = true;
+      },
+    }),
+    /asset build failed/,
+  );
+  assert.equal(called, false);
+  await assert.rejects(
+    buildMinifiedPrecompressedAsset({
+      assetFile: asset,
+      expectedSha256: assetSha256,
+      preloadFile,
+      expectedPreloadSha256: preloadSha256,
+      stylesheetFile,
+      expectedStylesheetSha256: "0".repeat(64),
+      indexFile,
+      expectedIndexSha256: indexSha256,
+      minify: async () => {
+        called = true;
+      },
+    }),
+    /asset build failed/,
+  );
+  assert.equal(called, false);
+  await assert.rejects(
+    buildMinifiedPrecompressedAsset({
+      assetFile: asset,
+      expectedSha256: assetSha256,
+      preloadFile,
+      expectedPreloadSha256: preloadSha256,
+      stylesheetFile,
+      expectedStylesheetSha256: stylesheetSha256,
       indexFile,
       expectedIndexSha256: "0".repeat(64),
       minify: async () => {
@@ -232,6 +327,10 @@ test("minified asset builder rejects unpinned input and fixes the esbuild contra
     buildMinifiedPrecompressedAsset({
       assetFile: asset,
       expectedSha256: assetSha256,
+      preloadFile,
+      expectedPreloadSha256: preloadSha256,
+      stylesheetFile,
+      expectedStylesheetSha256: stylesheetSha256,
       indexFile,
       expectedIndexSha256: createHash("sha256")
         .update(alreadyVersionedIndex)

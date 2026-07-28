@@ -67,22 +67,28 @@ also applies `tailnet-ipc-statsig-fastpath.patch` to the pinned
 initialize, registration, and log-event hosts/paths and never matches provider,
 account, or model endpoints.
 
-The main pinned desktop bundle is about 22.8 MB. Because the upstream Fastify
-server does not negotiate compression for it, the routed release may run
+The main pinned desktop bundle is about 22.8 MB and the browser preload is
+about 607 KB. Because the upstream Fastify server does not enable its existing
+precompressed-file support, the routed release may run
 `build-minified-precompressed-asset.mjs` against the exact final patched
-`app-initial-BTphDPeq.js`, then apply `tailnet-precompressed-asset.patch`. The
-builder accepts only absolute asset/index paths, their expected input SHA-256
-values, and the pinned esbuild `0.27.0` executable. The required layout is
-`index.html` next to the `assets` directory. It syntax-checks the smaller
-result, deterministically creates both Brotli and gzip variants, and rewrites
-the inactive release's index with an early import map plus matching
-`modulepreload` URL. Both point to a query version derived from the minified
-asset SHA-256:
+`app-initial-BTphDPeq.js`, `preload.js`, and the initial stylesheet, then apply
+`tailnet-precompressed-asset.patch`. The builder accepts only absolute
+asset/index paths, their expected input SHA-256 values, and the pinned esbuild
+`0.27.0` executable. The required layout is `index.html` next to the `assets`
+directory. It syntax-checks the smaller main and preload JavaScript, preserves
+the exact stylesheet bytes, deterministically creates Brotli and gzip variants
+for all three startup assets, and rewrites the inactive release's index with
+an early import map plus matching `modulepreload` URL. Both point to a query
+version derived from the minified main-asset SHA-256:
 
 ```sh
 node build-minified-precompressed-asset.mjs \
   --asset /absolute/release/webview/assets/app-initial-BTphDPeq.js \
   --expected-sha256 <64-hex-asset-input-sha256> \
+  --preload /absolute/release/webview/assets/preload.js \
+  --expected-preload-sha256 <64-hex-preload-input-sha256> \
+  --stylesheet /absolute/release/webview/assets/app-initial-Czet5G9g.css \
+  --expected-stylesheet-sha256 <64-hex-stylesheet-input-sha256> \
   --index /absolute/release/webview/index.html \
   --expected-index-sha256 <64-hex-index-input-sha256> \
   --esbuild /absolute/pinned/esbuild
@@ -94,15 +100,17 @@ integration patches would invalidate the reviewed patch boundaries. Running
 the builder more than once against the same candidate fails closed; start from
 a fresh inactive release instead.
 
-Only the exact content-hashed asset route is handled by the adapter. It prefers
-Brotli, falls back to gzip only when explicitly accepted, emits
-`Vary: Accept-Encoding`, and preserves immutable caching. The versioned URL
-prevents a refreshed HTML document from reusing the previous release's
-immutable main-module entry while keeping all importers on one canonical
-module URL. The HTML route itself must remain revalidated rather than
-immutable. A newly built bundle must be exercised in an inactive routed
-release before activation; the standalone `8215` release is never a candidate
-for this optimization.
+The adapter enables the pinned `@fastify/static` `preCompressed` option instead
+of implementing content negotiation itself. That mature plugin prefers
+Brotli, falls back to gzip and identity, and retains its normal validators,
+content types, ranges, and cache policy. Only the three hash-pinned startup
+assets receive generated compressed siblings. The versioned main URL prevents
+a refreshed HTML document from reusing the previous release's immutable
+main-module entry while keeping all importers on one canonical module URL.
+The HTML and un-hashed preload routes remain revalidated rather than immutable.
+A newly built bundle must be exercised in an inactive routed release before
+activation; the standalone `8215` release is never a candidate for this
+optimization.
 
 The upstream loader already paints before the main bundle is ready, but its
 background is transparent. `tailnet-startup-background.patch` gives the

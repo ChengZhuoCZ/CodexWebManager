@@ -1,59 +1,10 @@
 --- a/src/server/main.js
 +++ b/src/server/main.js
-@@ -6,5 +6,6 @@
- Object.defineProperty(exports, "__esModule", { value: true });
- const node_crypto_1 = require("node:crypto");
-+const node_fs_1 = require("node:fs");
- const promises_1 = __importDefault(require("node:fs/promises"));
- const node_os_1 = __importDefault(require("node:os"));
- const node_path_1 = __importDefault(require("node:path"));
-@@ -35,6 +36,25 @@
-         ? "public, max-age=31536000, immutable"
-         : "public, max-age=0";
- }
-+function acceptsEncoding(value, expectedCoding) {
-+    if (typeof value !== "string") {
-+        return false;
-+    }
-+    return value.split(",").some((entry) => {
-+        const [coding, ...parameters] = entry.trim().split(";");
-+        if (coding.trim().toLowerCase() !== expectedCoding) {
-+            return false;
-+        }
-+        const quality = parameters
-+            .map((parameter) => parameter.trim().toLowerCase())
-+            .find((parameter) => parameter.startsWith("q="));
-+        if (quality === undefined) {
-+            return true;
-+        }
-+        const score = Number(quality.slice(2));
-+        return Number.isFinite(score) && score > 0;
-+    });
-+}
- class WebSocketMessagePort {
-     portId;
-     sendToRenderer;
-@@ -250,6 +270,23 @@
-         })());
-         return reply.send({ files });
-     });
-+    const appInitialAsset = node_path_1.default.resolve(__dirname, "../../scratch/asar/webview/assets/app-initial-BTphDPeq.js");
-+    app.get("/assets/app-initial-BTphDPeq.js", async (request, reply) => {
-+        const accepted = request.headers["accept-encoding"];
-+        const brotli = acceptsEncoding(accepted, "br");
-+        const gzip = !brotli && acceptsEncoding(accepted, "gzip");
-+        const filePath = brotli ? `${appInitialAsset}.br` : gzip ? `${appInitialAsset}.gz` : appInitialAsset;
-+        reply
-+            .header("Cache-Control", "public, max-age=31536000, immutable")
-+            .header("Vary", "Accept-Encoding")
-+            .type("application/javascript; charset=UTF-8");
-+        if (brotli) {
-+            reply.header("Content-Encoding", "br");
-+        } else if (gzip) {
-+            reply.header("Content-Encoding", "gzip");
-+        }
-+        return reply.send((0, node_fs_1.createReadStream)(filePath));
-+    });
+@@ -258,6 +258,7 @@
      await app.register(static_1.default, {
-         root: "/",
-         prefix: "/@fs/",
+         root: node_path_1.default.resolve(__dirname, "../../scratch/asar/webview"),
+         prefix: "/",
++        preCompressed: true,
+         cacheControl: false,
+         setHeaders(response, filePath) {
+             response.setHeader("Cache-Control", cacheControlForWebviewFile(filePath));
