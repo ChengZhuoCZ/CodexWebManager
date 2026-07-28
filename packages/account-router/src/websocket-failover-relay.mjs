@@ -19,6 +19,7 @@ import {
   createWebSocketFrameParser,
   encodeWebSocketFrame,
 } from "./websocket-frames.mjs";
+import { weeklyQuotaObservationFromEvent } from "./weekly-quota-tracker.mjs";
 
 function websocketAccept(key) {
   return createHash("sha1")
@@ -90,6 +91,8 @@ function openManagedConnection({
   configuration,
   downstream,
   onClosed,
+  onWeeklyQuotaObservation,
+  quotaNow,
   request,
   route,
   upstreamHeadersTimeoutMs,
@@ -177,12 +180,23 @@ function openManagedConnection({
       };
       const handleText = (payload) => {
         const encoded = encodeWebSocketFrame(payload, { masked: false, opcode: 0x1 });
+        let message = null;
+        try { message = JSON.parse(payload.toString("utf8")); } catch {}
+        try {
+          const observation = weeklyQuotaObservationFromEvent(message, { now: quotaNow });
+          if (observation !== null) {
+            const result = onWeeklyQuotaObservation(Object.freeze({ accountId, observation }));
+            if (result && typeof result.then === "function") {
+              void result.catch(() => undefined);
+            }
+          }
+        } catch {
+          // Quota telemetry must never interfere with the WebSocket relay.
+        }
         if (!operation) {
           forward(encoded);
           return;
         }
-        let message = null;
-        try { message = JSON.parse(payload.toString("utf8")); } catch {}
         const failure = failureFromMessage(message);
         if (failure) {
           failOperation(failure);
@@ -332,9 +346,15 @@ function errorMessage(error) {
 export function createWebSocketFailoverHandler({
   failoverStateMachine,
   onAttemptFailure,
+  onWeeklyQuotaObservation,
+  quotaNow,
   resolveUpstream,
   upstreamHeadersTimeoutMs,
 }) {
+  if (typeof onWeeklyQuotaObservation !== "function") {
+    throw new TypeError("onWeeklyQuotaObservation must be a function");
+  }
+  if (typeof quotaNow !== "function") throw new TypeError("quotaNow must be a function");
   return (request, downstream, head) => {
     let route;
     try {
@@ -436,6 +456,8 @@ export function createWebSocketFailoverHandler({
                 onClosed(closedConnection) {
                   if (current === closedConnection) current = null;
                 },
+                onWeeklyQuotaObservation,
+                quotaNow,
                 request,
                 route,
                 upstreamHeadersTimeoutMs,

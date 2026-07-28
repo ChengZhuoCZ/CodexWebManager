@@ -274,15 +274,22 @@ function analyzeQuota(snapshot, observedMilliseconds, nowMilliseconds) {
     currentAge !== null && currentAge >= snapshot.stale_after_ms
       ? "stale"
       : snapshot.staleness;
-  const complete = WINDOW_NAMES.every((name) => snapshot.windows[name].status === "available");
-  if (effectiveStaleness === "fresh" && complete) {
-    const remainingRatio = Math.min(
-      snapshot.windows.five_hour.remaining_ratio,
-      snapshot.windows.weekly.remaining_ratio,
-    );
+  const fiveHourAvailable = snapshot.windows.five_hour.status === "available";
+  const weeklyAvailable = snapshot.windows.weekly.status === "available";
+  if (effectiveStaleness === "fresh" && weeklyAvailable) {
+    const remainingRatio = fiveHourAvailable
+      ? Math.min(
+          snapshot.windows.five_hour.remaining_ratio,
+          snapshot.windows.weekly.remaining_ratio,
+        )
+      : snapshot.windows.weekly.remaining_ratio;
+    const confidence = fiveHourAvailable
+      ? snapshot.confidence
+      : snapshot.windows.weekly.confidence;
     return Object.freeze({
-      basis: "fresh",
-      confidenceRank: CONFIDENCE_RANK[snapshot.confidence],
+      basis: fiveHourAvailable ? "fresh" : "fresh_weekly",
+      confidence,
+      confidenceRank: CONFIDENCE_RANK[confidence],
       exhausted: remainingRatio === 0,
       remainingRatio,
       staleness: effectiveStaleness,
@@ -297,6 +304,7 @@ function analyzeQuota(snapshot, observedMilliseconds, nowMilliseconds) {
         : "unavailable";
   return Object.freeze({
     basis,
+    confidence: "unknown",
     confidenceRank: 0,
     exhausted: false,
     remainingRatio: null,
@@ -365,7 +373,7 @@ function evaluateCandidate(
     priority: candidate.account.priority,
     remaining_ratio: quota.remainingRatio,
     quota_basis: quota.basis,
-    quota_confidence: candidate.quota.confidence,
+    quota_confidence: quota.confidence,
     quota_staleness: quota.staleness,
     active_requests: candidate.active_requests,
     max_concurrency: candidate.account.max_concurrency,

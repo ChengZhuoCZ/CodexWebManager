@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "task": "M2.5",
+  "recorded_at": "2026-07-28T13:02:30+08:00",
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "input_workspace_revision": "c5f94baf951cae75456afaab4f1bd3ec85a4f328",
+  "weekly_quota_only": true,
+  "real_account_configured": false,
+  "account_switch_tested": false,
+  "seamless_account_continuity_claimed": false,
+  "results": [
+    {
+      "stage": "test_first",
+      "command": "<bundled-node> --test test/weekly-quota-tracker.test.mjs test/scheduler.test.mjs test/failover-proxy.test.mjs test/websocket-failover.test.mjs test/runtime-weekly-quota.test.mjs",
+      "exit_code": 1,
+      "output": "Expected red state: 22 passed and 5 failed. The weekly tracker module was absent, HTTP and WebSocket published no weekly observation, the scheduler ignored a weekly-only snapshot, and runtime selected account A twice."
+    },
+    {
+      "stage": "focused_regression",
+      "command": "<bundled-node> --test test/weekly-quota-tracker.test.mjs test/scheduler.test.mjs test/failover-proxy.test.mjs test/websocket-failover.test.mjs test/runtime-weekly-quota.test.mjs",
+      "exit_code": 0,
+      "output": "31 passed, 0 failed, 0 skipped, duration 114.180875 ms."
+    },
+    {
+      "stage": "syntax_check",
+      "command": "PATH=<bundled-node> npm run check",
+      "exit_code": 0,
+      "output": "All enumerated production, test, fixture, and release modules parsed successfully."
+    },
+    {
+      "stage": "full_matrix_environment_probe",
+      "command": "M4_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> scripts/run-test-matrix.mjs --suite all --summary <private-summary>",
+      "exit_code": 1,
+      "output": "Unit and integration suites passed. E2E returned 27 passed and 15 environment-gated skips, so the strict matrix correctly failed closed. No test failed."
+    },
+    {
+      "stage": "full_matrix",
+      "command": "M4_1_CODEX_WEB_ROOT=<pinned-checkout> M4_2_CODEX_WEB_ROOT=<pinned-checkout> M4_3_CODEX_WEB_ROOT=<pinned-checkout> M6_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> scripts/run-test-matrix.mjs --suite all --summary <private-summary>",
+      "exit_code": 0,
+      "output": "235 passed, 0 failed, 0 skipped: unit 125/125, integration 68/68, E2E fixtures 42/42. The three UI smoke fixtures executed no account switch."
+    },
+    {
+      "stage": "security_audit_environment_probe",
+      "command": "<bundled-node> scripts/run-security-audit.mjs --summary <private-summary>",
+      "exit_code": 2,
+      "output": "The audit failed closed because pinned browser security tests lacked their checkout environment and therefore could not satisfy the zero-skip gate."
+    },
+    {
+      "stage": "security_audit",
+      "command": "M4_2_CODEX_WEB_ROOT=<pinned-checkout> M6_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> scripts/run-security-audit.mjs --summary <private-summary>",
+      "exit_code": 0,
+      "output": "Security audit passed: 274 repository files scanned with 0 findings; 75/75 focused tests passed with 0 skips; protected pinned UI paths were unchanged."
+    },
+    {
+      "stage": "format_and_state_validation",
+      "command": "git diff --check; parse state/task-status.json and packages/account-router/test-matrix.json",
+      "exit_code": 0,
+      "output": "No whitespace errors; both JSON documents parsed successfully."
+    }
+  ]
+}

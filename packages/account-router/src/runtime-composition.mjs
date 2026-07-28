@@ -12,6 +12,7 @@ import { createProxyHandler } from "./proxy-handler.mjs";
 import { createQuotaSnapshotAdapter } from "./quota-snapshot.mjs";
 import { createDeterministicScheduler } from "./scheduler.mjs";
 import { createRouterService } from "./service.mjs";
+import { createWeeklyQuotaTracker } from "./weekly-quota-tracker.mjs";
 
 const RUNTIME_STATES = Object.freeze({
   CREATED: "created",
@@ -113,10 +114,14 @@ export function createRuntimeComposition({
 
   const scheduler = createDeterministicScheduler({ now });
   const circuitBreaker = createCircuitBreaker({ now, initialState: initialCircuitState });
-  const quotaAdapter = createQuotaSnapshotAdapter({
-    name: "runtime-unavailable",
+  const quotaTracker = createWeeklyQuotaTracker({
+    accountIds: accountCatalog.listPublic().map(({ id }) => id),
     now,
-    observe: async () => null,
+  });
+  const quotaAdapter = createQuotaSnapshotAdapter({
+    name: "runtime-weekly-events",
+    now,
+    observe: async ({ accountId } = {}) => quotaTracker.read(accountId),
   });
   const eventBroker = createEventBroker({ now: () => new Date(now()).toISOString() });
   const adminState = createAdminState({ accountCatalog, eventBroker });
@@ -166,6 +171,16 @@ export function createRuntimeComposition({
 
   function circuitAllowsReadiness(account) {
     if (!account.enabled || activeRequests.get(account.id) >= account.max_concurrency) return false;
+    const quota = quotaTracker.read(account.id);
+    const quotaIsFresh = quota !== null &&
+      Math.max(0, now() - Date.parse(quota.observed_at)) < 5 * 60_000;
+    if (
+      quotaIsFresh &&
+      quota.weekly.remaining_ratio === 0 &&
+      quota.weekly.status === "available"
+    ) {
+      return false;
+    }
     const snapshot = circuitBreaker.snapshot(account.id);
     if (snapshot.phase === "closed") return true;
     if (snapshot.cooldown_until === null) return false;
@@ -196,6 +211,42 @@ export function createRuntimeComposition({
       cooldown_until: circuit.cooldown_until,
       last_switch_reason: kind,
     });
+  }
+
+  function refreshAvailableStatus(accountId) {
+    const circuit = circuitBreaker.snapshot(accountId);
+    const quota = quotaTracker.read(accountId);
+    const quotaIsFresh = quota !== null &&
+      Math.max(0, now() - Date.parse(quota.observed_at)) < 5 * 60_000;
+    const quotaExhausted = quotaIsFresh && quota.weekly.remaining_ratio === 0;
+    let state;
+    let reason;
+    if (circuit.phase === "half_open") {
+      state = "half_open";
+      reason = circuit.last_failure_kind;
+    } else if (circuit.phase !== "closed") {
+      state = FAILURE_ADMIN_STATES[circuit.last_failure_kind];
+      reason = circuit.last_failure_kind;
+    } else if (quotaExhausted) {
+      state = "quota_exhausted";
+      reason = "quota_exhausted";
+    } else {
+      state = "healthy";
+      reason = null;
+    }
+    adminState.updateAccountStatus(accountId, {
+      state,
+      five_hour_remaining_ratio: null,
+      weekly_remaining_ratio: quota?.weekly.remaining_ratio ?? null,
+      snapshot_observed_at: quota?.observed_at ?? null,
+      cooldown_until: circuit.phase === "closed" ? null : circuit.cooldown_until,
+      last_switch_reason: reason,
+    });
+  }
+
+  function onWeeklyQuotaObservation({ accountId, observation }) {
+    quotaTracker.record(accountId, observation);
+    refreshAvailableStatus(accountId);
   }
 
   async function onAttemptFailure({ accountId, kind, retryAfterMs }) {
@@ -271,11 +322,7 @@ export function createRuntimeComposition({
             queueCircuitStatePersistence();
           }
           if (circuitBreaker.snapshot(accountId).phase === "closed") {
-            adminState.updateAccountStatus(accountId, {
-              state: "healthy",
-              cooldown_until: null,
-              last_switch_reason: null,
-            });
+            refreshAvailableStatus(accountId);
           }
         },
       };
@@ -287,6 +334,8 @@ export function createRuntimeComposition({
     resolveUpstream,
     failoverStateMachine,
     onAttemptFailure,
+    onWeeklyQuotaObservation,
+    quotaNow: now,
   });
   const adminHandler = createAdminHandler({
     authenticator,

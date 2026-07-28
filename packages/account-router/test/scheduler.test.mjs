@@ -51,6 +51,23 @@ function quota({
   });
 }
 
+function partialWeeklySnapshot(remainingRatio) {
+  return Object.freeze({
+    adapter: "fixture-weekly",
+    source_state: "partial",
+    attempted_at: NOW_ISO,
+    observed_at: NOW_ISO,
+    staleness: "fresh",
+    age_ms: 0,
+    stale_after_ms: 300_000,
+    confidence: "unknown",
+    windows: Object.freeze({
+      five_hour: unavailableWindow("unsupported"),
+      weekly: availableWindow(remainingRatio, "high"),
+    }),
+  });
+}
+
 function account(id, { enabled = true, priority = 0, maxConcurrency = 2 } = {}) {
   return Object.freeze({
     id,
@@ -186,6 +203,29 @@ test("lowers stale and unavailable quota to an explicit fallback tier without gu
     assert.equal(evaluation.remaining_ratio, null);
     assert.equal(["stale", "unavailable"].includes(evaluation.quota_basis), true);
   }
+});
+
+test("uses a fresh weekly-only snapshot when five-hour quota is unsupported", () => {
+  const scheduler = createDeterministicScheduler({ now: () => NOW });
+  const candidates = [
+    candidate("account-a", {
+      accountOptions: { priority: 10 },
+      quotaSnapshot: partialWeeklySnapshot(0),
+    }),
+    candidate("account-b", {
+      accountOptions: { priority: 0 },
+      quotaSnapshot: partialWeeklySnapshot(0.5),
+    }),
+  ];
+  const decision = scheduler.select(candidates);
+  assert.equal(decision.status, "selected");
+  assert.equal(decision.selected_account_id, "account-b");
+  const exhausted = decision.evaluations.find(({ account_id }) => account_id === "account-a");
+  assert.equal(exhausted.eligible, false);
+  assert.equal(exhausted.reason, "quota_exhausted");
+  assert.equal(exhausted.quota_basis, "fresh_weekly");
+  assert.equal(exhausted.remaining_ratio, 0);
+  assert.equal(exhausted.quota_confidence, "high");
 });
 
 test("re-evaluates snapshot staleness against the scheduler clock", () => {

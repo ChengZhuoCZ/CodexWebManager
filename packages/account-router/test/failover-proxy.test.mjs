@@ -77,6 +77,44 @@ function completeSse(response, text = "fixture") {
   response.end("event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n");
 }
 
+test("publishes only a sanitized weekly quota observation from HTTP SSE", async (context) => {
+  const observations = [];
+  const { origin } = await fixture(context, {
+    A(_request, response) {
+      response.writeHead(200, { "content-type": "text/event-stream" });
+      response.write(
+        'event: codex.rate_limits\ndata: {"type":"codex.rate_limits","rate_limits":{"secondary":{"used_percent":25,"window_minutes":10080,"reset_at":1785196800}},"credits":{"balance":"must-not-pass"}}\n\n',
+      );
+      response.end("event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n");
+    },
+  }, {
+    quotaNow: () => Date.parse("2026-07-28T00:00:00.000Z"),
+    onWeeklyQuotaObservation(value) { observations.push(value); },
+  });
+
+  const response = await fetch(`${origin}/v1/responses`, {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: '{"input":"fixture"}',
+  });
+  assert.equal(response.status, 200);
+  await response.text();
+  assert.deepEqual(observations, [{
+    accountId: "A",
+    observation: {
+      observed_at: "2026-07-28T00:00:00.000Z",
+      five_hour: { status: "unavailable", reason: "unsupported" },
+      weekly: {
+        status: "available",
+        remaining_ratio: 0.75,
+        resets_at: "2026-07-28T00:00:00.000Z",
+        confidence: "high",
+      },
+    },
+  }]);
+  assert.doesNotMatch(JSON.stringify(observations), /credits|balance|must-not-pass/);
+});
+
 test("fails over a 429 before streaming and excludes the failed account", async (context) => {
   const requestBodies = [];
   const { origin, resolverCalls, releases, failures } = await fixture(context, {

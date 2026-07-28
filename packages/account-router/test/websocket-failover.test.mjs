@@ -132,7 +132,7 @@ function collectMessages(socket, initial = Buffer.alloc(0)) {
   };
 }
 
-async function fixture(context, accountListeners) {
+async function fixture(context, accountListeners, options = {}) {
   const origins = new Map();
   for (const [accountId, listener] of Object.entries(accountListeners)) {
     const upstream = createUpstream(listener);
@@ -163,6 +163,7 @@ async function fixture(context, accountListeners) {
     },
     upstreamHeadersTimeoutMs: 500,
     requestTotalTimeoutMs: 2_000,
+    ...options,
   });
   const service = createModelProxyService({ modelPort: 0, proxyHandler });
   context.after(() => service.stop());
@@ -195,6 +196,45 @@ function sendCreate(client, extra = {}) {
     { masked: true, opcode: 0x1 },
   ));
 }
+
+test("publishes only a sanitized weekly quota observation from WebSocket events", async (context) => {
+  const observations = [];
+  const { client, collector } = await fixture(context, {
+    A(_message, socket) {
+      sendEvent(socket, {
+        type: "codex.rate_limits",
+        rate_limits: {
+          secondary: {
+            used_percent: 40,
+            window_minutes: 10_080,
+            reset_at: 1_785_196_800,
+          },
+        },
+        credits: { balance: "must-not-pass" },
+      });
+      sendCompleted(socket, "fixture");
+    },
+  }, {
+    quotaNow: () => Date.parse("2026-07-28T00:00:00.000Z"),
+    onWeeklyQuotaObservation(value) { observations.push(value); },
+  });
+  sendCreate(client);
+  await collector.waitFor((message) => message.type === "response.completed");
+  assert.deepEqual(observations, [{
+    accountId: "A",
+    observation: {
+      observed_at: "2026-07-28T00:00:00.000Z",
+      five_hour: { status: "unavailable", reason: "unsupported" },
+      weekly: {
+        status: "available",
+        remaining_ratio: 0.6,
+        resets_at: "2026-07-28T00:00:00.000Z",
+        confidence: "high",
+      },
+    },
+  }]);
+  assert.doesNotMatch(JSON.stringify(observations), /credits|balance|must-not-pass/);
+});
 
 test("reconnects and replays an initial WebSocket request only before semantic output", async (context) => {
   const { client, collector, releases, resolverCalls } = await fixture(context, {

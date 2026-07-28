@@ -140,6 +140,8 @@ export function createProxyHandler({
   requestTotalTimeoutMs = 15 * 60_000,
   failoverStateMachine = null,
   onAttemptFailure = async () => undefined,
+  onWeeklyQuotaObservation = () => undefined,
+  quotaNow = () => Date.now(),
 } = {}) {
   if (typeof resolveUpstream !== "function") {
     throw new TypeError("resolveUpstream must be a function");
@@ -157,12 +159,20 @@ export function createProxyHandler({
   if (typeof onAttemptFailure !== "function") {
     throw new TypeError("onAttemptFailure must be a function");
   }
+  if (typeof onWeeklyQuotaObservation !== "function") {
+    throw new TypeError("onWeeklyQuotaObservation must be a function");
+  }
+  if (typeof quotaNow !== "function") {
+    throw new TypeError("quotaNow must be a function");
+  }
 
   const failoverHttpHandler = failoverStateMachine === null
     ? null
     : createFailoverHttpHandler({
         failoverStateMachine,
         onAttemptFailure,
+        onWeeklyQuotaObservation,
+        quotaNow,
         requestBodyLimitBytes,
         resolveUpstream,
         responseBodyLimitBytes,
@@ -179,6 +189,8 @@ export function createProxyHandler({
     : createWebSocketFailoverHandler({
         failoverStateMachine,
         onAttemptFailure,
+        onWeeklyQuotaObservation,
+        quotaNow,
         resolveUpstream,
         upstreamHeadersTimeoutMs,
       });

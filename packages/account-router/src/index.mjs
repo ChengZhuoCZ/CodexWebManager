@@ -32,6 +32,11 @@ export { createModelProxyService } from "./model-service.mjs";
 export { createProxyHandler } from "./proxy-handler.mjs";
 export { listProxyRoutes, normalizeProxyRoute, ProxyRouteError } from "./proxy-routes.mjs";
 export { createQuotaSnapshotAdapter } from "./quota-snapshot.mjs";
+export {
+  createWeeklyQuotaTracker,
+  parseRateLimitSseEvent,
+  weeklyQuotaObservationFromEvent,
+} from "./weekly-quota-tracker.mjs";
 export { redactForLog, REDACTED, stringifyLogRecord } from "./redaction.mjs";
 export { createDeterministicScheduler } from "./scheduler.mjs";
 export { createRuntimeComposition, RUNTIME_STATES } from "./runtime-composition.mjs";

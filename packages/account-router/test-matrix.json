@@ -26,7 +26,8 @@
         "test/session-stickiness.test.mjs",
         "test/state-store.test.mjs",
         "test/systemd-units.test.mjs",
-        "test/test-matrix-contract.test.mjs"
+        "test/test-matrix-contract.test.mjs",
+        "test/weekly-quota-tracker.test.mjs"
       ]
     },
     {
@@ -40,6 +41,7 @@
         "test/runtime-bootstrap.test.mjs",
         "test/runtime-composition.test.mjs",
         "test/runtime-persistence.test.mjs",
+        "test/runtime-weekly-quota.test.mjs",
         "test/service.test.mjs",
         "test/status-bridge.test.mjs",
         "test/websocket-failover.test.mjs",

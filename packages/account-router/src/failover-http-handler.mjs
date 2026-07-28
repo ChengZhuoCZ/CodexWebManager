@@ -16,6 +16,10 @@ import {
   resolveUpstreamConfiguration,
 } from "./proxy-upstream.mjs";
 import { createSseSemanticGate, SseLimitError } from "./sse-semantic-gate.mjs";
+import {
+  parseRateLimitSseEvent,
+  weeklyQuotaObservationFromEvent,
+} from "./weekly-quota-tracker.mjs";
 
 class RequestBodyLimitError extends Error {}
 class ResponseBodyLimitError extends Error {}
@@ -180,7 +184,35 @@ async function sendBufferedResponse(incoming, response, body, observeEvent, rout
   await endResponse(response, body);
 }
 
-async function relaySse({ incoming, response, observeEvent, responseBodyLimitBytes }) {
+function publishWeeklyQuota({
+  accountId,
+  bytes,
+  onWeeklyQuotaObservation,
+  quotaNow,
+}) {
+  try {
+    const event = parseRateLimitSseEvent(bytes);
+    if (event === null) return;
+    const observation = weeklyQuotaObservationFromEvent(event, { now: quotaNow });
+    if (observation === null) return;
+    const result = onWeeklyQuotaObservation(Object.freeze({ accountId, observation }));
+    if (result && typeof result.then === "function") {
+      void result.catch(() => undefined);
+    }
+  } catch {
+    // Quota telemetry must never interfere with the model response.
+  }
+}
+
+async function relaySse({
+  accountId,
+  incoming,
+  onWeeklyQuotaObservation,
+  quotaNow,
+  response,
+  observeEvent,
+  responseBodyLimitBytes,
+}) {
   const statusCode = incoming.statusCode;
   if (!Number.isInteger(statusCode) || statusCode < 100 || statusCode > 599) {
     throw new FailoverAttemptError("protocol_error");
@@ -197,6 +229,12 @@ async function relaySse({ incoming, response, observeEvent, responseBodyLimitByt
   try {
     for await (const chunk of incoming) {
       for (const event of gate.push(chunk)) {
+        publishWeeklyQuota({
+          accountId,
+          bytes: event.bytes,
+          onWeeklyQuotaObservation,
+          quotaNow,
+        });
         if (event.classification === "preflight" && !started) {
           preflight.push(event.bytes);
           continue;
@@ -233,7 +271,9 @@ async function relaySse({ incoming, response, observeEvent, responseBodyLimitByt
 async function upstreamAttempt({
   body,
   configuration,
+  onWeeklyQuotaObservation,
   observeEvent,
+  quotaNow,
   requestHeaders,
   response,
   responseBodyLimitBytes,
@@ -277,7 +317,15 @@ async function upstreamAttempt({
     clearTimeout(headersTimer);
     await classifyRetryableResponse(incoming, responseBodyLimitBytes);
     if (isSse(incoming.headers)) {
-      await relaySse({ incoming, response, observeEvent, responseBodyLimitBytes });
+      await relaySse({
+        accountId: configuration.accountId,
+        incoming,
+        onWeeklyQuotaObservation,
+        quotaNow,
+        response,
+        observeEvent,
+        responseBodyLimitBytes,
+      });
       return;
     }
     let responseBody;
@@ -305,6 +353,8 @@ function inStreamError(error) {
 export function createFailoverHttpHandler({
   failoverStateMachine,
   onAttemptFailure,
+  onWeeklyQuotaObservation,
+  quotaNow,
   requestBodyLimitBytes,
   resolveUpstream,
   responseBodyLimitBytes,
@@ -315,6 +365,10 @@ export function createFailoverHttpHandler({
   }
   if (typeof resolveUpstream !== "function") throw new TypeError("resolveUpstream is required");
   if (typeof onAttemptFailure !== "function") throw new TypeError("onAttemptFailure is required");
+  if (typeof onWeeklyQuotaObservation !== "function") {
+    throw new TypeError("onWeeklyQuotaObservation is required");
+  }
+  if (typeof quotaNow !== "function") throw new TypeError("quotaNow is required");
 
   return async ({ request, response, route, body: preparedBody = null }) => {
     let body = preparedBody;
@@ -362,7 +416,9 @@ export function createFailoverHttpHandler({
           await upstreamAttempt({
             body,
             configuration: selection.configuration,
+            onWeeklyQuotaObservation,
             observeEvent,
+            quotaNow,
             requestHeaders: request.headers,
             response,
             responseBodyLimitBytes,

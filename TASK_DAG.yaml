@@ -149,6 +149,15 @@ milestones:
           - No account switch within an active semantic stream
           - Routing session mapping has TTL and bounded storage
           - Architecture-specific continuity behavior documented
+      - id: M2.5
+        title: Wire live weekly quota observations into runtime
+        status: in_progress
+        depends_on: [M2.1, M2.2, M3.2, G-PROTOCOL]
+        acceptance:
+          - Parse only the documented Codex weekly rate-limit window into a sanitized snapshot
+          - Feed fresh weekly remaining quota into scheduling and sanitized admin status
+          - Missing or malformed weekly quota remains unavailable without guessing
+          - Synthetic HTTP and WebSocket coverage passes without using a real account
 
   - id: M3
     name: Responses proxy and safe failover
