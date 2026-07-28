@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "task": "M5.4",
+  "recorded_at": "2026-07-28T13:46:00+08:00",
+  "target": "authorized-tailnet-linux-x64",
+  "architecture_mode": "LIMITED_MODE",
+  "artifact": {
+    "name": "codex-account-router-0.2.1-linux-x64.tar.gz",
+    "sha256": "c65babdc487da9bb9a6859bf6efdb5b51558319c7c759c1a794f1e8cc2247896",
+    "payload_file_count": 44,
+    "weekly_runtime_present": true,
+    "electron_required": false,
+    "display_server_required": false,
+    "node_modules_present": false
+  },
+  "native_release_verification": {
+    "result": "passed",
+    "temporary_install_health_status": 200,
+    "empty_readiness_status": 503,
+    "empty_readiness_reason": "no_accounts",
+    "sigterm_exit_code": 0,
+    "account_configuration_present": false
+  },
+  "upgrade": {
+    "result": "passed",
+    "previous_release": "codex-account-router-0.2.0-linux-x64",
+    "activated_release": "codex-account-router-0.2.1-linux-x64",
+    "snapshot_id": "20260728T053940720Z-bed713d062e5",
+    "snapshot_private_mode": "0700",
+    "credentials_included": false,
+    "automatic_rollback_available": true
+  },
+  "preserved_configuration": {
+    "account_count": 1,
+    "account_alias": "Primary",
+    "account_enabled": true,
+    "account_provider": "openai-codex",
+    "account_config_mode": "0600",
+    "router_credential_mode": "0600",
+    "app_server_credential_mode": "0600",
+    "credential_values_read_or_recorded": false
+  },
+  "services": {
+    "codex_account_router": "active",
+    "codex_app_server": "active",
+    "codex_web": "active",
+    "app_server_socket_present": true,
+    "router_health_status": 200,
+    "router_readiness_status": 200,
+    "tailnet_web_health_status": 200
+  },
+  "real_single_account_smoke": {
+    "result": "passed",
+    "deadline_seconds": 120,
+    "codex_exit_code": 0,
+    "fixed_response_matched": true,
+    "router_readiness_after_request": 200,
+    "account_state": "healthy",
+    "weekly_remaining_ratio": 1,
+    "weekly_snapshot_observed": true,
+    "five_hour_remaining_ratio": null,
+    "last_switch_reason": null
+  },
+  "real_account_configured": true,
+  "real_single_account_request_tested": true,
+  "account_switch_tested": false,
+  "cross_account_continuation_tested": false,
+  "in_flight_computation_resume_claimed": false,
+  "seamless_account_continuity_claimed": false,
+  "soak_test_executed": false
+}

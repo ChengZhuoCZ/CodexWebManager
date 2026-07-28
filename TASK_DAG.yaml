@@ -259,7 +259,7 @@ milestones:
           - Restart does not erase account health history
       - id: M5.4
         title: Package and deploy weekly quota runtime
-        status: in_progress
+        status: done
         depends_on: [M2.5, M5.3]
         acceptance:
           - Build a new immutable Linux x64 release containing the M2.5 runtime

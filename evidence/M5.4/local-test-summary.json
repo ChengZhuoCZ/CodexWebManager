@@ -1,0 +1,63 @@
+{
+  "schema_version": 1,
+  "task": "M5.4",
+  "generated_at": "2026-07-28T13:46:00+08:00",
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "input_revision": "9c853aec4bc6b170f4dd873537a655bf25929587",
+  "validated_implementation_revision": "2bb326708c57311549a8a58f61a95c0b299cb256",
+  "branch": "codex/m5-4-weekly-quota-deploy",
+  "test_first": {
+    "command": "<bundled-node> --test test/linux-release.test.mjs",
+    "result": "expected failure",
+    "passed": 1,
+    "failed": 1,
+    "reason": "The release contract required 0.2.1 while the package still identified itself as 0.2.0."
+  },
+  "focused_regression": {
+    "command": "<bundled-node> --test test/linux-release.test.mjs test/deployment-manager.test.mjs test/release-docs-contract.test.mjs",
+    "result": "passed",
+    "tests": 9,
+    "passed": 9,
+    "failed": 0,
+    "skipped": 0
+  },
+  "syntax_check": {
+    "command": "PATH=<bundled-node> npm run check",
+    "result": "passed"
+  },
+  "full_matrix": {
+    "command": "M4_1_CODEX_WEB_ROOT=<pinned-checkout> M4_2_CODEX_WEB_ROOT=<pinned-checkout> M4_3_CODEX_WEB_ROOT=<pinned-checkout> M6_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> scripts/run-test-matrix.mjs --suite all --summary <private-summary>",
+    "result": "passed",
+    "tests": 235,
+    "passed": 235,
+    "failed": 0,
+    "skipped": 0,
+    "unit": "125/125",
+    "integration": "68/68",
+    "e2e_fixtures": "42/42",
+    "account_switch_scenario_executed": false
+  },
+  "security_audit": {
+    "command": "M4_2_CODEX_WEB_ROOT=<pinned-checkout> M6_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> scripts/run-security-audit.mjs --summary <private-summary>",
+    "result": "passed",
+    "repository_files_scanned": 279,
+    "findings": 0,
+    "focused_tests": 75,
+    "passed": 75,
+    "failed": 0,
+    "skipped": 0,
+    "rerun_after_evidence_generation": true
+  },
+  "artifact": {
+    "name": "codex-account-router-0.2.1-linux-x64.tar.gz",
+    "command": "<bundled-node> scripts/build-linux-release.mjs --arch x64 --output <private-output> --source-date-epoch 0",
+    "sha256": "c65babdc487da9bb9a6859bf6efdb5b51558319c7c759c1a794f1e8cc2247896",
+    "reproducible_across_commit_metadata_correction": true,
+    "weekly_runtime_present": true
+  },
+  "real_account_used_by_local_tests": false,
+  "account_switch_tested": false,
+  "in_flight_computation_resume_claimed": false,
+  "seamless_account_continuity_claimed": false
+}
