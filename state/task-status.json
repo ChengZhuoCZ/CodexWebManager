@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M6.5",
-  "status": "done",
+  "current_task": "M6.6",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-SKIP-M6.2-SOAK",
@@ -10,93 +10,53 @@
     "EX-SKIP-M6.2-SOAK"
   ],
   "input_revisions": {
-    "workspace": "998b1cbd19625471d9a3960a0ec866d9eb556c24",
+    "workspace": "8cc716257f51e1e9bd73ce1958b6bd02cd822844",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf"
   },
-  "output_revision": "5b60566dfccb5b4a7555af96434fcb3f31611be4",
-  "workspace_branch": "codex/m6-5-tailnet-trusted-access",
-  "workspace_input_revision": "998b1cbd19625471d9a3960a0ec866d9eb556c24",
+  "output_revision": null,
+  "workspace_branch": "codex/m6-6-persistent-codex-login",
+  "workspace_input_revision": "8cc716257f51e1e9bd73ce1958b6bd02cd822844",
   "depends_on": [
-    "M5.4",
-    "M6.1",
+    "M5.2",
+    "M6.5",
     "G-SECRETS"
   ],
   "expected_outputs": [
-    "integrations/codex-web/src/server/browser-session-auth.ts",
-    "packages/account-router/test/codex-web-browser-auth.test.mjs",
-    "integrations/codex-web/README.md",
+    "docs/linux-systemd.md",
     "docs/operator-guide.md",
-    "evidence/M6.5-tailnet-trusted-access.md",
-    "evidence/M6.5/test-summary.json",
-    "evidence/M6.5/linux-deployment-summary.json"
+    "evidence/M6.6-persistent-codex-login.md",
+    "evidence/M6.6/test-summary.json",
+    "evidence/M6.6/linux-deployment-summary.json"
   ],
-  "tests": [
-    {
-      "stage": "test_first",
-      "command": "<bundled-node> --test packages/account-router/test/codex-web-browser-auth.test.mjs",
-      "result": "expected failure: the trusted Tailnet policy and implementation did not exist"
-    },
-    {
-      "stage": "focused_browser_auth",
-      "command": "M6_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test packages/account-router/test/codex-web-browser-auth.test.mjs",
-      "result": "passed: 7 passed, 0 failed, 0 skipped"
-    },
-    {
-      "stage": "syntax_check",
-      "command": "pnpm --dir packages/account-router run check",
-      "result": "passed"
-    },
-    {
-      "stage": "full_matrix",
-      "command": "<pinned-codex-web-environment> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --suite all --summary <private-summary>",
-      "result": "passed: 238 passed, 0 failed, 0 skipped"
-    },
-    {
-      "stage": "strict_ci",
-      "command": "GitHub Actions Automated test matrix run 30351640985",
-      "result": "passed: Node 22 and Node 24 each passed 238/238 with zero skips"
-    },
-    {
-      "stage": "security_audit",
-      "command": "<pinned-codex-web-environment> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
-      "result": "passed: 282 files scanned, 0 findings; 78/78 focused tests; strict CI 476/476"
-    },
-    {
-      "stage": "linux_deployment",
-      "command": "sudo sh <verified-private-M6.5-deployment-script>",
-      "result": "passed on corrected second attempt: trusted root 200 with session cookie, login 303, health 200, browser access credential not loaded"
-    }
-  ],
+  "tests": [],
   "evidence": [
-    "evidence/M6.5-tailnet-trusted-access.md",
-    "evidence/M6.5/test-summary.json",
-    "evidence/M6.5/linux-deployment-summary.json",
-    "evidence/M6.1/github-actions-summary.json",
-    "packages/account-router/test/codex-web-browser-auth.test.mjs"
+    "evidence/M6.6-persistent-codex-login.md",
+    "evidence/M6.6/test-summary.json",
+    "evidence/M6.6/linux-deployment-summary.json",
+    "docs/linux-systemd.md",
+    "docs/operator-guide.md"
   ],
   "observations": {
     "start_record": {
       "repository": "ChengZhuoCZ/CodexWebManager",
-      "branch": "codex/m6-5-tailnet-trusted-access",
-      "commit": "998b1cbd19625471d9a3960a0ec866d9eb556c24",
+      "branch": "codex/m6-6-persistent-codex-login",
+      "commit": "8cc716257f51e1e9bd73ce1958b6bd02cd822844",
       "dependencies": [
-        "M5.4",
-        "M6.1",
+        "M5.2",
+        "M6.5",
         "G-SECRETS"
       ],
-      "expected_result": "Allow direct browser access from the explicitly configured Tailnet origin without a site-key prompt while retaining sessions, CSRF, WebSocket authorization and exact-origin enforcement."
+      "expected_result": "Reuse a user-authorized Codex login from private writable App Server state so opening the Tailnet page after service or host restart goes directly to Codex."
     },
-    "scope_boundary": "This task changes only browser access policy. It does not configure or switch Codex accounts, test continuity, expose port 8214 publicly, or weaken unsafe-request and WebSocket checks.",
-    "result": "An opt-in trusted Tailnet mode now creates bounded browser sessions without loading a site-key credential while preserving CSRF, exact Host/Origin, WebSocket, renderer-message and workspace-root checks.",
-    "ci": "Local matrix passed 238/238. GitHub Node 22 and Node 24 each passed 238/238. Final security audit scanned 282 files with zero findings, passed 78/78 focused tests, and verified 476/476 strict CI tests.",
-    "deployment": "The server runs immutable release 888692f7-20260728-m6-5-tailnet-trusted-r2. Trusted root and health are HTTP 200, login redirects to root, the browser credential is not loaded, and Tailscale remains a tailnet-only TCP forwarder."
+    "scope_boundary": "This task persists one user-authorized Codex login only. It does not add or switch accounts, claim cross-account continuity, expose port 8214 publicly, or place credentials in the repository.",
+    "result": "in progress"
   },
   "blockers": [],
   "residual_risks": [
-    "Every device allowed by Tailnet ACLs to reach port 8214 will have high-privilege workspace access.",
-    "One real account remains configured, so automatic account switching remains untested.",
-    "M6.2 remains rejected under the user-directed soak exception."
+    "Persisted Codex authentication grants every Tailnet device allowed to reach port 8214 the same high-privilege account and workspace access.",
+    "A real login can expire or be revoked by the issuer and must then be authorized again.",
+    "Account switching and cross-account continuity remain outside M6.6."
   ],
-  "updated_at": "2026-07-28T18:47:00+08:00"
+  "updated_at": "2026-07-28T18:58:10+08:00"
 }

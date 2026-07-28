@@ -91,6 +91,15 @@ The browser access token follows the same no-newline rule and must contain at le
 characters. It authenticates the website only; never reuse a ChatGPT password, Cookie, Codex token,
 API key, or SSH password.
 
+When the App Server reaches OpenAI only through the local account router, keep the real authorized
+ChatGPT `auth.json` exclusively in the matching `/etc/credstore/codex-account-router.auth.*`
+credential. Use a separate randomly generated, router-managed API-key marker for
+`app-server-auth.json` and `/var/lib/codex-web/auth.json`. The marker has no provider authority; it
+only tells the App Server and its browser proxy that their local router transport is configured.
+The router allowlist discards the client's `Authorization` header and injects the selected real
+account credential. Never use this marker when `openai_base_url` points anywhere other than the
+loopback router, and never copy the real ChatGPT credential into `/var/lib/codex-web`.
+
 The systemd credentials model intentionally exposes credential data as service-user-restricted
 files rather than inherited environment values. See the upstream
 [System and Service Credentials](https://systemd.io/CREDENTIALS/) documentation for the `%d` and

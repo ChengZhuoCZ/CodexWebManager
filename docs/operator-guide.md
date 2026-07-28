@@ -110,6 +110,41 @@ grants high-privilege control of the configured Codex workspaces, including prot
 can read/write files and start restricted processes. Generate or enter it privately on the server,
 protect it like workspace access, use a strong random value, and do not reuse any other credential.
 
+### Keep the routed browser signed in
+
+In the supervised router deployment, the App Server and the `codex-web` proxy must appear locally
+authenticated before the Codex UI opens its main page. Do not solve this by copying the real ChatGPT
+credential into the browser proxy home. Keep the real account `auth.json` only in the corresponding
+root-owned `/etc/credstore/codex-account-router.auth.*` file.
+
+Instead, create a random router-managed marker through the Codex CLI's standard stdin login path.
+The marker is not an OpenAI credential and has no provider authority. It is still stored privately
+because Codex treats it as an API-key login:
+
+```sh
+sudo install -d -m 0700 -o codex -g codex /var/lib/codex-web
+openssl rand -hex 32 \
+  | sed 's/^/router-managed-/' \
+  | sudo -u codex env \
+      HOME=/var/lib/codex-web \
+      CODEX_HOME=/var/lib/codex-web \
+      /usr/local/bin/codex login --with-api-key
+sudo install -m 0600 -o root -g root \
+  /var/lib/codex-web/auth.json \
+  /etc/codex-account-router/credentials/app-server-auth.json
+sudo systemctl restart codex-app-server.service codex-web.service
+```
+
+This is safe only while the App Server's exact `openai_base_url` remains the loopback account-router
+path. The router discards client `Authorization` and injects the selected real account credential.
+If that loopback invariant changes, remove both marker files and stop the services rather than
+sending the marker to another origin.
+
+After restart, open a fresh browser session and confirm that the Codex composer appears without a
+ChatGPT sign-in prompt. Also verify that `/var/lib/codex-web/auth.json` is a regular `0600` file
+owned by `codex`, the App Server source is a regular root-owned `0600` file, and the two marker files
+are distinct from every `/etc/credstore/codex-account-router.auth.*` real account credential.
+
 After configuration changes:
 
 ```sh
