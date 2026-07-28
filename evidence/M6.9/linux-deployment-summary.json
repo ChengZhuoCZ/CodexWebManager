@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "implementation_mode": "clean-room",
+  "router_release": "codex-account-router-0.2.2-linux-x64",
+  "router_artifact_sha256": "c9c35a4f13550b6559c41d480da94f943bd6e315f5dc0d71cbb6d26e835de191",
+  "routed_codex_web_release": "c3e92f0f-20260729-m69-router-r9",
+  "standalone_codex_web_port": 8215,
+  "routed_codex_web_port": 8216,
+  "services": {
+    "codex_account_router": "active",
+    "codex_web_router_app_server": "active",
+    "codex_web_router": "active",
+    "codex_web_upstream_app_server": "active",
+    "codex_web_upstream": "active"
+  },
+  "http": {
+    "standalone_8215": 200,
+    "routed_8216": 200
+  },
+  "standalone_8215": {
+    "restarted_or_reconfigured_by_m6_9": false,
+    "active_enter_timestamp": "2026-07-29 04:02:49 CST"
+  },
+  "router": {
+    "status": "ready",
+    "configured_accounts": 1,
+    "enabled_accounts": 1,
+    "usable_accounts": 1,
+    "private_account_credential_files": 1,
+    "atomic_enrollment_cli_installed": true
+  },
+  "main_bundle": {
+    "identity_bytes": 22822120,
+    "gzip_bytes": 5116196,
+    "brotli_bytes": 3739265,
+    "brotli_reduction_from_gzip_percent": 26.9,
+    "decoded_bodies_equal": true,
+    "cache_control": "public, max-age=31536000, immutable",
+    "vary": "Accept-Encoding"
+  },
+  "browser": {
+    "composer_present": true,
+    "dark_startup_background": "rgb(24 24 24)",
+    "single_account_model_request_completed": true
+  },
+  "logging": {
+    "routed_standard_output": "null",
+    "routed_standard_error": "journal",
+    "post_fix_sensitive_pattern_matches": 0,
+    "historical_pre_fix_journal_retention_risk": true
+  },
+  "real_two_account_e2e_executed": false,
+  "account_switch_scenario_executed": false,
+  "seamless_account_continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
+

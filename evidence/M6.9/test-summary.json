@@ -1,0 +1,93 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "input_revision": "d41f2f282390f3f95e6795dd713d657b51788cc5",
+  "implementation_revision": "3a4c669642c06132bebae5ab9333fc2839f2541c",
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "commands": [
+    {
+      "command": "<bundled-node> --test",
+      "result": {
+        "tests": 253,
+        "passed": 228,
+        "failed": 0,
+        "skipped": 25,
+        "skip_reason": "Pinned codex-web fixture variables were intentionally absent."
+      }
+    },
+    {
+      "command": "M4_2_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_3_CODEX_WEB_ROOT=<clean-888692f-fixture> M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": {
+        "tests": 253,
+        "passed": 253,
+        "failed": 0,
+        "skipped": 0,
+        "unit": 137,
+        "integration": 69,
+        "e2e": 47
+      }
+    },
+    {
+      "command": "M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": {
+        "qualified": true,
+        "security_tests": 82,
+        "security_tests_passed": 82,
+        "security_tests_failed": 0,
+        "security_tests_skipped": 0,
+        "repository_files_scanned": 316,
+        "findings": 0,
+        "strict_ui_tests": 492,
+        "strict_ui_passed": 492
+      }
+    },
+    {
+      "command": "<bundled-node> --test test/account-enrollment.test.mjs test/codex-credentials.test.mjs test/linux-release.test.mjs test/release-docs-contract.test.mjs test/test-matrix-contract.test.mjs",
+      "result": {
+        "passed": true
+      }
+    },
+    {
+      "command": "<bundled-node> --test test/failover-proxy.test.mjs test/codex-web-upstream-fastpath.test.mjs",
+      "result": {
+        "passed": true,
+        "upstream_connection_count_for_two_requests": 1
+      }
+    }
+  ],
+  "failure_injections": {
+    "quota_before_semantic_output": "passed",
+    "http_429_before_semantic_output": "passed",
+    "authentication_before_semantic_output": "passed",
+    "network_before_semantic_output": "passed",
+    "upstream_5xx_before_semantic_output": "passed",
+    "malformed_sse_before_semantic_output": "passed",
+    "sse_after_semantic_output": "unsafe_to_replay",
+    "websocket_after_semantic_output": "unsafe_to_replay"
+  },
+  "live_browser": {
+    "composer_present": true,
+    "account_signed_in": true,
+    "dark_startup_background": "rgb(24 24 24)",
+    "r9_usable_screen_ms": 6531,
+    "single_account_model_request_completed": true,
+    "single_account_model_request_ms": 7652,
+    "active_generation_observed": true,
+    "prompt_or_response_body_recorded": false
+  },
+  "log_boundary": {
+    "standard_output": "null",
+    "standard_error": "journal",
+    "post_fix_journal_lines": 5,
+    "sentinel_matches": 0,
+    "electron_ipc_matches": 0,
+    "credential_account_cookie_or_body_pattern_matches": 0
+  },
+  "real_two_account_e2e": {
+    "executed": false,
+    "reason": "Only one user-authorized account credential is configured on the server."
+  },
+  "seamless_account_continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
