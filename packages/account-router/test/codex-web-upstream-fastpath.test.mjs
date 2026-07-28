@@ -1,7 +1,16 @@
 import assert from "node:assert/strict";
-import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import os from "node:os";
+import path from "node:path";
 import test from "node:test";
+import { gunzipSync, brotliDecompressSync } from "node:zlib";
 
+import {
+  buildMinifiedPrecompressedAsset,
+  esbuildArguments,
+  EXPECTED_ESBUILD_VERSION,
+} from "../../../integrations/codex-web-upstream/build-minified-precompressed-asset.mjs";
 import { localStartupRpcResponse } from "../../../integrations/codex-web-upstream/codex-remote-fastpath.mjs";
 
 const precompressedAssetPatch = new URL(
@@ -93,4 +102,63 @@ test("startup background patch replaces the transparent white flash without chan
   assert.match(patch, /prefers-color-scheme: dark/);
   assert.match(patch, /electron-dark/);
   assert.doesNotMatch(patch, /backend-api|responses|Authorization|Cookie|fetch\(/);
+});
+
+test("builds deterministic precompressed files only after a pinned minifier produces smaller valid JavaScript", async (context) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "codex-minified-asset-"));
+  context.after(() => rm(directory, { recursive: true, force: true }));
+  const asset = path.join(directory, "app-initial-BTphDPeq.js");
+  const original = Buffer.from("const intentionallyLongFixtureName = 40 + 2;\n");
+  const minified = Buffer.from("const a=42;\n");
+  await writeFile(asset, original, { mode: 0o640 });
+  const expectedSha256 = createHash("sha256").update(original).digest("hex");
+
+  const result = await buildMinifiedPrecompressedAsset({
+    assetFile: asset,
+    expectedSha256,
+    minify: async ({ inputFile, outputFile }) => {
+      assert.equal(inputFile, asset);
+      await writeFile(outputFile, minified);
+    },
+  });
+
+  assert.equal(result.input_bytes, original.length);
+  assert.equal(result.output_bytes, minified.length);
+  assert.equal(result.esbuild_version, EXPECTED_ESBUILD_VERSION);
+  assert.deepEqual(await readFile(asset), minified);
+  assert.deepEqual(gunzipSync(await readFile(`${asset}.gz`)), minified);
+  assert.deepEqual(brotliDecompressSync(await readFile(`${asset}.br`)), minified);
+  assert.equal((await stat(asset)).mode & 0o777, 0o640);
+});
+
+test("minified asset builder rejects unpinned input and fixes the esbuild contract", async (context) => {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "codex-minified-reject-"));
+  context.after(() => rm(directory, { recursive: true, force: true }));
+  const asset = path.join(directory, "app-initial-BTphDPeq.js");
+  await writeFile(asset, "const fixture = true;\n", { mode: 0o600 });
+  let called = false;
+
+  await assert.rejects(
+    buildMinifiedPrecompressedAsset({
+      assetFile: asset,
+      expectedSha256: "0".repeat(64),
+      minify: async () => {
+        called = true;
+      },
+    }),
+    /asset build failed/,
+  );
+  assert.equal(called, false);
+  assert.deepEqual(
+    esbuildArguments("/absolute/input.js", "/absolute/output.js"),
+    [
+      "/absolute/input.js",
+      "--minify",
+      "--target=chrome120",
+      "--format=esm",
+      "--legal-comments=none",
+      "--outfile=/absolute/output.js",
+    ],
+  );
+  assert.equal(EXPECTED_ESBUILD_VERSION, "0.27.0");
 });

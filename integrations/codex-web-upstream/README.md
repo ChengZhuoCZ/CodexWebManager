@@ -68,11 +68,21 @@ initialize, registration, and log-event hosts/paths and never matches provider,
 account, or model endpoints.
 
 The main pinned desktop bundle is about 22.8 MB. Because the upstream Fastify
-server does not negotiate compression for it, the routed release pre-generates
-`app-initial-BTphDPeq.js.gz` and applies
-`tailnet-precompressed-asset.patch`. Only the exact content-hashed asset route
-is handled by the adapter; it returns gzip only when the client explicitly
-accepts it, emits `Vary: Accept-Encoding`, and preserves immutable caching.
+server does not negotiate compression for it, the routed release may run
+`build-minified-precompressed-asset.mjs` against the exact final patched
+`app-initial-BTphDPeq.js`, then apply `tailnet-precompressed-asset.patch`. The
+builder accepts only an absolute path, the expected input SHA-256, and the
+pinned esbuild `0.27.0` executable. It syntax-checks the smaller result and
+deterministically creates both Brotli and gzip variants. Build order is
+important: upstream build, compatibility/IPC patches, minification, then
+precompression. Minifying before the integration patches would invalidate the
+reviewed patch boundaries.
+
+Only the exact content-hashed asset route is handled by the adapter. It prefers
+Brotli, falls back to gzip only when explicitly accepted, emits
+`Vary: Accept-Encoding`, and preserves immutable caching. A newly built bundle
+must be exercised in an inactive routed release before activation; the
+standalone `8215` release is never a candidate for this optimization.
 
 The upstream loader already paints before the main bundle is ready, but its
 background is transparent. `tailnet-startup-background.patch` gives the
