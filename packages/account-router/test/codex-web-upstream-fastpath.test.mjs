@@ -68,11 +68,14 @@ test("fails closed for malformed or oversized input without reflecting it", () =
   assert.equal(localStartupRpcResponse("x".repeat(1024 * 1024 + 1)), null);
 });
 
-test("precompressed asset patch is limited to the pinned content-hashed bundle", async () => {
+test("precompressed asset patch prefers Brotli and is limited to the pinned content-hashed bundle", async () => {
   const patch = await readFile(precompressedAssetPatch, "utf8");
 
   assert.match(patch, /app-initial-BTphDPeq\.js/);
   assert.match(patch, /accept-encoding/);
+  assert.match(patch, /acceptsEncoding/);
+  assert.match(patch, /["']br["']/);
+  assert.match(patch, /\.br/);
   assert.match(patch, /Content-Encoding/);
   assert.match(patch, /Vary/);
   assert.match(patch, /immutable/);

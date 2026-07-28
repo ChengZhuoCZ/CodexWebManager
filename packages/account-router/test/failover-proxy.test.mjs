@@ -21,9 +21,11 @@ async function close(server) {
 }
 
 async function fixture(context, listeners, options = {}) {
+  const { onUpstreamServer = null, ...handlerOptions } = options;
   const origins = new Map();
   for (const [accountId, listener] of Object.entries(listeners)) {
     const server = http.createServer(listener);
+    onUpstreamServer?.(accountId, server);
     context.after(() => close(server));
     origins.set(accountId, await listen(server));
   }
@@ -57,7 +59,7 @@ async function fixture(context, listeners, options = {}) {
     responseBodyLimitBytes: 4_096,
     upstreamHeadersTimeoutMs: 500,
     requestTotalTimeoutMs: 2_000,
-    ...options,
+    ...handlerOptions,
   });
   const service = createModelProxyService({ modelPort: 0, proxyHandler });
   context.after(() => service.stop());
@@ -69,6 +71,38 @@ async function fixture(context, listeners, options = {}) {
     resolverCalls,
   };
 }
+
+test("reuses a completed upstream HTTP connection across sequential requests", async (context) => {
+  let connectionCount = 0;
+  const { origin } = await fixture(
+    context,
+    {
+      A(_request, response) {
+        response.writeHead(200, { "content-type": "application/json" });
+        response.end('{"ok":true}');
+      },
+    },
+    {
+      onUpstreamServer(_accountId, server) {
+        server.on("connection", () => {
+          connectionCount += 1;
+        });
+      },
+    },
+  );
+
+  for (let index = 0; index < 2; index += 1) {
+    const response = await fetch(`${origin}/v1/responses`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: '{"input":"fixture"}',
+    });
+    assert.equal(response.status, 200);
+    assert.deepEqual(await response.json(), { ok: true });
+  }
+
+  assert.equal(connectionCount, 1);
+});
 
 function completeSse(response, text = "fixture") {
   response.writeHead(200, { "content-type": "text/event-stream" });

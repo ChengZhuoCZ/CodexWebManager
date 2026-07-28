@@ -7,41 +7,49 @@
  const promises_1 = __importDefault(require("node:fs/promises"));
  const node_os_1 = __importDefault(require("node:os"));
  const node_path_1 = __importDefault(require("node:path"));
-@@ -35,6 +36,21 @@
+@@ -35,6 +36,25 @@
          ? "public, max-age=31536000, immutable"
          : "public, max-age=0";
  }
-+function acceptsGzip(value) {
++function acceptsEncoding(value, expectedCoding) {
 +    if (typeof value !== "string") {
 +        return false;
 +    }
 +    return value.split(",").some((entry) => {
 +        const [coding, ...parameters] = entry.trim().split(";");
-+        if (coding.trim().toLowerCase() !== "gzip") {
++        if (coding.trim().toLowerCase() !== expectedCoding) {
 +            return false;
 +        }
 +        const quality = parameters
 +            .map((parameter) => parameter.trim().toLowerCase())
 +            .find((parameter) => parameter.startsWith("q="));
-+        return quality === undefined || Number(quality.slice(2)) > 0;
++        if (quality === undefined) {
++            return true;
++        }
++        const score = Number(quality.slice(2));
++        return Number.isFinite(score) && score > 0;
 +    });
 +}
  class WebSocketMessagePort {
      portId;
      sendToRenderer;
-@@ -250,6 +266,19 @@
+@@ -250,6 +270,23 @@
          })());
          return reply.send({ files });
      });
 +    const appInitialAsset = node_path_1.default.resolve(__dirname, "../../scratch/asar/webview/assets/app-initial-BTphDPeq.js");
 +    app.get("/assets/app-initial-BTphDPeq.js", async (request, reply) => {
-+        const gzip = acceptsGzip(request.headers["accept-encoding"]);
-+        const filePath = gzip ? `${appInitialAsset}.gz` : appInitialAsset;
++        const accepted = request.headers["accept-encoding"];
++        const brotli = acceptsEncoding(accepted, "br");
++        const gzip = !brotli && acceptsEncoding(accepted, "gzip");
++        const filePath = brotli ? `${appInitialAsset}.br` : gzip ? `${appInitialAsset}.gz` : appInitialAsset;
 +        reply
 +            .header("Cache-Control", "public, max-age=31536000, immutable")
 +            .header("Vary", "Accept-Encoding")
 +            .type("application/javascript; charset=UTF-8");
-+        if (gzip) {
++        if (brotli) {
++            reply.header("Content-Encoding", "br");
++        } else if (gzip) {
 +            reply.header("Content-Encoding", "gzip");
 +        }
 +        return reply.send((0, node_fs_1.createReadStream)(filePath));
