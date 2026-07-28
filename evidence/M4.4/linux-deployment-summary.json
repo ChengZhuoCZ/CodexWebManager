@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "task": "M4.4",
+  "recorded_at": "2026-07-28T14:35:11+08:00",
+  "target": "authorized-tailnet-linux-x64",
+  "deployment": {
+    "result": "passed",
+    "previous_release": "888692f7-20260727-r16-secure-browser",
+    "active_release": "888692f7-20260728-m4-4-weekly-only",
+    "previous_release_retained": true,
+    "automatic_rollback_on_failure": true
+  },
+  "artifact": {
+    "name": "codex-web-m4-4-weekly-only.tar.gz",
+    "sha256": "c14c338f02337098675922aa530846929ece204a56dd6fa871ba98a7af61f88f",
+    "panel_source_sha256": "1c588d49d58f4b772404ac1039c3dfeb275d4061540df2e5886f5ccaf6660fe5",
+    "browser_bundle_sha256": "346b6beead7aa55636db60d2637a139082ad74672d886559d65c88c5e5109ee8",
+    "browser_bundle_gzip_sha256": "1ca339a4f84f79e659a85ee554736f89d1b37a3d1e0da67c25fbb5e3b060c9dc"
+  },
+  "display_verification": {
+    "weekly_quota_label_present": true,
+    "five_hour_quota_label_present_in_source": false,
+    "five_hour_quota_label_present_in_browser_bundle": false,
+    "legacy_status_field_supported_as_ignored_input": true
+  },
+  "services": {
+    "codex_web": "active",
+    "codex_account_router": "active",
+    "codex_app_server": "active",
+    "codex_web_health_status": 200,
+    "login_page_status": 200,
+    "tailnet_health_status": 200
+  },
+  "credentials_changed": false,
+  "real_account_configuration_changed": false,
+  "account_switch_tested": false,
+  "cross_account_continuation_tested": false,
+  "seamless_account_continuity_claimed": false
+}

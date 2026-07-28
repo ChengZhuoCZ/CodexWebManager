@@ -1,0 +1,89 @@
+{
+  "schema_version": 1,
+  "task": "M4.4",
+  "recorded_at": "2026-07-28T14:35:11+08:00",
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "input_revision": "bddb821e9763f80d7a3c45c6f0bde090d84d3066",
+  "implementation_revision": "a58d3a5fe035657733dc0d30e7a0199be61f17da",
+  "strict_baseline_revision": "a67704753e160a69d69ac31d6c27d2f0c580c758",
+  "test_first": {
+    "command": "M4_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test test/codex-web-account-ui.test.mjs",
+    "result": "expected failure",
+    "passed": 4,
+    "failed": 2,
+    "reason": "The account view model still exposed fiveHourLabel and the browser bundle still contained the 5-hour quota label."
+  },
+  "focused_ui": {
+    "result": "passed",
+    "tests": 6,
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "legacy_five_hour_input_ignored": true,
+    "missing_five_hour_input_tolerated": true,
+    "bundle_five_hour_label_absent": true
+  },
+  "syntax_check": {
+    "command": "PATH=<bundled-node> pnpm run check",
+    "result": "passed"
+  },
+  "local_full_matrix": {
+    "result": "passed",
+    "tests": 235,
+    "passed": 235,
+    "failed": 0,
+    "skipped": 0,
+    "unit": "125/125",
+    "integration": "68/68",
+    "e2e_fixtures": "42/42",
+    "account_switch_scenario_executed": false
+  },
+  "strict_ci_baseline": {
+    "workflow_run": 30333653746,
+    "head_sha": "a58d3a5fe035657733dc0d30e7a0199be61f17da",
+    "node_22": "235/235",
+    "node_24": "235/235",
+    "failed": 0,
+    "skipped": 0,
+    "downloaded_artifact_hashes_verified": true
+  },
+  "final_security_audit": {
+    "result": "passed",
+    "repository_files_scanned": 282,
+    "findings": 0,
+    "focused_tests": 75,
+    "passed": 75,
+    "failed": 0,
+    "skipped": 0,
+    "strict_ui_tests": 470,
+    "strict_ui_passed": 470
+  },
+  "final_github_actions": {
+    "head_sha": "a67704753e160a69d69ac31d6c27d2f0c580c758",
+    "automated_test_matrix": {
+      "run_id": 30334898519,
+      "conclusion": "success"
+    },
+    "security_and_secret_audit": {
+      "run_id": 30334898496,
+      "conclusion": "success"
+    },
+    "linux_headless_release": {
+      "run_id": 30334898435,
+      "conclusion": "success"
+    },
+    "systemd_least_privilege": {
+      "run_id": 30334898490,
+      "conclusion": "success"
+    },
+    "systemd_upgrade_and_rollback": {
+      "run_id": 30334898542,
+      "conclusion": "success"
+    }
+  },
+  "real_account_used_by_tests": false,
+  "account_switch_tested": false,
+  "cross_account_continuation_tested": false,
+  "seamless_account_continuity_claimed": false
+}

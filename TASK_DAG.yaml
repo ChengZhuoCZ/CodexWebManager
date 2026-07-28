@@ -231,7 +231,7 @@ milestones:
           - All-exhausted state is explicit
       - id: M4.4
         title: Remove obsolete five-hour quota display
-        status: in_progress
+        status: done
         depends_on: [M2.5, M4.3, M5.4]
         acceptance:
           - Account cards display weekly quota without a five-hour quota row

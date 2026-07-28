@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M4.4",
-  "status": "in_progress",
+  "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-SKIP-M6.2-SOAK",
@@ -14,7 +14,7 @@
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf"
   },
-  "output_revision": null,
+  "output_revision": "a58d3a5fe035657733dc0d30e7a0199be61f17da",
   "workspace_branch": "codex/m4-4-remove-five-hour-display",
   "workspace_input_revision": "bddb821e9763f80d7a3c45c6f0bde090d84d3066",
   "depends_on": [
@@ -31,8 +31,60 @@
     "evidence/M4.4/test-summary.json",
     "evidence/M4.4/linux-deployment-summary.json"
   ],
-  "tests": [],
-  "evidence": [],
+  "tests": [
+    {
+      "stage": "test_first",
+      "command": "M4_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test test/codex-web-account-ui.test.mjs",
+      "result": "expected failure: 4 passed and 2 failed because the view model and browser bundle still contained the five-hour display"
+    },
+    {
+      "stage": "focused_ui",
+      "command": "M4_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test test/codex-web-account-ui.test.mjs",
+      "result": "passed: 6 passed, 0 failed, 0 skipped"
+    },
+    {
+      "stage": "syntax_check",
+      "command": "PATH=<bundled-node> pnpm run check",
+      "result": "passed"
+    },
+    {
+      "stage": "full_matrix",
+      "command": "M4_1_CODEX_WEB_ROOT=<pinned-checkout> M4_2_CODEX_WEB_ROOT=<pinned-checkout> M4_3_CODEX_WEB_ROOT=<pinned-checkout> M6_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> scripts/run-test-matrix.mjs --suite all --summary <private-summary>",
+      "result": "passed: 235 passed, 0 failed, 0 skipped"
+    },
+    {
+      "stage": "strict_ci_baseline",
+      "command": "GitHub Actions Automated test matrix run 30333653746",
+      "result": "passed: Node 22 and Node 24 each passed 235/235 with zero skips; downloaded evidence hashes verified"
+    },
+    {
+      "stage": "security_audit",
+      "command": "M4_2_CODEX_WEB_ROOT=<pinned-checkout> M6_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "passed after evidence generation: 282 files scanned, 0 findings; 75 passed, 0 failed, 0 skipped; strict UI baseline 470/470"
+    },
+    {
+      "stage": "final_ci",
+      "command": "GitHub Actions on baseline commit a67704753e160a69d69ac31d6c27d2f0c580c758",
+      "result": "passed: test matrix, security audit, Linux release, systemd least privilege, and systemd upgrade/rollback"
+    },
+    {
+      "stage": "codex_web_build",
+      "command": "apply-status-bridge.mjs <clean-pinned-checkout>; pnpm run build:server; pnpm run build:browser; gzip -6",
+      "result": "passed: browser source and bundle contain Weekly quota and no five-hour quota label"
+    },
+    {
+      "stage": "linux_deployment",
+      "command": "sudo sh <verified-private-deployment-script>",
+      "result": "passed: activated weekly-only codex-web release, service/login/Tailnet health 200, all three services active, no account switch"
+    }
+  ],
+  "evidence": [
+    "evidence/M4.4-remove-five-hour-display.md",
+    "evidence/M4.4/test-summary.json",
+    "evidence/M4.4/linux-deployment-summary.json",
+    "packages/account-router/test/codex-web-account-ui.test.mjs",
+    "evidence/M6.1/github-actions-summary.json"
+  ],
   "observations": {
     "start_record": {
       "repository": "ChengZhuoCZ/CodexWebManager",
@@ -45,7 +97,10 @@
       ],
       "expected_result": "Remove the obsolete five-hour quota row from the browser account panel, retain weekly quota, and deploy the rebuilt codex-web overlay."
     },
-    "scope_boundary": "This is a display-only compatibility change. The router may continue accepting legacy five-hour fields internally; no account switch or protocol continuity experiment is performed."
+    "scope_boundary": "This is a display-only compatibility change. The router may continue accepting legacy five-hour fields internally; no account switch or protocol continuity experiment is performed.",
+    "result": "The browser view model ignores legacy five-hour input and account cards now render only Weekly quota, cooldown, last switch reason, state, alias, and current route.",
+    "ci": "Strict Node 22/24 matrix and the renewed security baseline passed; all five final GitHub workflows succeeded.",
+    "deployment": "The Tailnet server now runs immutable codex-web release 888692f7-20260728-m4-4-weekly-only. The active source and browser bundle contain no five-hour label."
   },
   "blockers": [],
   "residual_risks": [
@@ -53,5 +108,5 @@
     "One real account remains configured, so automatic account switching is not tested.",
     "M6.2 remains rejected under the user-directed soak exception."
   ],
-  "updated_at": "2026-07-28T13:57:22+08:00"
+  "updated_at": "2026-07-28T14:35:11+08:00"
 }
