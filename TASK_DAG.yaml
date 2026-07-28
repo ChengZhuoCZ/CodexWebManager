@@ -351,3 +351,16 @@ milestones:
           - Service restarts preserve the real-account login and the repaired request path
           - No credential value, email, account identifier, prompt response body or complete authentication response enters the repository or logs
           - Account switching and cross-account continuity remain outside this task
+      - id: M6.9
+        title: Qualify routed codex-web automatic failover and response latency
+        status: in_progress
+        depends_on: [M2.5, M6.8, G-SECRETS]
+        acceptance:
+          - The standalone upstream site on port 8215 remains active, unchanged and independent throughout the task
+          - The routed site on port 8216 uses a private, atomic second-account enrollment workflow that never exposes credential values, emails or account identifiers
+          - Weekly quota exhaustion and explicit pre-semantic account failures select another eligible account with bounded attempts, backoff and total deadline
+          - A user-authorized two-account E2E proves a real new-request A-to-B switch without recording prompt or response bodies
+          - No request is replayed after semantic SSE or WebSocket output, and every accepted switch is labeled as a new backend session
+          - Startup and model-request timing evidence identifies and removes avoidable routed-path delay without weakening the loopback/Tailnet boundary
+          - Service restarts preserve both private account bindings, router readiness and the repaired routed request path
+          - No seamless cross-account continuity or in-flight computation-resume claim is made
