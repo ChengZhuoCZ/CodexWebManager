@@ -105,6 +105,10 @@ test("precompressed asset patch delegates negotiation and validators to the pinn
 
   assert.match(patch, /preCompressed:\s*true/);
   assert.match(patch, /scratch\/asar\/webview/);
+  assert.match(patch, /filePath\.endsWith\(["']\.br["']\)/);
+  assert.match(patch, /filePath\.endsWith\(["']\.gz["']\)/);
+  assert.match(patch, /filePath\.slice\(0,\s*-3\)/);
+  assert.match(patch, /setHeader\(["']Vary["'],\s*["']Accept-Encoding["']\)/);
   assert.doesNotMatch(patch, /createReadStream|acceptsEncoding|Content-Encoding/);
   assert.doesNotMatch(patch, /backend-api|responses|Authorization|Cookie/);
 });

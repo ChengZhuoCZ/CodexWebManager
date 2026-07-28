@@ -102,15 +102,17 @@ a fresh inactive release instead.
 
 The adapter enables the pinned `@fastify/static` `preCompressed` option instead
 of implementing content negotiation itself. That mature plugin prefers
-Brotli, falls back to gzip and identity, and retains its normal validators,
-content types, ranges, and cache policy. Only the three hash-pinned startup
-assets receive generated compressed siblings. The versioned main URL prevents
-a refreshed HTML document from reusing the previous release's immutable
-main-module entry while keeping all importers on one canonical module URL.
-The HTML and un-hashed preload routes remain revalidated rather than immutable.
-A newly built bundle must be exercised in an inactive routed release before
-activation; the standalone `8215` release is never a candidate for this
-optimization.
+Brotli and falls back to gzip and identity. The adapter also normalizes the
+selected `.br` or `.gz` sibling back to its original asset path before applying
+the existing cache policy and emits `Vary: Accept-Encoding`; plugin-managed
+validators, content types, and ranges remain intact. Only the three hash-pinned
+startup assets receive generated compressed siblings. The versioned main URL
+prevents a refreshed HTML document from reusing the previous release's
+immutable main-module entry while keeping all importers on one canonical
+module URL. The HTML and un-hashed preload routes remain revalidated rather
+than immutable. A newly built bundle must be exercised in an inactive routed
+release before activation; the standalone `8215` release is never a candidate
+for this optimization.
 
 The upstream loader already paints before the main bundle is ready, but its
 background is transparent. `tailnet-startup-background.patch` gives the

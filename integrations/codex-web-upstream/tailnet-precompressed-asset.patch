@@ -1,10 +1,18 @@
 --- a/src/server/main.js
 +++ b/src/server/main.js
-@@ -258,6 +258,7 @@
+@@ -258,11 +258,17 @@
      await app.register(static_1.default, {
          root: node_path_1.default.resolve(__dirname, "../../scratch/asar/webview"),
          prefix: "/",
 +        preCompressed: true,
          cacheControl: false,
          setHeaders(response, filePath) {
-             response.setHeader("Cache-Control", cacheControlForWebviewFile(filePath));
+-            response.setHeader("Cache-Control", cacheControlForWebviewFile(filePath));
++            const cachePath = filePath.endsWith(".br") || filePath.endsWith(".gz")
++                ? filePath.slice(0, -3)
++                : filePath;
++            response.setHeader("Cache-Control", cacheControlForWebviewFile(cachePath));
++            response.setHeader("Vary", "Accept-Encoding");
+         },
+     });
+     app.get("/", async (_request, reply) => {
