@@ -165,7 +165,7 @@ listeners, persists bounded failure/cooldown mutations, and flushes pending writ
 Restored open/half-open health is reflected in the sanitized admin status. Persistence failure makes
 readiness and later selection fail closed.
 
-Release `0.2.0` includes `bin/codex-stack-deploy`. It validates schema-1 configuration/state,
+Release `0.2.0` and later include `bin/codex-stack-deploy`. It validates schema-1 configuration/state,
 creates private snapshots that exclude credentials, atomically activates immutable releases, and
 supports one-command rollback. See `docs/linux-upgrade-rollback.md` in the repository.
 

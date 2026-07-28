@@ -29,9 +29,9 @@ After extracting the checked release, run one coordinated command from the extra
 
 ```sh
 sudo env NODE_BINARY=/usr/bin/node \
-  /absolute/path/codex-account-router-0.2.0-linux-x64/bin/codex-stack-deploy \
+  /absolute/path/codex-account-router-0.2.1-linux-x64/bin/codex-stack-deploy \
   upgrade \
-  --release-dir /absolute/path/codex-account-router-0.2.0-linux-x64
+  --release-dir /absolute/path/codex-account-router-0.2.1-linux-x64
 ```
 
 The JSON result contains `snapshot_id` and the activated release name. Save the snapshot ID in the
@@ -51,7 +51,7 @@ the release notes explicitly change their compatibility boundary.
 
 ## Backup without upgrading
 
-After `0.2.0` is active:
+After `0.2.0` or a later compatible release is active:
 
 ```sh
 sudo /opt/codex-account-router/current/bin/codex-stack-deploy backup

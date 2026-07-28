@@ -257,6 +257,15 @@ milestones:
           - Configuration schema migration is reversible or backed up
           - One-command rollback documented
           - Restart does not erase account health history
+      - id: M5.4
+        title: Package and deploy weekly quota runtime
+        status: in_progress
+        depends_on: [M2.5, M5.3]
+        acceptance:
+          - Build a new immutable Linux x64 release containing the M2.5 runtime
+          - Upgrade through the checked-in snapshot and rollback workflow
+          - Preserve private credentials and the single public account configuration
+          - Server health and a bounded single-account real request pass without switching accounts
 
   - id: M6
     name: Hardening and release gate

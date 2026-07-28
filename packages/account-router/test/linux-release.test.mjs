@@ -51,6 +51,8 @@ test("builds a byte-reproducible x64 Linux archive without desktop dependencies"
   assert.ok(manifestEntry);
 
   const manifest = JSON.parse(manifestEntry.content.toString("utf8"));
+  assert.equal(manifest.version, "0.2.1");
+  assert.equal(first.releaseName, "codex-account-router-0.2.1-linux-x64");
   assert.deepEqual(manifest.target, { os: "linux", architecture: "x64" });
   assert.equal(manifest.runtime.node, ">=22");
   assert.equal(manifest.runtime.electron_required, false);
@@ -64,6 +66,7 @@ test("builds a byte-reproducible x64 Linux archive without desktop dependencies"
   assert.ok(archivedPaths.includes(`${root}/bin/codex-stack-deploy`));
   assert.ok(archivedPaths.includes(`${root}/install.sh`));
   assert.ok(archivedPaths.includes(`${root}/lib/account-router/src/main.mjs`));
+  assert.ok(archivedPaths.includes(`${root}/lib/account-router/src/weekly-quota-tracker.mjs`));
   assert.ok(archivedPaths.includes(`${root}/lib/account-router/package.json`));
   assert.equal(archivedPaths.some((entryPath) => entryPath.includes("node_modules")), false);
   assert.equal(archivedPaths.some((entryPath) => /electron/i.test(entryPath)), false);
@@ -76,6 +79,10 @@ test("builds a byte-reproducible x64 Linux archive without desktop dependencies"
   ]) {
     assert.equal(files.get(executablePath)?.mode, 0o755);
   }
+  assert.match(
+    files.get(`${root}/lib/account-router/src/runtime-composition.mjs`).content.toString("utf8"),
+    /runtime-weekly-events/,
+  );
 
   const manifestPaths = new Set(manifest.files.map((file) => file.path));
   const payloadPaths = [...files.keys()]

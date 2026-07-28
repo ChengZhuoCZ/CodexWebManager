@@ -41,10 +41,10 @@ permission check fails.
 Verify the downloaded archive before extraction, then install the matching release:
 
 ```sh
-sha256sum -c codex-account-router-0.2.0-linux-x64.tar.gz.sha256
-tar -xzf codex-account-router-0.2.0-linux-x64.tar.gz
+sha256sum -c codex-account-router-0.2.1-linux-x64.tar.gz.sha256
+tar -xzf codex-account-router-0.2.1-linux-x64.tar.gz
 sudo env NODE_BINARY=/usr/bin/node \
-  sh codex-account-router-0.2.0-linux-x64/install.sh
+  sh codex-account-router-0.2.1-linux-x64/install.sh
 ```
 
 Install the checked-in unit and provisioning files:
