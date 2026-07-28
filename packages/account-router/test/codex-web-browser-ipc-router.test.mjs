@@ -163,6 +163,12 @@ integrationTest(
   "browser IPC router assigns main requests to one tab and redacts blocked correlated responses",
   async (context) => {
     const { BrowserIpcRouter } = await compileRouter(context);
+    const warnings = [];
+    const originalWarn = console.warn;
+    console.warn = (...values) => warnings.push(values.join(" "));
+    context.after(() => {
+      console.warn = originalWarn;
+    });
     const router = new BrowserIpcRouter(
       (message) => !JSON.stringify(message).includes("fixture-access-canary"),
     );
@@ -233,6 +239,10 @@ integrationTest(
     assert.equal(fallback.args[0].type, "mcp-response");
     assert.equal(fallback.args[0].message.error.code, -32603);
     assert.doesNotMatch(JSON.stringify(fallback), /fixture-access-canary/);
+    assert.deepEqual(warnings, [
+      "[browser-ipc-router] filtered renderer response method=account/read",
+    ]);
+    assert.doesNotMatch(warnings.join("\n"), /fixture-access-canary/);
   },
 );
 

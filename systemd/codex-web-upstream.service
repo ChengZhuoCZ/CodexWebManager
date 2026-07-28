@@ -1,0 +1,38 @@
+[Unit]
+Description=Standalone upstream 0xcaff/codex-web
+After=network-online.target tailscaled.service codex-web-upstream-app-server.service
+Wants=network-online.target codex-web-upstream-app-server.service
+
+[Service]
+Type=simple
+User=codex
+Group=codex
+WorkingDirectory=/srv/codex-workspaces
+Environment=NODE_ENV=production
+Environment=HOME=/var/lib/codex-web-upstream
+Environment=CODEX_HOME=/var/lib/codex-web-upstream
+Environment=CODEX_CLI_PATH=/opt/0xcaff-codex-web/bin/codex-remote-proxy.mjs
+Environment=CODEX_REAL_CLI_PATH=/usr/local/bin/codex
+Environment=CODEX_UNIX_SOCKET=/run/codex-web-upstream-app-server/app-server.sock
+ExecStart=/usr/bin/node /opt/0xcaff-codex-web/current/src/server/main.js --host 127.0.0.1 --port 8215
+Restart=on-failure
+RestartSec=3
+TimeoutStopSec=20
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectControlGroups=true
+ProtectKernelModules=true
+ProtectKernelTunables=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+StateDirectory=codex-web-upstream
+StateDirectoryMode=0700
+ReadWritePaths=/srv/codex-workspaces /var/lib/codex-web-upstream
+
+[Install]
+WantedBy=multi-user.target

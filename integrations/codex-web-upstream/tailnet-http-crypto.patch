@@ -1,0 +1,53 @@
+--- a/scratch/asar/webview/index.html
++++ b/scratch/asar/webview/index.html
+@@ -4,4 +4,50 @@
+     <!-- PROD_BASE_TAG_HERE -->
+     <base href="/" />
+     <!-- PROD_CSP_TAG_HERE -->
++    <script>
++      (() => {
++        // Web Crypto is restricted to secure contexts by browsers, but this
++        // private Tailnet deployment is intentionally reached through a direct
++        // http://100.x address. These values are only used as browser-side
++        // correlation IDs.
++        const browserCrypto = globalThis.crypto ?? {};
++        if (typeof browserCrypto.getRandomValues !== "function") {
++          Object.defineProperty(browserCrypto, "getRandomValues", {
++            configurable: true,
++            value(array) {
++              for (let index = 0; index < array.length; index += 1) {
++                array[index] = Math.floor(Math.random() * 256);
++              }
++              return array;
++            },
++          });
++        }
++        if (typeof browserCrypto.randomUUID !== "function") {
++          Object.defineProperty(browserCrypto, "randomUUID", {
++            configurable: true,
++            value() {
++              const bytes = browserCrypto.getRandomValues(new Uint8Array(16));
++              bytes[6] = (bytes[6] & 0x0f) | 0x40;
++              bytes[8] = (bytes[8] & 0x3f) | 0x80;
++              const hex = Array.from(bytes, (byte) =>
++                byte.toString(16).padStart(2, "0"),
++              ).join("");
++              return [
++                hex.slice(0, 8),
++                hex.slice(8, 12),
++                hex.slice(12, 16),
++                hex.slice(16, 20),
++                hex.slice(20),
++              ].join("-");
++            },
++          });
++        }
++        if (typeof globalThis.crypto === "undefined") {
++          Object.defineProperty(globalThis, "crypto", {
++            configurable: true,
++            value: browserCrypto,
++          });
++        }
++      })();
++    </script>
+     <script type="module" src="./assets/preload.js"></script>

@@ -84,6 +84,15 @@ const SAFE_ZERO_ARGUMENT_INVOKE_CHANNELS = new Set([
   "codex_desktop:get-system-theme-variant",
   "codex_desktop:get-uses-owl-app-shell",
 ]);
+const GIT_WORKER_INVOKE_CHANNEL = "codex_desktop:worker:git:from-view";
+const ALLOWED_GIT_WORKER_METHODS = new Set([
+  "invalidate-git-read-caches",
+  "recover-live-queries",
+  "stable-metadata",
+  "subscribe-live-query",
+  "unwatch-repo",
+  "watch-repo",
+]);
 
 const SENSITIVE_OUTPUT_KEYS = new Set([
   "accesstoken",
@@ -498,6 +507,7 @@ function setSecurityHeaders(
     requestPath === LOGIN_PATH ||
     requestPath === SESSION_PATH ||
     requestPath === BROWSER_CONFIG_PATH ||
+    requestPath === "/assets/preload.js" ||
     requestPath.startsWith("/__backend/codex-router/")
   ) {
     reply.header("cache-control", "no-store");
@@ -712,7 +722,119 @@ export function isAuthorizedRendererEvent(message: unknown): boolean {
   );
 }
 
-export function isAuthorizedRendererMessage(message: unknown): boolean {
+function safeGitWorkerValue(
+  value: unknown,
+  workspaceRoots: readonly string[],
+  state: { nodes: number },
+  depth = 0,
+): boolean {
+  state.nodes += 1;
+  if (state.nodes > 4_096 || depth > 12) {
+    return false;
+  }
+  if (Array.isArray(value)) {
+    return (
+      value.length <= 1_024 &&
+      value.every((entry) =>
+        safeGitWorkerValue(entry, workspaceRoots, state, depth + 1),
+      )
+    );
+  }
+  if (typeof value === "string") {
+    if (
+      value.length > 4_096 ||
+      /[\u0000-\u001f\u007f]/u.test(value) ||
+      containsSensitiveOutputValue(value)
+    ) {
+      return false;
+    }
+    return (
+      !path.isAbsolute(value) ||
+      workspaceRoots.some((root) => isPathWithinRoot(root, value))
+    );
+  }
+  if (!isRecord(value)) {
+    return (
+      value === null ||
+      typeof value === "boolean" ||
+      (typeof value === "number" && Number.isFinite(value))
+    );
+  }
+  for (const [key, entry] of Object.entries(value)) {
+    if (key.length > 128 || isSensitiveOutputKey(key)) {
+      return false;
+    }
+    if (
+      normalizedSensitiveKey(key) === "hostconfig" &&
+      (!isRecord(entry) ||
+        entry.id !== "local" ||
+        entry.kind !== "local" ||
+        !onlyKeys(entry, ["id", "kind"], ["display_name", "displayName"]))
+    ) {
+      return false;
+    }
+    if (!safeGitWorkerValue(entry, workspaceRoots, state, depth + 1)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+function isAuthorizedGitWorkerInvoke(
+  message: Record<string, unknown>,
+  workspaceRoots: readonly string[],
+): boolean {
+  if (
+    workspaceRoots.length === 0 ||
+    !onlyKeys(message, ["type", "requestId", "channel", "args"]) ||
+    message.type !== "ipc-renderer-invoke" ||
+    !safeRequestId(message.requestId) ||
+    message.channel !== GIT_WORKER_INVOKE_CHANNEL ||
+    !Array.isArray(message.args) ||
+    message.args.length !== 1 ||
+    !isRecord(message.args[0])
+  ) {
+    return false;
+  }
+  const envelope = message.args[0];
+  if (
+    envelope.type === "worker-request-cancel" &&
+    onlyKeys(envelope, ["type", "workerId", "id"]) &&
+    envelope.workerId === "git" &&
+    safeRequestId(envelope.id)
+  ) {
+    return true;
+  }
+  if (
+    envelope.type !== "worker-request" ||
+    !onlyKeys(envelope, ["type", "workerId", "request"]) ||
+    envelope.workerId !== "git" ||
+    !isRecord(envelope.request) ||
+    !onlyKeys(envelope.request, ["id", "method", "params"]) ||
+    !safeRequestId(envelope.request.id) ||
+    typeof envelope.request.method !== "string" ||
+    !ALLOWED_GIT_WORKER_METHODS.has(envelope.request.method) ||
+    !isRecord(envelope.request.params)
+  ) {
+    return false;
+  }
+  const size = serializedBytes(message);
+  return (
+    size !== null &&
+    size <= 512 * 1_024 &&
+    !containsSensitiveOutput(message, { nodes: 0 }) &&
+    safeGitWorkerValue(
+      envelope.request.params,
+      workspaceRoots,
+      { nodes: 0 },
+    )
+  );
+}
+
+export function isAuthorizedRendererMessage(
+  message: unknown,
+  workspaceRoots: readonly string[] = [],
+): boolean {
   if (!isRecord(message) || typeof message.type !== "string") {
     return false;
   }
@@ -733,6 +855,12 @@ export function isAuthorizedRendererMessage(message: unknown): boolean {
     message.type !== "ipc-renderer-send"
   ) {
     return false;
+  }
+  if (
+    message.type === "ipc-renderer-invoke" &&
+    message.channel === GIT_WORKER_INVOKE_CHANNEL
+  ) {
+    return isAuthorizedGitWorkerInvoke(message, workspaceRoots);
   }
   if (
     message.type !== "ipc-renderer-invoke" ||
@@ -1075,7 +1203,8 @@ export async function registerBrowserSessionAuth(
 
   return {
     authorizeRendererEvent: isAuthorizedRendererEvent,
-    authorizeRendererMessage: isAuthorizedRendererMessage,
+    authorizeRendererMessage: (message) =>
+      isAuthorizedRendererMessage(message, config.workspaceRoots),
     authorizeWebSocket(request): WebSocketAuthorization {
       if (
         !requestHostMatches(request, config.publicOrigin) ||

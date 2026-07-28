@@ -1,0 +1,55 @@
+[Unit]
+Description=Standalone upstream Codex App Server
+After=network-online.target
+Wants=network-online.target
+StartLimitIntervalSec=60s
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=codex
+Group=codex
+LimitCORE=0
+WorkingDirectory=/srv/codex-workspaces
+Environment=HOME=/var/lib/codex-web-upstream-app-server
+Environment=CODEX_HOME=/var/lib/codex-web-upstream-app-server
+LoadCredential=codex-auth:/etc/codex-account-router/credentials/app-server-auth.json
+ExecStartPre=/usr/bin/ln -sfn %d/codex-auth /var/lib/codex-web-upstream-app-server/auth.json
+ExecStart=/usr/local/bin/codex -c features.code_mode_host=true app-server --analytics-default-enabled --listen unix:///run/codex-web-upstream-app-server/app-server.sock
+ExecStopPost=/usr/bin/rm -f /var/lib/codex-web-upstream-app-server/auth.json
+Restart=on-failure
+RestartSec=3
+TimeoutStartSec=30
+TimeoutStopSec=20
+KillSignal=SIGTERM
+UMask=0077
+StateDirectory=codex-web-upstream-app-server
+StateDirectoryMode=0700
+RuntimeDirectory=codex-web-upstream-app-server
+RuntimeDirectoryMode=0700
+ReadWritePaths=/srv/codex-workspaces
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+PrivateMounts=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectHostname=true
+ProtectClock=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=codex-web-upstream-app-server
+
+[Install]
+WantedBy=multi-user.target

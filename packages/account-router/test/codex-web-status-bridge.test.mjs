@@ -143,9 +143,26 @@ main().catch(() => { process.stderr.write("fixture bridge failed\\n"); process.e
   assert.match(patchedMain, /registerRouterStatusBridge/);
   assert.match(patchedMain, /BrowserUploadStore\.create/);
   assert.match(patchedMain, /browserSessionAuth\.onSessionRevoked/);
+  assert.match(patchedMain, /preload\.js\?v=m6-8-startup-chat-r8/);
+  assert.match(
+    patchedMain,
+    /"--startup-background: transparent;"[\s\S]*"--startup-background: Canvas;"/,
+  );
+  assert.match(
+    patchedMain,
+    /root: path\.resolve\(__dirname, "\.\.\/\.\.\/scratch\/asar\/webview"\),[\s\S]*preCompressed: true,[\s\S]*maxAge: "1y",[\s\S]*immutable: true/,
+  );
+  assert.equal(
+    (patchedMain.match(/return sendBrowserIndex\(reply\);/gu) ?? []).length,
+    2,
+  );
   assert.doesNotMatch(patchedMain, /\.toBuffer\(\)|codex-web-uploads-/);
   const patchedShim = await fs.readFile(path.join(temporaryRoot, "src", "browser", "shim.ts"), "utf8");
   assert.match(patchedShim, /installRouterAccountPanel/);
+  assert.match(
+    patchedShim,
+    /import \{ installBrowserFetchPolicy \} from "\.\/browser-session";[\s\S]*installBrowserFetchPolicy\(\);/,
+  );
   assert.match(
     patchedShim,
     /addEventListener\("open"[\s\S]*announceRendererReady\(\);[\s\S]*announceViewReady\(\);[\s\S]*flushOutboundQueue\(\);/,
@@ -174,6 +191,22 @@ main().catch(() => { process.stderr.write("fixture bridge failed\\n"); process.e
   assert.match(
     patchedShim,
     /LOCAL_DISABLED_INVOKE_CHANNELS\.has\(channel\)[\s\S]*channel unavailable in browser mode/,
+  );
+  assert.match(
+    patchedShim,
+    /LOCAL_DISABLED_INVOKE_CHANNELS = new Set\(\[[\s\S]*codex_desktop:connect-app-host[\s\S]*\]\)/,
+  );
+  assert.doesNotMatch(
+    patchedShim,
+    /LOCAL_DISABLED_INVOKE_CHANNELS = new Set\(\[[\s\S]*codex_desktop:worker:git:from-view[\s\S]*\]\)/,
+  );
+  assert.match(
+    patchedShim,
+    /SERVER_GIT_INVOKE_CHANNEL[\s\S]*channel === SERVER_GIT_INVOKE_CHANNEL[\s\S]*return invokeMain\(channel, args\)/,
+  );
+  assert.match(
+    patchedShim,
+    /case "local-mcp-response":[\s\S]*type: "mcp-response"[\s\S]*result: disposition\.result/,
   );
   assert.match(
     patchedShim,

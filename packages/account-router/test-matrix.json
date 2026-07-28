@@ -11,6 +11,7 @@
         "test/admin-state.test.mjs",
         "test/circuit-breaker.test.mjs",
         "test/codex-credentials.test.mjs",
+        "test/codex-web-upstream-fastpath.test.mjs",
         "test/config.test.mjs",
         "test/event-broker.test.mjs",
         "test/failover-fixtures.test.mjs",

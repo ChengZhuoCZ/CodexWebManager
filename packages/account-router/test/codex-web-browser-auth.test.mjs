@@ -644,6 +644,64 @@ integrationTest(
         args: [],
       },
       {
+        type: "ipc-renderer-invoke",
+        requestId: "deny-git-outside-workspace",
+        channel: "codex_desktop:worker:git:from-view",
+        args: [
+          {
+            type: "worker-request",
+            workerId: "git",
+            request: {
+              id: "deny-git-outside-workspace-inner",
+              method: "stable-metadata",
+              params: {
+                cwd: "/",
+                hostConfig: { id: "local", kind: "local" },
+              },
+            },
+          },
+        ],
+      },
+      {
+        type: "ipc-renderer-invoke",
+        requestId: "deny-git-method",
+        channel: "codex_desktop:worker:git:from-view",
+        args: [
+          {
+            type: "worker-request",
+            workerId: "git",
+            request: {
+              id: "deny-git-method-inner",
+              method: "process/spawn",
+              params: {
+                cwd: fixture.workspaceRoot,
+                hostConfig: { id: "local", kind: "local" },
+              },
+            },
+          },
+        ],
+      },
+      {
+        type: "ipc-renderer-invoke",
+        requestId: "deny-git-sensitive-value",
+        channel: "codex_desktop:worker:git:from-view",
+        args: [
+          {
+            type: "worker-request",
+            workerId: "git",
+            request: {
+              id: "deny-git-sensitive-value-inner",
+              method: "stable-metadata",
+              params: {
+                cwd: fixture.workspaceRoot,
+                hostConfig: { id: "local", kind: "local" },
+                password: "fixture-sensitive-value",
+              },
+            },
+          },
+        ],
+      },
+      {
         type: "ipc-renderer-send",
         channel: "codex_desktop:message-from-view",
         args: [
@@ -769,6 +827,40 @@ integrationTest(
       }),
     );
     assert.deepEqual(await safeAuthStatusResponse, { ok: true });
+
+    const gitMetadataResponse = new Promise((resolve) => {
+      allowedSocket.once("message", (message) =>
+        resolve(JSON.parse(String(message))),
+      );
+    });
+    allowedSocket.send(
+      JSON.stringify({
+        type: "ipc-renderer-invoke",
+        requestId: "allowed-git-metadata",
+        channel: "codex_desktop:worker:git:from-view",
+        args: [
+          {
+            type: "worker-request",
+            workerId: "git",
+            request: {
+              id: "allowed-git-metadata-inner",
+              method: "stable-metadata",
+              params: {
+                cwd: fixture.workspaceRoot,
+                hostConfig: {
+                  id: "local",
+                  kind: "local",
+                  display_name: "Local",
+                },
+                operationSource: "fixture",
+                watchForGitInit: true,
+              },
+            },
+          },
+        ],
+      }),
+    );
+    assert.deepEqual(await gitMetadataResponse, { ok: true });
 
     const metricsResponse = new Promise((resolve) => {
       allowedSocket.once("message", (message) =>
@@ -1139,6 +1231,7 @@ integrationTest(
     assert.equal(typeof scriptSourceLine, "string");
     assert.match(scriptSourceLine, /INLINE_UUID_SCRIPT_SHA256/u);
     assert.doesNotMatch(scriptSourceLine, /unsafe-inline/u);
+    assert.match(authSource, /requestPath === "\/assets\/preload\.js"/u);
     if (inlineScripts.length === 1) {
       const digest = createHash("sha256")
         .update(inlineScripts[0])

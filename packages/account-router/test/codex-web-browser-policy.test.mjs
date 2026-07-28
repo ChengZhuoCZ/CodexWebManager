@@ -16,6 +16,10 @@ const policySource = path.join(
   repositoryRoot,
   "integrations/codex-web/src/browser/browser-message-policy.ts",
 );
+const browserSessionSource = path.join(
+  repositoryRoot,
+  "integrations/codex-web/src/browser/browser-session.ts",
+);
 
 async function compilePolicy(context) {
   const directory = await fs.mkdtemp(
@@ -48,6 +52,41 @@ async function compilePolicy(context) {
   assert.equal(build.status, 0, `${build.stdout}\n${build.stderr}`);
   return import(
     pathToFileURL(path.join(directory, "browser-message-policy.js")).href
+  );
+}
+
+async function compileBrowserSession(context) {
+  const directory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "m6-8-browser-session-"),
+  );
+  context.after(() => fs.rm(directory, { recursive: true, force: true }));
+  await fs.writeFile(path.join(directory, "package.json"), '{"type":"module"}\n');
+  const build = spawnSync(
+    process.execPath,
+    [
+      path.join(codexWebRoot, "node_modules", "typescript", "bin", "tsc"),
+      policySource,
+      browserSessionSource,
+      "--target",
+      "ES2022",
+      "--module",
+      "ESNext",
+      "--moduleResolution",
+      "Bundler",
+      "--lib",
+      "ES2023,DOM",
+      "--strict",
+      "--skipLibCheck",
+      "--rootDir",
+      path.dirname(policySource),
+      "--outDir",
+      directory,
+    ],
+    { encoding: "utf8" },
+  );
+  assert.equal(build.status, 0, `${build.stdout}\n${build.stderr}`);
+  return import(
+    pathToFileURL(path.join(directory, "browser-session.js")).href
   );
 }
 
@@ -203,6 +242,61 @@ integrationTest(
     );
     assert.deepEqual(
       classifyBrowserMessage(
+        request(
+          "https://ab.chatgpt.com/v1/initialize?k=fixture&st=javascript-client",
+          { body: JSON.stringify({ fixture: true }) },
+        ),
+      ),
+      {
+        kind: "local-fetch-response",
+        requestId: "fixture-request",
+        body: {
+          dynamic_configs: {},
+          feature_gates: {},
+          has_updates: true,
+          layer_configs: {},
+          param_stores: {},
+          time: 1,
+        },
+      },
+    );
+    assert.deepEqual(
+      classifyBrowserMessage(
+        request("https://chatgpt.com/ces/v1/rgstr?k=fixture"),
+      ),
+      {
+        kind: "local-fetch-response",
+        requestId: "fixture-request",
+        body: {},
+      },
+    );
+    assert.deepEqual(
+      classifyBrowserMessage(
+        request("https://ab.chatgpt.com/v1/rgstr?k=fixture"),
+      ),
+      {
+        kind: "local-fetch-response",
+        requestId: "fixture-request",
+        body: {},
+      },
+    );
+    for (const url of [
+      "http://ab.chatgpt.com/v1/initialize?k=fixture",
+      "https://ab.chatgpt.com/v1/initialize/extra?k=fixture",
+      "https://ab.chatgpt.com.evil.example/v1/initialize?k=fixture",
+      "https://ab.chatgpt.com/v1/rgstr/extra?k=fixture",
+      "https://chatgpt.com/ces/v1/rgstr/extra?k=fixture",
+      "https://example.com/v1/initialize?k=fixture",
+    ]) {
+      assert.deepEqual(classifyBrowserMessage(request(url)), {
+        kind: "local-fetch-error",
+        requestId: "fixture-request",
+        status: 403,
+        error: "unsupported_browser_route",
+      });
+    }
+    assert.deepEqual(
+      classifyBrowserMessage(
         request("vscode://codex/pick-files", {
           body: JSON.stringify({
             imagesOnly: true,
@@ -266,6 +360,74 @@ integrationTest(
 );
 
 integrationTest(
+  "browser native fetch terminates only exact Statsig POST routes locally",
+  async (context) => {
+    const originalFetch = globalThis.fetch;
+    let forwarded = 0;
+    globalThis.fetch = async () => {
+      forwarded += 1;
+      return new Response('{"forwarded":true}', {
+        headers: { "content-type": "application/json" },
+      });
+    };
+    context.after(() => {
+      globalThis.fetch = originalFetch;
+    });
+
+    const { installBrowserFetchPolicy } =
+      await compileBrowserSession(context);
+    installBrowserFetchPolicy();
+
+    const initialize = await fetch(
+      "https://ab.chatgpt.com/v1/initialize?k=fixture",
+      { method: "POST", body: "{}" },
+    );
+    assert.deepEqual(await initialize.json(), {
+      dynamic_configs: {},
+      feature_gates: {},
+      has_updates: true,
+      layer_configs: {},
+      param_stores: {},
+      time: 1,
+    });
+    const events = await fetch(
+      "https://ab.chatgpt.com/v1/rgstr?k=fixture",
+      { method: "POST", body: '{"fixture":true}' },
+    );
+    assert.deepEqual(await events.json(), {});
+    assert.equal(forwarded, 0);
+
+    const lookalike = await fetch(
+      "https://ab.chatgpt.com.evil.example/v1/rgstr?k=fixture",
+      { method: "POST" },
+    );
+    assert.deepEqual(await lookalike.json(), { forwarded: true });
+    assert.equal(forwarded, 1);
+  },
+);
+
+integrationTest(
+  "browser policy locally no-ops desktop-only picture-in-picture state updates",
+  async (context) => {
+    const { classifyBrowserMessage } = await compilePolicy(context);
+    assert.deepEqual(
+      classifyBrowserMessage({
+        type: "remote-hosted-pip-active-thread-changed",
+        conversationId: null,
+      }),
+      { kind: "local-noop" },
+    );
+    assert.deepEqual(
+      classifyBrowserMessage({
+        type: "remote-hosted-pip-hidden-thread-ids-changed",
+        hiddenThreadIds: [],
+      }),
+      { kind: "local-noop" },
+    );
+  },
+);
+
+integrationTest(
   "browser policy restricts MCP correlation and workspace mutations",
   async (context) => {
     const { classifyBrowserMessage } = await compilePolicy(context);
@@ -283,6 +445,41 @@ integrationTest(
         }),
       ),
       { kind: "server" },
+    );
+    assert.deepEqual(
+      classifyBrowserMessage(
+        mcp("mcp-request", {
+          id: "plugin-list",
+          method: "plugin/list",
+          params: {},
+        }),
+      ),
+      {
+        kind: "local-mcp-response",
+        requestId: "plugin-list",
+        result: {
+          featuredPluginIds: [],
+          marketplaceLoadErrors: [],
+          marketplaces: [],
+        },
+      },
+    );
+    assert.deepEqual(
+      classifyBrowserMessage(
+        mcp("mcp-request", {
+          id: "mcp-server-status-list",
+          method: "mcpServerStatus/list",
+          params: {},
+        }),
+      ),
+      {
+        kind: "local-mcp-response",
+        requestId: "mcp-server-status-list",
+        result: {
+          data: [],
+          nextCursor: null,
+        },
+      },
     );
     assert.deepEqual(
       classifyBrowserMessage(

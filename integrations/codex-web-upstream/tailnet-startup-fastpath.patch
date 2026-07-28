@@ -1,0 +1,6 @@
+--- a/scratch/asar/webview/index.html
++++ b/scratch/asar/webview/index.html
+@@ -52,2 +52,3 @@
+     </script>
++    <script src="./tailnet-startup-fastpath.js"></script>
+     <script type="module" src="./assets/preload.js"></script>

@@ -1,9 +1,60 @@
+import { localBrowserStatsigResponse } from "./browser-message-policy.js";
+
 type SessionSnapshot = {
   csrfToken: string;
   expiresAt: string;
 };
 
 let snapshotPromise: Promise<SessionSnapshot> | null = null;
+let browserFetchPolicyInstalled = false;
+
+function fetchMethod(
+  input: RequestInfo | URL,
+  init?: RequestInit,
+): string {
+  if (typeof init?.method === "string") {
+    return init.method.toUpperCase();
+  }
+  if (
+    typeof input === "object" &&
+    input !== null &&
+    "method" in input &&
+    typeof input.method === "string"
+  ) {
+    return input.method.toUpperCase();
+  }
+  return "GET";
+}
+
+function fetchUrl(input: RequestInfo | URL): string {
+  if (typeof input === "string") {
+    return input;
+  }
+  return input instanceof URL ? input.href : input.url;
+}
+
+export function installBrowserFetchPolicy(): void {
+  if (browserFetchPolicyInstalled) {
+    return;
+  }
+  const upstreamFetch = globalThis.fetch.bind(globalThis);
+  globalThis.fetch = async (input, init) => {
+    const localResponse =
+      fetchMethod(input, init) === "POST"
+        ? localBrowserStatsigResponse(fetchUrl(input))
+        : null;
+    if (localResponse !== null) {
+      return new Response(JSON.stringify(localResponse), {
+        headers: {
+          "content-type": "application/json; charset=utf-8",
+        },
+        status: 200,
+      });
+    }
+    return upstreamFetch(input, init);
+  };
+  browserFetchPolicyInstalled = true;
+}
 
 function isSessionSnapshot(value: unknown): value is SessionSnapshot {
   return (

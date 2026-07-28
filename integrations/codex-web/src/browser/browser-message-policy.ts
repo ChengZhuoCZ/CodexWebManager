@@ -19,9 +19,20 @@ const LOCAL_NOOP_MESSAGE_TYPES = new Set([
   "electron-desktop-features-changed",
   "electron-sparkle-gates-changed",
   "log-message",
+  "remote-hosted-pip-active-thread-changed",
+  "remote-hosted-pip-hidden-thread-ids-changed",
   "set-telemetry-user",
   "view-focused",
 ]);
+
+const LOCAL_STATSIG_INITIALIZE_RESPONSE = {
+  dynamic_configs: {},
+  feature_gates: {},
+  has_updates: true,
+  layer_configs: {},
+  param_stores: {},
+  time: 1,
+} as const;
 
 const LOCAL_FETCH_URLS = new Map<string, unknown>([
   [
@@ -84,6 +95,11 @@ export type BrowserMessageDisposition =
   | {
       kind: "local-mcp-error";
       requestId: string | number;
+    }
+  | {
+      kind: "local-mcp-response";
+      requestId: string | number;
+      result: unknown;
     }
   | {
       kind: "local-workspace-root-add";
@@ -325,6 +341,32 @@ function safeFilePickerBody(value: unknown): value is string | undefined {
   }
 }
 
+export function localBrowserStatsigResponse(url: string): unknown | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(url);
+  } catch {
+    return null;
+  }
+  if (
+    parsed.protocol === "https:" &&
+    parsed.hostname === "ab.chatgpt.com" &&
+    parsed.pathname === "/v1/initialize"
+  ) {
+    return LOCAL_STATSIG_INITIALIZE_RESPONSE;
+  }
+  if (
+    parsed.protocol === "https:" &&
+    ((parsed.hostname === "ab.chatgpt.com" &&
+      parsed.pathname === "/v1/rgstr") ||
+      (parsed.hostname === "chatgpt.com" &&
+        parsed.pathname === "/ces/v1/rgstr"))
+  ) {
+    return {};
+  }
+  return null;
+}
+
 function localFetchDisposition(
   message: Record<string, unknown>,
 ): BrowserMessageDisposition | null {
@@ -361,7 +403,14 @@ function localFetchDisposition(
     return fetchError(requestId, "invalid_browser_request", 400);
   }
   if (!message.url.startsWith("vscode://")) {
-    return fetchError(requestId);
+    const statsigResponse = localBrowserStatsigResponse(message.url);
+    return statsigResponse === null
+      ? fetchError(requestId)
+      : {
+          kind: "local-fetch-response",
+          requestId,
+          body: statsigResponse,
+        };
   }
   if (
     message.url === "vscode://codex/pick-file" ||
@@ -454,7 +503,30 @@ function mcpDisposition(
     ) {
       return request !== null && safeRequestId(request.id)
         ? { kind: "local-mcp-error", requestId: request.id }
-        : { kind: "reject" };
+      : { kind: "reject" };
+    }
+    if (message.type === "mcp-request") {
+      if (request.method === "plugin/list") {
+        return {
+          kind: "local-mcp-response",
+          requestId: request.id,
+          result: {
+            featuredPluginIds: [],
+            marketplaceLoadErrors: [],
+            marketplaces: [],
+          },
+        };
+      }
+      if (request.method === "mcpServerStatus/list") {
+        return {
+          kind: "local-mcp-response",
+          requestId: request.id,
+          result: {
+            data: [],
+            nextCursor: null,
+          },
+        };
+      }
     }
     return { kind: "server" };
   }

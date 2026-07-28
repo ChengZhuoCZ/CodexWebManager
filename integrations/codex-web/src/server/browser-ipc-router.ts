@@ -12,9 +12,15 @@ type RoutedMessage = {
 const OPEN_SOCKET_STATE = 1;
 const OUTSTANDING_REQUEST_LIMIT = 4_096;
 const OUTSTANDING_REQUEST_TTL_MS = 15 * 60 * 1_000;
+const CONFIG_DIAGNOSTIC_METHODS = new Set([
+  "config/read",
+  "configRequirements/read",
+  "permissionProfile/list",
+]);
 
 type OutstandingRequest = {
   createdAt: number;
+  method: string | null;
   socket: BrowserSocket;
 };
 
@@ -75,6 +81,66 @@ function rendererRequestKey(message: RoutedMessage): string | null {
     return null;
   }
   return mcpKey(payload.hostId, payload.request.id, "renderer");
+}
+
+function rendererRequestMethod(message: RoutedMessage): string | null {
+  const payload = viewPayload(message);
+  if (
+    payload === null ||
+    (payload.type !== "mcp-request" &&
+      payload.type !== "thread-prewarm-start") ||
+    !isRecord(payload.request) ||
+    typeof payload.request.method !== "string" ||
+    !/^[A-Za-z][A-Za-z0-9/._-]{0,159}$/u.test(payload.request.method)
+  ) {
+    return null;
+  }
+  return payload.request.method;
+}
+
+function warnFilteredRendererResponse(method: string | null): void {
+  const runtimeConsole = (
+    globalThis as {
+      console?: { warn(message: string): void };
+    }
+  ).console;
+  runtimeConsole?.warn(
+    `[browser-ipc-router] filtered renderer response method=${method ?? "unknown"}`,
+  );
+}
+
+function warnRendererConfigFlow(
+  stage: "request" | "response",
+  method: string | null,
+): void {
+  if (method === null || !CONFIG_DIAGNOSTIC_METHODS.has(method)) {
+    return;
+  }
+  const runtimeConsole = (
+    globalThis as {
+      console?: { warn(message: string): void };
+    }
+  ).console;
+  runtimeConsole?.warn(
+    `[browser-ipc-router] renderer config ${stage} method=${method}`,
+  );
+}
+
+function warnRendererConfigDelivery(
+  method: string | null,
+  delivered: boolean,
+): void {
+  if (method === null || !CONFIG_DIAGNOSTIC_METHODS.has(method)) {
+    return;
+  }
+  const runtimeConsole = (
+    globalThis as {
+      console?: { warn(message: string): void };
+    }
+  ).console;
+  runtimeConsole?.warn(
+    `[browser-ipc-router] renderer config delivery method=${method} delivered=${delivered}`,
+  );
 }
 
 function rendererResponseKey(message: RoutedMessage): string | null {
@@ -234,8 +300,10 @@ export class BrowserIpcRouter {
     }
     this.rendererRequests.set(requestKey, {
       createdAt: Date.now(),
+      method: rendererRequestMethod(message),
       socket,
     });
+    warnRendererConfigFlow("request", rendererRequestMethod(message));
     return true;
   }
 
@@ -251,19 +319,25 @@ export class BrowserIpcRouter {
     const payload = mainViewPayload(message);
     const responseKey = mainResponseKey(message);
     if (responseKey !== null) {
-      const target = this.rendererRequests.get(responseKey)?.socket;
+      const outstanding = this.rendererRequests.get(responseKey);
+      const target = outstanding?.socket;
       this.rendererRequests.delete(responseKey);
       if (target === undefined) {
         return;
       }
       if (!this.authorizeRendererEvent(message)) {
+        warnFilteredRendererResponse(outstanding?.method ?? null);
         const fallback = sanitizedMcpError(message);
         if (fallback !== null) {
           this.send(target, fallback);
         }
         return;
       }
-      this.send(target, message);
+      warnRendererConfigFlow("response", outstanding?.method ?? null);
+      warnRendererConfigDelivery(
+        outstanding?.method ?? null,
+        this.send(target, message),
+      );
       return;
     }
     if (payload?.type === "mcp-response") {
@@ -288,6 +362,7 @@ export class BrowserIpcRouter {
       }
       this.mainRequests.set(requestKey, {
         createdAt: Date.now(),
+        method: null,
         socket: target,
       });
       if (!this.send(target, message)) {

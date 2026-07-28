@@ -131,6 +131,78 @@ test("App Server owns a private Unix socket and receives auth only as a credenti
   assert.doesNotMatch(content, /0\.0\.0\.0|\[::\]|--listen (?:stdio|ws):/);
 });
 
+test("standalone upstream App Server remains isolated from the account router", async () => {
+  const { content, unit } = await loadUnit("codex-web-upstream-app-server.service");
+  assert.deepEqual(only(unit, "Unit.After"), "network-online.target");
+  assert.deepEqual(only(unit, "Unit.Wants"), "network-online.target");
+  const command = only(unit, "Service.ExecStart");
+  assert.match(command, /^\/usr\/local\/bin\/codex /);
+  assert.doesNotMatch(command, /openai_base_url|18317|codex-account-router/);
+  assert.match(
+    command,
+    /app-server .*--listen unix:\/\/\/run\/codex-web-upstream-app-server\/app-server\.sock$/,
+  );
+  assert.deepEqual(unit.get("Service.LoadCredential"), [
+    "codex-auth:/etc/codex-account-router/credentials/app-server-auth.json",
+  ]);
+  assert.doesNotMatch(content, /0\.0\.0\.0|\[::\]|--listen (?:stdio|ws):/);
+  assert.doesNotMatch(command, /(?:Bearer\s+|Authorization=|refresh_token|access_token|sk-[A-Za-z0-9_-]{12,})/i);
+});
+
+test("routed upstream codex-web uses separate state, socket, and port without touching 8215", async () => {
+  const [
+    { content: appContent, unit: app },
+    { content: webContent, unit: web },
+  ] = await Promise.all([
+    loadUnit("codex-web-router-app-server.service"),
+    loadUnit("codex-web-router.service"),
+  ]);
+
+  assert.deepEqual(
+    new Set(only(app, "Unit.After").split(/\s+/)),
+    new Set(["network-online.target", "codex-account-router.service"]),
+  );
+  assert.deepEqual(
+    new Set(only(app, "Unit.Wants").split(/\s+/)),
+    new Set(["network-online.target", "codex-account-router.service"]),
+  );
+  assert.match(
+    only(app, "Service.ExecStart"),
+    /openai_base_url=.*http:\/\/127\.0\.0\.1:18317\/backend-api\/codex/,
+  );
+  assert.match(
+    only(app, "Service.ExecStart"),
+    /--listen unix:\/\/\/run\/codex-web-router-app-server\/app-server\.sock$/,
+  );
+  assert.equal(
+    only(app, "Service.StateDirectory"),
+    "codex-web-router-app-server",
+  );
+  assert.equal(
+    only(web, "Service.ExecStart"),
+    "/usr/bin/node /opt/0xcaff-codex-web-router/current/src/server/main.js --host 127.0.0.1 --port 8216",
+  );
+  assert.equal(only(web, "Service.StateDirectory"), "codex-web-router");
+  assert.ok(
+    web.get("Service.Environment")?.includes(
+      "CODEX_UNIX_SOCKET=/run/codex-web-router-app-server/app-server.sock",
+    ),
+  );
+  assert.ok(
+    web.get("Service.Environment")?.includes(
+      "CODEX_CLI_PATH=/opt/0xcaff-codex-web-router/bin/codex-remote-proxy-fast.mjs",
+    ),
+  );
+  assert.doesNotMatch(
+    `${appContent}\n${webContent}`,
+    /(?:\/run|\/var\/lib)\/codex-web-upstream(?:-app-server)?|--port 8215/,
+  );
+  assert.doesNotMatch(
+    `${appContent}\n${webContent}`,
+    /0\.0\.0\.0|\[::\]|(?:Bearer\s+|Authorization=|refresh_token|access_token|sk-[A-Za-z0-9_-]{12,})/i,
+  );
+});
+
 test("codex-web is loopback-only and proxies stdio to the supervised Unix socket", async () => {
   const { content, unit } = await loadUnit("codex-web.service");
   assert.equal(only(unit, "Service.ExecStart"), "/usr/bin/node /opt/codex-web/src/server/main.js --host 127.0.0.1 --port 8214");
@@ -152,6 +224,10 @@ test("codex-web is loopback-only and proxies stdio to the supervised Unix socket
     "router-admin-token:/etc/codex-account-router/credentials/admin-token",
     "browser-access-token:/etc/codex-web/credentials/browser-access-token",
   ]);
+  assert.equal(
+    only(unit, "Service.RuntimeDirectory"),
+    "codex-web codex-browser-uploads",
+  );
   assert.equal(
     only(unit, "Service.ReadWritePaths"),
     "/srv/codex-workspaces /run/codex-browser-uploads",

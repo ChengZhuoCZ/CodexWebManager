@@ -5,6 +5,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import { gunzipSync } from "node:zlib";
 import {
   applyStatusBridge,
   EXPECTED_CODEX_WEB_REVISION,
@@ -164,7 +165,51 @@ integrationTest("pinned browser overlay bundles without writing to the upstream 
   await fs.cp(path.join(codexWebRoot, "src", "browser"), path.join(directory, "src", "browser"), {
     recursive: true,
   });
-  await fs.mkdir(path.join(directory, "scratch", "asar", "webview"), { recursive: true });
+  const startupEntryName = "index-LQUNCOO3.js";
+  const startupEntry = await fs.readFile(
+    path.join(
+      codexWebRoot,
+      "scratch",
+      "asar",
+      "webview",
+      "assets",
+      startupEntryName,
+    ),
+    "utf8",
+  );
+  const dependencyPrefix = "m.f||(m.f=";
+  const dependencyStart = startupEntry.indexOf(dependencyPrefix);
+  const dependencyEnd = startupEntry.indexOf(")))=>", dependencyStart);
+  assert.notEqual(dependencyStart, -1);
+  assert.notEqual(dependencyEnd, -1);
+  const parsedDependencies = JSON.parse(
+    startupEntry.slice(
+      dependencyStart + dependencyPrefix.length,
+      dependencyEnd,
+    ),
+  );
+  assert.equal(parsedDependencies.length, 133);
+  const startupAssetNames = [...new Set([
+    startupEntryName,
+    "index-LQUNCOO3.js",
+    "rolldown-runtime-Czos8NxU.js",
+    "modulepreload-polyfill-D8LKdSkT.js",
+    ...parsedDependencies.map((value) => value.slice(2)),
+  ])];
+  const temporaryAssets = path.join(
+    directory,
+    "scratch",
+    "asar",
+    "webview",
+    "assets",
+  );
+  await fs.mkdir(temporaryAssets, { recursive: true });
+  for (const fileName of startupAssetNames) {
+    await fs.copyFile(
+      path.join(codexWebRoot, "scratch", "asar", "webview", "assets", fileName),
+      path.join(temporaryAssets, fileName),
+    );
+  }
   await fs.symlink(path.join(codexWebRoot, "node_modules"), path.join(directory, "node_modules"));
   await applyStatusBridge({ codexWebRoot: directory, revision: EXPECTED_CODEX_WEB_REVISION });
 
@@ -175,6 +220,24 @@ integrationTest("pinned browser overlay bundles without writing to the upstream 
   );
   assert.equal(build.status, 0, `${build.stdout}\n${build.stderr}`);
   const output = await fs.readFile(path.join(directory, "scratch", "asar", "webview", "assets", "preload.js"), "utf8");
+  const compressedOutput = await fs.readFile(
+    path.join(
+      directory,
+      "scratch",
+      "asar",
+      "webview",
+      "assets",
+      "preload.js.gz",
+    ),
+  );
+  assert.equal(gunzipSync(compressedOutput).toString("utf8"), output);
+  for (const fileName of startupAssetNames) {
+    const [source, compressed] = await Promise.all([
+      fs.readFile(path.join(temporaryAssets, fileName)),
+      fs.readFile(path.join(temporaryAssets, `${fileName}.gz`)),
+    ]);
+    assert.deepEqual(gunzipSync(compressed), source);
+  }
   assert.match(output, /Router accounts/);
   assert.doesNotMatch(output, /5-hour quota|fiveHourLabel/);
   assert.match(output, /Cross-account continuity is not verified/);

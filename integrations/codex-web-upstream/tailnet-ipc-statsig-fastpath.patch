@@ -1,0 +1,47 @@
+--- a/scratch/asar/webview/assets/app-initial-BTphDPeq.js
++++ b/scratch/asar/webview/assets/app-initial-BTphDPeq.js
+@@ -742396,4 +742396,44 @@
+ async function Qeu(e, t) {
++  let codexLocalUrl;
++  try {
++    codexLocalUrl = new URL(e);
++  } catch {
++    codexLocalUrl = null;
++  }
++  if (
++    (t.method ?? `GET`).toUpperCase() === `POST` &&
++    codexLocalUrl?.protocol === `https:`
++  ) {
++    let codexLocalBody = null;
++    if (
++      codexLocalUrl.hostname === `ab.chatgpt.com` &&
++      codexLocalUrl.pathname === `/v1/initialize`
++    ) {
++      codexLocalBody = {
++        dynamic_configs: {},
++        feature_gates: {},
++        has_updates: !0,
++        layer_configs: {},
++        param_stores: {},
++        time: 1,
++      };
++    } else if (
++      (codexLocalUrl.hostname === `ab.chatgpt.com` &&
++        (codexLocalUrl.pathname === `/v1/rgstr` ||
++          codexLocalUrl.pathname === `/v1/log_event`)) ||
++      (codexLocalUrl.hostname === `chatgpt.com` &&
++        (codexLocalUrl.pathname === `/ces/v1/rgstr` ||
++          codexLocalUrl.pathname === `/ces/v1/log_event`))
++    ) {
++      codexLocalBody = {};
++    }
++    if (codexLocalBody !== null) {
++      return new Response(JSON.stringify(codexLocalBody), {
++        status: 200,
++        headers: { "content-type": `application/json` },
++      });
++    }
++  }
+   let n = Yf.getInstance(),
+     r = t.method ?? `GET`,
+     { body: i, isBase64: a } = await $eu(t.body),

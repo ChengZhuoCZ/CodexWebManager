@@ -10,6 +10,7 @@ export const EXPECTED_CODEX_WEB_REVISION = "888692f7d885118c6a92bbaf60cf2121f594
 const EXPECTED_MAIN_SHA256 = "93cae9db150ef3a17ac859d0de803b608d64d64ee22beaed5ffb5453641d3788";
 const EXPECTED_SHIM_SHA256 = "bd191409b7a134f1be9e698f9c16f94fd22532f4a3a6850ecb1a48e6cfa9e837";
 const EXPECTED_FILES_SHA256 = "5459233ca620920dbbd18c4f01e6d89b3a3910d717600f794484cd1d046b08d3";
+const EXPECTED_VITE_SHA256 = "ddcd625927e3f831b33eac0d25aa39e3223424d71d712ba083daf10ca0ed4e4a";
 const integrationDirectory = fileURLToPath(new URL(".", import.meta.url));
 const serverOverlaySource = path.join(integrationDirectory, "src", "server", "router-status-bridge.ts");
 const browserOverlaySource = path.join(integrationDirectory, "src", "browser", "router-account-panel.ts");
@@ -143,6 +144,7 @@ async function applyStatusBridgeLocked({ codexWebRoot, revision = null } = {}) {
   const mainPath = path.join(codexWebRoot, "src", "server", "main.ts");
   const shimPath = path.join(codexWebRoot, "src", "browser", "shim.ts");
   const filesPath = path.join(codexWebRoot, "src", "browser", "files.ts");
+  const vitePath = path.join(codexWebRoot, "vite.browser.config.ts");
   const targetServerOverlay = path.join(codexWebRoot, "src", "server", "router-status-bridge.ts");
   const targetBrowserOverlay = path.join(codexWebRoot, "src", "browser", "router-account-panel.ts");
   const targetBrowserAuthOverlay = path.join(
@@ -186,6 +188,17 @@ async function applyStatusBridgeLocked({ codexWebRoot, revision = null } = {}) {
   const originalFiles = await fs.readFile(filesPath, "utf8");
   if (digest(originalFiles) !== EXPECTED_FILES_SHA256) {
     throw new Error("codex-web browser files source does not match the pinned revision");
+  }
+  let originalVite = null;
+  try {
+    originalVite = await fs.readFile(vitePath, "utf8");
+  } catch (error) {
+    if (error?.code !== "ENOENT") {
+      throw error;
+    }
+  }
+  if (originalVite !== null && digest(originalVite) !== EXPECTED_VITE_SHA256) {
+    throw new Error("codex-web Vite source does not match the pinned revision");
   }
   const importAnchor = 'import { glob } from "glob";';
   const registrationAnchor = "  const app = Fastify({ logger: false });";
@@ -374,6 +387,50 @@ async function applyStatusBridgeLocked({ codexWebRoot, revision = null } = {}) {
   );
   patchedMain = replaceOnce(
     patchedMain,
+    `  await app.register(fastifyStatic, {
+    root: path.resolve(__dirname, "../../scratch/asar/webview"),
+    prefix: "/",
+  });`,
+    `  await app.register(fastifyStatic, {
+    root: path.resolve(__dirname, "../../scratch/asar/webview"),
+    prefix: "/",
+    preCompressed: true,
+    maxAge: "1y",
+    immutable: true,
+  });
+
+  const browserIndexPath = path.resolve(
+    __dirname,
+    "../../scratch/asar/webview/index.html",
+  );
+  const originalBrowserIndex = await fs.readFile(browserIndexPath, "utf8");
+  const browserIndexWithCacheKey = originalBrowserIndex.replace(
+    'src="./assets/preload.js"',
+    'src="./assets/preload.js?v=m6-8-startup-chat-r8"',
+  );
+  if (browserIndexWithCacheKey === originalBrowserIndex) {
+    throw new Error("codex-web browser preload anchor is unavailable");
+  }
+  const browserIndexHtml = browserIndexWithCacheKey.replace(
+    "--startup-background: transparent;",
+    "--startup-background: Canvas;",
+  );
+  if (browserIndexHtml === browserIndexWithCacheKey) {
+    throw new Error("codex-web startup background anchor is unavailable");
+  }
+  const sendBrowserIndex = (reply: import("fastify").FastifyReply) =>
+    reply.type("text/html; charset=utf-8").send(browserIndexHtml);`,
+    "browser preload cache key",
+  );
+  patchedMain = replaceAllExactly(
+    patchedMain,
+    'return reply.sendFile("index.html");',
+    "return sendBrowserIndex(reply);",
+    2,
+    "browser index response",
+  );
+  patchedMain = replaceOnce(
+    patchedMain,
     `    const requestUrl = request.url ?? "/";
     const host = request.headers.host ?? "localhost";
     const url = new URL(requestUrl, \`http://\${host}\`);
@@ -523,7 +580,7 @@ async function applyStatusBridgeLocked({ codexWebRoot, revision = null } = {}) {
   let patchedShim = replaceOnce(
     originalShim,
     browserImportAnchor,
-    `${browserImportAnchor}\nimport { classifyBrowserMessage } from "./browser-message-policy";\nimport { installRouterAccountPanel } from "./router-account-panel";`,
+    `${browserImportAnchor}\nimport { classifyBrowserMessage } from "./browser-message-policy";\nimport { installBrowserFetchPolicy } from "./browser-session";\nimport { installRouterAccountPanel } from "./router-account-panel";`,
     "browser import",
   );
   patchedShim = replaceOnce(
@@ -562,8 +619,9 @@ const LOCAL_NOOP_INVOKE_CHANNELS = new Set([
   "codex_desktop:trigger-sentry-test",
 ]);
 const LOCAL_DISABLED_INVOKE_CHANNELS = new Set([
-  "codex_desktop:worker:git:from-view",
+  "codex_desktop:connect-app-host",
 ]);
+const SERVER_GIT_INVOKE_CHANNEL = "codex_desktop:worker:git:from-view";
 
 type BrowserConfig = {
   codexHome: string;
@@ -597,6 +655,7 @@ function installRandomUuidPolyfill(): void {
 }
 
 installRandomUuidPolyfill();
+installBrowserFetchPolicy();
 
 let requestCounter = 0;`,
     "browser random UUID support",
@@ -1080,6 +1139,18 @@ async function handleLocalBrowserMessage(
         },
       ]);
       return "handled";
+    case "local-mcp-response":
+      emitRendererEvent("codex_desktop:message-for-view", [
+        {
+          type: "mcp-response",
+          hostId: "local",
+          message: {
+            id: disposition.requestId,
+            result: disposition.result,
+          },
+        },
+      ]);
+      return "handled";
     case "open-external":
       window.open(disposition.url, "_blank", "noopener,noreferrer");
       return "handled";
@@ -1156,6 +1227,9 @@ async function handleLocalBrowserMessage(
         new Error("[electron-stub] channel unavailable in browser mode"),
       );
     }
+    if (channel === SERVER_GIT_INVOKE_CHANNEL && args.length === 1) {
+      return invokeMain(channel, args);
+    }
     if (channel !== "codex_desktop:message-from-view" || args.length !== 1) {
       return invokeMain(channel, args);
     }
@@ -1210,6 +1284,84 @@ async function handleLocalBrowserMessage(
   });`,
     "browser upload csrf",
   );
+  let patchedVite = null;
+  if (originalVite !== null) {
+    patchedVite = replaceOnce(
+      originalVite,
+      'import { readFileSync } from "node:fs";',
+      'import { readFileSync } from "node:fs";\nimport { gzipSync } from "node:zlib";',
+      "Vite gzip import",
+    );
+    patchedVite = replaceOnce(
+      patchedVite,
+      `  build: {`,
+      `  plugins: [
+    {
+      name: "codex-web-precompress-browser-entry",
+      generateBundle(_outputOptions, bundle) {
+        const entry = bundle["preload.js"];
+        if (!entry || entry.type !== "chunk") {
+          throw new Error("codex-web browser entry is unavailable");
+        }
+        this.emitFile({
+          type: "asset",
+          fileName: "preload.js.gz",
+          source: gzipSync(Buffer.from(entry.code), { level: 9 }),
+        });
+        const startupEntryName = "index-LQUNCOO3.js";
+        const startupEntry = readFileSync(
+          path.resolve(webviewRoot, "assets", startupEntryName),
+          "utf8",
+        );
+        const dependencyPrefix = "m.f||(m.f=";
+        const dependencyStart = startupEntry.indexOf(dependencyPrefix);
+        const dependencyEnd = startupEntry.indexOf(
+          ")))=>",
+          dependencyStart,
+        );
+        if (dependencyStart < 0 || dependencyEnd < 0) {
+          throw new Error("codex-web startup dependency manifest is unavailable");
+        }
+        const parsedDependencies = JSON.parse(
+          startupEntry.slice(
+            dependencyStart + dependencyPrefix.length,
+            dependencyEnd,
+          ),
+        ) as unknown;
+        if (
+          !Array.isArray(parsedDependencies) ||
+          parsedDependencies.length > 256 ||
+          !parsedDependencies.every(
+            (value) =>
+              typeof value === "string" &&
+              value.startsWith("./") &&
+              /^[A-Za-z0-9._~-]+\\.(?:css|js)$/u.test(value.slice(2)),
+          )
+        ) {
+          throw new Error("codex-web startup dependency manifest is unsafe");
+        }
+        const startupAssetNames = new Set([
+          startupEntryName,
+          "index-LQUNCOO3.js",
+          "rolldown-runtime-Czos8NxU.js",
+          "modulepreload-polyfill-D8LKdSkT.js",
+          ...parsedDependencies.map((value) => value.slice(2)),
+        ]);
+        for (const fileName of startupAssetNames) {
+          const source = readFileSync(path.resolve(webviewRoot, "assets", fileName));
+          this.emitFile({
+            type: "asset",
+            fileName: \`\${fileName}.gz\`,
+            source: gzipSync(source, { level: 9 }),
+          });
+        }
+      },
+    },
+  ],
+  build: {`,
+      "Vite gzip plugin",
+    );
+  }
 
   const overlayCopies = [
     [serverOverlaySource, targetServerOverlay],
@@ -1249,6 +1401,15 @@ async function handleLocalBrowserMessage(
         original: originalFiles,
         replacement: patchedFiles,
       },
+      ...(patchedVite === null
+        ? []
+        : [
+            {
+              target: vitePath,
+              original: originalVite,
+              replacement: patchedVite,
+            },
+          ]),
     ]);
   } catch (error) {
     await Promise.allSettled([
