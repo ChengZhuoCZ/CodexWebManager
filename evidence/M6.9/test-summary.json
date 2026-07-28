@@ -2,7 +2,7 @@
   "schema_version": 1,
   "task": "M6.9",
   "input_revision": "d41f2f282390f3f95e6795dd713d657b51788cc5",
-  "implementation_revision": "d2f5b03ce9746a72a6580a01e21dad17b2cec03b",
+  "implementation_revision": "65d879224d3deeabe48a60faf9894bcd795a7126",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "commands": [
@@ -50,7 +50,7 @@
       }
     },
     {
-      "command": "<bundled-node> integrations/codex-web-upstream/build-minified-precompressed-asset.mjs --asset <absolute-final-patched-asset> --expected-sha256 2b7df9ee... --index <absolute-index> --expected-index-sha256 e4f70043... --esbuild <absolute-esbuild-0.27.0>",
+      "command": "<bundled-node> integrations/codex-web-upstream/build-minified-precompressed-asset.mjs --asset <absolute-main> --expected-sha256 2b7df9ee... --preload <absolute-preload> --expected-preload-sha256 74ef238a... --stylesheet <absolute-css> --expected-stylesheet-sha256 3db81509... --index <absolute-index> --expected-index-sha256 e4f70043... --esbuild <absolute-esbuild-0.27.0>",
       "result": {
         "passed": true,
         "esbuild_version": "0.27.0",
@@ -60,6 +60,15 @@
         "gzip_bytes": 4345029,
         "brotli_bytes": 3293232,
         "output_sha256": "3376a894219534630a550a314f4e64f1fa3e85cd12e76d32d0fdb7381c2645a9",
+        "preload_input_bytes": 607155,
+        "preload_output_bytes": 253451,
+        "preload_gzip_bytes": 79865,
+        "preload_brotli_bytes": 69315,
+        "preload_output_sha256": "65708a1c2c053568691f6691b76290a6bd07df09ea84ef1186ac77090649fc5a",
+        "stylesheet_bytes": 79327,
+        "stylesheet_gzip_bytes": 14921,
+        "stylesheet_brotli_bytes": 13143,
+        "stylesheet_sha256": "3db81509f04faef314889c39d777a310297c2856330f52fd994a07c67a9c7774",
         "index_input_sha256": "e4f70043d26d402c93abdf9e9ecbbdb3a4af4b1f92aaf49d6b3b77f486706139",
         "index_output_sha256": "1ea73bdcd7a5ef303e9435796b58dc2cb66ba7916084c0afe7c9c1b8851c13fc"
       }
@@ -83,6 +92,14 @@
     {
       "command": "strict matrix with the existing temporary 888692f scratch fixture",
       "result": "one E2E fixture-copy failure caused by five stale cache-query suffixes in /private/tmp; the temporary fixture was cleaned without changing the repository and the full rerun passed 255/255"
+    },
+    {
+      "command": "r13 remote patch dry-run against an inactive copied release",
+      "result": "failed closed before activation because the unified-diff hunk count was malformed; r12 remained active, 8215 was untouched, a real patch-application regression test was added, and r14 passed both local and remote dry-runs"
+    },
+    {
+      "command": "strict matrix in the restricted workspace sandbox after the r13 cache fix",
+      "result": "environment failure: loopback listen returned EPERM; the same 255-test matrix passed outside the network restriction"
     }
   ],
   "live_browser": {
@@ -100,8 +117,18 @@
     ],
     "r11_import_map_count": 1,
     "r11_import_map_and_preload_url_match": true,
+    "r14_usable_screen_ms": [
+      5452,
+      9841,
+      7548
+    ],
+    "r14_import_map_count": 1,
+    "r14_import_map_and_preload_url_match": true,
     "single_account_model_request_completed": true,
     "r11_single_account_model_request_completed": true,
+    "r14_single_account_model_requests_completed": 2,
+    "r14_second_model_response_postcheck_upper_bound_ms": 25813,
+    "startup_speed_claimed_stable": false,
     "prompt_or_response_body_recorded": false
   },
   "server_local_timing": {
@@ -120,18 +147,50 @@
     "standard_output": "null",
     "standard_error": "journal",
     "r11_model_check_journal_lines": 13,
+    "r14_model_check_journal_lines": 21,
     "syntax_chunk_or_unhandled_error_matches": 0,
     "prompt_credential_account_cookie_or_body_pattern_matches": 0
   },
   "deployed_asset": {
-    "release": "c3e92f0f-20260729-m69-router-r11",
+    "release": "c3e92f0f-20260729-m69-router-r14",
     "asset_url": "./assets/app-initial-BTphDPeq.js?v=3376a89421953463",
     "served_identity_sha256": "3376a894219534630a550a314f4e64f1fa3e85cd12e76d32d0fdb7381c2645a9",
+    "served_preload_sha256": "65708a1c2c053568691f6691b76290a6bd07df09ea84ef1186ac77090649fc5a",
+    "served_stylesheet_sha256": "3db81509f04faef314889c39d777a310297c2856330f52fd994a07c67a9c7774",
     "served_index_sha256": "1ea73bdcd7a5ef303e9435796b58dc2cb66ba7916084c0afe7c9c1b8851c13fc",
     "syntax_checked": true,
     "gzip_and_brotli_decode_to_identity": true,
+    "fastify_static_precompressed_enabled": true,
+    "vary_accept_encoding": true,
+    "compressed_cache_policy_normalized_to_identity_path": true,
+    "q_value_negotiation_verified": true,
+    "conditional_brotli_etag_status": 304,
     "blocking_browser_syntax_or_chunk_load_error_observed": false,
     "normal_navigation_busts_pre_r11_immutable_main_module": true
+  },
+  "tailnet_transfer_timing": {
+    "main_brotli_bytes": 3293232,
+    "main_brotli_total_ms": [
+      2216.849,
+      2208.318,
+      2276.747
+    ],
+    "preload_baseline_identity_total_ms": [
+      1257,
+      1265
+    ],
+    "preload_brotli_bytes": 69315,
+    "preload_brotli_total_ms": [
+      667.319,
+      667.796,
+      668.279
+    ],
+    "stylesheet_brotli_bytes": 13143,
+    "stylesheet_brotli_total_ms": [
+      493.514,
+      500.629,
+      496.7
+    ]
   },
   "real_two_account_e2e": {
     "executed": false,

@@ -4,7 +4,7 @@
   "implementation_mode": "clean-room",
   "router_release": "codex-account-router-0.2.2-linux-x64",
   "router_artifact_sha256": "c9c35a4f13550b6559c41d480da94f943bd6e315f5dc0d71cbb6d26e835de191",
-  "routed_codex_web_release": "c3e92f0f-20260729-m69-router-r11",
+  "routed_codex_web_release": "c3e92f0f-20260729-m69-router-r14",
   "user_facing_codex_web_port": 8214,
   "standalone_codex_web_port": 8215,
   "routed_codex_web_port": 8216,
@@ -16,12 +16,12 @@
     "codex_web_router_8216": "active"
   },
   "http": {
-    "user_facing_8214_health": 200,
+    "user_facing_8214_unauthenticated": 401,
     "standalone_8215": 200,
     "routed_8216": 200
   },
   "user_facing_8214": {
-    "restarted_or_reconfigured_by_r11": false,
+    "restarted_or_reconfigured_by_r14": false,
     "active_enter_timestamp": "2026-07-29 02:33:56 CST"
   },
   "standalone_8215": {
@@ -29,10 +29,10 @@
     "active_enter_timestamp": "2026-07-29 04:02:49 CST"
   },
   "routed_8216": {
-    "active_enter_timestamp": "2026-07-29 06:36:35 CST",
+    "active_enter_timestamp": "2026-07-29 07:34:41 CST",
     "standard_output": "null",
     "standard_error": "journal",
-    "current_release": "c3e92f0f-20260729-m69-router-r11"
+    "current_release": "c3e92f0f-20260729-m69-router-r14"
   },
   "router": {
     "status": "ready",
@@ -60,16 +60,39 @@
     "vary": "Accept-Encoding",
     "brotli_preferred": true
   },
+  "preload": {
+    "input_bytes": 607155,
+    "identity_bytes": 253451,
+    "gzip_bytes": 79865,
+    "brotli_bytes": 69315,
+    "identity_sha256": "65708a1c2c053568691f6691b76290a6bd07df09ea84ef1186ac77090649fc5a",
+    "cache_control": "public, max-age=0",
+    "vary": "Accept-Encoding"
+  },
+  "initial_stylesheet": {
+    "identity_bytes": 79327,
+    "gzip_bytes": 14921,
+    "brotli_bytes": 13143,
+    "identity_sha256": "3db81509f04faef314889c39d777a310297c2856330f52fd994a07c67a9c7774",
+    "cache_control": "public, max-age=31536000, immutable",
+    "vary": "Accept-Encoding"
+  },
   "browser": {
     "composer_present": true,
     "r11_usable_screen_ms": [
       15271,
       6332
     ],
+    "r14_usable_screen_ms": [
+      5452,
+      9841,
+      7548
+    ],
     "import_map_count": 1,
     "import_map_and_preload_url_match": true,
-    "single_account_model_request_completed": true,
-    "blocking_syntax_or_chunk_load_error_observed": false
+    "single_account_model_requests_completed": 2,
+    "blocking_syntax_or_chunk_load_error_observed": false,
+    "startup_speed_claimed_stable": false
   },
   "server_local_timing": {
     "root_total_ms_min": 0.474,
@@ -81,9 +104,36 @@
     "routed_standard_output": "null",
     "routed_standard_error": "journal",
     "r11_journal_lines": 13,
-    "error_pattern_matches": 0,
+    "r14_journal_lines": 21,
+    "syntax_or_unhandled_pattern_matches": 0,
+    "priority_error_entries": 0,
     "sensitive_pattern_matches": 0,
     "historical_pre_fix_journal_retention_risk": true
+  },
+  "content_negotiation": {
+    "fastify_static_precompressed": true,
+    "brotli_gzip_identity_verified": true,
+    "gzip_selected_when_brotli_q_zero": true,
+    "identity_selected_when_all_compression_q_zero": true,
+    "brotli_conditional_etag_status": 304,
+    "compressed_cache_policy_matches_identity_asset": true
+  },
+  "tailnet_transfer_timing": {
+    "main_brotli_total_ms": [
+      2216.849,
+      2208.318,
+      2276.747
+    ],
+    "preload_brotli_total_ms": [
+      667.319,
+      667.796,
+      668.279
+    ],
+    "stylesheet_brotli_total_ms": [
+      493.514,
+      500.629,
+      496.7
+    ]
   },
   "cache_rollout": {
     "same_upstream_content_hashed_filename_retained": true,

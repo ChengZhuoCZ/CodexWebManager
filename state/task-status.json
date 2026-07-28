@@ -14,7 +14,7 @@
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "d2f5b03ce9746a72a6580a01e21dad17b2cec03b",
+  "output_revision": "65d879224d3deeabe48a60faf9894bcd795a7126",
   "workspace_branch": "codex/m6-9-routed-failover-performance",
   "workspace_input_revision": "d41f2f282390f3f95e6795dd713d657b51788cc5",
   "depends_on": [
@@ -44,11 +44,15 @@
     },
     {
       "command": "live Tailnet browser and loopback deployment probes against isolated 8216",
-      "result": "r11 output-hash import map and matching preload URL loaded; signed-in composer and one single-account request passed; 15.271/6.332 second usable-screen observations retained as performance variance; journal error/sensitive scans had 0 matches; 8214/8215/8216 HTTP 200"
+      "result": "r14 output-hash import map and matching preload URL loaded; signed-in composer and two single-account requests passed; 5.452/9.841/7.548 second usable-screen observations retained as performance variance; 21 journal lines had 0 syntax/unhandled and 0 sensitive-pattern matches; 8215 and 8216 HTTP 200; unauthenticated 8214 returned its existing HTTP 401 boundary"
     },
     {
-      "command": "<bundled-node> integrations/codex-web-upstream/build-minified-precompressed-asset.mjs --asset <absolute-final-patched-asset> --expected-sha256 <pinned-input-hash> --index <absolute-index> --expected-index-sha256 <pinned-index-hash> --esbuild <absolute-esbuild-0.27.0>",
-      "result": "22,822,120-byte input -> 14,138,809-byte identity / 4,345,029-byte gzip / 3,293,232-byte Brotli; syntax, decoded hashes, versioned import map and index hash passed"
+      "command": "<bundled-node> integrations/codex-web-upstream/build-minified-precompressed-asset.mjs --asset <absolute-main> --expected-sha256 <pinned-main-hash> --preload <absolute-preload> --expected-preload-sha256 <pinned-preload-hash> --stylesheet <absolute-css> --expected-stylesheet-sha256 <pinned-css-hash> --index <absolute-index> --expected-index-sha256 <pinned-index-hash> --esbuild <absolute-esbuild-0.27.0>",
+      "result": "main: 22,822,120 -> 14,138,809 identity / 4,345,029 gzip / 3,293,232 Brotli; preload: 607,155 -> 253,451 identity / 79,865 gzip / 69,315 Brotli; CSS: 79,327 identity / 14,921 gzip / 13,143 Brotli; syntax, decoded hashes, import map and index hash passed"
+    },
+    {
+      "command": "live Accept-Encoding, q-value, conditional-request and Tailnet transfer probes against r14",
+      "result": "Brotli/gzip/identity negotiation passed; gzip;q=1,br;q=0 selected gzip; br;q=0,gzip;q=0 selected identity; Brotli ETag revalidation returned 304; immutable cache policy and Vary were preserved; preload Tailnet transfer fell from about 1.26 seconds to 0.667-0.668 seconds"
     }
   ],
   "evidence": [
@@ -58,6 +62,17 @@
     "evidence/M6.9/blocker.md"
   ],
   "observations": {
+    "continuation_r12_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-routed-failover-performance",
+      "commit": "ac023a6106834b811c78bc614cccdffd6ebc6337",
+      "dependencies": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_result": "Segment routed 8216 startup latency and remove another evidence-backed avoidable delay without changing or restarting standalone 8215."
+    },
     "start_record": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-routed-failover-performance",
@@ -81,13 +96,20 @@
     "scope_boundary": "M6.9 may change only the isolated routed 8216 deployment and account-router private configuration. It must not restart, reconfigure or replace the standalone 8215 services.",
     "implementation": {
       "router_release": "codex-account-router-0.2.2-linux-x64",
-      "routed_codex_web_release": "c3e92f0f-20260729-m69-router-r11",
+      "routed_codex_web_release": "c3e92f0f-20260729-m69-router-r14",
       "atomic_account_enrollment_installed": true,
       "esbuild_version": "0.27.0",
       "patched_input_asset_bytes": 22822120,
       "decoded_asset_bytes": 14138809,
       "gzip_asset_bytes": 4345029,
       "brotli_asset_bytes": 3293232,
+      "preload_input_bytes": 607155,
+      "preload_identity_bytes": 253451,
+      "preload_gzip_bytes": 79865,
+      "preload_brotli_bytes": 69315,
+      "stylesheet_identity_bytes": 79327,
+      "stylesheet_gzip_bytes": 14921,
+      "stylesheet_brotli_bytes": 13143,
       "decoded_asset_sha256": "3376a894219534630a550a314f4e64f1fa3e85cd12e76d32d0fdb7381c2645a9",
       "versioned_asset_url": "./assets/app-initial-BTphDPeq.js?v=3376a89421953463",
       "versioned_index_sha256": "1ea73bdcd7a5ef303e9435796b58dc2cb66ba7916084c0afe7c9c1b8851c13fc",
@@ -99,6 +121,16 @@
       "r11_usable_screen_ms": [
         15271,
         6332
+      ],
+      "r14_usable_screen_ms": [
+        5452,
+        9841,
+        7548
+      ],
+      "r14_preload_tailnet_total_ms": [
+        667.319,
+        667.796,
+        668.279
       ],
       "upstream_connections_for_two_sequential_requests": 1,
       "routed_standard_output": "null",
@@ -126,10 +158,11 @@
   "residual_risks": [
     "Cross-account continuity remains unverified and is not claimed.",
     "Pre-fix codex-web-router journal records may contain upstream IPC bodies or response headers. Per-unit deletion is unavailable without vacuuming unrelated system logs; retention and access must be handled operationally.",
-    "Release r11 revalidates HTML and maps the main module to an output-hash query URL, but end-to-end browser/App Server startup still varied between 6.332 and 15.271 seconds in bounded observations.",
-    "The r11 bundle is 38.0% smaller after decoding and the server-local static path completes in milliseconds, but deployment observations are not a general latency guarantee.",
+    "Release r14 revalidates HTML and maps the main module to an output-hash query URL, but end-to-end browser/App Server startup still varied between 5.452 and 9.841 seconds in bounded observations.",
+    "The r14 main bundle is 38.0% smaller after decoding and startup asset transfer is reduced, but deployment observations are not a general latency guarantee.",
+    "Browser observations still showed failed best-effort Statsig requests; they did not block the composer or model sentinel, but remain a plausible contributor to startup variance.",
     "Direct Tailnet HTTP still requires a browser compatibility shim; HTTPS remains preferable.",
     "Every authorized Tailnet principal reaching 8216 can use the configured routed accounts and workspace authority."
   ],
-  "updated_at": "2026-07-29T06:48:00+08:00"
+  "updated_at": "2026-07-29T07:44:46+08:00"
 }
