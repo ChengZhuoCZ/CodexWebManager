@@ -73,6 +73,12 @@ The router unit imports the matching names and sets `CODEX_ROUTER_CREDENTIAL_ROO
 credential-store file should be root-owned and mode `0600`. Never put credential contents in a unit,
 environment variable, shell argument, repository, or journal.
 
+After installing the router release, use `codex-router-account enroll --source-file ...` for
+additional accounts instead of editing the credential store and account catalog as separate manual
+steps. The source must be a private, regular Codex `auth.json`; the command installs it atomically,
+restarts only `codex-account-router.service`, verifies readiness, and rolls back both files on
+failure. IDs and aliases must be opaque and must not contain an account email.
+
 Three explicit service credentials are also required:
 
 ```text

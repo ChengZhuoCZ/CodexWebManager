@@ -1,6 +1,7 @@
 export { createAdminAuthenticator } from "./admin-auth.mjs";
 export { createAdminHandler } from "./admin-handler.mjs";
 export { createAdminState } from "./admin-state.mjs";
+export { createAccountEnrollmentManager } from "./account-enrollment.mjs";
 export { createAccountCatalog, normalizeAccountDefinition } from "./accounts.mjs";
 export {
   createCircuitBreaker,
@@ -17,6 +18,7 @@ export {
 } from "./auxiliary-endpoints.mjs";
 export {
   createCodexAuthSecretProvider,
+  parseCodexAuthCredential,
   parseCodexCredentialBundle,
 } from "./codex-credentials.mjs";
 export { assertLoopbackHost, defaults, loadRuntimeConfig, parsePort } from "./config.mjs";

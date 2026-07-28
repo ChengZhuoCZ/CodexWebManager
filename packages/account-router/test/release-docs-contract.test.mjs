@@ -74,3 +74,12 @@ test("operator and release docs link the security, license, and detailed Linux r
     await fs.access(path.resolve(path.dirname(operatorGuidePath), relativePath));
   }
 });
+
+test("operator guide documents secret-safe atomic account enrollment", async () => {
+  const guide = await read(operatorGuidePath);
+  assert.match(guide, /codex-router-account enroll/);
+  assert.match(guide, /--source-file/);
+  assert.match(guide, /rolls back/i);
+  assert.match(guide, /restarts only .*account router/i);
+  assert.doesNotMatch(guide, /codex-router-account[\s\S]{0,240}--(?:token|authorization|cookie)/i);
+});

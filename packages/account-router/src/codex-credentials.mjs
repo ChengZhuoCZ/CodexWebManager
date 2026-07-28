@@ -45,6 +45,17 @@ function credentialBundle(authDocument) {
   });
 }
 
+export function parseCodexAuthCredential(value) {
+  try {
+    const document = typeof value === "string"
+      ? JSON.parse(value)
+      : JSON.parse(UTF8.decode(Buffer.from(value)));
+    return credentialBundle(document);
+  } catch {
+    throw new Error("Codex auth credential is invalid");
+  }
+}
+
 export function parseCodexCredentialBundle(value) {
   let document;
   try {
@@ -86,7 +97,7 @@ export function createCodexAuthSecretProvider({
       let rawLease;
       try {
         rawLease = await rawProvider.acquire(credentialReference);
-        const bundle = rawLease.use((text) => credentialBundle(JSON.parse(UTF8.decode(Buffer.from(text)))));
+        const bundle = rawLease.use((text) => parseCodexAuthCredential(text));
         return SecretLease.fromUtf8(JSON.stringify(bundle));
       } catch {
         throw new Error("credential acquisition failed");

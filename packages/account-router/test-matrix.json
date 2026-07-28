@@ -5,6 +5,7 @@
     {
       "id": "unit",
       "test_files": [
+        "test/account-enrollment.test.mjs",
         "test/accounts.test.mjs",
         "test/admin-auth.test.mjs",
         "test/admin-contracts.test.mjs",

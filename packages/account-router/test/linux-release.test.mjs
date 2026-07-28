@@ -51,8 +51,8 @@ test("builds a byte-reproducible x64 Linux archive without desktop dependencies"
   assert.ok(manifestEntry);
 
   const manifest = JSON.parse(manifestEntry.content.toString("utf8"));
-  assert.equal(manifest.version, "0.2.1");
-  assert.equal(first.releaseName, "codex-account-router-0.2.1-linux-x64");
+  assert.equal(manifest.version, "0.2.2");
+  assert.equal(first.releaseName, "codex-account-router-0.2.2-linux-x64");
   assert.deepEqual(manifest.target, { os: "linux", architecture: "x64" });
   assert.equal(manifest.runtime.node, ">=22");
   assert.equal(manifest.runtime.electron_required, false);
@@ -62,6 +62,7 @@ test("builds a byte-reproducible x64 Linux archive without desktop dependencies"
 
   const archivedPaths = entries.map((entry) => entry.path);
   assert.ok(archivedPaths.includes(`${root}/bin/codex-account-router`));
+  assert.ok(archivedPaths.includes(`${root}/bin/codex-router-account`));
   assert.ok(archivedPaths.includes(`${root}/bin/codex-router-cli`));
   assert.ok(archivedPaths.includes(`${root}/bin/codex-stack-deploy`));
   assert.ok(archivedPaths.includes(`${root}/install.sh`));
@@ -73,6 +74,7 @@ test("builds a byte-reproducible x64 Linux archive without desktop dependencies"
 
   for (const executablePath of [
     `${root}/bin/codex-account-router`,
+    `${root}/bin/codex-router-account`,
     `${root}/bin/codex-router-cli`,
     `${root}/bin/codex-stack-deploy`,
     `${root}/install.sh`,

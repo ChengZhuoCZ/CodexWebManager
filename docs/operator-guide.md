@@ -41,10 +41,10 @@ permission check fails.
 Verify the downloaded archive before extraction, then install the matching release:
 
 ```sh
-sha256sum -c codex-account-router-0.2.1-linux-x64.tar.gz.sha256
-tar -xzf codex-account-router-0.2.1-linux-x64.tar.gz
+sha256sum -c codex-account-router-0.2.2-linux-x64.tar.gz.sha256
+tar -xzf codex-account-router-0.2.2-linux-x64.tar.gz
 sudo env NODE_BINARY=/usr/bin/node \
-  sh codex-account-router-0.2.1-linux-x64/install.sh
+  sh codex-account-router-0.2.2-linux-x64/install.sh
 ```
 
 Install the checked-in unit and provisioning files:
@@ -109,6 +109,29 @@ The browser value is a separate site access key, not a ChatGPT/Codex account cre
 grants high-privilege control of the configured Codex workspaces, including protocol operations that
 can read/write files and start restricted processes. Generate or enter it privately on the server,
 protect it like workspace access, use a strong random value, and do not reuse any other credential.
+
+### Enroll another routed account
+
+Stage an already authorized Codex `auth.json` as an absolute-path, regular mode `0600` file on the
+server. Do not print it, paste it into the shell, or use an email address as the ID or alias. The
+release command accepts only the source file path and public opaque metadata:
+
+```sh
+sudo /opt/codex-account-router/current/bin/codex-router-account enroll \
+  --source-file /root/private-staging/auth.json \
+  --id secondary \
+  --alias Secondary \
+  --priority 90 \
+  --max-concurrency 1
+```
+
+The command validates the staged file before changing service state, installs it as a root-owned
+systemd credential, atomically updates the public account catalog, and restarts only the account router.
+It requires every configured account to be usable after restart. If validation, restart, or readiness
+fails, it rolls back both the catalog and new credential and restarts the previous router configuration.
+It never accepts a credential value as an option and never returns the provider account identifier.
+Remove the staging copy through the operator's approved secret-handling procedure after success.
+This operation does not restart or reconfigure either codex-web instance.
 
 ### Keep the routed browser signed in
 

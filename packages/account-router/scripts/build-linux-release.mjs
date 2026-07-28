@@ -318,6 +318,12 @@ async function collectPayload({ architecture, releaseName, version }) {
       content: launcher("lib/account-router/bin/codex-router-cli.mjs"),
     },
     {
+      path: "bin/codex-router-account",
+      type: "file",
+      mode: 0o755,
+      content: launcher("lib/account-router/bin/codex-router-account.mjs"),
+    },
+    {
       path: "bin/codex-stack-deploy",
       type: "file",
       mode: 0o755,
@@ -338,6 +344,11 @@ async function collectPayload({ architecture, releaseName, version }) {
     await fileEntry(
       "lib/account-router/bin/codex-router-cli.mjs",
       path.join(PACKAGE_ROOT, "bin/codex-router-cli.mjs"),
+      0o755,
+    ),
+    await fileEntry(
+      "lib/account-router/bin/codex-router-account.mjs",
+      path.join(PACKAGE_ROOT, "bin/codex-router-account.mjs"),
       0o755,
     ),
     await fileEntry(
