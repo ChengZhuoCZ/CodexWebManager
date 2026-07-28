@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task": "M6.8",
-  "generated_at": "2026-07-29T04:32:07+08:00",
+  "generated_at": "2026-07-29T04:46:57+08:00",
   "input_revision": "7ef1c457f82e66ddbb116d0a96fd82df369ab545",
   "output_revision": "140993147bff64d049f14761dc9bb0e215e9cbe1",
   "branch": "codex/m6-8-browser-startup-model-e2e",
@@ -92,6 +92,21 @@
       "skip_reason": "tests requiring a local pinned upstream checkout are covered by deployed pinned-release evidence"
     },
     {
+      "name": "strict pinned-upstream GitHub Actions matrix",
+      "command": "GitHub Actions run 30397458718 on Node 22 and Node 24",
+      "result": "492 passed, 0 failed, 0 skipped",
+      "node_22": "246 passed",
+      "node_24": "246 passed",
+      "account_switch_tested": false
+    },
+    {
+      "name": "renewed M6.3 security audit",
+      "command": "run-security-audit.mjs with the renewed strict CI baseline",
+      "result": "82 passed, 0 failed, 0 skipped; 308 files scanned, 0 findings",
+      "strict_ui_tests": 492,
+      "protected_paths_unchanged": true
+    },
+    {
       "name": "repository secret scan",
       "command": "scanRepository(loadSecurityAuditPolicy(security-audit.json))",
       "result": "308 files scanned, 0 findings"
@@ -112,8 +127,7 @@
   "unqualified_areas": [
     "Linux terminal native module",
     "real two-account A-to-B switch",
-    "cross-account continuity",
-    "strict M6.3 CI baseline re-qualification after protected-path changes"
+    "cross-account continuity"
   ],
   "account_switch_tested": false,
   "cross_account_continuity_tested": false,

@@ -81,6 +81,16 @@
       "routed_http_status": 200,
       "composer_visible": true,
       "composer_enabled": true
+    },
+    {
+      "name": "strict pinned-upstream GitHub Actions matrix",
+      "command": "GitHub Actions run 30397458718",
+      "result": "Node 22: 246 passed; Node 24: 246 passed; 0 failed, 0 skipped"
+    },
+    {
+      "name": "renewed M6.3 security audit",
+      "command": "run-security-audit.mjs using CI baseline e2467b73c80b31a53e5009117343b267ddb71f0f",
+      "result": "82 passed, 0 failed, 0 skipped; 308 files scanned, 0 findings; strict UI baseline 492/492"
     }
   ],
   "evidence": [
@@ -128,8 +138,7 @@
     "The real account login can expire or be revoked and must then be authorized again.",
     "The upstream Linux terminal native module was not qualified.",
     "Only one usable real account is configured, so a real A-to-B switch is not qualified.",
-    "Cross-account continuity remains unverified; switching starts a new backend session.",
-    "The M6.3 strict CI baseline must be re-qualified after protected browser paths change."
+    "Cross-account continuity remains unverified; switching starts a new backend session."
   ],
-  "updated_at": "2026-07-29T04:32:07+08:00"
+  "updated_at": "2026-07-29T04:46:57+08:00"
 }

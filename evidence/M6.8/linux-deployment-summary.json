@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "task": "M6.8",
-  "generated_at": "2026-07-29T04:32:07+08:00",
+  "generated_at": "2026-07-29T04:46:57+08:00",
   "implementation_revision": "140993147bff64d049f14761dc9bb0e215e9cbe1",
   "deployment": {
     "source_repository": "0xcaff/codex-web",
@@ -98,6 +98,13 @@
     "complete_passed": 221,
     "complete_failed": 0,
     "complete_skipped": 25,
+    "strict_ci_run_id": 30397458718,
+    "strict_ci_node_22_passed": 246,
+    "strict_ci_node_24_passed": 246,
+    "strict_ci_failed": 0,
+    "strict_ci_skipped": 0,
+    "focused_security_tests_passed": 82,
+    "focused_security_tests_failed": 0,
     "repository_files_scanned": 308,
     "secret_findings": 0
   },
@@ -114,7 +121,6 @@
     "Provider expiry or revocation requires explicit user-authorized credential replacement.",
     "The Linux terminal native module was not qualified.",
     "Only one usable real account is configured; real A-to-B switching is not qualified.",
-    "Cross-account conversation continuity is unverified and no seamless-continuity claim is made.",
-    "The strict M6.3 CI baseline must be re-qualified after protected browser paths change."
+    "Cross-account conversation continuity is unverified and no seamless-continuity claim is made."
   ]
 }

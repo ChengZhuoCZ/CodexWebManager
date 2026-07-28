@@ -79,7 +79,7 @@
   ],
   "strict_ci_baseline": {
     "evidence_file": "evidence/M6.1/github-actions-summary.json",
-    "head_sha": "5b60566dfccb5b4a7555af96434fcb3f31611be4",
+    "head_sha": "e2467b73c80b31a53e5009117343b267ddb71f0f",
     "protected_paths": [
       "integrations/codex-web",
       "packages/account-router/scripts/run-codex-web-account-ui.mjs",
