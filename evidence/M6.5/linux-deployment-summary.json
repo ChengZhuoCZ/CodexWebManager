@@ -1,0 +1,52 @@
+{
+  "schema_version": 1,
+  "task": "M6.5",
+  "recorded_at": "2026-07-28T18:47:00+08:00",
+  "target": "authorized-tailnet-linux-x64",
+  "first_attempt": {
+    "result": "failed_closed",
+    "reason": "CODEX_WEB_CODEX_HOME was absent from the existing server override",
+    "previous_release_restored": true,
+    "previous_dropin_restored": true,
+    "systemd_start_limit_required_reset": true,
+    "previous_release_recovery_health_status": 200
+  },
+  "deployment": {
+    "result": "passed",
+    "previous_release": "888692f7-20260728-m4-4-weekly-only",
+    "active_release": "888692f7-20260728-m6-5-tailnet-trusted-r2",
+    "previous_release_retained": true,
+    "automatic_rollback_on_failure": true
+  },
+  "artifact": {
+    "name": "codex-web-m6-5-tailnet-trusted.tar.gz",
+    "sha256": "da26f65a182c6a1484a2f2a0cb090b804d86643eaa9dbf0d363bc992a9553da3",
+    "typescript_sha256": "085c8f765b7b877387a710fe73bc1cd43ae654858c9d57c8e6ccdfd55063f1e6",
+    "javascript_sha256": "0ecff2144f2d1d58d30172e442f57aa8e0f9d522cd5819ad589adfac8b2d531f",
+    "deployment_script_sha256": "9602ad0ae290740c16d60d8bb45c6f5c065c6174a72370505ae3ff87b8671f11"
+  },
+  "access_policy": {
+    "trusted_tailnet_access": true,
+    "public_origin": "http://100.95.50.98:8214",
+    "browser_access_credential_loaded": false,
+    "browser_access_key_file_retained_for_rollback": true,
+    "tailscale_tcp_forwarder": "tailnet_only",
+    "tailscale_funnel_enabled": false,
+    "application_listener": "127.0.0.1:8214"
+  },
+  "services": {
+    "codex_web": "active",
+    "codex_account_router": "active",
+    "codex_app_server": "active",
+    "codex_web_health_status": 200,
+    "tailnet_health_status": 200,
+    "trusted_root_status": 200,
+    "trusted_root_session_cookie": "present",
+    "login_path_status": 303,
+    "unauthenticated_non_html_session_status": 401
+  },
+  "real_account_configuration_changed": false,
+  "account_switch_tested": false,
+  "cross_account_continuation_tested": false,
+  "seamless_account_continuity_claimed": false
+}

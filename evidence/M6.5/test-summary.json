@@ -1,0 +1,66 @@
+{
+  "schema_version": 1,
+  "task": "M6.5",
+  "recorded_at": "2026-07-28T18:47:00+08:00",
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "input_revision": "998b1cbd19625471d9a3960a0ec866d9eb556c24",
+  "implementation_revision": "5b60566dfccb5b4a7555af96434fcb3f31611be4",
+  "test_first": {
+    "command": "<bundled-node> --test packages/account-router/test/codex-web-browser-auth.test.mjs",
+    "result": "expected failure",
+    "passed": 0,
+    "failed": 1,
+    "skipped": 4,
+    "reason": "the fail-closed policy test required CODEX_WEB_TRUSTED_TAILNET_ACCESS before the implementation existed"
+  },
+  "focused_browser_auth": {
+    "command": "M6_3_CODEX_WEB_ROOT=<pinned-checkout> <bundled-node> --test packages/account-router/test/codex-web-browser-auth.test.mjs",
+    "passed": 7,
+    "failed": 0,
+    "skipped": 0
+  },
+  "syntax_check": {
+    "command": "pnpm --dir packages/account-router run check",
+    "result": "passed"
+  },
+  "local_matrix": {
+    "command": "<pinned-codex-web-environment> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --suite all --summary <private-summary>",
+    "unit": "125/125",
+    "integration": "68/68",
+    "e2e": "45/45",
+    "total": "238/238",
+    "failed": 0,
+    "skipped": 0,
+    "account_switch_scenario_executed": false
+  },
+  "strict_ci": {
+    "workflow": "Automated test matrix",
+    "run_id": 30351640985,
+    "head_sha": "5b60566dfccb5b4a7555af96434fcb3f31611be4",
+    "node_22": "238/238",
+    "node_24": "238/238",
+    "failed": 0,
+    "skipped": 0
+  },
+  "security_audit": {
+    "command": "<pinned-codex-web-environment> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+    "files_scanned": 282,
+    "findings": 0,
+    "focused_tests": "78/78",
+    "strict_ci_tests": "476/476",
+    "protected_paths_unchanged": true,
+    "qualified": true
+  },
+  "build": {
+    "overlay_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf",
+    "server_typescript": "passed",
+    "browser_vite": "passed",
+    "archive_sha256": "da26f65a182c6a1484a2f2a0cb090b804d86643eaa9dbf0d363bc992a9553da3",
+    "server_module_sha256": "0ecff2144f2d1d58d30172e442f57aa8e0f9d522cd5819ad589adfac8b2d531f"
+  },
+  "real_account_configured_for_test": false,
+  "account_switch_tested": false,
+  "cross_account_continuation_tested": false,
+  "seamless_account_continuity_claimed": false
+}

@@ -310,7 +310,7 @@ milestones:
           - Known limitations and compliance boundaries explicit
       - id: M6.5
         title: Add explicit Tailnet trusted browser access
-        status: in_progress
+        status: done
         depends_on: [M5.4, M6.1, G-SECRETS]
         acceptance:
           - Trusted access is opt-in and valid only for one exact Tailnet IPv4 origin
