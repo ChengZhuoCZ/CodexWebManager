@@ -1,0 +1,68 @@
+{
+  "schema_version": 1,
+  "task": "M6.7",
+  "generated_at": "2026-07-28T20:06:41+08:00",
+  "input_revision": "25ad185a85526c96ef6aad2b8b5f04f8ad39d958",
+  "branch": "codex/m6-7-persistent-real-account",
+  "implementation_mode": "clean-room",
+  "qualified": true,
+  "tests": [
+    {
+      "name": "focused documentation and systemd contracts",
+      "command": "/Users/chengzhuo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node --test packages/account-router/test/release-docs-contract.test.mjs packages/account-router/test/security-audit-contract.test.mjs packages/account-router/test/systemd-units.test.mjs",
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "fail-closed security audit with clean pinned codex-web fixture",
+      "command": "M6_3_CODEX_WEB_ROOT=/private/tmp/m67-pristine-codex-web /Users/chengzhuo/.cache/codex-runtimes/codex-primary-runtime/dependencies/node/bin/node packages/account-router/scripts/run-security-audit.mjs --summary /private/tmp/codex-m6-7-security/summary.json",
+      "passed": 78,
+      "failed": 0,
+      "skipped": 0,
+      "repository_files_scanned": 291,
+      "secret_findings": 0,
+      "strict_ui_baseline_passed": 476,
+      "strict_ui_baseline_failed": 0,
+      "strict_ui_baseline_skipped": 0
+    },
+    {
+      "name": "production browser account probe before service restart",
+      "result": "passed",
+      "http_root_status": 200,
+      "browser_session_cookie_present": true,
+      "browser_ipc_websocket_open": true,
+      "account_present": true,
+      "account_type": "chatgpt"
+    },
+    {
+      "name": "fresh browser and production browser account probe after service restart",
+      "result": "passed",
+      "http_root_status": 200,
+      "browser_session_cookie_present": true,
+      "browser_ipc_websocket_open": true,
+      "account_present": true,
+      "account_type": "chatgpt",
+      "sign_in_visible": false,
+      "new_task_visible": true,
+      "composer_visible": true,
+      "settings_visible": true
+    }
+  ],
+  "diagnostic_attempts_not_accepted_as_evidence": [
+    {
+      "result": "environment_failure",
+      "reason": "The default sandbox denied creation of loopback test listeners."
+    },
+    {
+      "result": "incomplete",
+      "reason": "The pinned codex-web fixture was absent, so 13 integration tests were skipped."
+    }
+  ],
+  "real_account_configured": true,
+  "model_request_sent": false,
+  "account_switch_tested": false,
+  "host_reboot_tested": false,
+  "cross_account_continuity_tested": false,
+  "seamless_account_continuity_claimed": false
+}

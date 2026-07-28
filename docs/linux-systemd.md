@@ -91,14 +91,24 @@ The browser access token follows the same no-newline rule and must contain at le
 characters. It authenticates the website only; never reuse a ChatGPT password, Cookie, Codex token,
 API key, or SSH password.
 
-When the App Server reaches OpenAI only through the local account router, keep the real authorized
-ChatGPT `auth.json` exclusively in the matching `/etc/credstore/codex-account-router.auth.*`
-credential. Use a separate randomly generated, router-managed API-key marker for
-`app-server-auth.json` and `/var/lib/codex-web/auth.json`. The marker has no provider authority; it
-only tells the App Server and its browser proxy that their local router transport is configured.
-The router allowlist discards the client's `Authorization` header and injects the selected real
-account credential. Never use this marker when `openai_base_url` points anywhere other than the
-loopback router, and never copy the real ChatGPT credential into `/var/lib/codex-web`.
+Choose the browser identity mode explicitly:
+
+- **Router-managed identity:** keep the real authorized ChatGPT `auth.json` only in the matching
+  `/etc/credstore/codex-account-router.auth.*` credential. Put a separate randomly generated local
+  API-key marker in `app-server-auth.json` and `/var/lib/codex-web/auth.json`. This is the
+  lower-exposure mode, but the UI does not report the provider account.
+- **Persistent real-account identity:** only when the operator explicitly authorizes the shared
+  private web session, install the same authorized ChatGPT `auth.json` into
+  `app-server-auth.json` and `/var/lib/codex-web/auth.json`. This lets fresh browser sessions report
+  the ChatGPT account without another sign-in and survives service restarts because both source
+  files are persistent.
+
+The second mode creates three copies of a live provider credential. Keep the App Server source
+root-owned `0600`, keep `/var/lib/codex-web/auth.json` owned by `codex` and mode `0600`, and update or
+remove all copies together on rotation or revocation. Every Tailnet principal allowed to use the
+website can then act through that account and the configured workspaces. Neither mode permits
+putting credential contents in a command argument, unit environment, repository, log, or evidence
+file.
 
 The systemd credentials model intentionally exposes credential data as service-user-restricted
 files rather than inherited environment values. See the upstream

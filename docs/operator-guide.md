@@ -113,37 +113,39 @@ protect it like workspace access, use a strong random value, and do not reuse an
 ### Keep the routed browser signed in
 
 In the supervised router deployment, the App Server and the `codex-web` proxy must appear locally
-authenticated before the Codex UI opens its main page. Do not solve this by copying the real ChatGPT
-credential into the browser proxy home. Keep the real account `auth.json` only in the corresponding
-root-owned `/etc/credstore/codex-account-router.auth.*` file.
+authenticated before the Codex UI opens its main page. The lower-exposure option is a random
+router-managed marker: the browser opens the composer, while the real account `auth.json` remains
+only in the corresponding root-owned `/etc/credstore/codex-account-router.auth.*` file. The marker
+has no provider authority and is safe only while the App Server's exact `openai_base_url` remains
+the loopback account-router path.
 
-Instead, create a random router-managed marker through the Codex CLI's standard stdin login path.
-The marker is not an OpenAI credential and has no provider authority. It is still stored privately
-because Codex treats it as an API-key login:
+If the operator explicitly requires the web UI itself to remain signed in to the authorized
+ChatGPT account, select persistent real-account identity instead. Copy the already authorized
+credential privately on the server; never print, paste, transform, or pass its contents on the
+command line:
 
 ```sh
 sudo install -d -m 0700 -o codex -g codex /var/lib/codex-web
-openssl rand -hex 32 \
-  | sed 's/^/router-managed-/' \
-  | sudo -u codex env \
-      HOME=/var/lib/codex-web \
-      CODEX_HOME=/var/lib/codex-web \
-      /usr/local/bin/codex login --with-api-key
 sudo install -m 0600 -o root -g root \
-  /var/lib/codex-web/auth.json \
+  /etc/credstore/codex-account-router.auth.primary \
   /etc/codex-account-router/credentials/app-server-auth.json
+sudo install -m 0600 -o codex -g codex \
+  /etc/credstore/codex-account-router.auth.primary \
+  /var/lib/codex-web/auth.json
 sudo systemctl restart codex-app-server.service codex-web.service
 ```
 
-This is safe only while the App Server's exact `openai_base_url` remains the loopback account-router
-path. The router discards client `Authorization` and injects the selected real account credential.
-If that loopback invariant changes, remove both marker files and stop the services rather than
-sending the marker to another origin.
-
 After restart, open a fresh browser session and confirm that the Codex composer appears without a
-ChatGPT sign-in prompt. Also verify that `/var/lib/codex-web/auth.json` is a regular `0600` file
-owned by `codex`, the App Server source is a regular root-owned `0600` file, and the two marker files
-are distinct from every `/etc/credstore/codex-account-router.auth.*` real account credential.
+ChatGPT sign-in prompt and that the App Server reports a ChatGPT account. Also verify that
+`/var/lib/codex-web/auth.json` is a regular `0600` file owned by `codex`, the App Server source is a
+regular root-owned `0600` file, and both are byte-identical to the selected private credential
+without printing a digest or file contents.
+
+Persistent real-account identity deliberately creates three copies of a live account credential.
+Every Tailnet principal allowed to reach the website can act through that account and the configured
+workspaces. Rotate or revoke all copies as one operation; never retain a diagnostic copy. A service
+restart retains the login, but provider expiry or revocation still requires fresh authorization.
+This setting does not establish account switching or cross-account session continuity.
 
 After configuration changes:
 

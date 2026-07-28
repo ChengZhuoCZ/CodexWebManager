@@ -329,3 +329,13 @@ milestones:
           - The router-managed identity is valid only with the exact loopback account-router origin
           - Credential values, account identifiers and complete authentication responses never enter the repository or logs
           - Revocation and credential rotation remain explicit operator actions
+      - id: M6.7
+        title: Persist the authorized real account in the web session
+        status: in_progress
+        depends_on: [M6.6, G-SECRETS]
+        acceptance:
+          - App Server and codex-web read the same user-authorized ChatGPT credential from private server-only files
+          - A fresh browser session reports a ChatGPT account and opens the Codex composer without a login prompt
+          - Service restarts retain the same authenticated account state
+          - No credential value, email, account identifier, OAuth callback or complete auth response enters the repository or logs
+          - Account switching, cross-account continuity and model execution remain outside this task

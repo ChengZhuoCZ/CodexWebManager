@@ -1,0 +1,65 @@
+{
+  "schema_version": 1,
+  "task": "M6.7",
+  "generated_at": "2026-07-28T20:06:41+08:00",
+  "deployment": {
+    "network_scope": "authorized Tailnet path",
+    "website_url": "http://100.95.50.98:8214",
+    "public_listener_configured": false,
+    "account_identity_mode": "persistent real-account identity"
+  },
+  "credential_metadata": {
+    "router_source": {
+      "path": "/etc/credstore/codex-account-router.auth.primary",
+      "mode": "0600",
+      "owner": "root"
+    },
+    "app_server_source": {
+      "path": "/etc/codex-account-router/credentials/app-server-auth.json",
+      "mode": "0600",
+      "owner": "root"
+    },
+    "codex_web_home": {
+      "path": "/var/lib/codex-web/auth.json",
+      "mode": "0600",
+      "owner": "codex"
+    },
+    "all_copies_byte_equal": true,
+    "temporary_diagnostic_copies_removed": true,
+    "credential_values_logged": false,
+    "credential_digests_logged": false
+  },
+  "before_restart": {
+    "codex_app_server_active": true,
+    "codex_web_active": true,
+    "local_health_status": 200,
+    "account_present": true,
+    "account_type": "chatgpt",
+    "fresh_browser_sign_in_visible": false,
+    "fresh_browser_composer_visible": true
+  },
+  "after_restart": {
+    "codex_app_server_active": true,
+    "codex_web_active": true,
+    "local_health_status": 200,
+    "account_present": true,
+    "account_type": "chatgpt",
+    "fresh_browser_sign_in_visible": false,
+    "fresh_browser_new_task_visible": true,
+    "fresh_browser_composer_visible": true,
+    "fresh_browser_settings_visible": true
+  },
+  "scope_exclusions": {
+    "model_execution": false,
+    "account_switch": false,
+    "quota_failover": false,
+    "cross_account_continuity": false,
+    "host_reboot": false
+  },
+  "residual_risks": [
+    "All Tailnet principals allowed to reach the website share the configured real account and workspace authority.",
+    "Three private copies of the live credential increase the impact of server compromise.",
+    "Provider expiry or revocation requires fresh authorization and synchronized replacement of all copies.",
+    "Host reboot persistence was not tested."
+  ]
+}

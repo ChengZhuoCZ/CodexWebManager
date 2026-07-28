@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
-  "current_task": "M6.6",
-  "status": "done",
+  "current_task": "M6.7",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-SKIP-M6.2-SOAK",
@@ -10,93 +10,51 @@
     "EX-SKIP-M6.2-SOAK"
   ],
   "input_revisions": {
-    "workspace": "8cc716257f51e1e9bd73ce1958b6bd02cd822844",
+    "workspace": "25ad185a85526c96ef6aad2b8b5f04f8ad39d958",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "codex-web": "888692f7d885118c6a92bbaf60cf2121f5947adf"
   },
-  "output_revision": "dfa86fd487191baa4861204aea86f0b78e775b7d",
-  "workspace_branch": "codex/m6-6-persistent-codex-login",
-  "workspace_input_revision": "8cc716257f51e1e9bd73ce1958b6bd02cd822844",
+  "output_revision": null,
+  "workspace_branch": "codex/m6-7-persistent-real-account",
+  "workspace_input_revision": "25ad185a85526c96ef6aad2b8b5f04f8ad39d958",
   "depends_on": [
-    "M5.2",
-    "M6.5",
+    "M6.6",
     "G-SECRETS"
   ],
   "expected_outputs": [
     "docs/linux-systemd.md",
     "docs/operator-guide.md",
-    "evidence/M6.6-persistent-codex-login.md",
-    "evidence/M6.6/test-summary.json",
-    "evidence/M6.6/linux-deployment-summary.json"
+    "evidence/M6.7-persistent-real-account.md",
+    "evidence/M6.7/test-summary.json",
+    "evidence/M6.7/linux-deployment-summary.json"
   ],
-  "tests": [
-    {
-      "stage": "initial_browser_diagnosis",
-      "command": "<private-bounded-browser-ipc-probe>",
-      "result": "expected failure confirmed: root 200 but account absent and sign-in screen visible"
-    },
-    {
-      "stage": "isolated_router_identity_experiment",
-      "command": "<private-isolated-app-server-probe>",
-      "result": "passed: router-managed marker produced a local API-key account without an upstream model request"
-    },
-    {
-      "stage": "production_browser_ipc",
-      "command": "<private-bounded-browser-ipc-probe>",
-      "result": "passed: root 200, browser session and WebSocket established, account present with no complete response persisted"
-    },
-    {
-      "stage": "fresh_browser_page",
-      "command": "<controlled-browser-page-load>",
-      "result": "passed: sign-in absent; New task, composer and Settings present"
-    },
-    {
-      "stage": "service_restart_browser_page",
-      "command": "systemctl restart codex-app-server.service codex-web.service; <controlled-browser-page-load>",
-      "result": "passed: both services active, health 200, account present and fresh page opened the composer without sign-in"
-    },
-    {
-      "stage": "focused_repository_tests",
-      "command": "<bundled-node> --test packages/account-router/test/release-docs-contract.test.mjs packages/account-router/test/security-audit-contract.test.mjs packages/account-router/test/systemd-units.test.mjs",
-      "result": "passed: 18 passed, 0 failed, 0 skipped"
-    },
-    {
-      "stage": "repository_secret_scan",
-      "command": "<bundled-node> packages/account-router/scripts/run-security-audit.mjs <scan-only>",
-      "result": "passed: 288 files scanned, 0 findings"
-    }
-  ],
+  "tests": [],
   "evidence": [
-    "evidence/M6.6-persistent-codex-login.md",
-    "evidence/M6.6/test-summary.json",
-    "evidence/M6.6/linux-deployment-summary.json",
+    "evidence/M6.7-persistent-real-account.md",
+    "evidence/M6.7/test-summary.json",
+    "evidence/M6.7/linux-deployment-summary.json",
     "docs/linux-systemd.md",
     "docs/operator-guide.md"
   ],
   "observations": {
     "start_record": {
       "repository": "ChengZhuoCZ/CodexWebManager",
-      "branch": "codex/m6-6-persistent-codex-login",
-      "commit": "8cc716257f51e1e9bd73ce1958b6bd02cd822844",
+      "branch": "codex/m6-7-persistent-real-account",
+      "commit": "25ad185a85526c96ef6aad2b8b5f04f8ad39d958",
       "dependencies": [
-        "M5.2",
-        "M6.5",
+        "M6.6",
         "G-SECRETS"
       ],
-      "expected_result": "Reuse a user-authorized Codex login from private writable App Server state so opening the Tailnet page after service or host restart goes directly to Codex."
+      "expected_result": "Use the already authorized real ChatGPT account in App Server and codex-web private homes so fresh Tailnet pages show the account and open the composer without login."
     },
-    "scope_boundary": "This task persists one user-authorized Codex login only. It does not add or switch accounts, claim cross-account continuity, expose port 8214 publicly, or place credentials in the repository.",
-    "result": "The real account credential is isolated to the router. App Server and codex-web use a separate router-managed local identity, so fresh pages open the Codex composer without a ChatGPT sign-in prompt.",
-    "verification": "The corrected account/read result reported an account, a fresh page rendered New task, the composer and Settings, and the same checks passed after independently restarting App Server and codex-web.",
-    "deployment": "The existing M6.5 Tailnet release remains active. All three services are active, health is 200, the router-managed marker files are private and separated from the real Primary credential, and temporary authorization artifacts were removed."
+    "scope_boundary": "This task persists one already user-authorized real account in private server files. It does not add or switch accounts, test model execution, claim cross-account continuity, or expose credentials in evidence.",
+    "result": "in progress"
   },
   "blockers": [],
   "residual_risks": [
-    "Every Tailnet device allowed to reach port 8214 receives the same high-privilege routed account and workspace access.",
-    "A full host reboot was not executed; service restarts and fresh browser sessions were verified.",
-    "The router-managed marker is safe only while openai_base_url remains the exact loopback account-router path.",
-    "The real router login can expire or be revoked and must then be authorized again.",
-    "Account switching and cross-account continuity remain outside M6.6."
+    "Every Tailnet device allowed to reach port 8214 will receive the same high-privilege real account and workspace access.",
+    "The real account login can expire or be revoked and must then be authorized again.",
+    "Account switching and cross-account continuity remain outside M6.7."
   ],
-  "updated_at": "2026-07-28T19:43:17+08:00"
+  "updated_at": "2026-07-28T19:48:51+08:00"
 }
