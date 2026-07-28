@@ -14,9 +14,15 @@ import {
 export const EXPECTED_ESBUILD_VERSION = "0.27.0";
 
 const ASSET_NAME = "app-initial-BTphDPeq.js";
+const ASSET_URL = `./assets/${ASSET_NAME}`;
+const INDEX_NAME = "index.html";
 const MAX_ASSET_BYTES = 64 * 1024 * 1024;
+const MAX_INDEX_BYTES = 256 * 1024;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const OPERATION_TIMEOUT_MS = 120_000;
+const PRELOAD_MODULE_SCRIPT =
+  '    <script type="module" src="./assets/preload.js"></script>';
+const MAIN_MODULE_PRELOAD_HREF = `href="${ASSET_URL}"`;
 
 function assertAbsolute(value, label) {
   if (typeof value !== "string" || !path.isAbsolute(value)) {
@@ -40,6 +46,48 @@ export function esbuildArguments(inputFile, outputFile) {
 
 function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
+}
+
+export function versionedAssetUrl(outputSha256) {
+  if (
+    typeof outputSha256 !== "string" ||
+    !SHA256_PATTERN.test(outputSha256)
+  ) {
+    throw new Error("asset output hash is invalid");
+  }
+  return `${ASSET_URL}?v=${outputSha256.slice(0, 16)}`;
+}
+
+function countOccurrences(value, needle) {
+  return value.split(needle).length - 1;
+}
+
+function versionIndex(indexBytes, outputSha256) {
+  const index = indexBytes.toString("utf8");
+  if (
+    !Buffer.from(index).equals(indexBytes) ||
+    countOccurrences(index, PRELOAD_MODULE_SCRIPT) !== 1 ||
+    countOccurrences(index, MAIN_MODULE_PRELOAD_HREF) !== 1 ||
+    index.includes('<script type="importmap">') ||
+    index.includes(`${ASSET_URL}?v=`)
+  ) {
+    throw new Error("index boundary is invalid");
+  }
+  const assetUrl = versionedAssetUrl(outputSha256);
+  const importMap = [
+    '    <script type="importmap">',
+    `      ${JSON.stringify({ imports: { [ASSET_URL]: assetUrl } })}`,
+    "    </script>",
+    "",
+  ].join("\n");
+  return Object.freeze({
+    assetUrl,
+    bytes: Buffer.from(
+      index
+        .replace(PRELOAD_MODULE_SCRIPT, `${importMap}${PRELOAD_MODULE_SCRIPT}`)
+        .replace(MAIN_MODULE_PRELOAD_HREF, `href="${assetUrl}"`),
+    ),
+  });
 }
 
 async function readRegularFile(filePath, { maximum = MAX_ASSET_BYTES } = {}) {
@@ -126,22 +174,33 @@ async function writeTemporary(filePath, bytes, mode) {
 export async function buildMinifiedPrecompressedAsset({
   assetFile,
   expectedSha256,
+  indexFile,
+  expectedIndexSha256,
   minify,
 } = {}) {
   const temporaryFiles = [];
   try {
     const asset = assertAbsolute(assetFile, "asset file");
+    const index = assertAbsolute(indexFile, "index file");
     if (
       path.basename(asset) !== ASSET_NAME ||
+      path.basename(index) !== INDEX_NAME ||
+      path.resolve(path.dirname(index), "assets", ASSET_NAME) !== asset ||
       typeof expectedSha256 !== "string" ||
       !SHA256_PATTERN.test(expectedSha256) ||
+      typeof expectedIndexSha256 !== "string" ||
+      !SHA256_PATTERN.test(expectedIndexSha256) ||
       typeof minify !== "function"
     ) {
       throw new Error("asset build input is invalid");
     }
     const input = await readRegularFile(asset);
+    const indexInput = await readRegularFile(index, { maximum: MAX_INDEX_BYTES });
     if (sha256(input.bytes) !== expectedSha256) {
       throw new Error("asset input hash changed");
+    }
+    if (sha256(indexInput.bytes) !== expectedIndexSha256) {
+      throw new Error("index input hash changed");
     }
 
     const nonce = randomUUID();
@@ -149,7 +208,13 @@ export async function buildMinifiedPrecompressedAsset({
     const temporaryAsset = path.join(path.dirname(asset), `.${ASSET_NAME}.${nonce}.next.js`);
     const temporaryGzip = `${temporaryAsset}.gz`;
     const temporaryBrotli = `${temporaryAsset}.br`;
-    temporaryFiles.push(temporaryAsset, temporaryGzip, temporaryBrotli);
+    const temporaryIndex = path.join(path.dirname(index), `.${INDEX_NAME}.${nonce}.next`);
+    temporaryFiles.push(
+      temporaryAsset,
+      temporaryGzip,
+      temporaryBrotli,
+      temporaryIndex,
+    );
 
     await minify({ inputFile: asset, outputFile: temporaryAsset });
     const output = await readRegularFile(temporaryAsset);
@@ -158,7 +223,10 @@ export async function buildMinifiedPrecompressedAsset({
     }
     await run(process.execPath, ["--check", temporaryAsset]);
 
+    const outputSha256 = sha256(output.bytes);
+    const versionedIndex = versionIndex(indexInput.bytes, outputSha256);
     const mode = input.stat.mode & 0o777;
+    const indexMode = indexInput.stat.mode & 0o777;
     const gzip = gzipSync(output.bytes, { level: 9 });
     const brotli = brotliCompressSync(output.bytes, {
       params: {
@@ -167,19 +235,26 @@ export async function buildMinifiedPrecompressedAsset({
     });
     await writeTemporary(temporaryGzip, gzip, mode);
     await writeTemporary(temporaryBrotli, brotli, mode);
+    await writeTemporary(temporaryIndex, versionedIndex.bytes, indexMode);
 
     await fs.rename(temporaryGzip, `${asset}.gz`);
     await fs.rename(temporaryBrotli, `${asset}.br`);
     await fs.chmod(temporaryAsset, mode);
     await fs.rename(temporaryAsset, asset);
+    await fs.rename(temporaryIndex, index);
 
     return Object.freeze({
       event: "minified_precompressed_asset_built",
       esbuild_version: EXPECTED_ESBUILD_VERSION,
+      asset_url: versionedIndex.assetUrl,
       input_sha256: expectedSha256,
-      output_sha256: sha256(output.bytes),
+      output_sha256: outputSha256,
+      index_input_sha256: expectedIndexSha256,
+      index_output_sha256: sha256(versionedIndex.bytes),
       input_bytes: input.bytes.length,
       output_bytes: output.bytes.length,
+      index_input_bytes: indexInput.bytes.length,
+      index_output_bytes: versionedIndex.bytes.length,
       gzip_bytes: gzip.length,
       brotli_bytes: brotli.length,
     });
@@ -198,7 +273,13 @@ function parseArguments(argv) {
     const option = argv[index];
     const value = argv[index + 1];
     if (
-      !new Set(["--asset", "--esbuild", "--expected-sha256"]).has(option) ||
+      !new Set([
+        "--asset",
+        "--esbuild",
+        "--expected-sha256",
+        "--index",
+        "--expected-index-sha256",
+      ]).has(option) ||
       typeof value !== "string" ||
       values.has(option)
     ) {
@@ -206,13 +287,21 @@ function parseArguments(argv) {
     }
     values.set(option, value);
   }
-  for (const required of ["--asset", "--esbuild", "--expected-sha256"]) {
+  for (const required of [
+    "--asset",
+    "--esbuild",
+    "--expected-sha256",
+    "--index",
+    "--expected-index-sha256",
+  ]) {
     if (!values.has(required)) throw new Error("asset build command is incomplete");
   }
   return Object.freeze({
     assetFile: values.get("--asset"),
     esbuildFile: values.get("--esbuild"),
     expectedSha256: values.get("--expected-sha256"),
+    indexFile: values.get("--index"),
+    expectedIndexSha256: values.get("--expected-index-sha256"),
   });
 }
 
@@ -221,6 +310,8 @@ async function main() {
   const result = await buildMinifiedPrecompressedAsset({
     assetFile: options.assetFile,
     expectedSha256: options.expectedSha256,
+    indexFile: options.indexFile,
+    expectedIndexSha256: options.expectedIndexSha256,
     minify: createPinnedEsbuildMinifier(options.esbuildFile),
   });
   process.stdout.write(`${JSON.stringify(result)}\n`);

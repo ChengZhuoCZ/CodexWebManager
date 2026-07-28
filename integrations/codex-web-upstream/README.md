@@ -71,18 +71,38 @@ The main pinned desktop bundle is about 22.8 MB. Because the upstream Fastify
 server does not negotiate compression for it, the routed release may run
 `build-minified-precompressed-asset.mjs` against the exact final patched
 `app-initial-BTphDPeq.js`, then apply `tailnet-precompressed-asset.patch`. The
-builder accepts only an absolute path, the expected input SHA-256, and the
-pinned esbuild `0.27.0` executable. It syntax-checks the smaller result and
-deterministically creates both Brotli and gzip variants. Build order is
-important: upstream build, compatibility/IPC patches, minification, then
-precompression. Minifying before the integration patches would invalidate the
-reviewed patch boundaries.
+builder accepts only absolute asset/index paths, their expected input SHA-256
+values, and the pinned esbuild `0.27.0` executable. The required layout is
+`index.html` next to the `assets` directory. It syntax-checks the smaller
+result, deterministically creates both Brotli and gzip variants, and rewrites
+the inactive release's index with an early import map plus matching
+`modulepreload` URL. Both point to a query version derived from the minified
+asset SHA-256:
+
+```sh
+node build-minified-precompressed-asset.mjs \
+  --asset /absolute/release/webview/assets/app-initial-BTphDPeq.js \
+  --expected-sha256 <64-hex-asset-input-sha256> \
+  --index /absolute/release/webview/index.html \
+  --expected-index-sha256 <64-hex-index-input-sha256> \
+  --esbuild /absolute/pinned/esbuild
+```
+
+Build order is important: upstream build, compatibility/IPC patches,
+minification/index versioning, then precompression. Minifying before the
+integration patches would invalidate the reviewed patch boundaries. Running
+the builder more than once against the same candidate fails closed; start from
+a fresh inactive release instead.
 
 Only the exact content-hashed asset route is handled by the adapter. It prefers
 Brotli, falls back to gzip only when explicitly accepted, emits
-`Vary: Accept-Encoding`, and preserves immutable caching. A newly built bundle
-must be exercised in an inactive routed release before activation; the
-standalone `8215` release is never a candidate for this optimization.
+`Vary: Accept-Encoding`, and preserves immutable caching. The versioned URL
+prevents a refreshed HTML document from reusing the previous release's
+immutable main-module entry while keeping all importers on one canonical
+module URL. The HTML route itself must remain revalidated rather than
+immutable. A newly built bundle must be exercised in an inactive routed
+release before activation; the standalone `8215` release is never a candidate
+for this optimization.
 
 The upstream loader already paints before the main bundle is ready, but its
 background is transparent. `tailnet-startup-background.patch` gives the

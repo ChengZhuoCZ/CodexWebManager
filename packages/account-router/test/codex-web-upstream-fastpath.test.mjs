@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, rm, stat, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
@@ -10,6 +10,7 @@ import {
   buildMinifiedPrecompressedAsset,
   esbuildArguments,
   EXPECTED_ESBUILD_VERSION,
+  versionedAssetUrl,
 } from "../../../integrations/codex-web-upstream/build-minified-precompressed-asset.mjs";
 import { localStartupRpcResponse } from "../../../integrations/codex-web-upstream/codex-remote-fastpath.mjs";
 
@@ -21,6 +22,24 @@ const startupBackgroundPatch = new URL(
   "../../../integrations/codex-web-upstream/tailnet-startup-background.patch",
   import.meta.url,
 );
+
+function indexFixture() {
+  return `<!doctype html>
+<html>
+  <head>
+    <base href="/" />
+    <script src="./tailnet-startup-fastpath.js"></script>
+    <script type="module" src="./assets/preload.js"></script>
+    <script type="module" crossorigin src="./assets/index-fixture.js"></script>
+    <link
+      rel="modulepreload"
+      crossorigin
+      href="./assets/app-initial-BTphDPeq.js"
+    />
+  </head>
+</html>
+`;
+}
 
 test("locally terminates only default empty startup catalog reads", () => {
   const cases = [
@@ -107,15 +126,25 @@ test("startup background patch replaces the transparent white flash without chan
 test("builds deterministic precompressed files only after a pinned minifier produces smaller valid JavaScript", async (context) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "codex-minified-asset-"));
   context.after(() => rm(directory, { recursive: true, force: true }));
-  const asset = path.join(directory, "app-initial-BTphDPeq.js");
+  const assets = path.join(directory, "assets");
+  await mkdir(assets);
+  const asset = path.join(assets, "app-initial-BTphDPeq.js");
+  const indexFile = path.join(directory, "index.html");
   const original = Buffer.from("const intentionallyLongFixtureName = 40 + 2;\n");
   const minified = Buffer.from("const a=42;\n");
+  const originalIndex = Buffer.from(indexFixture());
   await writeFile(asset, original, { mode: 0o640 });
+  await writeFile(indexFile, originalIndex, { mode: 0o640 });
   const expectedSha256 = createHash("sha256").update(original).digest("hex");
+  const expectedIndexSha256 = createHash("sha256")
+    .update(originalIndex)
+    .digest("hex");
 
   const result = await buildMinifiedPrecompressedAsset({
     assetFile: asset,
     expectedSha256,
+    indexFile,
+    expectedIndexSha256,
     minify: async ({ inputFile, outputFile }) => {
       assert.equal(inputFile, asset);
       await writeFile(outputFile, minified);
@@ -129,19 +158,48 @@ test("builds deterministic precompressed files only after a pinned minifier prod
   assert.deepEqual(gunzipSync(await readFile(`${asset}.gz`)), minified);
   assert.deepEqual(brotliDecompressSync(await readFile(`${asset}.br`)), minified);
   assert.equal((await stat(asset)).mode & 0o777, 0o640);
+  const versionedIndex = await readFile(indexFile, "utf8");
+  const outputSha256 = createHash("sha256").update(minified).digest("hex");
+  const versionedUrl = versionedAssetUrl(outputSha256);
+  assert.equal(result.asset_url, versionedUrl);
+  assert.ok(
+    versionedIndex.indexOf('<script type="importmap">') <
+      versionedIndex.indexOf('<script type="module" src="./assets/preload.js">'),
+  );
+  assert.ok(
+    versionedIndex.includes(
+      `{"imports":{"./assets/app-initial-BTphDPeq.js":"${versionedUrl}"}}`,
+    ),
+  );
+  assert.ok(versionedIndex.includes(`href="${versionedUrl}"`));
+  assert.equal(
+    (versionedIndex.match(/<script type="importmap">/g) ?? []).length,
+    1,
+  );
+  assert.equal((await stat(indexFile)).mode & 0o777, 0o640);
 });
 
 test("minified asset builder rejects unpinned input and fixes the esbuild contract", async (context) => {
   const directory = await mkdtemp(path.join(os.tmpdir(), "codex-minified-reject-"));
   context.after(() => rm(directory, { recursive: true, force: true }));
-  const asset = path.join(directory, "app-initial-BTphDPeq.js");
-  await writeFile(asset, "const fixture = true;\n", { mode: 0o600 });
+  const assets = path.join(directory, "assets");
+  await mkdir(assets);
+  const asset = path.join(assets, "app-initial-BTphDPeq.js");
+  const indexFile = path.join(directory, "index.html");
+  const assetBytes = Buffer.from("const fixture = true;\n");
+  const indexBytes = Buffer.from(indexFixture());
+  await writeFile(asset, assetBytes, { mode: 0o600 });
+  await writeFile(indexFile, indexBytes, { mode: 0o600 });
+  const assetSha256 = createHash("sha256").update(assetBytes).digest("hex");
+  const indexSha256 = createHash("sha256").update(indexBytes).digest("hex");
   let called = false;
 
   await assert.rejects(
     buildMinifiedPrecompressedAsset({
       assetFile: asset,
       expectedSha256: "0".repeat(64),
+      indexFile,
+      expectedIndexSha256: indexSha256,
       minify: async () => {
         called = true;
       },
@@ -149,6 +207,43 @@ test("minified asset builder rejects unpinned input and fixes the esbuild contra
     /asset build failed/,
   );
   assert.equal(called, false);
+  await assert.rejects(
+    buildMinifiedPrecompressedAsset({
+      assetFile: asset,
+      expectedSha256: assetSha256,
+      indexFile,
+      expectedIndexSha256: "0".repeat(64),
+      minify: async () => {
+        called = true;
+      },
+    }),
+    /asset build failed/,
+  );
+  assert.equal(called, false);
+  const alreadyVersionedIndex = Buffer.from(
+    indexFixture().replace(
+      '    <script type="module" src="./assets/preload.js"></script>',
+      '    <script type="importmap">{"imports":{}}</script>\n' +
+        '    <script type="module" src="./assets/preload.js"></script>',
+    ),
+  );
+  await writeFile(indexFile, alreadyVersionedIndex, { mode: 0o600 });
+  await assert.rejects(
+    buildMinifiedPrecompressedAsset({
+      assetFile: asset,
+      expectedSha256: assetSha256,
+      indexFile,
+      expectedIndexSha256: createHash("sha256")
+        .update(alreadyVersionedIndex)
+        .digest("hex"),
+      minify: async ({ outputFile }) => {
+        await writeFile(outputFile, "let x=1;\n");
+      },
+    }),
+    /asset build failed/,
+  );
+  assert.deepEqual(await readFile(asset), assetBytes);
+  assert.deepEqual(await readFile(indexFile), alreadyVersionedIndex);
   assert.deepEqual(
     esbuildArguments("/absolute/input.js", "/absolute/output.js"),
     [
@@ -161,4 +256,8 @@ test("minified asset builder rejects unpinned input and fixes the esbuild contra
     ],
   );
   assert.equal(EXPECTED_ESBUILD_VERSION, "0.27.0");
+  assert.equal(
+    versionedAssetUrl("a".repeat(64)),
+    "./assets/app-initial-BTphDPeq.js?v=aaaaaaaaaaaaaaaa",
+  );
 });
