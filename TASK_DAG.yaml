@@ -320,7 +320,7 @@ milestones:
           - The server remains unavailable outside the authorized Tailnet path
       - id: M6.6
         title: Persist authorized Codex login across service restarts
-        status: in_progress
+        status: done
         depends_on: [M5.2, M6.5, G-SECRETS]
         acceptance:
           - Real user-authorized account credentials remain only in the private router credential store

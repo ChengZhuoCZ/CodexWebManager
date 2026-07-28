@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "task": "M6.6",
+  "deployed_at": "2026-07-28T19:40:14+08:00",
+  "host": "authorized-tailnet-target",
+  "active_codex_web_release": "888692f7-20260728-m6-5-tailnet-trusted-r2",
+  "services": {
+    "codex_account_router": "active",
+    "codex_app_server": "active",
+    "codex_web": "active"
+  },
+  "endpoints": {
+    "local_health_status": 200,
+    "tailnet_root_status": 200,
+    "tailnet_browser_session_created": true,
+    "tailnet_websocket_opened": true,
+    "public_listener_detected": false,
+    "tailscale_funnel_enabled": false
+  },
+  "credential_topology": {
+    "real_account_credential_scope": "router_only",
+    "app_server_identity": "router_managed_non_provider_marker",
+    "codex_web_proxy_identity": "router_managed_non_provider_marker",
+    "app_server_marker_mode": "0600",
+    "app_server_marker_owner": "root",
+    "codex_web_marker_mode": "0600",
+    "codex_web_marker_owner": "codex",
+    "markers_equal": true,
+    "marker_separated_from_real_router_credential": true,
+    "temporary_authorization_artifacts_removed": true,
+    "credential_values_recorded": false
+  },
+  "browser_verification": {
+    "before": {
+      "account_present": false,
+      "sign_in_visible": true
+    },
+    "after": {
+      "account_present": true,
+      "account_type": "apiKey",
+      "sign_in_visible": false,
+      "new_task_visible": true,
+      "composer_visible": true,
+      "settings_visible": true
+    },
+    "after_service_restart": {
+      "account_present": true,
+      "sign_in_visible": false,
+      "new_task_visible": true,
+      "composer_visible": true,
+      "settings_visible": true
+    }
+  },
+  "real_account_count": 1,
+  "account_switch_executed": false,
+  "model_request_executed": false,
+  "host_reboot_executed": false
+}

@@ -1,0 +1,88 @@
+{
+  "schema_version": 1,
+  "task": "M6.6",
+  "implementation_mode": "clean-room",
+  "input_commit": "8cc716257f51e1e9bd73ce1958b6bd02cd822844",
+  "documentation_output_commit": "dfa86fd487191baa4861204aea86f0b78e775b7d",
+  "tests": [
+    {
+      "stage": "initial_browser_diagnosis",
+      "command": "<private-bounded-browser-ipc-probe>",
+      "result": {
+        "root_status": 200,
+        "session_cookie_present": true,
+        "websocket_opened": true,
+        "account_present": false,
+        "sign_in_screen_present": true
+      }
+    },
+    {
+      "stage": "isolated_router_identity_experiment",
+      "command": "<private-isolated-app-server-probe>",
+      "result": {
+        "synthetic_router_marker": true,
+        "account_present": true,
+        "account_type": "apiKey",
+        "upstream_model_request_executed": false
+      }
+    },
+    {
+      "stage": "production_browser_ipc",
+      "command": "<private-bounded-browser-ipc-probe>",
+      "result": {
+        "root_status": 200,
+        "session_cookie_present": true,
+        "websocket_opened": true,
+        "account_present": true,
+        "account_type": "apiKey"
+      }
+    },
+    {
+      "stage": "fresh_browser_page",
+      "command": "<controlled-browser-page-load>",
+      "result": {
+        "sign_in_visible": false,
+        "new_task_visible": true,
+        "composer_visible": true,
+        "settings_visible": true
+      }
+    },
+    {
+      "stage": "service_restart_browser_page",
+      "command": "systemctl restart codex-app-server.service codex-web.service; <controlled-browser-page-load>",
+      "result": {
+        "app_server_active": true,
+        "codex_web_active": true,
+        "health_status": 200,
+        "account_present": true,
+        "sign_in_visible": false,
+        "new_task_visible": true,
+        "composer_visible": true,
+        "settings_visible": true
+      }
+    },
+    {
+      "stage": "focused_repository_tests",
+      "command": "<bundled-node> --test packages/account-router/test/release-docs-contract.test.mjs packages/account-router/test/security-audit-contract.test.mjs packages/account-router/test/systemd-units.test.mjs",
+      "result": {
+        "passed": 18,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    {
+      "stage": "repository_secret_scan",
+      "command": "<bundled-node> packages/account-router/scripts/run-security-audit.mjs <scan-only>",
+      "result": {
+        "files_scanned": 288,
+        "findings": 0
+      }
+    }
+  ],
+  "real_account_count": 1,
+  "account_switch_executed": false,
+  "model_request_executed": false,
+  "host_reboot_executed": false,
+  "credential_values_persisted_to_evidence": false,
+  "account_identity_persisted_to_evidence": false
+}
