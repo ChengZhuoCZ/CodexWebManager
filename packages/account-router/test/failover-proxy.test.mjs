@@ -186,6 +186,88 @@ test("fails over a 429 before streaming and excludes the failed account", async 
   assert.deepEqual(requestBodies, ['{"input":"fixture"}', '{"input":"fixture"}']);
 });
 
+test("applies the same bounded semantic gate to the Codex HTTP fallback path", async (context) => {
+  const requestPaths = [];
+  const recovered = await fixture(context, {
+    A(request, response) {
+      requestPaths.push(request.url);
+      response.writeHead(429, { "content-type": "application/json" });
+      response.end('{"error":{"type":"quota_exhausted"}}');
+    },
+    B(request, response) {
+      requestPaths.push(request.url);
+      completeSse(response, "from-b");
+    },
+  });
+  const recoveredResponse = await fetch(
+    `${recovered.origin}/backend-api/codex/responses`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: '{"input":"fixture"}',
+    },
+  );
+  assert.equal(recoveredResponse.status, 200);
+  assert.match(await recoveredResponse.text(), /from-b/);
+  assert.deepEqual(recovered.resolverCalls, [
+    { attempt: 1, excluded: [] },
+    { attempt: 2, excluded: ["A"] },
+  ]);
+  assert.deepEqual(requestPaths, [
+    "/backend-api/codex/responses",
+    "/backend-api/codex/responses",
+  ]);
+
+  const unsafe = await fixture(context, {
+    A(_request, response) {
+      response.writeHead(200, { "content-type": "text/event-stream" });
+      response.write("event: response.created\ndata: {\"type\":\"response.created\"}\n\n");
+      response.write(
+        "event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"fixture\"}\n\n",
+      );
+      setImmediate(() => response.destroy());
+    },
+    B(_request, response) {
+      response.writeHead(500).end("must-not-run");
+    },
+  });
+  const unsafeResponse = await fetch(
+    `${unsafe.origin}/backend-api/codex/responses`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: '{"input":"fixture"}',
+    },
+  );
+  assert.equal(unsafeResponse.status, 200);
+  const unsafeBody = await unsafeResponse.text();
+  assert.match(unsafeBody, /response\.output_text\.delta/);
+  assert.match(unsafeBody, /event: error[\s\S]*unsafe_to_replay/);
+  assert.equal(unsafe.resolverCalls.length, 1);
+
+  const continuation = await fixture(context, {
+    A(_request, response) {
+      response.writeHead(200, { "content-type": "text/event-stream" });
+      response.write("event: response.created\ndata: {\"type\":\"response.created\"}\n\n");
+      setImmediate(() => response.destroy());
+    },
+    B(_request, response) {
+      completeSse(response, "must-not-run");
+    },
+  });
+  const continuationResponse = await fetch(
+    `${continuation.origin}/backend-api/codex/responses`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: '{"previous_response_id":"fixture-prior","input":"fixture"}',
+    },
+  );
+  assert.equal(continuationResponse.status, 409);
+  assert.equal((await continuationResponse.json()).error.type, "unsafe_to_replay");
+  assert.equal(continuation.resolverCalls.length, 1);
+});
+
 test("classifies rate limits separately and bounds a long Retry-After value", async (context) => {
   const { origin, failures } = await fixture(context, {
     A(_request, response) {

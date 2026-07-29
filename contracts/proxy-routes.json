@@ -1,5 +1,5 @@
 {
-  "version": 1,
+  "version": 2,
   "routes": [
     {
       "route_id": "responses_http",
@@ -27,6 +27,15 @@
       "upstream_path": "/v1/models",
       "inbound_paths": ["/v1/models", "/models", "/v1/v1/models", "/codex/v1/models"],
       "allowed_query_keys": ["client_version"]
+    },
+    {
+      "route_id": "codex_responses_http",
+      "method": "POST",
+      "transport": "http",
+      "canonical_path": "/backend-api/codex/responses",
+      "upstream_path": "/backend-api/codex/responses",
+      "inbound_paths": ["/backend-api/codex/responses"],
+      "allowed_query_keys": []
     },
     {
       "route_id": "codex_responses_websocket",

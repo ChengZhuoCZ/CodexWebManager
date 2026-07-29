@@ -51,7 +51,21 @@ test("normalizes compact and model path variants without accepting arbitrary suf
   }
 });
 
-test("allows only the exact backend routes and transports observed in M0.2", () => {
+test("allows only the exact backend routes plus the observed Codex HTTP fallback", () => {
+  assert.deepEqual(
+    normalizeProxyRoute({
+      method: "POST",
+      rawTarget: "/backend-api/codex/responses",
+      transport: "http",
+    }),
+    {
+      route_id: "codex_responses_http",
+      method: "POST",
+      transport: "http",
+      canonical_path: "/backend-api/codex/responses",
+      upstream_target: "/backend-api/codex/responses",
+    },
+  );
   assert.deepEqual(
     normalizeProxyRoute({
       method: "GET",
@@ -101,6 +115,7 @@ test("preserves only a bounded client_version query on model routes", () => {
     "/v1/models?client_version=1%2E0",
     "/v1/models?client_version=contains space",
     "/v1/responses?client_version=1",
+    "/backend-api/codex/responses?client_version=1",
     "/backend-api/codex/alpha/search?client_version=1",
   ]) {
     assert.throws(
@@ -174,7 +189,7 @@ test("route registry is frozen and synchronized with the checked-in contract", a
   assert.equal(routes.every((route) => Object.isFrozen(route) && Object.isFrozen(route.inbound_paths)), true);
   const contractUrl = new URL("../../../contracts/proxy-routes.json", import.meta.url);
   const contract = JSON.parse(await readFile(contractUrl, "utf8"));
-  assert.equal(contract.version, 1);
+  assert.equal(contract.version, 2);
   assert.deepEqual(contract.routes, routes);
   assert.doesNotMatch(JSON.stringify(contract), /credential|authorization|cookie|token|email/i);
 });

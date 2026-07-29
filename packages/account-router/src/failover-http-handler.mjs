@@ -52,7 +52,15 @@ async function readRequestBody(request, limit) {
 
 function replayPolicy(route, headers, body) {
   if (route.method === "GET") return "initial_request";
-  if (!new Set(["responses_http", "responses_compact"]).has(route.route_id)) return "never";
+  if (
+    !new Set([
+      "responses_http",
+      "responses_compact",
+      "codex_responses_http",
+    ]).has(route.route_id)
+  ) {
+    return "never";
+  }
   const contentType = headers["content-type"];
   if (typeof contentType !== "string" || !/^application\/json(?:;|$)/i.test(contentType)) {
     return "never";

@@ -191,14 +191,17 @@ account's response ID or describing the result as seamless recovery.
 M3.1 exports `normalizeProxyRoute()` and a frozen route registry mirrored by
 `contracts/proxy-routes.json`. Standard HTTP routes accept only the documented Responses,
 Responses compact, and models prefix variants. The clean-room M0.2 observations add exactly three
-backend paths: models over HTTP, Responses over WebSocket, and alpha search over HTTP. Memory and
-all other backend paths remain unallowlisted.
+backend paths: models over HTTP, Responses over WebSocket, and alpha search over HTTP. A later
+qualified Codex transport fallback also permits `POST /backend-api/codex/responses` over HTTP/SSE
+at the same exact upstream path; it uses the same bounded failover and semantic replay gate as the
+standard Responses route. Memory and all other backend paths remain unallowlisted.
 
 Normalization accepts origin-form request targets only, enforces method and transport per route,
 rejects encoded/dot traversal, absolute/authority targets, fragments, backslashes, control bytes,
 unknown suffixes, and arbitrary queries. Only a bounded plain `client_version` value is preserved
-on model routes. The result contains a relative upstream target and never an origin, host, or
-authority, preventing this layer from becoming an open proxy.
+on model routes; the Codex HTTP/SSE fallback accepts no query. The result contains a relative
+upstream target and never an origin, host, or authority, preventing this layer from becoming an
+open proxy.
 
 ## HTTP, SSE, and WebSocket pass-through
 
@@ -211,9 +214,11 @@ their own authorization, cookie, API-key, or account-selection headers.
 HTTP request bodies and non-SSE response bodies have explicit byte limits. Streaming uses Node
 stream backpressure, forwards SSE chunks incrementally, propagates client cancellation, and applies
 separate upstream-header and total deadlines. Response headers are allowlisted and `set-cookie` is
-never returned. The observed Codex WebSocket Responses route uses a raw, backpressured duplex tunnel;
-client cancellation closes the upstream socket and releases its lease. Compression extensions are
-not forwarded because this layer does not independently validate compressed frame semantics.
+never returned. Codex may fall back from its observed WebSocket Responses route to HTTP/SSE on the
+same backend path; both transports remain exact allowlist entries. The WebSocket route uses a raw,
+backpressured duplex tunnel; client cancellation closes the upstream socket and releases its lease.
+Compression extensions are not forwarded because this layer does not independently validate
+compressed frame semantics.
 
 The standalone CLI composes this listener with the scheduler, credential provider, circuit breaker,
 failover state machine, and separate admin listener. M3.2's own tests still use loopback fixture

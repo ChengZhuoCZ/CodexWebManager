@@ -55,6 +55,15 @@ const ROUTES = Object.freeze([
     allowed_query_keys: ["client_version"],
   }),
   route({
+    route_id: "codex_responses_http",
+    method: "POST",
+    transport: "http",
+    canonical_path: "/backend-api/codex/responses",
+    upstream_path: "/backend-api/codex/responses",
+    inbound_paths: ["/backend-api/codex/responses"],
+    allowed_query_keys: [],
+  }),
+  route({
     route_id: "codex_responses_websocket",
     method: "GET",
     transport: "websocket",
