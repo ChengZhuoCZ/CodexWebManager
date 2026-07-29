@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_reset_boundary_and_release_candidate",
+  "generated_at": "2026-07-30T03:20:00+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "f2bcf75d45ad6537ddddc61a39d7d6d4f956aaef",
+  "output_revision": "071a28adb5b71c8fcc3643e3d7719b8588b1e08b",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Discard a persisted sanitized Weekly quota snapshot when its explicit reset timestamp is at or before the router restart clock.",
+    "restore_scope_only": true,
+    "reset_boundary_inclusive": true,
+    "historical_entry_removed_on_next_atomic_save": true,
+    "runtime_state_schema_version": 1,
+    "generic_429_inferred_as_weekly_exhaustion": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "node --test packages/account-router/test/weekly-quota-tracker.test.mjs",
+    "before_implementation": {
+      "tests": 7,
+      "passed": 6,
+      "failed": 1,
+      "observed_failure": "A historical weekly snapshot was restored when its resets_at timestamp equaled the restart clock."
+    }
+  },
+  "verification": {
+    "focused_restore_and_state": {
+      "tests": 20,
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0
+    },
+    "critical_failover_and_restart": {
+      "tests": 63,
+      "passed": 63,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "HTTP/SSE bounded pre-semantic failover and post-semantic no-replay",
+        "WebSocket bounded pre-semantic failover and post-semantic no-replay",
+        "weekly persistence, reset-derived cooldown and reset-boundary restoration",
+        "simulated process restart and deployment snapshot rollback compatibility"
+      ],
+      "corrected_invocations": 1,
+      "unaccepted_command_error": "The first critical-suite command used repository-root test paths from the package directory and found no files."
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 276,
+      "passed": 251,
+      "failed": 0,
+      "skipped": 25
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r30-strict-matrix-summary.json",
+      "tests": 276,
+      "passed": 276,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r30-security-summary.json",
+      "qualified": true,
+      "files_scanned": 363,
+      "findings": 0,
+      "focused_tests": 89,
+      "focused_passed": 89,
+      "retained_strict_ui_passed": 492
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r30-linux-release-verify.json",
+      "release": "codex-account-router-0.2.9-linux-x64",
+      "sha256": "60b2341e691b8103ec03bba7ca2e4458ef0dc03441a75fde40d5f9bc2001375d",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r30.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure and non-writable /opt/codex-account-router boundary are unchanged.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.9-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200
+    },
+    "app_server": {
+      "pid": 508396,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "app_server_pid": 495033,
+    "http_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.9 is verified but is not active until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "R30 expires persisted observations only during restore; an already-running process still needs a later observation or restart to clear an old display value.",
+    "Generic 429 responses do not prove weekly exhaustion.",
+    "A weekly reset farther than the 24-hour circuit maximum receives a bounded half-open recheck rather than an unbounded sleep.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}

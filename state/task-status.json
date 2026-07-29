@@ -24,12 +24,13 @@
     "r27_continuation": "73c342da334e3d5f37aa24f686959913d7d20c56",
     "r28_continuation": "0b93593804cd2385125ae998eac53c1556ff8151",
     "r29_continuation": "a47abd7362815977896b734ac17b02b95ac4508e",
+    "r30_continuation": "f2bcf75d45ad6537ddddc61a39d7d6d4f956aaef",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "79f6249508a4bcae384ad2589a9a6a6e4c7a9540",
+  "output_revision": "071a28adb5b71c8fcc3643e3d7719b8588b1e08b",
   "workspace_branch": "codex/m6-9-8215-worker",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -300,6 +301,38 @@
     {
       "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
       "result": "R29 final-tree security audit qualified; 89/89 focused security tests and retained 492/492 strict UI evidence passed; 358 repository files were scanned with zero findings"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test packages/account-router/test/weekly-quota-tracker.test.mjs",
+      "result": "R30 minimal fixture-only experiment failed before implementation as expected: 7 tests, 6 passed and 1 failed because a persisted Weekly snapshot was still restored when resets_at equaled the restart clock"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test packages/account-router/test/weekly-quota-tracker.test.mjs packages/account-router/test/runtime-persistence.test.mjs packages/account-router/test/state-store.test.mjs packages/account-router/test/runtime-bootstrap.test.mjs",
+      "result": "R30 focused restore/state suite passed 20/20; restart at the explicit reset boundary reports unknown Weekly quota and the next atomic save removes the historical weekly entry"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test <critical failover/runtime/state files>",
+      "result": "R30 critical suite passed 63/63 after one corrected invocation; the first invocation used repository-root paths from the package directory, found no test files and was not accepted as evidence"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test",
+      "result": "R30 package-complete suite passed 251/276 with 0 failures and 25 expected pinned-public-fixture skips"
+    },
+    {
+      "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": "R30 clean strict matrix passed on its sole bounded attempt: 276/276 with no skips; unit 152, integration 77 and E2E 47"
+    },
+    {
+      "command": "two SOURCE_DATE_EPOCH=0 deterministic 0.2.9 Linux x64 builds plus target-host no-credential release verification",
+      "result": "byte-identical artifacts at SHA-256 60b2341e; 49-file payload, checksum, installation, loopback-only listeners, health, no-account fail-closed readiness and clean SIGTERM passed without reading or configuring a real account"
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r30.sh",
+      "result": "R30 router-only rollback deployment script syntax and pinned artifact hash passed; deployment was not attempted because the known host-privilege blocker is unchanged, so active release 0.2.6 and all production processes remained unchanged"
+    },
+    {
+      "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "R30 final-tree security audit qualified; 89/89 focused security tests and retained 492/492 strict UI evidence passed; 363 repository files were scanned with zero findings"
     }
   ],
   "evidence": [
@@ -340,9 +373,62 @@
     "evidence/M6.9/router-r29-strict-matrix-summary.json",
     "evidence/M6.9/router-r29-security-summary.json",
     "evidence/M6.9/router-r29-linux-release-verify.json",
-    "evidence/M6.9/deploy-router-r29.sh"
+    "evidence/M6.9/deploy-router-r29.sh",
+    "evidence/M6.9/router-r30-reset-boundary-summary.json",
+    "evidence/M6.9/router-r30-strict-matrix-summary.json",
+    "evidence/M6.9/router-r30-security-summary.json",
+    "evidence/M6.9/router-r30-linux-release-verify.json",
+    "evidence/M6.9/deploy-router-r30.sh"
   ],
   "observations": {
+    "continuation_r30_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8215-worker",
+      "commit": "f2bcf75d45ad6537ddddc61a39d7d6d4f956aaef",
+      "dependencies": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_result": "Use fixtures only to prevent a persisted Weekly quota snapshot from being restored after its explicit reset boundary, while preserving the circuit cooldown/half-open path and 8215 PID 510876/508396 plus ActiveEnter monotonic timestamps 196497166178/194490256399."
+    },
+    "continuation_r30_fixture_result": {
+      "implementation_revision": "071a28adb5b71c8fcc3643e3d7719b8588b1e08b",
+      "expired_weekly_snapshot_restored": false,
+      "reset_boundary_inclusive": true,
+      "historical_entry_removed_on_next_save": true,
+      "runtime_state_schema_version": 1,
+      "generic_429_inferred_as_weekly_exhaustion": false,
+      "focused_tests_passed": 20,
+      "critical_tests_passed": 63,
+      "strict_matrix_passed": 276,
+      "security_tests_passed": 89,
+      "security_scan_files": 363,
+      "security_findings": 0,
+      "standalone_web_pid": 510876,
+      "standalone_web_active_enter_monotonic": 196497166178,
+      "standalone_app_pid": 508396,
+      "standalone_app_active_enter_monotonic": 194490256399,
+      "standalone_8215_changed": false,
+      "real_account_configured_for_test": false,
+      "model_request_sent": false,
+      "account_switch_tested": false,
+      "seamless_account_continuity_claimed": false
+    },
+    "continuation_r30_release_candidate": {
+      "router_release": "codex-account-router-0.2.9-linux-x64",
+      "artifact_sha256": "60b2341e691b8103ec03bba7ca2e4458ef0dc03441a75fde40d5f9bc2001375d",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "linux_verification_passed": true,
+      "credentials_present_in_verification": false,
+      "account_switch_tested": false,
+      "deployment_status": "not_attempted_known_host_privilege_blocker",
+      "deployment_attempts": 0,
+      "active_router_release": "codex-account-router-0.2.6-linux-x64",
+      "active_router_pid": 548777,
+      "production_state_changed": false
+    },
     "continuation_r29_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-8215-worker",
@@ -1008,7 +1094,7 @@
     }
   },
   "blockers": [
-    "The verified 0.2.8 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r29.sh is required; no duplicate deployment attempt was made.",
+    "The verified 0.2.9 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r30.sh is required; no duplicate deployment attempt was made.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, two-binding restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -1030,10 +1116,11 @@
     "R24 manual account selection is an in-memory preference for the next new request and is lost when the router restarts.",
     "R24 current_route is reset on router restart until the next routed request selects an account; no production model request was sent merely to repopulate it.",
     "R29 persists only the last validated sanitized weekly observation. It remains provider-event-dependent, and a generic 429 is intentionally not treated as proof of weekly exhaustion.",
-    "R29 0.2.8 is a verified rollback-capable candidate but is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
+    "R30 drops an expired weekly snapshot during restart restoration, but an observation received by an already-running process remains visible until a later observation or restart; dynamic reset-boundary expiry is not yet implemented.",
+    "R30 0.2.9 is a verified rollback-capable candidate but is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R28 caps a weekly reset delay at the existing 24-hour circuit maximum, so a farther reset receives a bounded half-open recheck rather than sleeping until the full provider reset time.",
     "The existing local commits 3f8723f, 776f352 and 0b93593 have test evidence but their commit messages omit the test commands required by the current AGENTS.md; history was not rewritten and later commit messages include test commands.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-07-30T03:10:12+08:00"
+  "updated_at": "2026-07-30T03:21:35+08:00"
 }
