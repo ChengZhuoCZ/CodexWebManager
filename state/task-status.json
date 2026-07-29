@@ -21,14 +21,15 @@
     "r23_continuation": "c978381407801fffaee72bad4958a282741f7bf0",
     "r24_continuation": "7300bf967398ca92d9f309b3c4ea34bb191fa1d3",
     "r25_continuation": "6471d544ba9c1933984b58bcef5f622416117b46",
+    "r27_continuation": "73c342da334e3d5f37aa24f686959913d7d20c56",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
   "output_revision": "f7628456553bddafb23c88eb94f789fef2193eca",
-  "workspace_branch": "codex/m6-9-routed-failover-performance",
-  "workspace_input_revision": "d41f2f282390f3f95e6795dd713d657b51788cc5",
+  "workspace_branch": "codex/m6-9-8215-worker",
+  "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
     "M2.5",
     "M6.8",
@@ -217,6 +218,26 @@
     {
       "command": "standalone 8215 R7 narrow Tailnet Peer Relay grant, two-sided capability/handshake probes, bounded UPnP diagnostics, static transfer/browser timing and service invariants",
       "result": "exact server-to-Mac relay grant saved and propagated; server listed the Mac as its sole relay candidate, but UDP 40000 remained unreachable through the Mac-side double NAT and the relay session stayed at zero packets with no open endpoint; the diagnostic mapping was removed; three cache-busting 3294106-byte Brotli transfers completed in 3.257/3.577/2.573 seconds and one browser observation reached the signed-in composer in 6.282 seconds; all five PID/start baselines and JP Codex egress were preserved; no model request or account switch"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/runtime-persistence.test.mjs",
+      "result": "R27 minimal fixture-only experiment failed before implementation as expected: 3 tests, 2 passed and 1 failed because a fresh weekly exhaustion observation was not written to the private circuit-state snapshot"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/runtime-persistence.test.mjs packages/account-router/test/runtime-weekly-quota.test.mjs packages/account-router/test/runtime-composition.test.mjs packages/account-router/test/circuit-breaker.test.mjs",
+      "result": "R27 focused persistence/quota/runtime/circuit suite passed 17/17 with no skips; a synthetic exhausted account remained excluded after a simulated router restart and the next synthetic request selected the other fixture account"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test",
+      "result": "R27 complete suite passed 259/284 with 0 failures and 25 expected pinned-public-fixture skips; attempts under the inherited 0077/0027 umasks failed only existing file-mode assertions and were not accepted"
+    },
+    {
+      "command": "M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": "R27 bounded strict matrix attempts each passed unit 150/150 and integration 76/76 but E2E 45/47; inherited systemd CREDENTIALS_DIRECTORY made a generated synthetic-token fixture fail closed, and both affected fixture points passed bounded isolated rechecks after removing only that inherited variable; no third full-matrix retry was run"
+    },
+    {
+      "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "R27 security audit qualified; 89/89 focused security tests and 492/492 retained strict UI evidence passed; 344 repository files were scanned with zero findings"
     }
   ],
   "evidence": [
@@ -244,9 +265,44 @@
     "evidence/M6.9/standalone-8215-startup-r4-review.md",
     "evidence/M6.9/standalone-8215-startup-r5-network-diagnosis.md",
     "evidence/M6.9/standalone-8215-startup-r6-safe-network-repair.md",
-    "evidence/M6.9/standalone-8215-startup-r7-peer-relay-grant.md"
+    "evidence/M6.9/standalone-8215-startup-r7-peer-relay-grant.md",
+    "evidence/M6.9/router-r27-weekly-quota-persistence-summary.json",
+    "evidence/M6.9/router-r27-security-summary.json"
   ],
   "observations": {
+    "continuation_r27_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8215-worker",
+      "commit": "73c342da334e3d5f37aa24f686959913d7d20c56",
+      "dependencies": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_result": "Use no-credential fixtures to persist a fresh weekly-quota exhaustion observation through a simulated router restart so the exhausted account is not immediately rescheduled. Preserve standalone 8215 PID 510876/508396 and active-enter monotonic timestamps 196497166178/194490256399; send no real model request and execute no real account switch."
+    },
+    "continuation_r27_fixture_result": {
+      "weekly_quota_exhaustion_persisted": true,
+      "persistence_kind": "quota_exhausted",
+      "default_cooldown_seconds": 3600,
+      "focused_tests_passed": 17,
+      "complete_tests_passed": 259,
+      "complete_fixture_skips": 25,
+      "security_tests_passed": 89,
+      "security_scan_files": 344,
+      "security_findings": 0,
+      "strict_matrix_full_pass_claimed": false,
+      "strict_matrix_corrected_failed_points_passed": 2,
+      "standalone_web_pid": 510876,
+      "standalone_web_active_enter_monotonic": 196497166178,
+      "standalone_app_pid": 508396,
+      "standalone_app_active_enter_monotonic": 194490256399,
+      "standalone_8215_changed": false,
+      "real_account_configured_for_test": false,
+      "model_request_sent": false,
+      "account_switch_tested": false,
+      "seamless_account_continuity_claimed": false
+    },
     "continuation_r24_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-routed-failover-performance",
@@ -801,5 +857,5 @@
     "R24 current_route is reset on router restart until the next routed request selects an account; no production model request was sent merely to repopulate it.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-07-30T01:58:18+08:00"
+  "updated_at": "2026-07-30T02:35:00+08:00"
 }

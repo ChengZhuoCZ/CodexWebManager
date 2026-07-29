@@ -305,8 +305,15 @@ export function createRuntimeComposition({
       observation.weekly.status === "available" &&
       observation.weekly.remaining_ratio === 0
     ) {
+      const probeToken = probeTokens.get(accountId) ?? null;
+      circuitBreaker.recordFailure(accountId, {
+        kind: "quota_exhausted",
+        ...(probeToken === null ? {} : { probeToken }),
+      });
+      probeTokens.delete(accountId);
       lastUnavailableReason.set(accountId, "quota_exhausted");
       if (preferredAccountId === accountId) preferredAccountId = null;
+      queueCircuitStatePersistence();
     }
     refreshAvailableStatus(accountId);
   }

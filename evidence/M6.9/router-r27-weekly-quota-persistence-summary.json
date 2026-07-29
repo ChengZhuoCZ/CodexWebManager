@@ -1,0 +1,101 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_implementation",
+  "generated_at": "2026-07-30T02:35:00+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
+  "change": {
+    "summary": "Persist a fresh weekly-quota exhaustion observation through the existing private circuit-state store so a restarted router does not immediately schedule the exhausted account.",
+    "persistence_kind": "quota_exhausted",
+    "default_cooldown_seconds": 3600,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "node --test packages/account-router/test/runtime-persistence.test.mjs",
+    "before_implementation": {
+      "tests": 3,
+      "passed": 2,
+      "failed": 1,
+      "observed_failure": "the saved account state retained a null last_failure_kind after a synthetic weekly remaining ratio of zero"
+    }
+  },
+  "verification": {
+    "focused": {
+      "test_files": 4,
+      "tests": 17,
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0
+    },
+    "complete_without_external_fixture": {
+      "tests": 284,
+      "passed": 259,
+      "failed": 0,
+      "skipped": 25,
+      "note": "the 25 skips require an explicitly supplied pinned public codex-web fixture"
+    },
+    "strict_matrix": {
+      "fixture_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf",
+      "attempt_limit": 2,
+      "attempts_used": 2,
+      "unit_each_attempt": {
+        "tests": 150,
+        "passed": 150,
+        "failed": 0,
+        "skipped": 0
+      },
+      "integration_each_attempt": {
+        "tests": 76,
+        "passed": 76,
+        "failed": 0,
+        "skipped": 0
+      },
+      "e2e_each_attempt": {
+        "tests": 47,
+        "passed": 45,
+        "failed": 2,
+        "skipped": 0
+      },
+      "accepted_as_full_matrix_pass": false,
+      "diagnosis": "the inherited systemd CREDENTIALS_DIRECTORY variable made a generated fixture process apply system-credential path rules to its private synthetic token file; a second bridge-process failure was not reproducible in isolation",
+      "bounded_corrected_rechecks": {
+        "environment_change": "remove CREDENTIALS_DIRECTORY only for fixture subprocess tests",
+        "tests": 2,
+        "passed": 2,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r27-security-summary.json",
+      "qualified": true,
+      "files_scanned": 344,
+      "findings": 0,
+      "focused_tests": 89,
+      "focused_passed": 89
+    }
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "active_enter_monotonic": 196497166178,
+      "exec_main_start_monotonic": 196497166049,
+      "state": "active/running"
+    },
+    "app_server": {
+      "pid": 508396,
+      "active_enter_monotonic": 194490256399,
+      "exec_main_start_monotonic": 194490256322,
+      "state": "active/running"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_blocker": "A real two-account restart/failover proof remains blocked until the user explicitly authorizes enrollment of a second router credential and a real switch/model request."
+}

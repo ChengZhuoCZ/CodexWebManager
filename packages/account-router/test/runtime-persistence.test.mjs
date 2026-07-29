@@ -27,27 +27,32 @@ async function close(server) {
   });
 }
 
-function account() {
+function account({
+  id = "fixture-account-a",
+  alias = "Fixture A",
+  priority = 1,
+  credentialRef = "fixture-a",
+} = {}) {
   return {
-    id: "fixture-account-a",
-    alias: "Fixture A",
+    id,
+    alias,
     enabled: true,
-    priority: 1,
+    priority,
     max_concurrency: 1,
     provider: "openai-codex",
     secret_provider: "fixture-secret",
-    credential_ref: "fixture-a",
+    credential_ref: credentialRef,
   };
 }
 
 function registry() {
   return new SecretProviderRegistry().register(defineSecretProvider({
     name: "fixture-secret",
-    async acquire() {
+    async acquire(reference) {
       return SecretLease.fromUtf8(JSON.stringify({
         version: 1,
         authorization: "Bearer fixture-upstream-token",
-        account_id: "fixture-upstream-account",
+        account_id: reference,
       }));
     },
   }));
@@ -68,9 +73,14 @@ async function adminStatus(runtime) {
   return response.json();
 }
 
-function runtimeOptions({ circuitStateStore, initialCircuitState, upstreamOrigin }) {
+function runtimeOptions({
+  accounts = [account()],
+  circuitStateStore,
+  initialCircuitState,
+  upstreamOrigin,
+}) {
   return {
-    accounts: [account()],
+    accounts,
     adminAuthenticator: createAdminAuthenticator({ token: ADMIN_TOKEN }),
     adminPort: 0,
     circuitStateStore,
@@ -86,6 +96,23 @@ function runtimeOptions({ circuitStateStore, initialCircuitState, upstreamOrigin
     secretRegistry: registry(),
     upstreamOrigin,
   };
+}
+
+function quotaSse(response, usedPercent) {
+  response.writeHead(200, { "content-type": "text/event-stream" });
+  response.write(
+    `event: codex.rate_limits\ndata: ${JSON.stringify({
+      type: "codex.rate_limits",
+      rate_limits: {
+        secondary: {
+          used_percent: usedPercent,
+          window_minutes: 10_080,
+          reset_at: 1_785_196_800,
+        },
+      },
+    })}\n\n`,
+  );
+  response.end("event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n");
 }
 
 test("a quota failure remains visible and blocks selection after a simulated process restart", async (context) => {
@@ -137,6 +164,77 @@ test("a quota failure remains visible and blocks selection after a simulated pro
   );
   assert.equal(afterRestart.status, 503);
   assert.equal(upstreamCalls, 1);
+});
+
+test("a fresh weekly exhaustion observation remains excluded after a simulated process restart", async (context) => {
+  const upstreamAccounts = [];
+  const upstream = http.createServer((request, response) => {
+    request.resume();
+    const accountId = request.headers["chatgpt-account-id"];
+    upstreamAccounts.push(accountId);
+    quotaSse(response, accountId === "fixture-a" ? 100 : 25);
+  });
+  context.after(() => close(upstream));
+  const upstreamOrigin = await listen(upstream);
+  const circuitStateStore = await privateStateStore(context);
+  const accounts = [
+    account({ priority: 10 }),
+    account({
+      id: "fixture-account-b",
+      alias: "Fixture B",
+      priority: 0,
+      credentialRef: "fixture-b",
+    }),
+  ];
+
+  const first = createRuntimeComposition(runtimeOptions({
+    accounts,
+    circuitStateStore,
+    initialCircuitState: await circuitStateStore.load(),
+    upstreamOrigin,
+  }));
+  await first.start();
+  const exhausted = await fetch(
+    `http://127.0.0.1:${first.addresses.model.port}/v1/responses`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: '{"input":"fixture"}',
+    },
+  );
+  assert.equal(exhausted.status, 200);
+  await exhausted.text();
+  await first.stop();
+
+  const saved = await circuitStateStore.load();
+  assert.equal(
+    saved.accounts.find(({ account_id: accountId }) =>
+      accountId === "fixture-account-a")?.last_failure_kind,
+    "quota_exhausted",
+  );
+
+  const second = createRuntimeComposition(runtimeOptions({
+    accounts,
+    circuitStateStore,
+    initialCircuitState: saved,
+    upstreamOrigin,
+  }));
+  context.after(() => second.stop());
+  await second.start();
+  const ready = await fetch(`http://127.0.0.1:${second.addresses.admin.port}/readyz`);
+  assert.equal(ready.status, 200);
+  assert.equal((await ready.json()).usable_accounts, 1);
+  const afterRestart = await fetch(
+    `http://127.0.0.1:${second.addresses.model.port}/v1/responses`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: '{"input":"fixture"}',
+    },
+  );
+  assert.equal(afterRestart.status, 200);
+  await afterRestart.text();
+  assert.deepEqual(upstreamAccounts, ["fixture-a", "fixture-b"]);
 });
 
 test("a persistence failure makes readiness and later selection fail closed", async () => {

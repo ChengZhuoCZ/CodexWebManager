@@ -124,7 +124,7 @@ test("production runtime stops scheduling an account after a fresh weekly-only q
       five_hour_remaining_ratio: null,
       weekly_remaining_ratio: 0,
       snapshot_observed_at: "2026-07-28T00:00:00.000Z",
-      cooldown_until: null,
+      cooldown_until: "2026-07-28T01:00:00.000Z",
       last_switch_reason: "quota_exhausted",
     },
     {
