@@ -46,6 +46,8 @@ function precompress(bytes) {
     gzip: gzipSync(bytes, { level: 9 }),
     brotli: brotliCompressSync(bytes, {
       params: {
+        [zlibConstants.BROTLI_PARAM_LGWIN]: 24,
+        [zlibConstants.BROTLI_PARAM_MODE]: zlibConstants.BROTLI_MODE_TEXT,
         [zlibConstants.BROTLI_PARAM_QUALITY]: 11,
       },
     }),

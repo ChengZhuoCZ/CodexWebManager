@@ -122,6 +122,38 @@ node build-minified-precompressed-asset.mjs \
   --terser /absolute/pinned/terser/package/bin/terser
 ```
 
+The text Brotli outputs use the RFC-compatible 24-bit window in text mode.
+This lets the compressor reuse repeated source across the complete pinned
+13.9 MB main module instead of the smaller default window. For an already
+versioned and inlined inactive release,
+`optimize-versioned-entrypoints.mjs` additionally validates the exact pinned
+bootstrap, RPC entrypoint, application entrypoint, main identity asset, and
+existing Brotli sibling. It adds early `modulepreload` hints only for the two
+dynamic entrypoints named by that bootstrap and replaces only the Brotli main
+sibling plus the identity/gzip/Brotli HTML triplet. The main JavaScript
+identity bytes and URL do not change, so an existing immutable browser cache
+remains valid:
+
+```sh
+node optimize-versioned-entrypoints.mjs \
+  --index /absolute/inactive-release/webview/index.html \
+  --expected-index-sha256 <64-hex-index-sha256> \
+  --asset /absolute/inactive-release/webview/assets/app-initial-BTphDPeq.js \
+  --expected-asset-sha256 <64-hex-main-identity-sha256> \
+  --expected-asset-brotli-sha256 <64-hex-current-brotli-sha256> \
+  --bootstrap /absolute/inactive-release/webview/assets/index-6UcaOV-H.js \
+  --expected-bootstrap-sha256 <64-hex-bootstrap-sha256> \
+  --rpc /absolute/inactive-release/webview/assets/rpc-ArWg2Nqw.js \
+  --expected-rpc-sha256 <64-hex-rpc-sha256> \
+  --app-main /absolute/inactive-release/webview/assets/app-main-DW9SEGGt.js \
+  --expected-app-main-sha256 <64-hex-app-main-sha256>
+```
+
+The adapter requires at least a 1% Brotli reduction and verifies both old and
+new compressed bytes against the unchanged identity asset. It must run only
+against an inactive routed successor. The standalone 8215 release is never an
+input or activation target.
+
 Build order is important: upstream build, compatibility/IPC patches, the
 authenticated Statsig logging patch, esbuild minification, optional Terser main
 module optimization, index versioning, then precompression. Minifying before

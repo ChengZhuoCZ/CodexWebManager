@@ -6,7 +6,12 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { gunzipSync, brotliDecompressSync } from "node:zlib";
+import {
+  brotliCompressSync,
+  brotliDecompressSync,
+  constants as zlibConstants,
+  gunzipSync,
+} from "node:zlib";
 
 import {
   buildMinifiedPrecompressedAsset,
@@ -24,6 +29,14 @@ import {
   inlineVersionedStartupFastpath,
   inlineVersionedStartupFastpathFile,
 } from "../../../integrations/codex-web-upstream/inline-versioned-startup-fastpath.mjs";
+import {
+  APP_MAIN_URL,
+  BOOTSTRAP_APP_MAIN_SPECIFIER,
+  BOOTSTRAP_RPC_SPECIFIER,
+  hintVersionedEntrypoints,
+  optimizeVersionedEntrypointsFile,
+  RPC_URL,
+} from "../../../integrations/codex-web-upstream/optimize-versioned-entrypoints.mjs";
 import { localStartupRpcResponse } from "../../../integrations/codex-web-upstream/codex-remote-fastpath.mjs";
 
 const precompressedAssetPatch = new URL(
@@ -808,5 +821,160 @@ test("atomically inlines a pinned startup fastpath into an already-versioned ind
   assert.equal(
     createHash("sha256").update(await readFile(indexFile)).digest("hex"),
     result.index_output_sha256,
+  );
+});
+
+test("pins dynamic entrypoint hints and improves a versioned text Brotli asset", async (context) => {
+  const directory = await mkdtemp(
+    path.join(os.tmpdir(), "codex-versioned-entrypoints-"),
+  );
+  context.after(() => rm(directory, { recursive: true, force: true }));
+  const assets = path.join(directory, "assets");
+  await mkdir(assets);
+  const indexFile = path.join(directory, "index.html");
+  const assetFile = path.join(assets, "app-initial-BTphDPeq.js");
+  const assetBrotliFile = `${assetFile}.br`;
+  const bootstrapFile = path.join(assets, "index-6UcaOV-H.js");
+  const rpcFile = path.join(assets, "rpc-ArWg2Nqw.js");
+  const appMainFile = path.join(assets, "app-main-DW9SEGGt.js");
+  const versionedUrl =
+    "./assets/app-initial-BTphDPeq.js?v=aaaaaaaaaaaaaaaa";
+  const indexBytes = Buffer.from(
+    [
+      "<!doctype html>",
+      "<html>",
+      "  <head>",
+      '    <script type="importmap">',
+      `      {"imports":{"./assets/app-initial-BTphDPeq.js":"${versionedUrl}"}}`,
+      "    </script>",
+      "    <link",
+      '      rel="modulepreload"',
+      "      crossorigin",
+      `      href="${versionedUrl}"`,
+      "    />",
+      "    <script data-codex-tailnet-startup-fastpath>",
+      "(() => {})();",
+      "    </script>",
+      '    <script type="module" src="./assets/preload.js"></script>',
+      `    <script type="module" crossorigin src="./assets/index-6UcaOV-H.js"></script>`,
+      "  </head>",
+      "</html>",
+      "",
+    ].join("\n"),
+  );
+  const bootstrapBytes = Buffer.from(
+    [
+      `const deps=["${BOOTSTRAP_RPC_SPECIFIER}","${BOOTSTRAP_APP_MAIN_SPECIFIER}"];`,
+      `void import(\`${BOOTSTRAP_RPC_SPECIFIER}\`);`,
+      `void import(\`${BOOTSTRAP_APP_MAIN_SPECIFIER}\`);`,
+      "",
+    ].join("\n"),
+  );
+  const rpcBytes = Buffer.from("export const rpc = true;\n");
+  const appMainBytes = Buffer.from("export const appMain = true;\n");
+  let seed = 1;
+  const deterministicBytes = (length) => {
+    const bytes = Buffer.allocUnsafe(length);
+    for (let index = 0; index < length; index += 1) {
+      seed = (seed * 1_664_525 + 1_013_904_223) >>> 0;
+      bytes[index] = seed >>> 24;
+    }
+    return bytes;
+  };
+  const repeated = deterministicBytes(512 * 1024);
+  const assetBytes = Buffer.concat([
+    repeated,
+    deterministicBytes(4 * 1024 * 1024 + 64 * 1024),
+    repeated,
+  ]);
+  const oldAssetBrotli = brotliCompressSync(assetBytes, {
+    params: {
+      [zlibConstants.BROTLI_PARAM_QUALITY]: 6,
+    },
+  });
+  const testCompressText = (bytes) =>
+    brotliCompressSync(bytes, {
+      params: {
+        [zlibConstants.BROTLI_PARAM_LGWIN]: 24,
+        [zlibConstants.BROTLI_PARAM_MODE]: zlibConstants.BROTLI_MODE_TEXT,
+        [zlibConstants.BROTLI_PARAM_QUALITY]: 6,
+      },
+    });
+  for (const [file, bytes] of [
+    [indexFile, indexBytes],
+    [assetFile, assetBytes],
+    [assetBrotliFile, oldAssetBrotli],
+    [bootstrapFile, bootstrapBytes],
+    [rpcFile, rpcBytes],
+    [appMainFile, appMainBytes],
+  ]) {
+    await writeFile(file, bytes, { mode: 0o640 });
+  }
+  const hash = (bytes) => createHash("sha256").update(bytes).digest("hex");
+  const options = {
+    indexFile,
+    expectedIndexSha256: hash(indexBytes),
+    assetFile,
+    expectedAssetSha256: hash(assetBytes),
+    expectedAssetBrotliSha256: hash(oldAssetBrotli),
+    bootstrapFile,
+    expectedBootstrapSha256: hash(bootstrapBytes),
+    rpcFile,
+    expectedRpcSha256: hash(rpcBytes),
+    appMainFile,
+    expectedAppMainSha256: hash(appMainBytes),
+    compressText: testCompressText,
+  };
+
+  assert.throws(
+    () =>
+      hintVersionedEntrypoints(
+        indexBytes,
+        Buffer.from(
+          [
+            `const deps=["${BOOTSTRAP_RPC_SPECIFIER}","${BOOTSTRAP_APP_MAIN_SPECIFIER}"];`,
+            `void import(\`${BOOTSTRAP_RPC_SPECIFIER}\`);`,
+            "",
+          ].join("\n"),
+        ),
+      ),
+    /versioned entrypoint boundary is invalid/,
+  );
+  await assert.rejects(
+    optimizeVersionedEntrypointsFile({
+      ...options,
+      expectedIndexSha256: "0".repeat(64),
+    }),
+    /versioned entrypoint optimization failed/,
+  );
+  assert.deepEqual(await readFile(indexFile), indexBytes);
+
+  const result = await optimizeVersionedEntrypointsFile(options);
+  const outputIndex = await readFile(indexFile);
+  const outputAssetBrotli = await readFile(assetBrotliFile);
+  assert.equal(result.event, "versioned_entrypoints_optimized");
+  assert.deepEqual(result.hinted_urls, [RPC_URL, APP_MAIN_URL]);
+  assert.equal(outputIndex.toString("utf8").split(RPC_URL).length - 1, 1);
+  assert.equal(outputIndex.toString("utf8").split(APP_MAIN_URL).length - 1, 1);
+  assert.deepEqual(
+    gunzipSync(await readFile(`${indexFile}.gz`)),
+    outputIndex,
+  );
+  assert.deepEqual(
+    brotliDecompressSync(await readFile(`${indexFile}.br`)),
+    outputIndex,
+  );
+  assert.deepEqual(brotliDecompressSync(outputAssetBrotli), assetBytes);
+  assert.ok(outputAssetBrotli.length < oldAssetBrotli.length);
+  assert.ok(result.asset_brotli_reduction_bytes > 0);
+  assert.equal((await stat(indexFile)).mode & 0o777, 0o640);
+  assert.equal((await stat(assetBrotliFile)).mode & 0o777, 0o640);
+  await assert.rejects(
+    optimizeVersionedEntrypointsFile({
+      ...options,
+      expectedIndexSha256: result.index_output_sha256,
+      expectedAssetBrotliSha256: result.asset_brotli_output_sha256,
+    }),
+    /versioned entrypoint optimization failed/,
   );
 });
