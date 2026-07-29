@@ -18,6 +18,7 @@
   "r22_implementation_revision": "f256483bee89137259e32bf158b4b1b24a4d9ff2",
   "r23_continuation_input_revision": "c978381407801fffaee72bad4958a282741f7bf0",
   "r23_implementation_revision": "9e312bc290b8ef8a5a117f96d19431bf113190cf",
+  "r23_final_security_input_revision": "2dbb6a5590a4ba643c18c70e245a6461de34cf1a",
   "standalone_8215_fix_revision": "d75c655c8fb3e3066245fec4060abd7aec5c4a46",
   "standalone_8215_full_access_revision": "acac3d5fdf6a77db8d84d85c3537b5d19614114f",
   "implementation_revision": "9e312bc290b8ef8a5a117f96d19431bf113190cf",
@@ -424,6 +425,22 @@
         "model_request_sent": false,
         "account_switch_tested": false
       }
+    },
+    {
+      "command": "M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": {
+        "input_revision": "2dbb6a5590a4ba643c18c70e245a6461de34cf1a",
+        "qualified": true,
+        "focused_tests": 85,
+        "passed": 85,
+        "failed": 0,
+        "skipped": 0,
+        "repository_files_scanned": 334,
+        "findings": 0,
+        "strict_ui_tests": 492,
+        "strict_ui_passed": 492,
+        "audit_stage": "final_evidence_commit"
+      }
     }
   ],
   "failure_injections": {
@@ -796,6 +813,18 @@
       "passed": 85,
       "repository_files_scanned": 332,
       "findings": 0
+    },
+    "final_evidence_security_audit": {
+      "input_revision": "2dbb6a5590a4ba643c18c70e245a6461de34cf1a",
+      "qualified": true,
+      "focused_tests": 85,
+      "passed": 85,
+      "failed": 0,
+      "skipped": 0,
+      "repository_files_scanned": 334,
+      "findings": 0,
+      "strict_ui_tests": 492,
+      "strict_ui_passed": 492
     },
     "deployment": {
       "script_sha256": "da48f0acf0a6c792a9b1cbf933acd9a5ea6fff085837370df408e8aa6436692c",

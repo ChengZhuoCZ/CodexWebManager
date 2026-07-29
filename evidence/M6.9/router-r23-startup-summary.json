@@ -79,6 +79,19 @@
       "passed": 85,
       "repository_files_scanned": 332,
       "findings": 0
+    },
+    "final_evidence_security_audit": {
+      "command": "M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "input_revision": "2dbb6a5590a4ba643c18c70e245a6461de34cf1a",
+      "qualified": true,
+      "focused_tests": 85,
+      "passed": 85,
+      "failed": 0,
+      "skipped": 0,
+      "repository_files_scanned": 334,
+      "findings": 0,
+      "strict_ui_tests": 492,
+      "strict_ui_passed": 492
     }
   },
   "deployment": {
@@ -144,5 +157,5 @@
     "The unchanged content-hashed main URL means browsers that already cached the earlier Brotli representation can retain it until normal cache eviction; the optimization primarily benefits first-load or cache-miss clients.",
     "The second credential remains isolated to standalone 8215, so real two-account failover and cross-account continuity remain unverified."
   ],
-  "updated_at": "2026-07-29T22:16:31+08:00"
+  "updated_at": "2026-07-29T22:22:38+08:00"
 }

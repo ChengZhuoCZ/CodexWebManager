@@ -167,6 +167,10 @@
     {
       "command": "hash-pinned rollback-capable R23 8216-only deployment plus Tailnet/browser/service/readiness/journal probes",
       "result": "main Brotli fell deterministically from 3173689 to 3117335 bytes with unchanged identity and two pinned entrypoint hints; first cross-platform gzip-hash attempt rolled back before activation; final release activated by restarting only 8216 Web; readiness 20/20, journal sensitive matches 0, 8215/router/routed App Server unchanged, signed-in composer present, no model request or account switch sent"
+    },
+    {
+      "command": "M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "R23 final evidence revision 2dbb6a5 qualified; 85/85 focused security tests and 492/492 strict UI evidence passed; 334 repository files scanned with zero findings"
     }
   ],
   "evidence": [
@@ -415,6 +419,10 @@
       "r23_strict_tests_passed": 268,
       "r23_security_tests_passed": 85,
       "r23_pre_deployment_repository_files_scanned": 332,
+      "r23_final_security_input_revision": "2dbb6a5590a4ba643c18c70e245a6461de34cf1a",
+      "r23_final_security_tests_passed": 85,
+      "r23_final_repository_files_scanned": 334,
+      "r23_final_security_findings": 0,
       "r23_main_brotli_bytes": 3117335,
       "r23_main_brotli_sha256": "44f07fa4ca0c8011a7b6bcbeb8594ef48906747963c198488cd263954a17a149",
       "r23_main_brotli_reduction_bytes": 56354,
@@ -599,5 +607,5 @@
     "R23 deterministically removes 56354 Brotli bytes and adds two pinned modulepreload hints, but the Tailnet path remains on DERP(tok) and single-run browser timing remains variable; no stable end-to-end speedup is claimed.",
     "Because the content-hashed main URL and identity bytes are unchanged, a browser that already cached the earlier Brotli representation can retain it until normal cache eviction."
   ],
-  "updated_at": "2026-07-29T22:16:31+08:00"
+  "updated_at": "2026-07-29T22:22:38+08:00"
 }
