@@ -76,7 +76,7 @@ A-to-B switch cannot yet be executed.
   final successful deployment;
 - strict release matrix: 272/272;
 - focused security tests: 89/89;
-- repository secret scan: 340 files, zero findings.
+- repository secret scan: 341 files, zero findings.
 
 ## Required external input
 

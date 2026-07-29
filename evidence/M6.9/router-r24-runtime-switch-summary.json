@@ -51,13 +51,14 @@
     },
     "security": {
       "summary": "evidence/M6.9/router-r24-security-summary.json",
-      "sha256": "794f07bd87814421985a9e209aa61f8835e7c32662e327bba228d0f8db7216bc",
+      "sha256": "8bf9c60e56406762e129ce7b6722a910d2aad34a318c90370fa3731c0478a2eb",
+      "input_revision": "d0f72d7b85a621b7cec4a8b81ef75fa6cae71e86",
       "qualified": true,
       "focused_tests": 89,
       "passed": 89,
       "failed": 0,
       "skipped": 0,
-      "repository_files_scanned": 340,
+      "repository_files_scanned": 341,
       "findings": 0,
       "strict_ui_tests": 492,
       "strict_ui_passed": 492

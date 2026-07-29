@@ -1,13 +1,13 @@
 {
   "schema_version": 1,
   "task": "M6.3",
-  "generated_at": "2026-07-29T15:26:48.875Z",
-  "input_revision": "f7628456553bddafb23c88eb94f789fef2193eca",
+  "generated_at": "2026-07-29T15:35:45.632Z",
+  "input_revision": "d0f72d7b85a621b7cec4a8b81ef75fa6cae71e86",
   "branch": "codex/m6-9-routed-failover-performance",
   "implementation_mode": "clean-room",
   "qualified": true,
   "secret_scan": {
-    "files_scanned": 340,
+    "files_scanned": 341,
     "findings": []
   },
   "focused_security_tests": {

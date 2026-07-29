@@ -191,7 +191,7 @@
     },
     {
       "command": "M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
-      "result": "R24 implementation revision f762845 qualified; 89/89 focused security tests and 492/492 strict UI evidence passed; 340 repository files scanned with zero findings"
+      "result": "R24 final evidence revision d0f72d7 qualified; 89/89 focused security tests and 492/492 strict UI evidence passed; 341 repository files scanned with zero findings"
     },
     {
       "command": "two deterministic 0.2.6 Linux x64 builds plus target-host no-credential release verification",
@@ -200,6 +200,10 @@
     {
       "command": "sudo bash /tmp/deploy-router-r24.sh plus Tailnet HTTP and signed-in browser read-only verification",
       "result": "0.2.6 activated by restarting only the router from PID 524721 to 548777; readiness 20/20; 8215 and 8216 Web/App Server PID/start/config/release invariants passed; both Tailnet origins returned HTTP 200 and 8216 showed the signed-in composer; no model request or account switch was sent"
+    },
+    {
+      "command": "subagent 8215 startup-page R4 read-only review plus fresh in-app browser page",
+      "result": "HTML and all eight startup resources, Tailnet TCP/WebSocket, 4 ms benign IPC, connected Unix socket, approximately 45 ms initialize and approximately 47 ms account/seven-model reads passed; fresh R4 URL reached the signed-in composer in one 14.65-second observation; no service/file mutation, model request or account switch; 8216 Web/App Server invariants remained unchanged"
     }
   ],
   "evidence": [
@@ -223,7 +227,8 @@
     "evidence/M6.9/router-r24-strict-matrix-summary.json",
     "evidence/M6.9/router-r24-security-summary.json",
     "evidence/M6.9/router-r24-linux-verify.json",
-    "evidence/M6.9/router-r24-runtime-switch-summary.json"
+    "evidence/M6.9/router-r24-runtime-switch-summary.json",
+    "evidence/M6.9/standalone-8215-startup-r4-review.md"
   ],
   "observations": {
     "continuation_r24_start": {
@@ -247,7 +252,7 @@
       "post_semantic_replay_permitted": false,
       "strict_matrix_passed": 272,
       "security_tests_passed": 89,
-      "security_scan_files": 340,
+      "security_scan_files": 341,
       "security_findings": 0,
       "real_account_configured_for_test": false,
       "account_switch_tested": false,
@@ -576,7 +581,16 @@
       "round_3_stable_startup_latency_claimed": false,
       "round_3_model_request_sent": false,
       "round_3_account_switch_tested": false,
-      "pid_timestamp_config_and_release_unchanged_during_r23": true
+      "pid_timestamp_config_and_release_unchanged_during_r23": true,
+      "round_4_current_incident_server_side_healthy": true,
+      "round_4_fresh_tailnet_url": "http://100.95.50.98:8215/?repair=20260729-r4",
+      "round_4_browser_signed_in_composer_verified": true,
+      "round_4_browser_cold_composer_ms_single_observation": 14650,
+      "round_4_mutation_performed": false,
+      "round_4_stable_startup_latency_claimed": false,
+      "round_4_model_request_sent": false,
+      "round_4_account_switch_tested": false,
+      "pid_timestamp_config_and_release_unchanged_during_r24": true
     },
     "routed_app_server": {
       "restarted_for_r20": true,
@@ -704,5 +718,5 @@
     "R24 manual account selection is an in-memory preference for the next new request and is lost when the router restarts.",
     "R24 current_route is reset on router restart until the next routed request selects an account; no production model request was sent merely to repopulate it."
   ],
-  "updated_at": "2026-07-29T23:20:02+08:00"
+  "updated_at": "2026-07-29T23:34:00+08:00"
 }

@@ -902,13 +902,13 @@
       "account_switch_tested": false
     },
     "security_audit": {
-      "input_revision": "f7628456553bddafb23c88eb94f789fef2193eca",
+      "input_revision": "d0f72d7b85a621b7cec4a8b81ef75fa6cae71e86",
       "qualified": true,
       "focused_tests": 89,
       "passed": 89,
       "failed": 0,
       "skipped": 0,
-      "repository_files_scanned": 340,
+      "repository_files_scanned": 341,
       "findings": 0,
       "strict_ui_tests": 492,
       "strict_ui_passed": 492
@@ -976,6 +976,27 @@
     "model_request_sent": false,
     "account_switch_tested": false,
     "evidence": "evidence/M6.9/standalone-8215-startup-r3-review.md"
+  },
+  "standalone_8215_startup_review_r4": {
+    "explicit_parallel_user_request": true,
+    "root_html_status": 200,
+    "boot_assets": 8,
+    "boot_assets_http_200_and_mime_valid": 8,
+    "tailnet_fresh_url": "http://100.95.50.98:8215/?repair=20260729-r4",
+    "tailnet_tcp_and_websocket_verified": true,
+    "ipc_roundtrip_ms_single_observation": 4,
+    "unix_socket_connected": true,
+    "app_server_initialize_ms_single_observation": 45,
+    "account_and_model_catalog_ms_single_observation": 47,
+    "model_count": 7,
+    "browser_signed_in_composer_verified": true,
+    "browser_cold_composer_ms_single_observation": 14650,
+    "stable_startup_latency_claimed": false,
+    "services_or_files_mutated": false,
+    "routed_8216_web_app_server_unchanged": true,
+    "model_request_sent": false,
+    "account_switch_tested": false,
+    "evidence": "evidence/M6.9/standalone-8215-startup-r4-review.md"
   },
   "deployed_asset": {
     "release": "c3e92f0f-20260729-m69-router-r23",
