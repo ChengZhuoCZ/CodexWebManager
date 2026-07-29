@@ -209,6 +209,10 @@
     {
       "command": "standalone 8215 R5 HTTP compression, Tailnet path, two-sided NAT, firewall, fixed-port and browser startup probes",
       "result": "8215 root HTTP 200 in 0.56 seconds; immutable main 14,138,835 identity / 4,345,031 gzip / 3,294,106 Brotli bytes; Brotli transfer varied from about 23 to 64 seconds; both directions remained on DERP with no direct connection; host UDP 41641 was already allowed; the first router reported a private 192.168.33.0/24 WAN address, proving upstream double NAT; no service, release, unit, credential, model request or account switch changed"
+    },
+    {
+      "command": "standalone 8215 R6 temporary nftables bypass, two-sided Tailscale probes, UPnP inventory, codex-UID country check and Mac peer-relay preparation",
+      "result": "temporary root UDP/41641 bypass matched 90 packets but did not leave DERP and was fully rolled back; persistent nftables SHA-256 and all five production PID/start baselines were preserved; UPnP mapping creation failed closed because 16 unrelated mappings filled the inner router table, so none were deleted; codex UID egress returned JP; Mac relay candidate enabled on UDP 40000 with no exit node, pending a narrow interactive Tailnet grant; no model request or account switch"
     }
   ],
   "evidence": [
@@ -234,7 +238,8 @@
     "evidence/M6.9/router-r24-linux-verify.json",
     "evidence/M6.9/router-r24-runtime-switch-summary.json",
     "evidence/M6.9/standalone-8215-startup-r4-review.md",
-    "evidence/M6.9/standalone-8215-startup-r5-network-diagnosis.md"
+    "evidence/M6.9/standalone-8215-startup-r5-network-diagnosis.md",
+    "evidence/M6.9/standalone-8215-startup-r6-safe-network-repair.md"
   ],
   "observations": {
     "continuation_r24_start": {
@@ -286,6 +291,24 @@
       "account_switch_tested": false,
       "preferred_repair": "configure the existing directly reachable VPS as a narrowly authorized Tailscale peer relay",
       "repair_blocker": "the separate VPS has no explicitly authorized SSH login identity in this thread"
+    },
+    "continuation_r25_8215_safe_repair": {
+      "authorized_by_user": true,
+      "input_revision": "07a85e6",
+      "temporary_server_udp_bypass_persisted": false,
+      "temporary_server_udp_bypass_packet_matches": 90,
+      "direct_connection_established": false,
+      "persistent_server_nftables_changed": false,
+      "inner_router_mapping_created": false,
+      "inner_router_mapping_deleted": false,
+      "codex_service_egress_country": "JP",
+      "mac_peer_relay_port": 40000,
+      "mac_exit_node_selected": false,
+      "tailnet_relay_grant_applied": false,
+      "production_services_restarted": false,
+      "model_request_sent": false,
+      "account_switch_tested": false,
+      "next_required_input": "interactive Tailnet admin sign-in, authorized upstream H3C login, or authorized VPS SSH identity"
     },
     "continuation_r23_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
