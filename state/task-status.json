@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M6.9",
-  "status": "blocked",
+  "status": "in_progress",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-SKIP-M6.2-SOAK",
@@ -15,11 +15,12 @@
     "r17_continuation": "66da7a9094baa741faef623e5d6727350ab831ef",
     "r18_continuation": "0aa80c4b1223253d3b2d2cb428db1679df52bbe3",
     "r19_continuation": "2c29e3a895feefd5c9a62f8bf8b699e0a7dd408f",
+    "r20_continuation": "90a87e020cb9c4f6387656399603ec3893524f59",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "b8b7699d78428b3794af514a3d075cef042c2bdb",
+  "output_revision": "a3dfed126b70cb7e8302319c3fe79c83aa1bb85f",
   "workspace_branch": "codex/m6-9-routed-failover-performance",
   "workspace_input_revision": "d41f2f282390f3f95e6795dd713d657b51788cc5",
   "depends_on": [
@@ -49,7 +50,7 @@
     },
     {
       "command": "M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
-      "result": "qualified at implementation revision 40b2f17; 83 focused tests passed; 319 repository files scanned; 0 findings; strict UI 492/492"
+      "result": "qualified at implementation revision 83d062d; 83 focused tests passed; 320 repository files scanned; 0 findings; strict UI 492/492"
     },
     {
       "command": "<bundled-node> integrations/codex-web-upstream/build-minified-precompressed-asset.mjs <pinned-r16-inputs-and-esbuild>",
@@ -86,15 +87,31 @@
     {
       "command": "user-authorized isolated device login and rollback-capable standalone 8215 credential activation",
       "result": "standalone-only root-owned mode-0600 credential installed; temporary login home removed; 8215 App Server and Web restarted to HTTP 200; signed-in composer and 27.319-second fixed model sentinel completed; 36 journal rows had 0 sensitive-shape and 0 sentinel matches; routed 8216 Web and App Server timestamps unchanged"
+    },
+    {
+      "command": "two deterministic r20 builds, focused/complete/strict/security tests, rollback-capable 8216 activation, exact cache/hash probes and one fixed single-account model sentinel",
+      "result": "content-hashed preload URL ./assets/preload-65708a1c.js passed identity/gzip/Brotli hashes and immutable cache; focused 10/10, complete 245/270 with 25 fixture skips, strict 259/259, security 83/83 plus 320-file zero-finding scan; two rejected activations rolled back; final 8216 HTTP/model path passed while 8215 PIDs and timestamps remained unchanged"
     }
   ],
   "evidence": [
     "evidence/M6.9-routed-failover-performance.md",
     "evidence/M6.9/test-summary.json",
     "evidence/M6.9/linux-deployment-summary.json",
-    "evidence/M6.9/blocker.md"
+    "evidence/M6.9/blocker.md",
+    "evidence/M6.9/deploy-r20.sh"
   ],
   "observations": {
+    "continuation_r20_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-routed-failover-performance",
+      "commit": "90a87e020cb9c4f6387656399603ec3893524f59",
+      "dependencies": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_result": "Profile the routed 8216 r19 static and renderer startup path, then qualify one isolated reversible optimization without restarting or reconfiguring standalone 8215."
+    },
     "continuation_r19_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-routed-failover-performance",
@@ -179,9 +196,9 @@
       "expected_result": "Restore signed-in standalone 8215 browser and model use, reduce the uncompressed startup transfer, prevent future verbose IPC/model stdout from entering the journal, and later activate the separately authorized standalone account without enrolling it into the router."
     },
     "implementation": {
-      "revision": "40b2f1715a7691e85e3ed0303cccfd5ef6f6a2e8",
+      "revision": "83d062d337c75c05bb4797d442fe1d8fe4ad255b",
       "router_release": "codex-account-router-0.2.2-linux-x64",
-      "routed_codex_web_release": "c3e92f0f-20260729-m69-router-r19",
+      "routed_codex_web_release": "c3e92f0f-20260729-m69-router-r20",
       "standalone_codex_web_release": "c3e92f0-20260729-tailnet-startup-r3",
       "atomic_account_enrollment_installed": true,
       "esbuild_version": "0.27.0",
@@ -202,8 +219,14 @@
       "brotli_asset_sha256": "0899d532efde663c13196219d5e89b355469969397739c2db890593740bf9be1",
       "versioned_asset_url": "./assets/app-initial-BTphDPeq.js?v=e2d356e06763a828",
       "r16_versioned_index_sha256": "154633d5fd2cdd26b06b699de69c16bc6f6d7804d1d97882e605c36ce4391bac",
-      "versioned_index_sha256": "ccbf0a8318d6559939605f4b291f0bf50cd14539ea7fc2fe76b0923cf7152d88",
-      "versioned_index_bytes": 17576,
+      "versioned_preload_url": "./assets/preload-65708a1c.js",
+      "versioned_preload_cache_control": "public, max-age=31536000, immutable",
+      "unversioned_preload_url": "./assets/preload.js",
+      "unversioned_preload_cache_control": "public, max-age=0",
+      "preload_gzip_sha256": "ee83a0334b52d8557a7b4252e02addf34687082b584a769f06091c2dc5355d32",
+      "preload_brotli_sha256": "815f74c342f4046a6c1d0e01276adfb5dca47a0ec0771532f5bedfae62b07b68",
+      "versioned_index_sha256": "20703fc1b770eeb40a23fd604b46ed5efb5f2d95a93eb7e51cec30b39ef60d59",
+      "versioned_index_bytes": 17585,
       "startup_fastpath_sha256": "3eb857920a3be9ceb4ff9be0c0746199dab0f8c4e4a02d3762380508a429aabd",
       "startup_fastpath_inlined": true,
       "external_startup_script_count": 0,
@@ -239,6 +262,13 @@
       "r19_index_brotli_sha256": "78cb8fb70825554a0e911ed69dcf3b9e0487ef66482228f7409226a907416b64",
       "r19_model_observation_ms": 3673,
       "r19_first_page_observation_ms": 28315,
+      "r20_index_gzip_bytes": 5967,
+      "r20_index_brotli_bytes": 4164,
+      "r20_index_gzip_sha256": "3f497714830ce20ec895cb9211fd3b690f5695a1e71ef8fbaa06d83c88a9cf21",
+      "r20_index_brotli_sha256": "618f6e08f54baecba5eebdceeed74b4d75030f846d8848e0e02730489b573c11",
+      "r20_single_account_model_requests_completed": 1,
+      "r20_warm_reload_retained_composer": true,
+      "r20_stable_latency_sample_available": false,
       "standalone_8215_pre_switch_model_observation_ms": 3728,
       "standalone_8215_post_switch_model_observation_ms": 27319,
       "standalone_standard_output": "null",
@@ -254,7 +284,7 @@
       "router_usable_accounts": 1,
       "account_credential_files": 1,
       "standalone_dedicated_credential_present": true,
-      "single_account_model_requests_completed": 5,
+      "single_account_model_requests_completed": 6,
       "real_two_account_switch_executed": false
     },
     "standalone_8215": {
@@ -276,13 +306,16 @@
       "post_boundary_fixture_sentinel_matches": 0
     },
     "routed_app_server": {
-      "restarted": false,
-      "active_enter_timestamp": "2026-07-29 04:30:41 CST"
+      "restarted_for_r20": true,
+      "main_pid": 495033,
+      "active_enter_timestamp": "2026-07-29 17:32:54 CST"
     },
     "routed_8216": {
-      "active_enter_timestamp": "2026-07-29 12:51:36 CST",
-      "release": "c3e92f0f-20260729-m69-router-r19",
-      "timestamp_unchanged_during_8215_account_change": true
+      "main_pid": 495185,
+      "active_enter_timestamp": "2026-07-29 17:32:54 CST",
+      "release": "c3e92f0f-20260729-m69-router-r20",
+      "timestamp_unchanged_during_8215_account_change": true,
+      "standalone_8215_pid_and_timestamp_unchanged_during_r20": true
     }
   },
   "blockers": [
@@ -291,13 +324,14 @@
   "residual_risks": [
     "Cross-account continuity remains unverified and is not claimed.",
     "Pre-fix codex-web-router journal records may contain upstream IPC bodies or response headers. Per-unit deletion is unavailable without vacuuming unrelated system logs; retention and access must be handled operationally.",
-    "Release r17 deterministically removes the separate 1.942 KB startup-shim revalidation request, r18 compresses final HTML, and r19 reduces the Brotli main bundle by 120417 bytes, but live usable-screen observations remain variable and do not prove a stable end-to-end speedup.",
+    "Release r17 removes the separate startup-shim revalidation request, r18 compresses final HTML, r19 reduces the Brotli main bundle by 120417 bytes, and r20 makes the preload content-hash URL immutable, but live usable-screen observations remain variable and do not prove a stable end-to-end speedup.",
     "Standalone 8215 journal records created before its new stdout boundary may contain upstream IPC bodies. Per-unit deletion is unavailable without vacuuming unrelated system logs; retention and access must be handled operationally.",
     "The main bundle remains 3.174 MB over Brotli and 13.936 MB decoded; transfer, parse and renderer work remain the dominant likely optimization area without a safe upstream chunk boundary.",
     "The App Server timing probe shows its initialization and sampled methods are not the remaining multi-second startup component, but it does not prove an exact browser critical-path breakdown.",
     "Browser control plugin instrumentation errors were distinct from the served page and were excluded from codex-web performance evidence.",
     "Direct Tailnet HTTP still requires a browser compatibility shim; HTTPS remains preferable.",
-    "Every authorized Tailnet principal reaching 8216 can use the configured routed accounts and workspace authority."
+    "Every authorized Tailnet principal reaching 8216 can use the configured routed accounts and workspace authority.",
+    "One auxiliary 8216 thread-title request returned HTTP 405 and model-manager refreshes can time out; the fixed signed-in chat model path completed, but these remain operational follow-up work."
   ],
-  "updated_at": "2026-07-29T13:24:00+08:00"
+  "updated_at": "2026-07-29T18:40:09+08:00"
 }
