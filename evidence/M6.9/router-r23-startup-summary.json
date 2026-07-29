@@ -1,0 +1,148 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "continuation": "R23",
+  "implementation_mode": "clean-room",
+  "input_revision": "c978381407801fffaee72bad4958a282741f7bf0",
+  "implementation_revision": "9e312bc290b8ef8a5a117f96d19431bf113190cf",
+  "branch": "codex/m6-9-routed-failover-performance",
+  "objective": "Reduce the deterministic first-load transfer cost for the pinned 8216 codex-web release without changing the routed App Server, router, standalone 8215 services, account state or replay rules.",
+  "profile": {
+    "tailnet_transport": "DERP(tok)",
+    "tailscale_ping_ms_observed": [
+      154,
+      157
+    ],
+    "direct_connection_established": false,
+    "baseline_html_brotli_bytes": 4164,
+    "baseline_main_brotli_bytes": 3173689,
+    "baseline_main_tailnet_total_ms_single_observation": 7712,
+    "baseline_warm_reload_ms_single_observation": 590,
+    "baseline_new_page_composer_ms_single_observation": 11520,
+    "primary_observed_bottleneck": "The multi-megabyte main module crosses a DERP path before browser parse and renderer initialization.",
+    "stable_latency_claimed": false
+  },
+  "implementation": {
+    "tool": "integrations/codex-web-upstream/optimize-versioned-entrypoints.mjs",
+    "tool_sha256": "0ccc212e65187c2dd1b238ff7227dc2b96ab168d64f0e4745ba773ebe59b899c",
+    "exact_pinned_inputs_required": true,
+    "symlink_inputs_rejected": true,
+    "dynamic_entry_anchors_required": true,
+    "main_identity_sha256": "e2d356e06763a8287003e5a087acb09a09160a1d6bc8fbf9cecccdfdaf82b6b0",
+    "main_identity_bytes": 13936387,
+    "main_brotli_before_sha256": "0899d532efde663c13196219d5e89b355469969397739c2db890593740bf9be1",
+    "main_brotli_before_bytes": 3173689,
+    "main_brotli_after_sha256": "44f07fa4ca0c8011a7b6bcbeb8594ef48906747963c198488cd263954a17a149",
+    "main_brotli_after_bytes": 3117335,
+    "main_brotli_reduction_bytes": 56354,
+    "main_brotli_reduction_percent": 1.775,
+    "identity_bytes_changed": false,
+    "modulepreload_hints": [
+      "./assets/rpc-ArWg2Nqw.js",
+      "./assets/app-main-DW9SEGGt.js"
+    ],
+    "index_identity_sha256": "5e89e6e9cb38ebb82fde42526a113458d0072e40bd4cd9f10393a320e793bef9",
+    "index_gzip_sha256_linux": "5739d4a92f9ea0ef1f128da027486e12648cce9c22987d4ed88ef3e4c332a9e6",
+    "index_brotli_sha256": "e2b31240785ac7c894210293fc3ad875ac51ae7e54a3d5d8c09ef09da81e2ed8"
+  },
+  "tests": {
+    "focused": {
+      "command": "<bundled-node> --test packages/account-router/test/codex-web-upstream-fastpath.test.mjs",
+      "tests": 11,
+      "passed": 11,
+      "failed": 0
+    },
+    "complete_without_fixture_variables": {
+      "command": "<bundled-node> --test",
+      "tests": 268,
+      "passed": 243,
+      "failed": 0,
+      "skipped": 25,
+      "skip_reason": "Pinned codex-web fixture variables were intentionally absent."
+    },
+    "strict_matrix": {
+      "command": "M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "tests": 268,
+      "passed": 268,
+      "failed": 0,
+      "skipped": 0,
+      "unit": 150,
+      "integration": 71,
+      "e2e": 47,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    },
+    "pre_deployment_security_audit": {
+      "command": "M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "qualified": true,
+      "focused_tests": 85,
+      "passed": 85,
+      "repository_files_scanned": 332,
+      "findings": 0
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r23.sh",
+    "script_sha256": "da48f0acf0a6c792a9b1cbf933acd9a5ea6fff085837370df408e8aa6436692c",
+    "archive_sha256": "c0fec4758c37bce286b8550aa37e612523985a5eeb200e20044f3ebf51f0661e",
+    "first_attempt_rolled_back_before_activation": true,
+    "first_attempt_reason": "The script rejected a macOS-produced gzip file hash that differed from the exact Linux gzip output hash.",
+    "debug_attempt_rolled_back_before_activation": true,
+    "failed_attempts_changed_service_pids": false,
+    "final_attempt_succeeded": true,
+    "active_release": "c3e92f0f-20260729-m69-router-r23",
+    "router_pid": 524721,
+    "router_start_monotonic": 200897483122,
+    "routed_app_server_pid": 495033,
+    "routed_app_server_start_monotonic": 188703455553,
+    "routed_web_pid_after": 538278,
+    "routed_web_start_monotonic_after": 205386075197,
+    "standalone_app_server_pid": 508396,
+    "standalone_app_server_start_monotonic": 194490256322,
+    "standalone_web_pid": 510876,
+    "standalone_web_start_monotonic": 196497166049,
+    "standalone_release": "c3e92f0-20260729-tailnet-startup-r3",
+    "router_and_routed_app_server_unchanged": true,
+    "standalone_8215_unchanged": true,
+    "readiness_triplets": 20,
+    "readiness_triplets_passed": 20,
+    "sensitive_journal_matches": 0
+  },
+  "live_verification": {
+    "tailnet_8215_http_status": 200,
+    "tailnet_8215_total_ms_single_observation": 614.933,
+    "tailnet_8216_http_status": 200,
+    "tailnet_8216_total_ms_single_observation": 685.922,
+    "main_http_status": 200,
+    "main_brotli_bytes": 3117335,
+    "main_brotli_sha256": "44f07fa4ca0c8011a7b6bcbeb8594ef48906747963c198488cd263954a17a149",
+    "main_tailnet_total_ms_single_observation": 4212.628,
+    "main_cache_control": "public, max-age=31536000, immutable",
+    "main_vary_accept_encoding": true,
+    "browser_signed_in_codex_page_present": true,
+    "browser_composer_present": true,
+    "browser_navigation_ms_single_observation": 7397,
+    "browser_composer_ms_single_observation": 31390,
+    "browser_warm_reload_navigation_ms_single_observation": 662,
+    "browser_warm_composer_ms_single_observation": 14339,
+    "stable_end_to_end_speedup_claimed": false,
+    "model_request_sent": false,
+    "account_switch_tested": false
+  },
+  "safety": {
+    "standalone_8215_mutated": false,
+    "router_or_routed_app_server_restarted": false,
+    "credentials_read_or_copied": false,
+    "real_two_account_e2e_executed": false,
+    "semantic_sse_replay_rules_changed": false,
+    "cross_account_continuity_claimed": false,
+    "in_flight_resume_claimed": false
+  },
+  "residual_risks": [
+    "The dominant external path remains DERP(tok); direct Tailscale connectivity was not established.",
+    "The deterministic improvement is a 56354-byte Brotli reduction plus two early module hints. Single-run browser and transfer timings are noisy and do not prove a stable end-to-end latency improvement.",
+    "The unchanged content-hashed main URL means browsers that already cached the earlier Brotli representation can retain it until normal cache eviction; the optimization primarily benefits first-load or cache-miss clients.",
+    "The second credential remains isolated to standalone 8215, so real two-account failover and cross-account continuity remain unverified."
+  ],
+  "updated_at": "2026-07-29T22:16:31+08:00"
+}

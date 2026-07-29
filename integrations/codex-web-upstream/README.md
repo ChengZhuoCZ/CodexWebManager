@@ -151,8 +151,9 @@ node optimize-versioned-entrypoints.mjs \
 
 The adapter requires at least a 1% Brotli reduction and verifies both old and
 new compressed bytes against the unchanged identity asset. It must run only
-against an inactive routed successor. The standalone 8215 release is never an
-input or activation target.
+against an inactive routed successor. Any pinned entrypoint inherited as a
+compatibility symlink must first be materialized inside that successor. The
+standalone 8215 release is never a mutation or activation target.
 
 Build order is important: upstream build, compatibility/IPC patches, the
 authenticated Statsig logging patch, esbuild minification, optional Terser main

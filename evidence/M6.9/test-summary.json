@@ -16,9 +16,11 @@
   "r21_implementation_revision": "c2708371515d560ea024e8c7d1dfc2d5187fa6fb",
   "r22_continuation_input_revision": "67c62ca3c750c8982b43cca7741832c49477d8a4",
   "r22_implementation_revision": "f256483bee89137259e32bf158b4b1b24a4d9ff2",
+  "r23_continuation_input_revision": "c978381407801fffaee72bad4958a282741f7bf0",
+  "r23_implementation_revision": "9e312bc290b8ef8a5a117f96d19431bf113190cf",
   "standalone_8215_fix_revision": "d75c655c8fb3e3066245fec4060abd7aec5c4a46",
   "standalone_8215_full_access_revision": "acac3d5fdf6a77db8d84d85c3537b5d19614114f",
-  "implementation_revision": "f256483bee89137259e32bf158b4b1b24a4d9ff2",
+  "implementation_revision": "9e312bc290b8ef8a5a117f96d19431bf113190cf",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "commands": [
@@ -359,6 +361,68 @@
         "post_activation_linux_sandbox_error_matches": 0,
         "routed_8216_pids_and_timestamps_unchanged": true,
         "real_account_switch_executed": false
+      }
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/codex-web-upstream-fastpath.test.mjs && <bundled-node> --test",
+      "result": {
+        "focused_tests": 11,
+        "focused_passed": 11,
+        "focused_failed": 0,
+        "complete_tests": 268,
+        "complete_passed": 243,
+        "complete_failed": 0,
+        "complete_skipped": 25,
+        "fixture_dependent_skips_expected": true
+      }
+    },
+    {
+      "command": "M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": {
+        "tests": 268,
+        "passed": 268,
+        "failed": 0,
+        "skipped": 0,
+        "unit": 150,
+        "integration": 71,
+        "e2e": 47,
+        "real_account_configured": false,
+        "account_switch_tested": false
+      }
+    },
+    {
+      "command": "M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": {
+        "qualified": true,
+        "focused_tests": 85,
+        "passed": 85,
+        "failed": 0,
+        "repository_files_scanned": 332,
+        "findings": 0,
+        "audit_stage": "pre_deployment"
+      }
+    },
+    {
+      "command": "hash-pinned rollback-capable R23 8216-only deployment plus Tailnet/browser/service/readiness/journal probes",
+      "result": {
+        "active_release": "c3e92f0f-20260729-m69-router-r23",
+        "main_identity_bytes": 13936387,
+        "main_identity_changed": false,
+        "main_brotli_before_bytes": 3173689,
+        "main_brotli_after_bytes": 3117335,
+        "main_brotli_reduction_bytes": 56354,
+        "modulepreload_hint_count": 2,
+        "first_cross_platform_gzip_hash_attempt_rolled_back_before_activation": true,
+        "final_deployment_succeeded": true,
+        "standalone_8215_unchanged": true,
+        "router_and_routed_app_server_unchanged": true,
+        "readiness_passed": 20,
+        "readiness_samples": 20,
+        "sensitive_journal_matches": 0,
+        "signed_in_composer_verified": true,
+        "stable_end_to_end_speedup_claimed": false,
+        "model_request_sent": false,
+        "account_switch_tested": false
       }
     }
   ],
@@ -704,6 +768,60 @@
     "deliberate_prompt_or_generation_sent": false,
     "account_switch_tested": false
   },
+  "r23_versioned_entrypoints": {
+    "implementation_revision": "9e312bc290b8ef8a5a117f96d19431bf113190cf",
+    "tool_sha256": "0ccc212e65187c2dd1b238ff7227dc2b96ab168d64f0e4745ba773ebe59b899c",
+    "exact_pinned_inputs_required": true,
+    "symlink_inputs_rejected": true,
+    "dynamic_entry_anchors_required": true,
+    "focused_tests": {
+      "tests": 11,
+      "passed": 11,
+      "failed": 0
+    },
+    "strict_matrix": {
+      "tests": 268,
+      "passed": 268,
+      "failed": 0,
+      "skipped": 0,
+      "unit": 150,
+      "integration": 71,
+      "e2e": 47,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    },
+    "pre_deployment_security_audit": {
+      "qualified": true,
+      "focused_tests": 85,
+      "passed": 85,
+      "repository_files_scanned": 332,
+      "findings": 0
+    },
+    "deployment": {
+      "script_sha256": "da48f0acf0a6c792a9b1cbf933acd9a5ea6fff085837370df408e8aa6436692c",
+      "archive_sha256": "c0fec4758c37bce286b8550aa37e612523985a5eeb200e20044f3ebf51f0661e",
+      "active_release": "c3e92f0f-20260729-m69-router-r23",
+      "first_cross_platform_gzip_hash_attempt_rolled_back_before_activation": true,
+      "final_attempt_succeeded": true,
+      "router_and_routed_app_server_unchanged": true,
+      "standalone_8215_unchanged": true,
+      "readiness_samples": 20,
+      "readiness_200_samples": 20,
+      "sensitive_journal_matches": 0
+    },
+    "live_verification": {
+      "main_brotli_before_bytes": 3173689,
+      "main_brotli_after_bytes": 3117335,
+      "main_brotli_reduction_bytes": 56354,
+      "main_brotli_sha256": "44f07fa4ca0c8011a7b6bcbeb8594ef48906747963c198488cd263954a17a149",
+      "modulepreload_hint_count": 2,
+      "tailnet_main_total_ms_single_observation": 4212.628,
+      "signed_in_composer_verified": true,
+      "stable_end_to_end_speedup_claimed": false,
+      "model_request_sent": false,
+      "account_switch_tested": false
+    }
+  },
   "standalone_8215_startup_repair": {
     "explicit_parallel_user_request": true,
     "cause": "The standalone Web process retained a dead one-shot Unix-socket proxy after the App Server replaced its socket.",
@@ -721,7 +839,7 @@
     "routed_8216_services_unchanged": true
   },
   "deployed_asset": {
-    "release": "c3e92f0f-20260729-m69-router-r20",
+    "release": "c3e92f0f-20260729-m69-router-r23",
     "asset_url": "./assets/app-initial-BTphDPeq.js?v=e2d356e06763a828",
     "preload_url": "./assets/preload-65708a1c.js",
     "preload_cache_control": "public, max-age=31536000, immutable",
@@ -731,14 +849,16 @@
     "served_preload_sha256": "65708a1c2c053568691f6691b76290a6bd07df09ea84ef1186ac77090649fc5a",
     "served_stylesheet_sha256": "3db81509f04faef314889c39d777a310297c2856330f52fd994a07c67a9c7774",
     "served_gzip_sha256": "1c6c15a253441c4afd366e46dcadc3056a16d5be85c43ec755324c2064cc9a1c",
-    "served_brotli_sha256": "0899d532efde663c13196219d5e89b355469969397739c2db890593740bf9be1",
+    "served_brotli_sha256": "44f07fa4ca0c8011a7b6bcbeb8594ef48906747963c198488cd263954a17a149",
+    "served_brotli_bytes": 3117335,
+    "served_brotli_reduction_bytes": 56354,
     "served_preload_gzip_sha256": "ee83a0334b52d8557a7b4252e02addf34687082b584a769f06091c2dc5355d32",
     "served_preload_brotli_sha256": "815f74c342f4046a6c1d0e01276adfb5dca47a0ec0771532f5bedfae62b07b68",
-    "served_index_sha256": "20703fc1b770eeb40a23fd604b46ed5efb5f2d95a93eb7e51cec30b39ef60d59",
-    "served_index_gzip_sha256": "3f497714830ce20ec895cb9211fd3b690f5695a1e71ef8fbaa06d83c88a9cf21",
-    "served_index_brotli_sha256": "618f6e08f54baecba5eebdceeed74b4d75030f846d8848e0e02730489b573c11",
-    "served_index_gzip_bytes": 5967,
-    "served_index_brotli_bytes": 4164,
+    "served_index_sha256": "5e89e6e9cb38ebb82fde42526a113458d0072e40bd4cd9f10393a320e793bef9",
+    "served_index_gzip_sha256": "5739d4a92f9ea0ef1f128da027486e12648cce9c22987d4ed88ef3e4c332a9e6",
+    "served_index_brotli_sha256": "e2b31240785ac7c894210293fc3ad875ac51ae7e54a3d5d8c09ef09da81e2ed8",
+    "served_index_brotli_bytes": 4201,
+    "modulepreload_hint_count": 2,
     "startup_fastpath_sha256": "3eb857920a3be9ceb4ff9be0c0746199dab0f8c4e4a02d3762380508a429aabd",
     "startup_fastpath_inlined": true,
     "external_startup_script_count": 0,
