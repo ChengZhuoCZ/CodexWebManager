@@ -149,6 +149,24 @@ test("standalone upstream App Server remains isolated from the account router", 
   assert.doesNotMatch(command, /(?:Bearer\s+|Authorization=|refresh_token|access_token|sk-[A-Za-z0-9_-]{12,})/i);
 });
 
+test("standalone upstream codex-web never journals verbose IPC or model bodies", async () => {
+  const { content, unit } = await loadUnit("codex-web-upstream.service");
+  assert.equal(
+    only(unit, "Service.StandardOutput"),
+    "null",
+    "the upstream Electron compatibility layer must not journal IPC or model bodies",
+  );
+  assert.equal(only(unit, "Service.StandardError"), "journal");
+  assert.equal(
+    only(unit, "Service.ExecStart"),
+    "/usr/bin/node /opt/0xcaff-codex-web/current/src/server/main.js --host 127.0.0.1 --port 8215",
+  );
+  assert.doesNotMatch(
+    content,
+    /0\.0\.0\.0|\[::\]|(?:Bearer\s+|Authorization=|refresh_token|access_token|sk-[A-Za-z0-9_-]{12,})/i,
+  );
+});
+
 test("routed upstream codex-web uses separate state, socket, and port without touching 8215", async () => {
   const [
     { content: appContent, unit: app },

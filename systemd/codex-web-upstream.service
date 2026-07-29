@@ -15,6 +15,8 @@ Environment=CODEX_CLI_PATH=/opt/0xcaff-codex-web/bin/codex-remote-proxy.mjs
 Environment=CODEX_REAL_CLI_PATH=/usr/local/bin/codex
 Environment=CODEX_UNIX_SOCKET=/run/codex-web-upstream-app-server/app-server.sock
 ExecStart=/usr/bin/node /opt/0xcaff-codex-web/current/src/server/main.js --host 127.0.0.1 --port 8215
+StandardOutput=null
+StandardError=journal
 Restart=on-failure
 RestartSec=3
 TimeoutStopSec=20
