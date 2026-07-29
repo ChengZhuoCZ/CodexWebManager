@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly ARCHIVE=/tmp/codex-account-router-0.2.3-linux-x64.tar.gz
-readonly ARCHIVE_SHA256=6ffe698215dd706bcc2cb45dab6ce7fe1f8f28c97455b5b942d27c9becf3673f
-readonly RELEASE_NAME=codex-account-router-0.2.3-linux-x64
+readonly ARCHIVE=/tmp/codex-account-router-0.2.4-linux-x64.tar.gz
+readonly ARCHIVE_SHA256=8eef578534a56cf5778b0f0665337bfc1da5040d3118627327a8d4924428f7dd
+readonly RELEASE_NAME=codex-account-router-0.2.4-linux-x64
 readonly ROUTER_ROOT=/opt/codex-account-router
 readonly ROUTER_CURRENT="${ROUTER_ROOT}/current"
 readonly ROUTER_UNIT=codex-account-router.service
@@ -104,7 +104,7 @@ tar --no-same-owner -xzf "$ARCHIVE" -C "$extract_directory"
 readonly extracted_release="${extract_directory}/${RELEASE_NAME}"
 [[ -f "${extracted_release}/manifest.json" ]]
 [[ -x "${extracted_release}/install.sh" ]]
-[[ "$(node -p "require('${extracted_release}/lib/account-router/package.json').version")" == 0.2.3 ]]
+[[ "$(node -p "require('${extracted_release}/lib/account-router/package.json').version")" == 0.2.4 ]]
 
 PREFIX="$ROUTER_ROOT" sh "${extracted_release}/install.sh"
 current_switched=1
