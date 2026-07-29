@@ -349,6 +349,9 @@
         "root_or_passwordless_sudo_granted": false,
         "standalone_8215_http_status": 200,
         "routed_8216_http_status": 200,
+        "config_read_sandbox_mode": "danger-full-access",
+        "config_read_approval_policy": "never",
+        "config_read_error": false,
         "post_activation_linux_sandbox_error_matches": 0,
         "routed_8216_pids_and_timestamps_unchanged": true,
         "real_account_switch_executed": false
@@ -573,6 +576,9 @@
     "routed_web_pid_unchanged": 495185,
     "routed_app_server_pid_unchanged": 495033,
     "router_pid_unchanged": 495006,
+    "config_read_sandbox_mode": "danger-full-access",
+    "config_read_approval_policy": "never",
+    "config_read_error": false,
     "post_activation_linux_sandbox_error_matches": 0
   },
   "deployed_asset": {

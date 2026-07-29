@@ -40,6 +40,10 @@
     {
       "command": "HTTP, service-property, process-argv, journal and SHA-256 post-checks",
       "result": "8215 HTTP 200; 8216 HTTP 200; effective argv and systemd properties matched; 0 bwrap/NETLINK_ROUTE/uid-map errors after final activation"
+    },
+    {
+      "command": "standalone no-model app-server config/read probe using the deployed CLI overrides",
+      "result": "sandbox_mode=danger-full-access; approval_policy=never; no RPC error"
     }
   ],
   "deployment": {
@@ -68,7 +72,10 @@
       "no_new_privileges": "no",
       "restrict_suid_sgid": "no",
       "restrict_address_families": "~",
-      "read_write_paths_allowlist": []
+      "read_write_paths_allowlist": [],
+      "config_read_sandbox_mode": "danger-full-access",
+      "config_read_approval_policy": "never",
+      "config_read_error": false
     },
     "routed_8216": {
       "http_status": 200,

@@ -81,6 +81,9 @@
       "drop_in_sha256": "ccbd923f344b284aa2836a40549f44a30923b22360a619641056d6a56b5ea8f4",
       "deployment_script_sha256": "6da79c52065ee3d08a622895af45b95d452ac07d2a58749ebb2f77857dcc39eb",
       "failed_assertion_attempts_rolled_back": 2,
+      "config_read_sandbox_mode": "danger-full-access",
+      "config_read_approval_policy": "never",
+      "config_read_error": false,
       "post_activation_linux_sandbox_error_matches": 0,
       "standalone_web_pid_unchanged": 466019
     }
