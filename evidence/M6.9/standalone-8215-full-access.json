@@ -1,0 +1,98 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "operation": "user-authorized standalone 8215 Codex Full Access override",
+  "implementation_mode": "clean-room",
+  "workspace_input_revision": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
+  "implementation_revision": "acac3d5fdf6a77db8d84d85c3537b5d19614114f",
+  "scope": {
+    "standalone_8215_only": true,
+    "routed_8216_must_remain_unchanged": true,
+    "router_account_enrollment_executed": false,
+    "real_account_switch_executed": false
+  },
+  "configuration": {
+    "codex_sandbox_mode": "danger-full-access",
+    "codex_approval_policy": "never",
+    "cli_override_has_highest_precedence": true,
+    "outer_systemd_filesystem_and_network_restrictions_disabled": true,
+    "service_user": "codex",
+    "service_group": "codex",
+    "root_or_passwordless_sudo_granted": false,
+    "unix_permissions_still_apply": true,
+    "drop_in_sha256": "ccbd923f344b284aa2836a40549f44a30923b22360a619641056d6a56b5ea8f4",
+    "deployment_script_sha256": "6da79c52065ee3d08a622895af45b95d452ac07d2a58749ebb2f77857dcc39eb"
+  },
+  "test_first": {
+    "command": "<bundled-node> --test packages/account-router/test/systemd-units.test.mjs",
+    "initial_result": "12 passed, 1 failed because the 8215-only drop-in did not exist",
+    "final_result": "14 passed, 0 failed"
+  },
+  "verification": [
+    {
+      "command": "bash -n evidence/M6.9/deploy-8215-full-access.sh && git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "sudo bash /tmp/deploy-8215-full-access.sh /tmp/full-access.conf",
+      "result": "8215_full_access=verified; final exit 0"
+    },
+    {
+      "command": "HTTP, service-property, process-argv, journal and SHA-256 post-checks",
+      "result": "8215 HTTP 200; 8216 HTTP 200; effective argv and systemd properties matched; 0 bwrap/NETLINK_ROUTE/uid-map errors after final activation"
+    }
+  ],
+  "deployment": {
+    "final_activated_at": "2026-07-29T19:09:21+08:00",
+    "failed_assertion_attempts_rolled_back": 2,
+    "rollback_restored_original_limited_unit_each_time": true,
+    "base_8215_app_server_unit_sha256_unchanged": "6225600dbffcca2ab46e79e6c6e41e3fdd56c1d813760c6d64ac7dc46205501e",
+    "base_8216_app_server_unit_sha256_unchanged": "dd439dece450f99fb8d1ecd2731fbe8d21ea40661c8144e8edf7992045367160"
+  },
+  "runtime": {
+    "standalone_8215_web": {
+      "status": "active",
+      "http_status": 200,
+      "main_pid_unchanged": 466019,
+      "start_monotonic_unchanged": 173291171117
+    },
+    "standalone_8215_app_server": {
+      "status": "active",
+      "main_pid": 508396,
+      "start_monotonic": 194490256322,
+      "protect_system": "no",
+      "protect_home": "no",
+      "private_tmp": "no",
+      "private_devices": "no",
+      "private_mounts": "no",
+      "no_new_privileges": "no",
+      "restrict_suid_sgid": "no",
+      "restrict_address_families": "~",
+      "read_write_paths_allowlist": []
+    },
+    "routed_8216": {
+      "http_status": 200,
+      "web_pid_unchanged": 495185,
+      "web_start_monotonic_unchanged": 188703695080,
+      "app_server_pid_unchanged": 495033,
+      "app_server_start_monotonic_unchanged": 188703455553,
+      "router_pid_unchanged": 495006,
+      "router_start_monotonic_unchanged": 188703181053,
+      "release_unchanged": "c3e92f0f-20260729-m69-router-r20"
+    }
+  },
+  "official_references": [
+    "https://learn.chatgpt.com/docs/agent-approvals-security#os-level-sandbox",
+    "https://learn.chatgpt.com/docs/config-file/config-basic#configuration-precedence"
+  ],
+  "claims": {
+    "cross_account_continuity_verified": false,
+    "seamless_account_switch_claimed": false,
+    "in_flight_computation_resume_claimed": false
+  },
+  "residual_risks": [
+    "Any prompt injection or malicious repository content handled by 8215 can read or modify every host path available to the unprivileged codex Unix account and can use unrestricted network address families.",
+    "The codex Unix account was not granted root or passwordless sudo, so host administration that requires root remains unavailable.",
+    "No model request or real account-switch test was needed or executed for this permission-only change."
+  ]
+}

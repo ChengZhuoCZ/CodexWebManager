@@ -13,6 +13,7 @@
   "r20_continuation_input_revision": "90a87e020cb9c4f6387656399603ec3893524f59",
   "r20_implementation_revision": "83d062d337c75c05bb4797d442fe1d8fe4ad255b",
   "standalone_8215_fix_revision": "d75c655c8fb3e3066245fec4060abd7aec5c4a46",
+  "standalone_8215_full_access_revision": "acac3d5fdf6a77db8d84d85c3537b5d19614114f",
   "implementation_revision": "83d062d337c75c05bb4797d442fe1d8fe4ad255b",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
@@ -322,6 +323,36 @@
         "standalone_8215_pid_and_timestamp_unchanged": true,
         "real_two_account_switch_executed": false
       }
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/systemd-units.test.mjs && bash -n evidence/M6.9/deploy-8215-full-access.sh",
+      "result": {
+        "passed": true,
+        "tests": 14,
+        "test_first_failure_observed": true,
+        "standalone_only_drop_in": true,
+        "rollback_capable": true,
+        "restart_allowlist": [
+          "codex-web-upstream-app-server.service"
+        ],
+        "routed_8216_restart_forbidden": true
+      }
+    },
+    {
+      "command": "rollback-capable standalone 8215 Full Access deployment and live systemd/process/HTTP/journal probes",
+      "result": {
+        "passed": true,
+        "codex_sandbox_mode": "danger-full-access",
+        "codex_approval_policy": "never",
+        "outer_systemd_restrictions_disabled": true,
+        "service_identity": "codex:codex",
+        "root_or_passwordless_sudo_granted": false,
+        "standalone_8215_http_status": 200,
+        "routed_8216_http_status": 200,
+        "post_activation_linux_sandbox_error_matches": 0,
+        "routed_8216_pids_and_timestamps_unchanged": true,
+        "real_account_switch_executed": false
+      }
     }
   ],
   "failure_injections": {
@@ -410,6 +441,10 @@
     {
       "command": "first post-deployment curl timing label",
       "result": "rejected because seconds were mislabeled as milliseconds; the corrected evidence records total_seconds and makes no stable latency claim"
+    },
+    {
+      "command": "first two standalone 8215 Full Access post-activation assertions",
+      "result": "both rejected only over-strict evidence serialization checks and automatically restored the original limited configuration; the corrected verifier then passed"
     }
   ],
   "live_browser": {
@@ -521,6 +556,24 @@
     "model_check_journal_lines": 36,
     "sensitive_shape_matches": 0,
     "fixture_sentinel_matches": 0
+  },
+  "standalone_8215_full_access": {
+    "implementation_revision": "acac3d5fdf6a77db8d84d85c3537b5d19614114f",
+    "sandbox_mode": "danger-full-access",
+    "approval_policy": "never",
+    "systemd_outer_restrictions_disabled": true,
+    "service_user": "codex",
+    "service_group": "codex",
+    "root_or_passwordless_sudo_granted": false,
+    "drop_in_sha256": "ccbd923f344b284aa2836a40549f44a30923b22360a619641056d6a56b5ea8f4",
+    "deployment_script_sha256": "6da79c52065ee3d08a622895af45b95d452ac07d2a58749ebb2f77857dcc39eb",
+    "final_app_server_pid": 508396,
+    "final_app_server_start_monotonic": 194490256322,
+    "standalone_web_pid_unchanged": 466019,
+    "routed_web_pid_unchanged": 495185,
+    "routed_app_server_pid_unchanged": 495033,
+    "router_pid_unchanged": 495006,
+    "post_activation_linux_sandbox_error_matches": 0
   },
   "deployed_asset": {
     "release": "c3e92f0f-20260729-m69-router-r20",

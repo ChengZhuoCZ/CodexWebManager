@@ -45,6 +45,7 @@
   "standalone_8215": {
     "user_authorized_interrupt_repair": true,
     "user_authorized_account_change": true,
+    "user_authorized_full_access": true,
     "release": "c3e92f0-20260729-tailnet-startup-r3",
     "pre_account_change_active_enter_timestamp": "2026-07-29 11:57:33 CST",
     "active_enter_timestamp": "2026-07-29 13:16:02 CST",
@@ -52,7 +53,9 @@
     "standard_error": "journal",
     "http_status": 200,
     "pre_account_change_app_server_active_enter_timestamp": "2026-07-29 03:44:26 CST",
-    "app_server_active_enter_timestamp": "2026-07-29 13:16:01 CST",
+    "pre_full_access_app_server_active_enter_timestamp": "2026-07-29 13:16:01 CST",
+    "app_server_active_enter_timestamp": "2026-07-29 19:09:21 CST",
+    "app_server_main_pid": 508396,
     "app_server_restarted": true,
     "credential_source_isolated": true,
     "credential_mode": "0600",
@@ -67,7 +70,20 @@
     "post_switch_model_observation_ms": 27319,
     "post_boundary_journal_lines": 36,
     "post_boundary_sensitive_shape_matches": 0,
-    "post_boundary_fixture_sentinel_matches": 0
+    "post_boundary_fixture_sentinel_matches": 0,
+    "full_access": {
+      "implementation_revision": "acac3d5fdf6a77db8d84d85c3537b5d19614114f",
+      "sandbox_mode": "danger-full-access",
+      "approval_policy": "never",
+      "systemd_outer_restrictions_disabled": true,
+      "service_identity": "codex:codex",
+      "root_or_passwordless_sudo_granted": false,
+      "drop_in_sha256": "ccbd923f344b284aa2836a40549f44a30923b22360a619641056d6a56b5ea8f4",
+      "deployment_script_sha256": "6da79c52065ee3d08a622895af45b95d452ac07d2a58749ebb2f77857dcc39eb",
+      "failed_assertion_attempts_rolled_back": 2,
+      "post_activation_linux_sandbox_error_matches": 0,
+      "standalone_web_pid_unchanged": 466019
+    }
   },
   "routed_app_server": {
     "restarted_by_m6_9_r17": false,
@@ -83,6 +99,7 @@
     "standard_output": "null",
     "standard_error": "journal",
     "current_release": "c3e92f0f-20260729-m69-router-r20",
+    "pid_and_timestamp_unchanged_during_8215_full_access": true,
     "standalone_8215_pid_preserved": 466019,
     "standalone_8215_timestamp_preserved": "2026-07-29 13:16:02 CST",
     "standalone_app_server_pid_preserved": 465713,
