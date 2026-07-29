@@ -62,7 +62,7 @@ function quotaSse(response, usedPercent) {
         secondary: {
           used_percent: usedPercent,
           window_minutes: 10_080,
-          reset_at: 1_785_196_800,
+          reset_at: 1_785_200_400,
         },
       },
     })}\n\n`,

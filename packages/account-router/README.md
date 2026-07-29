@@ -171,7 +171,9 @@ internal public-config key, observed time, remaining ratio, and reset time; old 
 that field remain valid. A restored weekly entry is discarded when its explicit reset timestamp is
 at or before the startup clock, and the next atomic save removes that historical entry. Restored
 open/half-open health and unexpired Weekly quota are reflected in sanitized admin status.
-Persistence failure makes readiness and later selection fail closed.
+Protected status reads also prune an observation once a running process reaches that explicit reset
+boundary, refresh the sanitized panel, and queue the private state update without changing an
+independent circuit cooldown. Persistence failure makes readiness and later selection fail closed.
 
 Release `0.2.0` and later include `bin/codex-stack-deploy`. It validates schema-1 configuration/state,
 creates private snapshots that exclude credentials, atomically activates immutable releases, and

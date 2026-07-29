@@ -196,6 +196,13 @@ function observationFromStateEntry(entry) {
   });
 }
 
+function resetBoundaryReached(observation, currentTime) {
+  return (
+    observation.weekly.resets_at !== null &&
+    Date.parse(observation.weekly.resets_at) <= currentTime
+  );
+}
+
 export function normalizeWeeklyQuotaStateEntries(entries) {
   if (!Array.isArray(entries) || entries.length > MAX_ACCOUNTS) {
     throw new Error("weekly quota state must be a bounded array");
@@ -243,14 +250,17 @@ export function createWeeklyQuotaTracker({
   for (const entry of normalizeWeeklyQuotaStateEntries(initialState)) {
     if (!known.has(entry.account_id)) continue;
     const observation = observationFromStateEntry(entry).observation;
-    if (
-      observation.weekly.resets_at !== null &&
-      Date.parse(observation.weekly.resets_at) <= restoredAt
-    ) {
+    if (resetBoundaryReached(observation, restoredAt)) {
       continue;
     }
     observations.set(entry.account_id, observation);
   }
+  const unexpiredObservations = () => {
+    if (observations.size === 0) return [];
+    const currentTime = readClock(now);
+    return [...observations.entries()].filter(([, observation]) =>
+      !resetBoundaryReached(observation, currentTime));
+  };
   const requireAccount = (accountId) => {
     if (!known.has(accountId)) throw new Error("unknown account");
   };
@@ -269,11 +279,25 @@ export function createWeeklyQuotaTracker({
     },
     read(accountId) {
       requireAccount(accountId);
-      return observations.get(accountId) ?? null;
+      const observation = observations.get(accountId) ?? null;
+      if (observation === null) return null;
+      return resetBoundaryReached(observation, readClock(now)) ? null : observation;
+    },
+    pruneExpired() {
+      if (observations.size === 0) return Object.freeze([]);
+      const currentTime = readClock(now);
+      const expired = [];
+      for (const [accountId, observation] of observations) {
+        if (!resetBoundaryReached(observation, currentTime)) continue;
+        observations.delete(accountId);
+        expired.push(accountId);
+      }
+      expired.sort();
+      return Object.freeze(expired);
     },
     exportState() {
       return normalizeWeeklyQuotaStateEntries(
-        [...observations.entries()].map(([accountId, observation]) => ({
+        unexpiredObservations().map(([accountId, observation]) => ({
           account_id: accountId,
           observed_at: observation.observed_at,
           remaining_ratio: observation.weekly.remaining_ratio,

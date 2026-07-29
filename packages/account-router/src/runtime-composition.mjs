@@ -331,6 +331,15 @@ export function createRuntimeComposition({
     });
   }
 
+  function refreshExpiredWeeklyQuota() {
+    const expiredAccountIds = quotaTracker.pruneExpired();
+    if (expiredAccountIds.length === 0) return;
+    for (const accountId of expiredAccountIds) {
+      refreshAvailableStatus(accountId);
+    }
+    queueRuntimeStatePersistence();
+  }
+
   function onWeeklyQuotaObservation({ accountId, observation }) {
     quotaTracker.record(accountId, observation);
     if (
@@ -484,6 +493,7 @@ export function createRuntimeComposition({
     authenticator,
     state: adminState,
     eventBroker,
+    onStatusRequest: refreshExpiredWeeklyQuota,
     onSwitchRequest,
   });
   const adminService = createRouterService({

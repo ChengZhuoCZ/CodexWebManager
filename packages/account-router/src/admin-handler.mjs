@@ -89,6 +89,7 @@ export function createAdminHandler({
   authenticator,
   state,
   eventBroker,
+  onStatusRequest = null,
   onSwitchRequest = null,
   requestBodyLimitBytes = 8 * 1024,
   heartbeatMs = 15_000,
@@ -104,6 +105,9 @@ export function createAdminHandler({
   }
   if (onSwitchRequest !== null && typeof onSwitchRequest !== "function") {
     throw new TypeError("onSwitchRequest must be a function");
+  }
+  if (onStatusRequest !== null && typeof onStatusRequest !== "function") {
+    throw new TypeError("onStatusRequest must be a function");
   }
   if (!Number.isSafeInteger(requestBodyLimitBytes) || requestBodyLimitBytes < 256 || requestBodyLimitBytes > 1024 * 1024) {
     throw new Error("requestBodyLimitBytes must be an integer from 256 through 1048576");
@@ -140,6 +144,12 @@ export function createAdminHandler({
     if (pathname === "/v1/status" || pathname === "/v1/accounts") {
       if (!new Set(["GET", "HEAD"]).has(request.method)) {
         sendJson(request, response, 405, { error: "method_not_allowed" }, { allow: "GET, HEAD" });
+        return;
+      }
+      try {
+        await onStatusRequest?.();
+      } catch {
+        sendJson(request, response, 503, { error: "status_refresh_failed" });
         return;
       }
       const payload =

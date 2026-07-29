@@ -78,6 +78,7 @@ function runtimeOptions({
   accounts = [account()],
   circuitStateStore,
   initialCircuitState,
+  now = () => NOW,
   upstreamOrigin,
 }) {
   return {
@@ -93,7 +94,7 @@ function runtimeOptions({
     },
     initialCircuitState,
     modelPort: 0,
-    now: () => NOW,
+    now,
     secretRegistry: registry(),
     upstreamOrigin,
   };
@@ -281,6 +282,44 @@ test("restart discards a persisted weekly snapshot at its explicit reset boundar
   const status = await adminStatus(runtime);
   assert.equal(status.accounts[0].weekly_remaining_ratio, null);
   assert.equal(status.accounts[0].snapshot_observed_at, null);
+  await runtime.stop();
+  assert.deepEqual((await circuitStateStore.load()).weekly_quota, []);
+});
+
+test("a running router clears persisted Weekly display at the explicit reset boundary", async (context) => {
+  let currentTime = NOW;
+  const circuitStateStore = await privateStateStore(context);
+  const breaker = createCircuitBreaker({ now: () => currentTime });
+  breaker.recordFailure("fixture-account-a", { kind: "quota_exhausted" });
+  await circuitStateStore.save({
+    ...breaker.exportState(),
+    weekly_quota: [{
+      account_id: "fixture-account-a",
+      observed_at: "2026-07-27T07:00:00.000Z",
+      remaining_ratio: 0,
+      resets_at: "2026-07-27T08:00:01.000Z",
+    }],
+  });
+
+  const runtime = createRuntimeComposition(runtimeOptions({
+    circuitStateStore,
+    initialCircuitState: await circuitStateStore.load(),
+    now: () => currentTime,
+    upstreamOrigin: "http://127.0.0.1:1",
+  }));
+  context.after(() => runtime.stop());
+  await runtime.start();
+  assert.equal((await adminStatus(runtime)).accounts[0].weekly_remaining_ratio, 0);
+
+  currentTime = NOW + 1_000;
+  const resetStatus = await adminStatus(runtime);
+  assert.equal(resetStatus.accounts[0].weekly_remaining_ratio, null);
+  assert.equal(resetStatus.accounts[0].snapshot_observed_at, null);
+  assert.equal(resetStatus.accounts[0].state, "quota_exhausted");
+  assert.equal(
+    resetStatus.accounts[0].cooldown_until,
+    "2026-07-27T09:00:00.000Z",
+  );
   await runtime.stop();
   assert.deepEqual((await circuitStateStore.load()).weekly_quota, []);
 });

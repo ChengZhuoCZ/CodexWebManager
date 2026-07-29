@@ -25,7 +25,10 @@ function fixtureCatalog() {
   ]);
 }
 
-async function createFixture(context, { onSwitchRequest, authenticator = undefined } = {}) {
+async function createFixture(
+  context,
+  { onStatusRequest, onSwitchRequest, authenticator = undefined } = {},
+) {
   const catalog = fixtureCatalog();
   const broker = createEventBroker();
   const state = createAdminState({ accountCatalog: catalog, eventBroker: broker });
@@ -34,6 +37,7 @@ async function createFixture(context, { onSwitchRequest, authenticator = undefin
       authenticator === undefined ? createAdminAuthenticator({ token: ADMIN_TOKEN }) : authenticator,
     state,
     eventBroker: broker,
+    onStatusRequest,
     onSwitchRequest,
     requestBodyLimitBytes: 1_024,
     heartbeatMs: 0,
@@ -80,6 +84,27 @@ test("returns 503 for admin endpoints when admin authentication is not configure
   const response = await fetch(`${origin}/v1/status`, { headers: AUTHORIZATION });
   assert.equal(response.status, 503);
   assert.equal((await response.json()).error, "admin_auth_not_configured");
+});
+
+test("refreshes protected status lazily and fails closed when refresh fails", async (context) => {
+  let refreshes = 0;
+  const { origin } = await createFixture(context, {
+    onStatusRequest() {
+      refreshes += 1;
+    },
+  });
+  assert.equal((await fetch(`${origin}/v1/status`, { headers: AUTHORIZATION })).status, 200);
+  assert.equal((await fetch(`${origin}/v1/accounts`, { headers: AUTHORIZATION })).status, 200);
+  assert.equal(refreshes, 2);
+
+  const failing = await createFixture(context, {
+    onStatusRequest() {
+      throw new Error("fixture refresh failure");
+    },
+  });
+  const response = await fetch(`${failing.origin}/v1/status`, { headers: AUTHORIZATION });
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), { error: "status_refresh_failed" });
 });
 
 test("validates and records an injected manual switch without claiming seamless continuity", async (context) => {

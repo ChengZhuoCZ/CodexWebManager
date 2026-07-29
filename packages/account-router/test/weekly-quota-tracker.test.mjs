@@ -128,6 +128,22 @@ test("does not restore a weekly snapshot at or after its explicit reset boundary
   assert.deepEqual(tracker.exportState(), []);
 });
 
+test("hides and prunes a live weekly observation at its explicit reset boundary", () => {
+  let currentTime = OBSERVED_AT_MS;
+  const tracker = createWeeklyQuotaTracker({
+    accountIds: ["account-a"],
+    now: () => currentTime,
+  });
+  assert.equal(tracker.observe("account-a", weeklyEvent()), true);
+  assert.equal(tracker.read("account-a").weekly.remaining_ratio, 0.75);
+
+  currentTime += 60 * 60_000;
+  assert.equal(tracker.read("account-a"), null);
+  assert.deepEqual(tracker.exportState(), []);
+  assert.deepEqual(tracker.pruneExpired(), ["account-a"]);
+  assert.deepEqual(tracker.pruneExpired(), []);
+});
+
 test("extracts only a codex.rate_limits JSON object from bounded SSE bytes", () => {
   const event = weeklyEvent({ usedPercent: 100 });
   const bytes = Buffer.from(
