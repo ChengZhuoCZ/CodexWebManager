@@ -5,6 +5,11 @@ import { constants as fsConstants, promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Script } from "node:vm";
+import {
+  brotliCompressSync,
+  constants as zlibConstants,
+  gzipSync,
+} from "node:zlib";
 
 const ASSET_URL = "./assets/app-initial-BTphDPeq.js";
 const INDEX_NAME = "index.html";
@@ -34,6 +39,17 @@ function countOccurrences(value, needle) {
 
 function sha256(bytes) {
   return createHash("sha256").update(bytes).digest("hex");
+}
+
+function precompress(bytes) {
+  return Object.freeze({
+    gzip: gzipSync(bytes, { level: 9 }),
+    brotli: brotliCompressSync(bytes, {
+      params: {
+        [zlibConstants.BROTLI_PARAM_QUALITY]: 11,
+      },
+    }),
+  });
 }
 
 async function readRegularFile(filePath, maximum) {
@@ -139,6 +155,8 @@ export async function inlineVersionedStartupFastpathFile({
   expectedStartupFastpathSha256,
 } = {}) {
   let temporaryIndex;
+  let temporaryIndexGzip;
+  let temporaryIndexBrotli;
   try {
     const index = assertAbsolute(indexFile, "index file");
     const startupFastpath = assertAbsolute(
@@ -173,16 +191,33 @@ export async function inlineVersionedStartupFastpathFile({
       indexInput.bytes,
       startupFastpathInput.bytes,
     );
+    const compressed = precompress(output.bytes);
     const mode = indexInput.stat.mode & 0o777;
     temporaryIndex = path.join(
       path.dirname(index),
       `.${INDEX_NAME}.${randomUUID()}.next`,
     );
+    temporaryIndexGzip = `${temporaryIndex}.gz`;
+    temporaryIndexBrotli = `${temporaryIndex}.br`;
     await fs.writeFile(temporaryIndex, output.bytes, {
       flag: "wx",
       mode,
     });
+    await fs.writeFile(temporaryIndexGzip, compressed.gzip, {
+      flag: "wx",
+      mode,
+    });
+    await fs.writeFile(temporaryIndexBrotli, compressed.brotli, {
+      flag: "wx",
+      mode,
+    });
     await fs.chmod(temporaryIndex, mode);
+    await fs.chmod(temporaryIndexGzip, mode);
+    await fs.chmod(temporaryIndexBrotli, mode);
+    await fs.rename(temporaryIndexGzip, `${index}.gz`);
+    temporaryIndexGzip = undefined;
+    await fs.rename(temporaryIndexBrotli, `${index}.br`);
+    temporaryIndexBrotli = undefined;
     await fs.rename(temporaryIndex, index);
     temporaryIndex = undefined;
 
@@ -194,6 +229,10 @@ export async function inlineVersionedStartupFastpathFile({
       startup_fastpath_sha256: expectedStartupFastpathSha256,
       index_input_bytes: indexInput.bytes.length,
       index_output_bytes: output.bytes.length,
+      index_gzip_bytes: compressed.gzip.length,
+      index_brotli_bytes: compressed.brotli.length,
+      index_gzip_sha256: sha256(compressed.gzip),
+      index_brotli_sha256: sha256(compressed.brotli),
       startup_fastpath_bytes: startupFastpathInput.bytes.length,
     });
   } catch {
@@ -201,6 +240,12 @@ export async function inlineVersionedStartupFastpathFile({
   } finally {
     if (temporaryIndex !== undefined) {
       await fs.rm(temporaryIndex, { force: true }).catch(() => {});
+    }
+    if (temporaryIndexGzip !== undefined) {
+      await fs.rm(temporaryIndexGzip, { force: true }).catch(() => {});
+    }
+    if (temporaryIndexBrotli !== undefined) {
+      await fs.rm(temporaryIndexBrotli, { force: true }).catch(() => {});
     }
   }
 }

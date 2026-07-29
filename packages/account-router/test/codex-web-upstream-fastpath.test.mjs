@@ -303,6 +303,20 @@ test("builds deterministic precompressed files only after a pinned minifier prod
     expectedStartupFastpathSha256,
   );
   const versionedIndex = await readFile(indexFile, "utf8");
+  assert.deepEqual(
+    gunzipSync(await readFile(`${indexFile}.gz`)),
+    Buffer.from(versionedIndex),
+  );
+  assert.deepEqual(
+    brotliDecompressSync(await readFile(`${indexFile}.br`)),
+    Buffer.from(versionedIndex),
+  );
+  assert.ok(result.index_gzip_bytes > 0);
+  assert.ok(result.index_gzip_bytes < Buffer.byteLength(versionedIndex));
+  assert.ok(result.index_brotli_bytes > 0);
+  assert.ok(result.index_brotli_bytes < result.index_gzip_bytes);
+  assert.equal((await stat(`${indexFile}.gz`)).mode & 0o777, 0o640);
+  assert.equal((await stat(`${indexFile}.br`)).mode & 0o777, 0o640);
   const outputSha256 = createHash("sha256").update(minified).digest("hex");
   const versionedUrl = versionedAssetUrl(outputSha256);
   assert.equal(result.asset_url, versionedUrl);
@@ -647,6 +661,20 @@ test("atomically inlines a pinned startup fastpath into an already-versioned ind
   });
 
   const output = await readFile(indexFile, "utf8");
+  assert.deepEqual(
+    gunzipSync(await readFile(`${indexFile}.gz`)),
+    Buffer.from(output),
+  );
+  assert.deepEqual(
+    brotliDecompressSync(await readFile(`${indexFile}.br`)),
+    Buffer.from(output),
+  );
+  assert.ok(result.index_gzip_bytes > 0);
+  assert.ok(result.index_gzip_bytes < Buffer.byteLength(output));
+  assert.ok(result.index_brotli_bytes > 0);
+  assert.ok(result.index_brotli_bytes < result.index_gzip_bytes);
+  assert.equal((await stat(`${indexFile}.gz`)).mode & 0o777, 0o640);
+  assert.equal((await stat(`${indexFile}.br`)).mode & 0o777, 0o640);
   assert.equal(result.event, "versioned_startup_fastpath_inlined");
   assert.equal(result.asset_url, versionedUrl);
   assert.equal(result.startup_fastpath_bytes, startupFastpath.length);

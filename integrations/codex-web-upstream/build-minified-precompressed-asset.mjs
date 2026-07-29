@@ -316,6 +316,8 @@ export async function buildMinifiedPrecompressedAsset({
       `.${STYLESHEET_NAME}.${nonce}.next.br`,
     );
     const temporaryIndex = path.join(path.dirname(index), `.${INDEX_NAME}.${nonce}.next`);
+    const temporaryIndexGzip = `${temporaryIndex}.gz`;
+    const temporaryIndexBrotli = `${temporaryIndex}.br`;
     temporaryFiles.push(
       temporaryAsset,
       temporaryGzip,
@@ -326,6 +328,8 @@ export async function buildMinifiedPrecompressedAsset({
       temporaryStylesheetGzip,
       temporaryStylesheetBrotli,
       temporaryIndex,
+      temporaryIndexGzip,
+      temporaryIndexBrotli,
     );
 
     await minify({ inputFile: asset, outputFile: temporaryAsset });
@@ -355,6 +359,7 @@ export async function buildMinifiedPrecompressedAsset({
     const compressed = precompress(output.bytes);
     const compressedPreload = precompress(preloadOutput.bytes);
     const compressedStylesheet = precompress(stylesheetInput.bytes);
+    const compressedIndex = precompress(versionedIndex.bytes);
     await writeTemporary(temporaryGzip, compressed.gzip, mode);
     await writeTemporary(temporaryBrotli, compressed.brotli, mode);
     await writeTemporary(
@@ -377,6 +382,16 @@ export async function buildMinifiedPrecompressedAsset({
       compressedStylesheet.brotli,
       stylesheetMode,
     );
+    await writeTemporary(
+      temporaryIndexGzip,
+      compressedIndex.gzip,
+      indexMode,
+    );
+    await writeTemporary(
+      temporaryIndexBrotli,
+      compressedIndex.brotli,
+      indexMode,
+    );
     await writeTemporary(temporaryIndex, versionedIndex.bytes, indexMode);
 
     await fs.rename(temporaryGzip, `${asset}.gz`);
@@ -385,6 +400,8 @@ export async function buildMinifiedPrecompressedAsset({
     await fs.rename(temporaryPreloadBrotli, `${preload}.br`);
     await fs.rename(temporaryStylesheetGzip, `${stylesheet}.gz`);
     await fs.rename(temporaryStylesheetBrotli, `${stylesheet}.br`);
+    await fs.rename(temporaryIndexGzip, `${index}.gz`);
+    await fs.rename(temporaryIndexBrotli, `${index}.br`);
     await fs.chmod(temporaryAsset, mode);
     await fs.rename(temporaryAsset, asset);
     await fs.chmod(temporaryPreload, preloadMode);
@@ -407,6 +424,10 @@ export async function buildMinifiedPrecompressedAsset({
       output_bytes: output.bytes.length,
       index_input_bytes: indexInput.bytes.length,
       index_output_bytes: versionedIndex.bytes.length,
+      index_gzip_bytes: compressedIndex.gzip.length,
+      index_brotli_bytes: compressedIndex.brotli.length,
+      index_gzip_sha256: sha256(compressedIndex.gzip),
+      index_brotli_sha256: sha256(compressedIndex.brotli),
       startup_fastpath_bytes: startupFastpathInput.bytes.length,
       gzip_bytes: compressed.gzip.length,
       brotli_bytes: compressed.brotli.length,

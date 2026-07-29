@@ -85,8 +85,9 @@ asset/index paths, their expected input SHA-256 values, and the pinned esbuild
 `0.27.0` executable. The required layout is `index.html` next to the `assets`
 directory. It syntax-checks the smaller main and preload JavaScript, preserves
 the exact stylesheet bytes, deterministically creates Brotli and gzip variants
-for all three startup assets, and rewrites the inactive release's index with
-an early import map plus matching `modulepreload` URL. Both point to a query
+for the three startup assets and the final HTML, and rewrites the inactive
+release's index with an early import map plus matching `modulepreload` URL.
+Both point to a query
 version derived from the minified main-asset SHA-256. The builder relocates
 the unique main-module preload next to that import map and ahead of the
 synchronous Tailnet startup shim. It also verifies the shim's path, size,
@@ -123,7 +124,9 @@ For an already-qualified versioned release, use
 without rebuilding or renaming the cached main module. The adapter requires
 the exact current index and startup-script hashes, accepts only the expected
 same-directory layout, verifies the import-map/hint/shim/preload order, and
-atomically replaces only `index.html`:
+generates deterministic `index.html.gz` and `index.html.br` siblings before
+atomically replacing `index.html`. It is intended only for an inactive release
+that is activated later by the release symlink:
 
 ```sh
 node inline-versioned-startup-fastpath.mjs \
@@ -139,7 +142,8 @@ Brotli and falls back to gzip and identity. The adapter also normalizes the
 selected `.br` or `.gz` sibling back to its original asset path before applying
 the existing cache policy and emits `Vary: Accept-Encoding`; plugin-managed
 validators, content types, and ranges remain intact. Only the three hash-pinned
-startup assets receive generated compressed siblings. The versioned main URL
+startup assets and final HTML receive generated compressed siblings. The
+versioned main URL
 prevents a refreshed HTML document from reusing the previous release's
 immutable main-module entry while keeping all importers on one canonical
 module URL. The HTML and un-hashed preload routes remain revalidated rather
