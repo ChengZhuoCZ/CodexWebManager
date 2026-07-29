@@ -265,7 +265,7 @@ else
 fi
 
 ln -s -- "releases/${releaseName}" "$temporary_link"
-mv -f -- "$temporary_link" "$prefix/current"
+mv -Tf -- "$temporary_link" "$prefix/current"
 trap - EXIT HUP INT TERM
 printf '%s\n' "Installed ${releaseName} at $target"
 `);

@@ -266,6 +266,9 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       ...scrubbedRuntimeEnvironment(homeDirectory),
       PREFIX: prefix,
     };
+    const previousRelease = path.join(prefix, "releases", "fixture-previous");
+    await fs.mkdir(previousRelease, { recursive: true, mode: 0o755 });
+    await fs.symlink("releases/fixture-previous", path.join(prefix, "current"));
     run("sh", [path.join(extractedRoot, "install.sh")], {
       cwd: extractedRoot,
       env: environment,
@@ -276,6 +279,11 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
     assert(
       path.basename(installedRoot) === release.releaseName,
       "current symlink does not select the installed release",
+    );
+    assert.deepEqual(
+      await fs.readdir(previousRelease),
+      [],
+      "installer moved its temporary current link into the previous release",
     );
     const installedNames = await collectNames(installedRoot);
     assert(

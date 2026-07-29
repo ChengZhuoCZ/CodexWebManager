@@ -82,6 +82,10 @@ test("builds a byte-reproducible x64 Linux archive without desktop dependencies"
     assert.equal(files.get(executablePath)?.mode, 0o755);
   }
   assert.match(
+    files.get(`${root}/install.sh`).content.toString("utf8"),
+    /mv -Tf -- "\$temporary_link" "\$prefix\/current"/,
+  );
+  assert.match(
     files.get(`${root}/lib/account-router/src/runtime-composition.mjs`).content.toString("utf8"),
     /runtime-weekly-events/,
   );
