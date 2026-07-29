@@ -24,7 +24,20 @@ const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const OPERATION_TIMEOUT_MS = 120_000;
 const PRELOAD_MODULE_SCRIPT =
   '    <script type="module" src="./assets/preload.js"></script>';
-const MAIN_MODULE_PRELOAD_HREF = `href="${ASSET_URL}"`;
+const STARTUP_FASTPATH_SCRIPT =
+  '    <script src="./tailnet-startup-fastpath.js"></script>';
+
+function modulePreloadBlock(assetUrl) {
+  return [
+    "    <link",
+    '      rel="modulepreload"',
+    "      crossorigin",
+    `      href="${assetUrl}"`,
+    "    />",
+  ].join("\n");
+}
+
+const MAIN_MODULE_PRELOAD_BLOCK = modulePreloadBlock(ASSET_URL);
 
 function assertAbsolute(value, label) {
   if (typeof value !== "string" || !path.isAbsolute(value)) {
@@ -69,7 +82,8 @@ function versionIndex(indexBytes, outputSha256) {
   if (
     !Buffer.from(index).equals(indexBytes) ||
     countOccurrences(index, PRELOAD_MODULE_SCRIPT) !== 1 ||
-    countOccurrences(index, MAIN_MODULE_PRELOAD_HREF) !== 1 ||
+    countOccurrences(index, STARTUP_FASTPATH_SCRIPT) !== 1 ||
+    countOccurrences(index, `${MAIN_MODULE_PRELOAD_BLOCK}\n`) !== 1 ||
     index.includes('<script type="importmap">') ||
     index.includes(`${ASSET_URL}?v=`)
   ) {
@@ -80,14 +94,18 @@ function versionIndex(indexBytes, outputSha256) {
     '    <script type="importmap">',
     `      ${JSON.stringify({ imports: { [ASSET_URL]: assetUrl } })}`,
     "    </script>",
-    "",
+  ].join("\n");
+  const earlyMainModuleHint = [
+    importMap,
+    modulePreloadBlock(assetUrl),
+    STARTUP_FASTPATH_SCRIPT,
   ].join("\n");
   return Object.freeze({
     assetUrl,
     bytes: Buffer.from(
       index
-        .replace(PRELOAD_MODULE_SCRIPT, `${importMap}${PRELOAD_MODULE_SCRIPT}`)
-        .replace(MAIN_MODULE_PRELOAD_HREF, `href="${assetUrl}"`),
+        .replace(`${MAIN_MODULE_PRELOAD_BLOCK}\n`, "")
+        .replace(STARTUP_FASTPATH_SCRIPT, earlyMainModuleHint),
     ),
   });
 }

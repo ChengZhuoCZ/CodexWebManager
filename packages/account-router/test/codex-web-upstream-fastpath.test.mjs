@@ -289,6 +289,16 @@ test("builds deterministic precompressed files only after a pinned minifier prod
       versionedIndex.indexOf('<script type="module" src="./assets/preload.js">'),
   );
   assert.ok(
+    versionedIndex.indexOf('<script type="importmap">') <
+      versionedIndex.indexOf(`href="${versionedUrl}"`),
+  );
+  assert.ok(
+    versionedIndex.indexOf(`href="${versionedUrl}"`) <
+      versionedIndex.indexOf(
+        '<script src="./tailnet-startup-fastpath.js"></script>',
+      ),
+  );
+  assert.ok(
     versionedIndex.includes(
       `{"imports":{"./assets/app-initial-BTphDPeq.js":"${versionedUrl}"}}`,
     ),
@@ -297,6 +307,10 @@ test("builds deterministic precompressed files only after a pinned minifier prod
   assert.equal(
     (versionedIndex.match(/<script type="importmap">/g) ?? []).length,
     1,
+  );
+  assert.equal(
+    versionedIndex.split(versionedUrl).length - 1,
+    2,
   );
   assert.equal((await stat(indexFile)).mode & 0o777, 0o640);
 });

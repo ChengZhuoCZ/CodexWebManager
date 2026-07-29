@@ -87,7 +87,13 @@ directory. It syntax-checks the smaller main and preload JavaScript, preserves
 the exact stylesheet bytes, deterministically creates Brotli and gzip variants
 for all three startup assets, and rewrites the inactive release's index with
 an early import map plus matching `modulepreload` URL. Both point to a query
-version derived from the minified main-asset SHA-256:
+version derived from the minified main-asset SHA-256. The builder relocates
+the unique main-module preload next to that import map and ahead of the
+synchronous Tailnet startup shim. This lets the multi-megabyte main transfer
+overlap the shim's Tailnet round trip instead of waiting behind it, while
+preserving exactly one resource hint and the original script execution order.
+Any missing, duplicate, already-versioned, or differently laid-out anchor
+fails closed:
 
 ```sh
 node build-minified-precompressed-asset.mjs \
