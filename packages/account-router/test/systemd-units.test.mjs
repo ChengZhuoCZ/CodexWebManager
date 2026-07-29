@@ -149,6 +149,75 @@ test("standalone upstream App Server remains isolated from the account router", 
   assert.doesNotMatch(command, /(?:Bearer\s+|Authorization=|refresh_token|access_token|sk-[A-Za-z0-9_-]{12,})/i);
 });
 
+test("optional 8215 full-access override disables both Codex and systemd sandboxes", async () => {
+  const overridePath = path.join(
+    systemdRoot,
+    "codex-web-upstream-app-server.service.d",
+    "full-access.conf",
+  );
+  const content = await fs.readFile(overridePath, "utf8");
+  const unit = parseUnit(content);
+  const commands = unit.get("Service.ExecStart");
+
+  assert.deepEqual(commands?.slice(0, 1), [""]);
+  assert.equal(commands?.length, 2);
+  assert.match(commands[1], /^\/usr\/local\/bin\/codex /);
+  assert.match(commands[1], /sandbox_mode="danger-full-access"/);
+  assert.match(commands[1], /approval_policy="never"/);
+  assert.doesNotMatch(commands[1], /openai_base_url|18317|codex-account-router/);
+  assert.match(
+    commands[1],
+    /--listen unix:\/\/\/run\/codex-web-upstream-app-server\/app-server\.sock$/,
+  );
+
+  for (const key of [
+    "Service.ReadWritePaths",
+    "Service.RestrictAddressFamilies",
+  ]) {
+    assert.equal(only(unit, key), "", `${key} must reset the base restriction`);
+  }
+  for (const key of [
+    "Service.NoNewPrivileges",
+    "Service.PrivateTmp",
+    "Service.PrivateDevices",
+    "Service.PrivateMounts",
+    "Service.ProtectSystem",
+    "Service.ProtectHome",
+    "Service.RestrictSUIDSGID",
+  ]) {
+    assert.equal(only(unit, key), "false", `${key} must be disabled for 8215`);
+  }
+  assert.doesNotMatch(
+    content,
+    /(?:Bearer\s+|Authorization=|refresh_token|access_token|sk-[A-Za-z0-9_-]{12,})/i,
+  );
+});
+
+test("8215 full-access deployment is rollback-capable and never restarts 8216", async () => {
+  const script = await fs.readFile(
+    path.join(repositoryRoot, "evidence", "M6.9", "deploy-8215-full-access.sh"),
+    "utf8",
+  );
+  const restartedUnits = [
+    ...script.matchAll(/systemctl restart ([A-Za-z0-9@_.-]+\.service)/g),
+  ].map((match) => match[1]);
+
+  assert.deepEqual(
+    new Set(restartedUnits),
+    new Set(["codex-web-upstream-app-server.service"]),
+  );
+  assert.match(script, /trap 'rollback' ERR INT TERM/);
+  assert.match(script, /assert_8216_unchanged/);
+  assert.match(
+    script,
+    /DESTINATION="\/etc\/systemd\/system\/codex-web-upstream-app-server\.service\.d\/full-access\.conf"/,
+  );
+  assert.doesNotMatch(
+    script,
+    /(?:Bearer\s+|Authorization=|refresh_token|access_token|sk-[A-Za-z0-9_-]{12,})/i,
+  );
+});
+
 test("standalone upstream codex-web never journals verbose IPC or model bodies", async () => {
   const { content, unit } = await loadUnit("codex-web-upstream.service");
   assert.equal(
