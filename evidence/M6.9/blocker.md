@@ -27,6 +27,10 @@ A-to-B switch cannot yet be executed.
   for the final HTML while preserving its identity bytes and hash;
 - r19 adds a pinned, fail-closed Terser 5.49.0 second stage; its deterministic
   3,173,689-byte Brotli main response is 120,417 bytes smaller than r18;
+- r20 replaces the preload module reference with a deterministic
+  eight-character content-hash filename; live identity/gzip/Brotli hashes pass
+  and the versioned response is immutable while the retained unversioned path
+  stays compatible;
 - live r17 signed-in composer and two fixed non-private single-account model
   sentinels completed;
 - live r18 signed-in composer and one fixed non-private single-account model
@@ -44,9 +48,12 @@ A-to-B switch cannot yet be executed.
   left both 8216 activation timestamps unchanged;
 - r19 activation changed only 8216 and preserved repaired 8215 plus the routed
   App Server activation timestamps;
+- r20 activation started only the isolated 8216 units and preserved the 8215
+  Web/App Server PIDs and timestamps through two rollback attempts and the
+  final successful deployment;
 - strict release matrix: 259/259;
 - focused security tests: 83/83;
-- repository secret scan: 319 files, zero findings.
+- repository secret scan: 320 files, zero findings.
 
 ## Required external input
 
@@ -69,3 +76,9 @@ After enrollment, M6.9 still requires:
 Until those steps pass, real automatic account switching and cross-account
 continuity remain unverified. No seamless continuity or in-flight computation
 resume is claimed.
+
+Independent of that external gate, one auxiliary 8216 thread-title request
+currently receives HTTP 405 and model-manager refreshes can time out. The
+fixed signed-in chat model path completed after r20, so these are residual
+operational follow-ups rather than evidence of a successful or failed
+cross-account switch.

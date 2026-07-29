@@ -10,8 +10,10 @@
   "r18_implementation_revision": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
   "r19_continuation_input_revision": "2c29e3a895feefd5c9a62f8bf8b699e0a7dd408f",
   "r19_implementation_revision": "40b2f1715a7691e85e3ed0303cccfd5ef6f6a2e8",
+  "r20_continuation_input_revision": "90a87e020cb9c4f6387656399603ec3893524f59",
+  "r20_implementation_revision": "83d062d337c75c05bb4797d442fe1d8fe4ad255b",
   "standalone_8215_fix_revision": "d75c655c8fb3e3066245fec4060abd7aec5c4a46",
-  "implementation_revision": "40b2f1715a7691e85e3ed0303cccfd5ef6f6a2e8",
+  "implementation_revision": "83d062d337c75c05bb4797d442fe1d8fe4ad255b",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "commands": [
@@ -26,6 +28,8 @@
         "main_hint_count": 1,
         "startup_fastpath_inlined": true,
         "external_startup_script_count": 0,
+        "versioned_preload_url": "./assets/preload-65708a1c.js",
+        "content_hash_prefix_length": 8,
         "wrong_hash_unsafe_html_order_and_second_run_rejected": true
       }
     },
@@ -54,13 +58,13 @@
     {
       "command": "M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
       "result": {
-        "input_revision": "40b2f1715a7691e85e3ed0303cccfd5ef6f6a2e8",
+        "input_revision": "83d062d337c75c05bb4797d442fe1d8fe4ad255b",
         "qualified": true,
         "security_tests": 83,
         "security_tests_passed": 83,
         "security_tests_failed": 0,
         "security_tests_skipped": 0,
-        "repository_files_scanned": 319,
+        "repository_files_scanned": 320,
         "findings": 0,
         "strict_ui_tests": 492,
         "strict_ui_passed": 492
@@ -274,6 +278,50 @@
           2374.784
         ]
       }
+    },
+    {
+      "command": "two isolated pinned r20 builds with esbuild 0.27.0 and Terser 5.49.0",
+      "result": {
+        "passed": true,
+        "deterministic_second_run": true,
+        "candidate_directories_byte_identical": true,
+        "preload_url": "./assets/preload-65708a1c.js",
+        "preload_identity_bytes": 253451,
+        "preload_gzip_bytes": 79865,
+        "preload_brotli_bytes": 69315,
+        "preload_identity_sha256": "65708a1c2c053568691f6691b76290a6bd07df09ea84ef1186ac77090649fc5a",
+        "preload_gzip_sha256": "ee83a0334b52d8557a7b4252e02addf34687082b584a769f06091c2dc5355d32",
+        "preload_brotli_sha256": "815f74c342f4046a6c1d0e01276adfb5dca47a0ec0771532f5bedfae62b07b68",
+        "versioned_and_unversioned_preload_triplets_equal": true,
+        "index_identity_bytes": 17585,
+        "index_gzip_bytes": 5967,
+        "index_brotli_bytes": 4164,
+        "index_identity_sha256": "20703fc1b770eeb40a23fd604b46ed5efb5f2d95a93eb7e51cec30b39ef60d59",
+        "index_gzip_sha256": "3f497714830ce20ec895cb9211fd3b690f5695a1e71ef8fbaa06d83c88a9cf21",
+        "index_brotli_sha256": "618f6e08f54baecba5eebdceeed74b4d75030f846d8848e0e02730489b573c11",
+        "main_asset_bytes_and_url_unchanged": true
+      }
+    },
+    {
+      "command": "hash-pinned rollback-capable r20 deployment plus live identity/gzip/Brotli/cache, browser/model, journal and service probes",
+      "result": {
+        "release": "c3e92f0f-20260729-m69-router-r20",
+        "archive_sha256": "75f8d70f40481fc1e5c6cc53f803a6d04bbd7f4c01a8209419401d6b9ef40852",
+        "deployment_script_sha256": "26cdee8d18d0cf09fcfdfddfa9b1349a57f39a6a8089392aef8dd48227e3c6e6",
+        "preload_url": "./assets/preload-65708a1c.js",
+        "versioned_preload_cache_control": "public, max-age=31536000, immutable",
+        "unversioned_preload_cache_control": "public, max-age=0",
+        "identity_gzip_brotli_hashes_and_decompression_verified": true,
+        "composer_present": true,
+        "single_account_model_request_completed": true,
+        "model_response_matched_fixed_sentinel": true,
+        "stable_startup_or_model_latency_claimed": false,
+        "journal_lines": 19,
+        "sensitive_shape_matches": 0,
+        "fixture_sentinel_matches": 0,
+        "standalone_8215_pid_and_timestamp_unchanged": true,
+        "real_two_account_switch_executed": false
+      }
     }
   ],
   "failure_injections": {
@@ -334,6 +382,34 @@
     {
       "command": "first standalone 8215 credential activation verifier",
       "result": "rolled back because an unprivileged socket metadata check could not traverse the mode-0700 runtime directory; service startup itself had no error and the corrected scoped privileged check passed"
+    },
+    {
+      "command": "r20 content-hash test before implementation",
+      "result": "failed as expected because versionedPreloadUrl was not exported; passed after implementation"
+    },
+    {
+      "command": "r20 complete Node suite in the restricted sandbox",
+      "result": "environment failure: every loopback listen returned EPERM; the identical 270-test suite passed outside that restriction"
+    },
+    {
+      "command": "first r20 archive command using BSD tar --mtime",
+      "result": "rejected locally because BSD tar does not support the requested option; no archive was produced"
+    },
+    {
+      "command": "first r20 deployment readiness probe",
+      "result": "used the model listener instead of the router admin listener; readiness timed out and the script rolled back all 8216 services to the preflight state while preserving 8215"
+    },
+    {
+      "command": "r20 candidate using a 16-character preload hash prefix",
+      "result": "live identity/gzip/Brotli hashes passed but the upstream exact eight-character cache-name rule returned max-age=0; activation rolled back, and the final eight-character candidate passed immutable-cache verification"
+    },
+    {
+      "command": "two r20 scp attempts through an explicit tailscale nc ProxyCommand",
+      "result": "transport terminated after authentication; neither attempt changed server state, and the final direct Tailnet SSH transfer matched the expected archive hash"
+    },
+    {
+      "command": "first post-deployment curl timing label",
+      "result": "rejected because seconds were mislabeled as milliseconds; the corrected evidence records total_seconds and makes no stable latency claim"
     }
   ],
   "live_browser": {
@@ -372,6 +448,11 @@
     "r19_warm_observation_cutoff_ms": 29439,
     "r19_model_requests_completed": 1,
     "r19_model_observation_ms": 3673,
+    "r20_composer_present": true,
+    "r20_model_requests_completed": 1,
+    "r20_model_response_matched_fixed_sentinel": true,
+    "r20_warm_reload_retained_composer": true,
+    "r20_stable_latency_sample_available": false,
     "standalone_8215_composer_present": true,
     "standalone_8215_post_boundary_model_requests_completed": 2,
     "standalone_8215_pre_switch_model_observation_ms": 3728,
@@ -424,6 +505,16 @@
     "sensitive_shape_matches": 0,
     "fixture_sentinel_matches": 0
   },
+  "r20_log_boundary": {
+    "standard_output": "null",
+    "standard_error": "journal",
+    "model_check_journal_lines": 19,
+    "sensitive_shape_matches": 0,
+    "fixture_sentinel_matches": 0,
+    "residual_non_secret_title_generation_405_observed": true,
+    "residual_model_manager_refresh_timeouts_observed": true,
+    "fixed_chat_model_path_completed": true
+  },
   "standalone_8215_post_switch_log_boundary": {
     "standard_output": "null",
     "standard_error": "journal",
@@ -432,18 +523,24 @@
     "fixture_sentinel_matches": 0
   },
   "deployed_asset": {
-    "release": "c3e92f0f-20260729-m69-router-r19",
+    "release": "c3e92f0f-20260729-m69-router-r20",
     "asset_url": "./assets/app-initial-BTphDPeq.js?v=e2d356e06763a828",
+    "preload_url": "./assets/preload-65708a1c.js",
+    "preload_cache_control": "public, max-age=31536000, immutable",
+    "unversioned_preload_url": "./assets/preload.js",
+    "unversioned_preload_cache_control": "public, max-age=0",
     "served_identity_sha256": "e2d356e06763a8287003e5a087acb09a09160a1d6bc8fbf9cecccdfdaf82b6b0",
     "served_preload_sha256": "65708a1c2c053568691f6691b76290a6bd07df09ea84ef1186ac77090649fc5a",
     "served_stylesheet_sha256": "3db81509f04faef314889c39d777a310297c2856330f52fd994a07c67a9c7774",
     "served_gzip_sha256": "1c6c15a253441c4afd366e46dcadc3056a16d5be85c43ec755324c2064cc9a1c",
     "served_brotli_sha256": "0899d532efde663c13196219d5e89b355469969397739c2db890593740bf9be1",
-    "served_index_sha256": "ccbf0a8318d6559939605f4b291f0bf50cd14539ea7fc2fe76b0923cf7152d88",
-    "served_index_gzip_sha256": "5891e0c3f225392579a81e6930acd6af6515088ad4e95b228a1958976ff976cf",
-    "served_index_brotli_sha256": "78cb8fb70825554a0e911ed69dcf3b9e0487ef66482228f7409226a907416b64",
-    "served_index_gzip_bytes": 5961,
-    "served_index_brotli_bytes": 4150,
+    "served_preload_gzip_sha256": "ee83a0334b52d8557a7b4252e02addf34687082b584a769f06091c2dc5355d32",
+    "served_preload_brotli_sha256": "815f74c342f4046a6c1d0e01276adfb5dca47a0ec0771532f5bedfae62b07b68",
+    "served_index_sha256": "20703fc1b770eeb40a23fd604b46ed5efb5f2d95a93eb7e51cec30b39ef60d59",
+    "served_index_gzip_sha256": "3f497714830ce20ec895cb9211fd3b690f5695a1e71ef8fbaa06d83c88a9cf21",
+    "served_index_brotli_sha256": "618f6e08f54baecba5eebdceeed74b4d75030f846d8848e0e02730489b573c11",
+    "served_index_gzip_bytes": 5967,
+    "served_index_brotli_bytes": 4164,
     "startup_fastpath_sha256": "3eb857920a3be9ceb4ff9be0c0746199dab0f8c4e4a02d3762380508a429aabd",
     "startup_fastpath_inlined": true,
     "external_startup_script_count": 0,
