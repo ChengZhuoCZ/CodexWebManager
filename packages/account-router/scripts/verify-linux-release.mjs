@@ -280,9 +280,8 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       path.basename(installedRoot) === release.releaseName,
       "current symlink does not select the installed release",
     );
-    assert.deepEqual(
-      await fs.readdir(previousRelease),
-      [],
+    assert(
+      (await fs.readdir(previousRelease)).length === 0,
       "installer moved its temporary current link into the previous release",
     );
     const installedNames = await collectNames(installedRoot);
