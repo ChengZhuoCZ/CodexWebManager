@@ -10,8 +10,13 @@ import { gunzipSync, brotliDecompressSync } from "node:zlib";
 
 import {
   buildMinifiedPrecompressedAsset,
+  createPinnedTerserOptimizer,
   esbuildArguments,
   EXPECTED_ESBUILD_VERSION,
+  EXPECTED_TERSER_ENTRY_SHA256,
+  EXPECTED_TERSER_VERSION,
+  MIN_TERSER_BROTLI_REDUCTION_BPS,
+  terserArguments,
   versionedAssetUrl,
 } from "../../../integrations/codex-web-upstream/build-minified-precompressed-asset.mjs";
 import {
@@ -216,8 +221,13 @@ test("builds deterministic precompressed files only after a pinned minifier prod
     directory,
     "tailnet-startup-fastpath.js",
   );
-  const original = Buffer.from("const intentionallyLongFixtureName = 40 + 2;\n");
-  const minified = Buffer.from("const a=42;\n");
+  const original = Buffer.from(
+    `const intentionallyLongFixtureName = "${"x".repeat(8192)}";\n`,
+  );
+  const primaryMinified = Buffer.from(
+    `const a="${"x".repeat(4096)}";\n`,
+  );
+  const minified = Buffer.from('const a="x";\n');
   const originalPreload = Buffer.from(
     "const intentionallyLongPreloadFixtureName = 41 + 1;\n",
   );
@@ -259,17 +269,26 @@ test("builds deterministic precompressed files only after a pinned minifier prod
     expectedStartupFastpathSha256,
     minify: async ({ inputFile, outputFile }) => {
       if (inputFile === asset) {
-        await writeFile(outputFile, minified);
+        await writeFile(outputFile, primaryMinified);
         return;
       }
       assert.equal(inputFile, preloadFile);
       await writeFile(outputFile, minifiedPreload);
     },
+    optimizeMain: async ({ inputFile, outputFile }) => {
+      assert.notEqual(inputFile, asset);
+      assert.notEqual(outputFile, asset);
+      await writeFile(outputFile, minified);
+    },
   });
 
   assert.equal(result.input_bytes, original.length);
+  assert.equal(result.primary_output_bytes, primaryMinified.length);
   assert.equal(result.output_bytes, minified.length);
   assert.equal(result.esbuild_version, EXPECTED_ESBUILD_VERSION);
+  assert.equal(result.terser_version, EXPECTED_TERSER_VERSION);
+  assert.ok(result.primary_gzip_bytes > result.gzip_bytes);
+  assert.ok(result.primary_brotli_bytes > result.brotli_bytes);
   assert.deepEqual(await readFile(asset), minified);
   assert.deepEqual(gunzipSync(await readFile(`${asset}.gz`)), minified);
   assert.deepEqual(brotliDecompressSync(await readFile(`${asset}.br`)), minified);
@@ -562,11 +581,53 @@ test("minified asset builder rejects unpinned input and fixes the esbuild contra
       "--outfile=/absolute/output.js",
     ],
   );
+  assert.deepEqual(
+    terserArguments("/absolute/input.js", "/absolute/output.js"),
+    [
+      "/absolute/input.js",
+      "--module",
+      "--ecma",
+      "2022",
+      "--compress",
+      "passes=2",
+      "--mangle",
+      "--output",
+      "/absolute/output.js",
+    ],
+  );
   assert.equal(EXPECTED_ESBUILD_VERSION, "0.27.0");
+  assert.equal(EXPECTED_TERSER_VERSION, "5.49.0");
+  assert.equal(
+    EXPECTED_TERSER_ENTRY_SHA256,
+    "312a3f9b37d3f5316ee384bfdc347313dae6f0f9056c44b3cae56c8e4e9f4496",
+  );
+  assert.equal(MIN_TERSER_BROTLI_REDUCTION_BPS, 100);
   assert.equal(
     versionedAssetUrl("a".repeat(64)),
     "./assets/app-initial-BTphDPeq.js?v=aaaaaaaaaaaaaaaa",
   );
+});
+
+test("pinned Terser optimizer rejects an untrusted entry before execution", async (context) => {
+  const directory = await mkdtemp(
+    path.join(os.tmpdir(), "codex-terser-entry-reject-"),
+  );
+  context.after(() => rm(directory, { recursive: true, force: true }));
+  const terserFile = path.join(directory, "terser");
+  const inputFile = path.join(directory, "input.js");
+  const outputFile = path.join(directory, "output.js");
+  await writeFile(
+    terserFile,
+    '#!/usr/bin/env node\nprocess.stdout.write("terser 5.49.0\\n");\n',
+    { mode: 0o700 },
+  );
+  await writeFile(inputFile, "const fixture = true;\n", { mode: 0o600 });
+
+  await assert.rejects(
+    createPinnedTerserOptimizer(terserFile)({ inputFile, outputFile }),
+    /terser entry hash is not pinned/,
+  );
+  await assert.rejects(stat(outputFile), /ENOENT/);
 });
 
 test("atomically inlines a pinned startup fastpath into an already-versioned index", async (context) => {

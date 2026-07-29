@@ -82,11 +82,17 @@ precompressed-file support, the routed release may run
 `app-initial-BTphDPeq.js`, `preload.js`, and the initial stylesheet, then apply
 `tailnet-precompressed-asset.patch`. The builder accepts only absolute
 asset/index paths, their expected input SHA-256 values, and the pinned esbuild
-`0.27.0` executable. The required layout is `index.html` next to the `assets`
-directory. It syntax-checks the smaller main and preload JavaScript, preserves
-the exact stylesheet bytes, deterministically creates Brotli and gzip variants
-for the three startup assets and the final HTML, and rewrites the inactive
-release's index with an early import map plus matching `modulepreload` URL.
+`0.27.0` executable. An optional second stage accepts only the official Terser
+`5.49.0` CLI entry whose SHA-256 is
+`312a3f9b37d3f5316ee384bfdc347313dae6f0f9056c44b3cae56c8e4e9f4496`.
+It uses module-aware compression, two passes, and identifier mangling without
+property mangling. The builder fails closed unless that stage reduces identity
+and gzip size and reduces Brotli size by at least 1%. The required layout is
+`index.html` next to the `assets` directory. It syntax-checks the smaller main
+and preload JavaScript, preserves the exact stylesheet bytes, deterministically
+creates Brotli and gzip variants for the three startup assets and the final
+HTML, and rewrites the inactive release's index with an early import map plus
+matching `modulepreload` URL.
 Both point to a query
 version derived from the minified main-asset SHA-256. The builder relocates
 the unique main-module preload next to that import map and ahead of the
@@ -110,14 +116,19 @@ node build-minified-precompressed-asset.mjs \
   --expected-index-sha256 <64-hex-index-input-sha256> \
   --startup-fastpath /absolute/release/webview/tailnet-startup-fastpath.js \
   --expected-startup-fastpath-sha256 <64-hex-startup-input-sha256> \
-  --esbuild /absolute/pinned/esbuild
+  --esbuild /absolute/pinned/esbuild \
+  --terser /absolute/pinned/terser/package/bin/terser
 ```
 
 Build order is important: upstream build, compatibility/IPC patches, the
-authenticated Statsig logging patch, minification/index versioning, then
-precompression. Minifying before the integration patches would invalidate the
-reviewed patch boundaries. Running the builder more than once against the same
-candidate fails closed; start from a fresh inactive release instead.
+authenticated Statsig logging patch, esbuild minification, optional Terser main
+module optimization, index versioning, then precompression. Minifying before
+the integration patches would invalidate the reviewed patch boundaries. The
+Terser package itself must be obtained from the official npm package and
+integrity-verified before extraction; version and CLI-entry hash checks are
+additional local boundaries, not a replacement for package integrity
+verification. Running the builder more than once against the same candidate
+fails closed; start from a fresh inactive release instead.
 
 For an already-qualified versioned release, use
 `inline-versioned-startup-fastpath.mjs` to produce an index-only successor

@@ -12,6 +12,10 @@ import {
 } from "node:zlib";
 
 export const EXPECTED_ESBUILD_VERSION = "0.27.0";
+export const EXPECTED_TERSER_VERSION = "5.49.0";
+export const EXPECTED_TERSER_ENTRY_SHA256 =
+  "312a3f9b37d3f5316ee384bfdc347313dae6f0f9056c44b3cae56c8e4e9f4496";
+export const MIN_TERSER_BROTLI_REDUCTION_BPS = 100;
 
 const ASSET_NAME = "app-initial-BTphDPeq.js";
 const ASSET_URL = `./assets/${ASSET_NAME}`;
@@ -60,6 +64,22 @@ export function esbuildArguments(inputFile, outputFile) {
     "--format=esm",
     "--legal-comments=none",
     `--outfile=${output}`,
+  ];
+}
+
+export function terserArguments(inputFile, outputFile) {
+  const input = assertAbsolute(inputFile, "terser input");
+  const output = assertAbsolute(outputFile, "terser output");
+  return [
+    input,
+    "--module",
+    "--ecma",
+    "2022",
+    "--compress",
+    "passes=2",
+    "--mangle",
+    "--output",
+    output,
   ];
 }
 
@@ -203,6 +223,34 @@ export function createPinnedEsbuildMinifier(esbuildFile) {
   };
 }
 
+export function createPinnedTerserOptimizer(terserFile) {
+  const executable = assertAbsolute(terserFile, "terser executable");
+  let versionChecked = false;
+  return async ({ inputFile, outputFile }) => {
+    if (!versionChecked) {
+      const entry = await readRegularFile(executable, {
+        maximum: 4 * 1024 * 1024,
+      });
+      if (sha256(entry.bytes) !== EXPECTED_TERSER_ENTRY_SHA256) {
+        throw new Error("terser entry hash is not pinned");
+      }
+      const version = await run(
+        process.execPath,
+        [executable, "--version"],
+        { captureStdout: true },
+      );
+      if (version !== `terser ${EXPECTED_TERSER_VERSION}`) {
+        throw new Error("terser version is not pinned");
+      }
+      versionChecked = true;
+    }
+    await run(
+      process.execPath,
+      [executable, ...terserArguments(inputFile, outputFile)],
+    );
+  };
+}
+
 async function writeTemporary(filePath, bytes, mode) {
   await fs.writeFile(filePath, bytes, {
     flag: "wx",
@@ -234,6 +282,7 @@ export async function buildMinifiedPrecompressedAsset({
   startupFastpathFile,
   expectedStartupFastpathSha256,
   minify,
+  optimizeMain,
 } = {}) {
   const temporaryFiles = [];
   try {
@@ -266,7 +315,8 @@ export async function buildMinifiedPrecompressedAsset({
       !SHA256_PATTERN.test(expectedIndexSha256) ||
       typeof expectedStartupFastpathSha256 !== "string" ||
       !SHA256_PATTERN.test(expectedStartupFastpathSha256) ||
-      typeof minify !== "function"
+      typeof minify !== "function" ||
+      (optimizeMain !== undefined && typeof optimizeMain !== "function")
     ) {
       throw new Error("asset build input is invalid");
     }
@@ -299,6 +349,10 @@ export async function buildMinifiedPrecompressedAsset({
     const nonce = randomUUID();
     // Keep the final suffix as .js so `node --check` uses the ESM syntax path.
     const temporaryAsset = path.join(path.dirname(asset), `.${ASSET_NAME}.${nonce}.next.js`);
+    const temporaryOptimizedAsset = path.join(
+      path.dirname(asset),
+      `.${ASSET_NAME}.${nonce}.optimized.js`,
+    );
     const temporaryGzip = `${temporaryAsset}.gz`;
     const temporaryBrotli = `${temporaryAsset}.br`;
     const temporaryPreload = path.join(
@@ -320,6 +374,7 @@ export async function buildMinifiedPrecompressedAsset({
     const temporaryIndexBrotli = `${temporaryIndex}.br`;
     temporaryFiles.push(
       temporaryAsset,
+      temporaryOptimizedAsset,
       temporaryGzip,
       temporaryBrotli,
       temporaryPreload,
@@ -333,11 +388,38 @@ export async function buildMinifiedPrecompressedAsset({
     );
 
     await minify({ inputFile: asset, outputFile: temporaryAsset });
-    const output = await readRegularFile(temporaryAsset);
-    if (output.bytes.length >= input.bytes.length) {
+    const primaryOutput = await readRegularFile(temporaryAsset);
+    if (primaryOutput.bytes.length >= input.bytes.length) {
       throw new Error("minified asset is not smaller");
     }
     await run(process.execPath, ["--check", temporaryAsset]);
+    let finalAsset = temporaryAsset;
+    let output = primaryOutput;
+    let primaryCompressed;
+    if (optimizeMain !== undefined) {
+      await optimizeMain({
+        inputFile: temporaryAsset,
+        outputFile: temporaryOptimizedAsset,
+      });
+      const optimizedOutput = await readRegularFile(temporaryOptimizedAsset);
+      await run(process.execPath, ["--check", temporaryOptimizedAsset]);
+      primaryCompressed = precompress(primaryOutput.bytes);
+      const optimizedCompressed = precompress(optimizedOutput.bytes);
+      const brotliReduction =
+        primaryCompressed.brotli.length - optimizedCompressed.brotli.length;
+      if (
+        optimizedOutput.bytes.length >= primaryOutput.bytes.length ||
+        optimizedCompressed.gzip.length >= primaryCompressed.gzip.length ||
+        brotliReduction <= 0 ||
+        brotliReduction * 10_000 <
+          primaryCompressed.brotli.length *
+            MIN_TERSER_BROTLI_REDUCTION_BPS
+      ) {
+        throw new Error("optimized asset reduction is insufficient");
+      }
+      finalAsset = temporaryOptimizedAsset;
+      output = optimizedOutput;
+    }
 
     await minify({ inputFile: preload, outputFile: temporaryPreload });
     const preloadOutput = await readRegularFile(temporaryPreload);
@@ -402,8 +484,8 @@ export async function buildMinifiedPrecompressedAsset({
     await fs.rename(temporaryStylesheetBrotli, `${stylesheet}.br`);
     await fs.rename(temporaryIndexGzip, `${index}.gz`);
     await fs.rename(temporaryIndexBrotli, `${index}.br`);
-    await fs.chmod(temporaryAsset, mode);
-    await fs.rename(temporaryAsset, asset);
+    await fs.chmod(finalAsset, mode);
+    await fs.rename(finalAsset, asset);
     await fs.chmod(temporaryPreload, preloadMode);
     await fs.rename(temporaryPreload, preload);
     await fs.rename(temporaryIndex, index);
@@ -411,6 +493,8 @@ export async function buildMinifiedPrecompressedAsset({
     return Object.freeze({
       event: "minified_precompressed_asset_built",
       esbuild_version: EXPECTED_ESBUILD_VERSION,
+      terser_version:
+        optimizeMain === undefined ? null : EXPECTED_TERSER_VERSION,
       asset_url: versionedIndex.assetUrl,
       input_sha256: expectedSha256,
       output_sha256: outputSha256,
@@ -421,7 +505,11 @@ export async function buildMinifiedPrecompressedAsset({
       preload_output_sha256: sha256(preloadOutput.bytes),
       stylesheet_sha256: expectedStylesheetSha256,
       input_bytes: input.bytes.length,
+      primary_output_bytes: primaryOutput.bytes.length,
       output_bytes: output.bytes.length,
+      primary_gzip_bytes: primaryCompressed?.gzip.length ?? compressed.gzip.length,
+      primary_brotli_bytes:
+        primaryCompressed?.brotli.length ?? compressed.brotli.length,
       index_input_bytes: indexInput.bytes.length,
       index_output_bytes: versionedIndex.bytes.length,
       index_gzip_bytes: compressedIndex.gzip.length,
@@ -457,6 +545,7 @@ function parseArguments(argv) {
       !new Set([
         "--asset",
         "--esbuild",
+        "--terser",
         "--expected-sha256",
         "--preload",
         "--expected-preload-sha256",
@@ -492,6 +581,7 @@ function parseArguments(argv) {
   return Object.freeze({
     assetFile: values.get("--asset"),
     esbuildFile: values.get("--esbuild"),
+    terserFile: values.get("--terser"),
     expectedSha256: values.get("--expected-sha256"),
     preloadFile: values.get("--preload"),
     expectedPreloadSha256: values.get("--expected-preload-sha256"),
@@ -521,6 +611,10 @@ async function main() {
     expectedStartupFastpathSha256:
       options.expectedStartupFastpathSha256,
     minify: createPinnedEsbuildMinifier(options.esbuildFile),
+    optimizeMain:
+      options.terserFile === undefined
+        ? undefined
+        : createPinnedTerserOptimizer(options.terserFile),
   });
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }
