@@ -2,17 +2,18 @@
   "schema_version": 1,
   "task": "M6.9",
   "implementation_mode": "clean-room",
-  "implementation_revision": "aba6568899b70666907f7667c4e0e3c5ad62dba0",
+  "implementation_revision": "d001bd6ec29861272aeb7de087b7c9a904b84c41",
   "router_release": "codex-account-router-0.2.2-linux-x64",
   "router_artifact_sha256": "c9c35a4f13550b6559c41d480da94f943bd6e315f5dc0d71cbb6d26e835de191",
-  "routed_codex_web_release": "c3e92f0f-20260729-m69-router-r16",
+  "routed_codex_web_release": "c3e92f0f-20260729-m69-router-r17",
   "user_facing_codex_web_port": 8214,
   "standalone_codex_web_port": 8215,
   "routed_codex_web_port": 8216,
   "deployment": {
-    "clean_archive_sha256": "ff47f0bd905bcb3431e50adbdadc3141ff03a1cd9f907b495dae70296bef5173",
-    "deployment_script_sha256": "cb64617c1bce563ec120cf15d139093c870c3c400c163812bfde1df7e391ff32",
-    "archive_members_allowlisted": 4,
+    "clean_archive_sha256": "f53b73c894a7d1f34c694cb5037c8c95b0f21dfeeb4146bcb05e84b53048f305",
+    "deployment_script_sha256": "58fdfb23d080bbe4db00382d3db43779684f6a7b2e28db8bf71f1d22d54d247b",
+    "archive_bytes": 6074,
+    "archive_members_allowlisted": 1,
     "archive_members_exact": true,
     "immutable_release_created": true,
     "atomic_current_symlink_move": true,
@@ -32,20 +33,20 @@
     "routed_8216": 200
   },
   "standalone_8215": {
-    "restarted_or_reconfigured_by_m6_9_r16": false,
+    "restarted_or_reconfigured_by_m6_9_r17": false,
     "active_enter_timestamp": "2026-07-29 04:02:49 CST",
     "active_enter_timestamp_unchanged": true
   },
   "routed_app_server": {
-    "restarted_by_m6_9_r16": false,
+    "restarted_by_m6_9_r17": false,
     "active_enter_timestamp": "2026-07-29 04:30:41 CST",
     "active_enter_timestamp_unchanged": true
   },
   "routed_8216": {
-    "active_enter_timestamp": "2026-07-29 09:03:17 CST",
+    "active_enter_timestamp": "2026-07-29 09:46:12 CST",
     "standard_output": "null",
     "standard_error": "journal",
-    "current_release": "c3e92f0f-20260729-m69-router-r16"
+    "current_release": "c3e92f0f-20260729-m69-router-r17"
   },
   "router": {
     "status": "ready",
@@ -63,10 +64,16 @@
     "input_sha256": "deddbbe9d598ff414c13ca8c7c346fb0d2b059ca487ebca6fd37616e7a0196e1",
     "identity_sha256": "5d211964500013a9c68eb546775cb6cb071b080591881109239fec10bebbc7e0",
     "index_input_sha256": "e4f70043d26d402c93abdf9e9ecbbdb3a4af4b1f92aaf49d6b3b77f486706139",
-    "index_sha256": "154633d5fd2cdd26b06b699de69c16bc6f6d7804d1d97882e605c36ce4391bac",
+    "r16_index_sha256": "154633d5fd2cdd26b06b699de69c16bc6f6d7804d1d97882e605c36ce4391bac",
+    "index_sha256": "1b7845677d03bbc104e14a55483cdb3fcb94ed6d4ea83e60e1655e19d10fa9e1",
+    "index_bytes": 17576,
+    "startup_fastpath_sha256": "3eb857920a3be9ceb4ff9be0c0746199dab0f8c4e4a02d3762380508a429aabd",
+    "startup_fastpath_bytes": 1942,
+    "startup_fastpath_inlined": true,
+    "external_startup_script_count": 0,
     "asset_url": "./assets/app-initial-BTphDPeq.js?v=5d211964500013a9",
     "asset_url_unchanged_from_r15": true,
-    "early_main_hint_before_startup_shim": true,
+    "early_main_hint_before_inline_startup_shim": true,
     "main_hint_count": 1,
     "esbuild_version": "0.27.0",
     "decoded_bodies_equal": true,
@@ -90,19 +97,15 @@
   "browser": {
     "composer_present": true,
     "resource_order_verified": true,
-    "head_child_indices": {
-      "import_map": 2,
-      "main_hint": 3,
-      "startup_shim": 4,
-      "preload_module": 5
-    },
+    "inline_startup_fastpath_count": 1,
+    "external_startup_fastpath_script_count": 0,
     "cached_usable_screen_ms": [
-      7118,
-      8104,
-      10452
+      14330,
+      18845
     ],
-    "single_account_model_requests_completed": 1,
-    "model_observation_ms": 6842,
+    "first_tab_upper_bound_ms": 24593,
+    "single_account_model_requests_completed": 2,
+    "model_observation_ms": 8917,
     "statsig_manual_flush_or_event_drop_warnings": 0,
     "error_logs": 0,
     "startup_speed_claimed_stable": false
@@ -121,14 +124,16 @@
   "logging": {
     "routed_standard_output": "null",
     "routed_standard_error": "journal",
-    "r16_journal_lines": 15,
-    "application_error_matches": 0,
+    "r17_journal_lines": 10,
     "sensitive_shape_matches": 0,
+    "fixture_sentinel_matches": 0,
+    "node_broad_error_shape_entries": 2,
+    "node_entries_identical_to_r16_startup": true,
     "priority_error_entries": 1,
     "priority_entry_comm": "nologin",
     "priority_entry_sha256": "04d0ec641b0286ade0653c7be75090beaae7357ecc9f78c181e857b43c2e03a6",
-    "priority_entry_predates_r16": true,
-    "new_r16_application_error_entries": 0,
+    "priority_entry_predates_r17": true,
+    "new_r17_application_error_entries": 0,
     "historical_pre_fix_journal_retention_risk": true
   },
   "real_two_account_e2e_executed": false,

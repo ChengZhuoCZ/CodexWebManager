@@ -18,17 +18,20 @@ new-request A-to-B switch cannot be executed.
   collection disablement are verified;
 - r16 deterministically places the main-module resource hint before the
   synchronous Tailnet startup shim while preserving the r15 asset URL/cache;
-- live r16 signed-in composer and one fixed non-private single-account model
-  sentinel completed;
-- r16 page diagnostics contained zero Statsig/manual-flush/event-drop warnings
+- r17 hash-pins and inlines the 1,942-byte startup shim at the same execution
+  position, removing its separate `max-age=0` Tailnet request while preserving
+  the r16 main URL/cache;
+- live r17 signed-in composer and two fixed non-private single-account model
+  sentinels completed;
+- r17 page diagnostics contained zero Statsig/manual-flush/event-drop warnings
   and zero error logs;
 - App Server timing probes completed in 1.5-23.2 ms per method after a
   15.8 ms initialization, while browser startup remained variable;
 - 8215 remained active, independent, HTTP 200, and retained its activation
-  timestamp through r16;
-- strict release matrix: 256/256;
+  timestamp through r17;
+- strict release matrix: 257/257;
 - focused security tests: 82/82;
-- repository secret scan: 318 files, zero findings.
+- repository secret scan: 319 files, zero findings.
 
 ## Required external input
 

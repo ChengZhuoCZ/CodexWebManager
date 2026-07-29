@@ -4,26 +4,31 @@
   "input_revision": "d41f2f282390f3f95e6795dd713d657b51788cc5",
   "r15_implementation_revision": "151066ba29d32042f1addbb69a5341951fc8ed65",
   "r16_continuation_input_revision": "bd8be6a6a8b5b6dd5371fc089f94435f34eab3ff",
-  "implementation_revision": "aba6568899b70666907f7667c4e0e3c5ad62dba0",
+  "r16_implementation_revision": "aba6568899b70666907f7667c4e0e3c5ad62dba0",
+  "r17_continuation_input_revision": "66da7a9094baa741faef623e5d6727350ab831ef",
+  "implementation_revision": "d001bd6ec29861272aeb7de087b7c9a904b84c41",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "commands": [
     {
-      "command": "<bundled-node> --check integrations/codex-web-upstream/build-minified-precompressed-asset.mjs && <bundled-node> --test packages/account-router/test/codex-web-upstream-fastpath.test.mjs",
+      "command": "<bundled-node> --check integrations/codex-web-upstream/build-minified-precompressed-asset.mjs && <bundled-node> --check integrations/codex-web-upstream/inline-versioned-startup-fastpath.mjs && <bundled-node> --test packages/account-router/test/codex-web-upstream-fastpath.test.mjs",
       "result": {
         "passed": true,
-        "focused_tests": 8,
+        "focused_tests": 9,
         "test_first_failure_observed": true,
         "real_patch_dry_run": true,
         "early_main_hint_before_synchronous_shim": true,
-        "main_hint_count": 1
+        "main_hint_count": 1,
+        "startup_fastpath_inlined": true,
+        "external_startup_script_count": 0,
+        "wrong_hash_unsafe_html_order_and_second_run_rejected": true
       }
     },
     {
       "command": "<bundled-node> --test",
       "result": {
-        "tests": 267,
-        "passed": 242,
+        "tests": 268,
+        "passed": 243,
         "failed": 0,
         "skipped": 25,
         "skip_reason": "Pinned codex-web fixture variables were intentionally absent."
@@ -32,11 +37,11 @@
     {
       "command": "M4_2_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_3_CODEX_WEB_ROOT=<clean-888692f-fixture> M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
       "result": {
-        "tests": 256,
-        "passed": 256,
+        "tests": 257,
+        "passed": 257,
         "failed": 0,
         "skipped": 0,
-        "unit": 140,
+        "unit": 141,
         "integration": 69,
         "e2e": 47
       }
@@ -44,13 +49,13 @@
     {
       "command": "M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
       "result": {
-        "input_revision": "aba6568899b70666907f7667c4e0e3c5ad62dba0",
+        "input_revision": "d001bd6ec29861272aeb7de087b7c9a904b84c41",
         "qualified": true,
         "security_tests": 82,
         "security_tests_passed": 82,
         "security_tests_failed": 0,
         "security_tests_skipped": 0,
-        "repository_files_scanned": 318,
+        "repository_files_scanned": 319,
         "findings": 0,
         "strict_ui_tests": 492,
         "strict_ui_passed": 492
@@ -83,6 +88,20 @@
         "index_output_bytes": 15629,
         "index_output_sha256": "154633d5fd2cdd26b06b699de69c16bc6f6d7804d1d97882e605c36ce4391bac",
         "gzip_and_brotli_decode_to_identity": true
+      }
+    },
+    {
+      "command": "<bundled-node> integrations/codex-web-upstream/inline-versioned-startup-fastpath.mjs <pinned-r16-index-and-startup-inputs>",
+      "result": {
+        "passed": true,
+        "asset_url": "./assets/app-initial-BTphDPeq.js?v=5d211964500013a9",
+        "index_input_bytes": 15629,
+        "index_input_sha256": "154633d5fd2cdd26b06b699de69c16bc6f6d7804d1d97882e605c36ce4391bac",
+        "index_output_bytes": 17576,
+        "index_output_sha256": "1b7845677d03bbc104e14a55483cdb3fcb94ed6d4ea83e60e1655e19d10fa9e1",
+        "startup_fastpath_bytes": 1942,
+        "startup_fastpath_sha256": "3eb857920a3be9ceb4ff9be0c0746199dab0f8c4e4a02d3762380508a429aabd",
+        "main_asset_url_and_bytes_unchanged": true
       }
     },
     {
@@ -158,31 +177,44 @@
     {
       "command": "first r15 deployment archive validation",
       "result": "rejected before activation because macOS metadata added four non-allowlisted members; the clean archive passed without changing 8215"
+    },
+    {
+      "command": "r17 inline assertion against the r16 builder behavior",
+      "result": "failed as expected because r16 retained an external synchronous startup script; passed after implementation"
+    },
+    {
+      "command": "<bundled-node> --test in restricted network sandbox",
+      "result": "environment failure: loopback listen returned EPERM; the identical 268-test command passed with local loopback permission"
+    },
+    {
+      "command": "first r17 deployment archive validation",
+      "result": "rejected before activation because a macOS provenance extended header was present; the final 6074-byte ustar contained exactly one regular index.html"
     }
   ],
   "live_browser": {
     "composer_present": true,
     "account_signed_in": true,
-    "r16_import_map_count": 1,
-    "r16_main_hint_count": 1,
-    "r16_head_child_indices": {
-      "import_map": 2,
-      "main_hint": 3,
-      "startup_shim": 4,
-      "preload_module": 5
-    },
-    "r16_resource_order_verified": true,
-    "r16_cached_usable_screen_ms": [
-      7118,
-      8104,
-      10452
+    "r17_inline_startup_fastpath_count": 1,
+    "r17_external_startup_fastpath_script_count": 0,
+    "r17_import_map_count": 1,
+    "r17_main_hint_count": 1,
+    "r17_resource_order_verified": true,
+    "r17_cached_navigation_return_ms": [
+      527,
+      483
     ],
-    "r16_single_account_model_requests_completed": 1,
-    "r16_model_observation_ms": 6842,
-    "r16_statsig_manual_flush_or_event_drop_warnings": 0,
-    "r16_error_logs": 0,
-    "r16_other_logs": 1,
-    "r16_other_log_category": "existing React route warning",
+    "r17_cached_usable_screen_ms": [
+      14330,
+      18845
+    ],
+    "r17_first_tab_upper_bound_ms": 24593,
+    "r17_single_account_model_requests_completed": 2,
+    "r17_model_observation_ms": 8917,
+    "r17_statsig_manual_flush_or_event_drop_warnings": 0,
+    "r17_error_logs": 0,
+    "r17_other_logs": 1,
+    "r17_other_log_category": "existing React route warning",
+    "r17_alert_count": 0,
     "browser_plugin_instrumentation_errors_excluded_from_page_evidence": true,
     "startup_speed_claimed_stable": false,
     "model_latency_claimed_guaranteed": false,
@@ -191,23 +223,32 @@
   "log_boundary": {
     "standard_output": "null",
     "standard_error": "journal",
-    "r16_model_check_journal_lines": 15,
-    "application_error_matches": 0,
+    "r17_model_check_journal_lines": 10,
     "sensitive_shape_matches": 0,
+    "fixture_sentinel_matches": 0,
+    "node_broad_error_shape_entries": 2,
+    "node_entries_identical_to_r16_startup": true,
+    "node_entry_sha256": [
+      "6e575ab4c35cfd884cef306690e3773d4c42d4187a53aeeddbfc92561f39cb4a",
+      "ea05c1f2ce84409f595c968ea2bac5af575d6700c177f3c37c2c0190a16ba84e"
+    ],
     "system_priority_error_entries": 1,
     "priority_entry_comm": "nologin",
     "priority_entry_length": 48,
     "priority_entry_sha256": "04d0ec641b0286ade0653c7be75090beaae7357ecc9f78c181e857b43c2e03a6",
-    "priority_entry_predates_r16": true,
-    "classified_as_new_r16_application_error": false
+    "priority_entry_predates_r17": true,
+    "classified_as_new_r17_application_error": false
   },
   "deployed_asset": {
-    "release": "c3e92f0f-20260729-m69-router-r16",
+    "release": "c3e92f0f-20260729-m69-router-r17",
     "asset_url": "./assets/app-initial-BTphDPeq.js?v=5d211964500013a9",
     "served_identity_sha256": "5d211964500013a9c68eb546775cb6cb071b080591881109239fec10bebbc7e0",
     "served_preload_sha256": "65708a1c2c053568691f6691b76290a6bd07df09ea84ef1186ac77090649fc5a",
     "served_stylesheet_sha256": "3db81509f04faef314889c39d777a310297c2856330f52fd994a07c67a9c7774",
-    "served_index_sha256": "154633d5fd2cdd26b06b699de69c16bc6f6d7804d1d97882e605c36ce4391bac",
+    "served_index_sha256": "1b7845677d03bbc104e14a55483cdb3fcb94ed6d4ea83e60e1655e19d10fa9e1",
+    "startup_fastpath_sha256": "3eb857920a3be9ceb4ff9be0c0746199dab0f8c4e4a02d3762380508a429aabd",
+    "startup_fastpath_inlined": true,
+    "external_startup_script_count": 0,
     "syntax_checked": true,
     "gzip_and_brotli_decode_to_identity": true,
     "fastify_static_precompressed_enabled": true,
