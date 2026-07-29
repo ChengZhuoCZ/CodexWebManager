@@ -6,7 +6,10 @@
   "r16_continuation_input_revision": "bd8be6a6a8b5b6dd5371fc089f94435f34eab3ff",
   "r16_implementation_revision": "aba6568899b70666907f7667c4e0e3c5ad62dba0",
   "r17_continuation_input_revision": "66da7a9094baa741faef623e5d6727350ab831ef",
-  "implementation_revision": "d001bd6ec29861272aeb7de087b7c9a904b84c41",
+  "r18_continuation_input_revision": "0aa80c4b1223253d3b2d2cb428db1679df52bbe3",
+  "r18_implementation_revision": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
+  "standalone_8215_fix_revision": "d75c655c8fb3e3066245fec4060abd7aec5c4a46",
+  "implementation_revision": "d75c655c8fb3e3066245fec4060abd7aec5c4a46",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "commands": [
@@ -27,8 +30,8 @@
     {
       "command": "<bundled-node> --test",
       "result": {
-        "tests": 268,
-        "passed": 243,
+        "tests": 269,
+        "passed": 244,
         "failed": 0,
         "skipped": 25,
         "skip_reason": "Pinned codex-web fixture variables were intentionally absent."
@@ -37,11 +40,11 @@
     {
       "command": "M4_2_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_3_CODEX_WEB_ROOT=<clean-888692f-fixture> M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
       "result": {
-        "tests": 257,
-        "passed": 257,
+        "tests": 258,
+        "passed": 258,
         "failed": 0,
         "skipped": 0,
-        "unit": 141,
+        "unit": 142,
         "integration": 69,
         "e2e": 47
       }
@@ -49,10 +52,10 @@
     {
       "command": "M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
       "result": {
-        "input_revision": "d001bd6ec29861272aeb7de087b7c9a904b84c41",
+        "input_revision": "d75c655c8fb3e3066245fec4060abd7aec5c4a46",
         "qualified": true,
-        "security_tests": 82,
-        "security_tests_passed": 82,
+        "security_tests": 83,
+        "security_tests_passed": 83,
         "security_tests_failed": 0,
         "security_tests_skipped": 0,
         "repository_files_scanned": 319,
@@ -102,6 +105,64 @@
         "startup_fastpath_bytes": 1942,
         "startup_fastpath_sha256": "3eb857920a3be9ceb4ff9be0c0746199dab0f8c4e4a02d3762380508a429aabd",
         "main_asset_url_and_bytes_unchanged": true
+      }
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/systemd-units.test.mjs",
+      "result": {
+        "passed": 12,
+        "failed": 0,
+        "test_first_failure_observed": true,
+        "standalone_standard_output": "null",
+        "standalone_standard_error": "journal"
+      }
+    },
+    {
+      "command": "integrity-verified @esbuild/linux-x64@0.27.0 plus pinned builder against the user-authorized standalone 8215 successor",
+      "result": {
+        "npm_integrity_verified": true,
+        "linux_esbuild_sha256": "e4d41ef34045d7d1751c375cd4a90d07d929832f838830dc5212689a6567ee58",
+        "release": "c3e92f0-20260729-tailnet-startup-r3",
+        "main_identity_bytes": 14138835,
+        "main_brotli_bytes": 3294106,
+        "main_gzip_bytes": 4345031,
+        "identity_sha256": "5d211964500013a9c68eb546775cb6cb071b080591881109239fec10bebbc7e0",
+        "gzip_and_brotli_decode_to_identity": true
+      }
+    },
+    {
+      "command": "live Tailnet browser, model, HTTP, journal and service probes against repaired standalone 8215",
+      "result": {
+        "composer_present": true,
+        "single_account_model_request_completed": true,
+        "model_observation_ms": 3728,
+        "main_identity_total_ms": 45490.813,
+        "main_brotli_total_ms": 4206.423,
+        "main_gzip_total_ms": 7297.458,
+        "post_boundary_journal_lines": 10,
+        "sensitive_shape_matches": 0,
+        "fixture_sentinel_matches": 0,
+        "app_server_restarted": false
+      }
+    },
+    {
+      "command": "hash-pinned r18 archive deployment plus live Tailnet identity/Brotli/gzip, browser, model, journal and service probes",
+      "result": {
+        "release": "c3e92f0f-20260729-m69-router-r18",
+        "index_identity_bytes": 17576,
+        "index_brotli_bytes": 4149,
+        "index_gzip_bytes": 5960,
+        "index_identity_sha256": "1b7845677d03bbc104e14a55483cdb3fcb94ed6d4ea83e60e1655e19d10fa9e1",
+        "index_brotli_sha256": "5aa50067197a9ceebe8cb4efcabd1f7d7baaba9bb195d6ff7b22df54b54a0cd6",
+        "index_gzip_sha256": "5cc228cc53565ff7c08e49ae6502a363cf658f151800ea49da763d94777cb0e6",
+        "composer_present": true,
+        "single_account_model_request_completed": true,
+        "model_observation_ms": 9173,
+        "journal_lines": 11,
+        "sensitive_shape_matches": 0,
+        "fixture_sentinel_matches": 0,
+        "standalone_8215_timestamp_unchanged": true,
+        "routed_app_server_timestamp_unchanged": true
       }
     },
     {
@@ -189,6 +250,10 @@
     {
       "command": "first r17 deployment archive validation",
       "result": "rejected before activation because a macOS provenance extended header was present; the final 6074-byte ustar contained exactly one regular index.html"
+    },
+    {
+      "command": "first standalone r3 activation verifier",
+      "result": "rolled back because the verifier did not normalize CRLF response headers; the hash-checked candidate and Brotli decode were valid, and the corrected activation verifier passed"
     }
   ],
   "live_browser": {
@@ -215,6 +280,12 @@
     "r17_other_logs": 1,
     "r17_other_log_category": "existing React route warning",
     "r17_alert_count": 0,
+    "r18_composer_present": true,
+    "r18_model_requests_completed": 1,
+    "r18_model_observation_ms": 9173,
+    "standalone_8215_composer_present": true,
+    "standalone_8215_post_boundary_model_requests_completed": 1,
+    "standalone_8215_model_observation_ms": 3728,
     "browser_plugin_instrumentation_errors_excluded_from_page_evidence": true,
     "startup_speed_claimed_stable": false,
     "model_latency_claimed_guaranteed": false,
@@ -239,13 +310,34 @@
     "priority_entry_predates_r17": true,
     "classified_as_new_r17_application_error": false
   },
+  "standalone_8215_log_boundary": {
+    "standard_output": "null",
+    "standard_error": "journal",
+    "unit_sha256": "f75c8231ac025056c09945ed97cc65a4b98c54cf44c41ee8eb4f1065e0f141a5",
+    "post_boundary_model_check_journal_lines": 10,
+    "sensitive_shape_matches": 0,
+    "fixture_sentinel_matches": 0,
+    "new_application_error_entries": 0
+  },
+  "r18_log_boundary": {
+    "standard_output": "null",
+    "standard_error": "journal",
+    "model_check_journal_lines": 11,
+    "sensitive_shape_matches": 0,
+    "fixture_sentinel_matches": 0,
+    "new_application_error_entries": 0
+  },
   "deployed_asset": {
-    "release": "c3e92f0f-20260729-m69-router-r17",
+    "release": "c3e92f0f-20260729-m69-router-r18",
     "asset_url": "./assets/app-initial-BTphDPeq.js?v=5d211964500013a9",
     "served_identity_sha256": "5d211964500013a9c68eb546775cb6cb071b080591881109239fec10bebbc7e0",
     "served_preload_sha256": "65708a1c2c053568691f6691b76290a6bd07df09ea84ef1186ac77090649fc5a",
     "served_stylesheet_sha256": "3db81509f04faef314889c39d777a310297c2856330f52fd994a07c67a9c7774",
     "served_index_sha256": "1b7845677d03bbc104e14a55483cdb3fcb94ed6d4ea83e60e1655e19d10fa9e1",
+    "served_index_gzip_sha256": "5cc228cc53565ff7c08e49ae6502a363cf658f151800ea49da763d94777cb0e6",
+    "served_index_brotli_sha256": "5aa50067197a9ceebe8cb4efcabd1f7d7baaba9bb195d6ff7b22df54b54a0cd6",
+    "served_index_gzip_bytes": 5960,
+    "served_index_brotli_bytes": 4149,
     "startup_fastpath_sha256": "3eb857920a3be9ceb4ff9be0c0746199dab0f8c4e4a02d3762380508a429aabd",
     "startup_fastpath_inlined": true,
     "external_startup_script_count": 0,
