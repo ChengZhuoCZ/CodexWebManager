@@ -467,6 +467,56 @@ test("keeps both observed auxiliary endpoints compatible when failover mode is e
   assert.deepEqual(releases, ["codex_models", "codex_search"]);
 });
 
+test("serves a fresh account-scoped model catalog without repeating the upstream wait", async (context) => {
+  let upstreamRequests = 0;
+  const { origin, releases, resolverCalls } = await fixture(context, (_request, response) => {
+    upstreamRequests += 1;
+    response.writeHead(200, {
+      "cache-control": "private, max-age=0",
+      "content-type": "application/json",
+      etag: `"fixture-${upstreamRequests}"`,
+      "x-oai-request-id": `fixture-upstream-${upstreamRequests}`,
+      "x-ratelimit-remaining-requests": "fixture-private-quota",
+    });
+    response.end(JSON.stringify({ models: [{ generation: upstreamRequests }] }));
+  }, {
+    failoverStateMachine: createFailoverStateMachine({
+      maxAttempts: 1,
+      totalDeadlineMs: 1_000,
+      baseBackoffMs: 1,
+      maxBackoffMs: 1,
+    }),
+  });
+
+  const first = await fetch(`${origin}/backend-api/codex/models?client_version=0.145.0`);
+  assert.equal(first.status, 200);
+  assert.deepEqual(await first.json(), { models: [{ generation: 1 }] });
+  assert.equal(first.headers.get("x-oai-request-id"), "fixture-upstream-1");
+
+  const cached = await fetch(`${origin}/backend-api/codex/models?client_version=0.145.0`);
+  assert.equal(cached.status, 200);
+  assert.deepEqual(await cached.json(), { models: [{ generation: 1 }] });
+  assert.equal(cached.headers.get("etag"), '"fixture-1"');
+  assert.equal(cached.headers.get("x-oai-request-id"), null);
+  assert.equal(cached.headers.get("x-ratelimit-remaining-requests"), null);
+  assert.equal(upstreamRequests, 1);
+
+  const otherVersion = await fetch(
+    `${origin}/backend-api/codex/models?client_version=0.145.1`,
+  );
+  assert.deepEqual(await otherVersion.json(), { models: [{ generation: 2 }] });
+  assert.equal(upstreamRequests, 2);
+  assert.deepEqual(
+    resolverCalls.map((route) => route.upstream_target),
+    [
+      "/backend-api/codex/models?client_version=0.145.0",
+      "/backend-api/codex/models?client_version=0.145.0",
+      "/backend-api/codex/models?client_version=0.145.1",
+    ],
+  );
+  assert.deepEqual(releases, ["codex_models", "codex_models", "codex_models"]);
+});
+
 test("returns explicit errors for every unsupported auxiliary route variant before resolution", async (context) => {
   const { origin, resolverCalls } = await fixture(context, (_request, response) => {
     response.end("must-not-run");

@@ -31,6 +31,7 @@ export {
   failoverPolicy,
 } from "./failover-state-machine.mjs";
 export { createModelProxyService } from "./model-service.mjs";
+export { createModelCatalogCache } from "./model-catalog-cache.mjs";
 export { createProxyHandler } from "./proxy-handler.mjs";
 export { listProxyRoutes, normalizeProxyRoute, ProxyRouteError } from "./proxy-routes.mjs";
 export { createQuotaSnapshotAdapter } from "./quota-snapshot.mjs";

@@ -174,7 +174,15 @@ async function endResponse(response, body = null) {
   });
 }
 
-async function sendBufferedResponse(incoming, response, body, observeEvent, route) {
+async function sendBufferedResponse(
+  incoming,
+  response,
+  body,
+  observeEvent,
+  route,
+  accountId,
+  modelCatalogCache,
+) {
   const statusCode = incoming.statusCode;
   if (!Number.isInteger(statusCode) || statusCode < 100 || statusCode > 599) {
     throw new FailoverAttemptError("protocol_error");
@@ -187,6 +195,13 @@ async function sendBufferedResponse(incoming, response, body, observeEvent, rout
     }
     throw error;
   }
+  modelCatalogCache?.write({
+    accountId,
+    route,
+    statusCode,
+    headers: incoming.headers,
+    body,
+  });
   observeEvent("response.completed");
   response.writeHead(statusCode, filterHttpResponseHeaders(incoming.headers));
   await endResponse(response, body);
@@ -279,6 +294,7 @@ async function relaySse({
 async function upstreamAttempt({
   body,
   configuration,
+  modelCatalogCache,
   onWeeklyQuotaObservation,
   observeEvent,
   quotaNow,
@@ -290,6 +306,16 @@ async function upstreamAttempt({
   upstreamHeadersTimeoutMs,
 }) {
   if (signal.aborted) throw new FailoverAttemptError("client_cancelled");
+  const cached = modelCatalogCache?.read({
+    accountId: configuration.accountId,
+    route,
+  });
+  if (cached !== null && cached !== undefined) {
+    observeEvent("response.completed");
+    response.writeHead(cached.statusCode, cached.headers);
+    await endResponse(response, cached.body);
+    return;
+  }
   const headers = buildUpstreamRequestHeaders(requestHeaders, configuration.headers, {
     contentLength: route.method === "GET" ? null : body.length,
     route,
@@ -345,7 +371,15 @@ async function upstreamAttempt({
       }
       throw new FailoverAttemptError("network_error");
     }
-    await sendBufferedResponse(incoming, response, responseBody, observeEvent, route);
+    await sendBufferedResponse(
+      incoming,
+      response,
+      responseBody,
+      observeEvent,
+      route,
+      configuration.accountId,
+      modelCatalogCache,
+    );
   } finally {
     clearTimeout(headersTimer);
     signal.removeEventListener("abort", abort);
@@ -360,6 +394,7 @@ function inStreamError(error) {
 
 export function createFailoverHttpHandler({
   failoverStateMachine,
+  modelCatalogCache,
   onAttemptFailure,
   onWeeklyQuotaObservation,
   quotaNow,
@@ -377,6 +412,16 @@ export function createFailoverHttpHandler({
     throw new TypeError("onWeeklyQuotaObservation is required");
   }
   if (typeof quotaNow !== "function") throw new TypeError("quotaNow is required");
+  if (
+    modelCatalogCache !== null &&
+    (
+      typeof modelCatalogCache !== "object" ||
+      typeof modelCatalogCache.read !== "function" ||
+      typeof modelCatalogCache.write !== "function"
+    )
+  ) {
+    throw new TypeError("modelCatalogCache must provide read/write or be null");
+  }
 
   return async ({ request, response, route, body: preparedBody = null }) => {
     let body = preparedBody;
@@ -424,6 +469,7 @@ export function createFailoverHttpHandler({
           await upstreamAttempt({
             body,
             configuration: selection.configuration,
+            modelCatalogCache,
             onWeeklyQuotaObservation,
             observeEvent,
             quotaNow,

@@ -17,6 +17,7 @@
         "test/event-broker.test.mjs",
         "test/failover-fixtures.test.mjs",
         "test/failover-state-machine.test.mjs",
+        "test/model-catalog-cache.test.mjs",
         "test/proxy-routes.test.mjs",
         "test/quota-snapshot.test.mjs",
         "test/redaction.test.mjs",

@@ -10,6 +10,7 @@ import {
 } from "./auxiliary-endpoints.mjs";
 import { sendJson } from "./http-handler.mjs";
 import { createFailoverHttpHandler } from "./failover-http-handler.mjs";
+import { createModelCatalogCache } from "./model-catalog-cache.mjs";
 import { normalizeProxyRoute, ProxyRouteError } from "./proxy-routes.mjs";
 import {
   buildUpstreamRequestHeaders,
@@ -139,6 +140,7 @@ export function createProxyHandler({
   upstreamHeadersTimeoutMs = 90_000,
   requestTotalTimeoutMs = 15 * 60_000,
   failoverStateMachine = null,
+  modelCatalogCache = undefined,
   onAttemptFailure = async () => undefined,
   onWeeklyQuotaObservation = () => undefined,
   quotaNow = () => Date.now(),
@@ -165,11 +167,27 @@ export function createProxyHandler({
   if (typeof quotaNow !== "function") {
     throw new TypeError("quotaNow must be a function");
   }
+  const catalogCache = modelCatalogCache === undefined
+    ? createModelCatalogCache({
+        maxBodyBytes: Math.min(responseBodyLimitBytes, 2 * 1024 * 1024),
+      })
+    : modelCatalogCache;
+  if (
+    catalogCache !== null &&
+    (
+      typeof catalogCache !== "object" ||
+      typeof catalogCache.read !== "function" ||
+      typeof catalogCache.write !== "function"
+    )
+  ) {
+    throw new TypeError("modelCatalogCache must provide read/write or be null");
+  }
 
   const failoverHttpHandler = failoverStateMachine === null
     ? null
     : createFailoverHttpHandler({
         failoverStateMachine,
+        modelCatalogCache: catalogCache,
         onAttemptFailure,
         onWeeklyQuotaObservation,
         quotaNow,
