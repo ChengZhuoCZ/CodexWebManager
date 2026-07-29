@@ -22,7 +22,7 @@
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "f6227a5564abe8446cd66dd50d7604ba45d23f51",
+  "output_revision": "2335798ace91eff2ad6e85ae6d7892d06f1b891a",
   "workspace_branch": "codex/m6-9-routed-failover-performance",
   "workspace_input_revision": "d41f2f282390f3f95e6795dd713d657b51788cc5",
   "depends_on": [
@@ -101,6 +101,30 @@
     {
       "command": "rollback-capable standalone 8215 Full Access deployment and live systemd/process/HTTP/journal probes",
       "result": "Codex danger-full-access plus approval_policy=never verified in both live argv and a no-model config/read RPC; outer systemd relaxation verified; 8215/8216 HTTP 200; 0 post-activation Linux-sandbox error matches; all three 8216 PIDs and timestamps unchanged"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/proxy-routes.test.mjs packages/account-router/test/failover-proxy.test.mjs",
+      "result": "test-first failure observed as HTTP 405 before implementation; after implementation 18/18 passed, including bounded Codex HTTP/SSE fallback, post-semantic no-replay and continuation no-replay"
+    },
+    {
+      "command": "M4_2_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_3_CODEX_WEB_ROOT=<clean-888692f-fixture> M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": "r21 strict matrix 262/262 with no skips: unit 145, integration 70, E2E 47; fixtures used no real account and did not execute account switching"
+    },
+    {
+      "command": "M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "r21 qualified; 85/85 focused tests passed; 326 repository files scanned with zero findings"
+    },
+    {
+      "command": "two deterministic x64 builds plus Linux verification with a seeded existing current symlink",
+      "result": "0.2.4 archives were byte-identical at SHA-256 8eef5785; checksum, existing-symlink upgrade, loopback startup, no-account readiness and clean SIGTERM passed without credentials"
+    },
+    {
+      "command": "rollback-capable r21 router-only deployment, installed route probes, service invariants, journal scan and Mac-to-Tailnet HTTP probes",
+      "result": "the 0.2.3 installer defect triggered a safe rollback and regression fix; 0.2.4 then activated ready, exact HTTP fallback normalized, query variant rejected, 0 journal secret-marker matches, both origins HTTP 200, and both 8215 plus 8216 Web/App Server PID/start/config/release invariants passed"
+    },
+    {
+      "command": "subagent 8215 startup diagnosis and standalone-only repair",
+      "result": "dead one-shot Unix-socket proxy confirmed; only 8215 Web restarted and a standalone PartOf drop-in was installed; actual IPC WebSocket plus initialize/account/model-list passed without a model request; all 8216 PID/start values remained unchanged"
     }
   ],
   "evidence": [
@@ -109,8 +133,11 @@
     "evidence/M6.9/linux-deployment-summary.json",
     "evidence/M6.9/blocker.md",
     "evidence/M6.9/deploy-r20.sh",
+    "evidence/M6.9/deploy-router-r21.sh",
     "evidence/M6.9/deploy-8215-full-access.sh",
-    "evidence/M6.9/standalone-8215-full-access.json"
+    "evidence/M6.9/standalone-8215-full-access.json",
+    "evidence/M6.9/router-r21-release-summary.json",
+    "evidence/M6.9/standalone-8215-startup-repair.md"
   ],
   "observations": {
     "continuation_r21_start": {
@@ -212,7 +239,7 @@
       ],
       "expected_result": "Qualify automatic A-to-B failover and reduce avoidable startup/model latency on isolated 8216 while preserving independent 8215."
     },
-    "scope_boundary": "M6.9 originally allowed changes only to isolated routed 8216 and account-router private configuration. During r18 the user explicitly interrupted and authorized a minimal standalone 8215 repair; the exception was limited to immutable startup/static-delivery successors and the stdout log boundary. The user later explicitly authorized changing 8215 to a newly device-authorized account, then explicitly authorized an 8215-only Codex Full Access override while requiring 8216 to remain unchanged. That credential remains isolated from the router. The 8214 deployment remained out of scope.",
+    "scope_boundary": "M6.9 originally allowed changes only to isolated routed 8216 and account-router private configuration. During r18 the user explicitly interrupted and authorized a minimal standalone 8215 repair; the exception was limited to immutable startup/static-delivery successors and the stdout log boundary. The user later explicitly authorized changing 8215 to a newly device-authorized account, then explicitly authorized an 8215-only Codex Full Access override while requiring 8216 to remain unchanged. During r21 the user explicitly requested a parallel subagent repair for a stuck 8215 startup page; that subagent restarted only the standalone Web process and installed a standalone lifecycle drop-in, while the primary r21 deployment subsequently captured and preserved the fresh 8215 baseline. The standalone credential remains isolated from the router. The 8214 deployment remained out of scope.",
     "standalone_8215_scope_override": {
       "authorized_by_user": true,
       "input_revision": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
@@ -220,8 +247,13 @@
       "expected_result": "Restore signed-in standalone 8215 browser and model use, reduce the uncompressed startup transfer, prevent future verbose IPC/model stdout from entering the journal, activate the separately authorized standalone account without enrolling it into the router, and later give only its Codex App Server Full Access without modifying 8216."
     },
     "implementation": {
-      "revision": "83d062d337c75c05bb4797d442fe1d8fe4ad255b",
-      "router_release": "codex-account-router-0.2.2-linux-x64",
+      "revision": "c2708371515d560ea024e8c7d1dfc2d5187fa6fb",
+      "r21_route_revision": "2f0757de08586821b7c05828a8a3246fb83ba864",
+      "r21_release_revision": "c2708371515d560ea024e8c7d1dfc2d5187fa6fb",
+      "router_release": "codex-account-router-0.2.4-linux-x64",
+      "router_artifact_sha256": "8eef578534a56cf5778b0f0665337bfc1da5040d3118627327a8d4924428f7dd",
+      "codex_http_fallback_route_id": "codex_responses_http",
+      "codex_http_fallback_contract_version": 2,
       "routed_codex_web_release": "c3e92f0f-20260729-m69-router-r20",
       "standalone_codex_web_release": "c3e92f0-20260729-tailnet-startup-r3",
       "atomic_account_enrollment_installed": true,
@@ -293,6 +325,12 @@
       "r20_single_account_model_requests_completed": 1,
       "r20_warm_reload_retained_composer": true,
       "r20_stable_latency_sample_available": false,
+      "r21_strict_tests_passed": 262,
+      "r21_security_tests_passed": 85,
+      "r21_repository_files_scanned": 326,
+      "r21_post_semantic_replay_blocked": true,
+      "r21_continuation_replay_blocked": true,
+      "r21_deliberate_prompt_title_or_model_request_sent": false,
       "standalone_8215_pre_switch_model_observation_ms": 3728,
       "standalone_8215_post_switch_model_observation_ms": 27319,
       "standalone_standard_output": "null",
@@ -316,6 +354,9 @@
       "standalone_8215_full_access_active": true,
       "routed_8216_unchanged_during_full_access_activation": true,
       "single_account_model_requests_completed": 6,
+      "r21_router_release": "codex-account-router-0.2.4-linux-x64",
+      "r21_http_fallback_route_deployed": true,
+      "r21_deliberate_prompt_title_or_model_request_sent": false,
       "real_two_account_switch_executed": false
     },
     "standalone_8215": {
@@ -343,12 +384,22 @@
       "router_enrollment_executed": false,
       "post_boundary_sensitive_shape_matches": 0,
       "post_boundary_fixture_sentinel_matches": 0,
-      "post_full_access_linux_sandbox_error_matches": 0
+      "post_full_access_linux_sandbox_error_matches": 0,
+      "startup_repair_web_pid": 510876,
+      "startup_repair_web_start_monotonic": 196497166049,
+      "startup_repair_app_server_pid_preserved": 508396,
+      "startup_repair_app_server_start_monotonic_preserved": 194490256322,
+      "startup_repair_part_of_drop_in_sha256": "e97ded1beb0a49263a0e596b72f20ceff3dce35c589c3912b73c36a1b567c104",
+      "startup_repair_ipc_websocket_verified": true,
+      "startup_repair_model_request_sent": false,
+      "pid_and_timestamp_unchanged_during_r21_deployment": true
     },
     "routed_app_server": {
       "restarted_for_r20": true,
       "main_pid": 495033,
-      "active_enter_timestamp": "2026-07-29 17:32:54 CST"
+      "active_enter_timestamp": "2026-07-29 17:32:54 CST",
+      "main_start_monotonic": 188703455553,
+      "pid_and_timestamp_unchanged_during_r21": true
     },
     "routed_8216": {
       "main_pid": 495185,
@@ -356,7 +407,27 @@
       "release": "c3e92f0f-20260729-m69-router-r20",
       "timestamp_unchanged_during_8215_account_change": true,
       "pid_and_timestamp_unchanged_during_8215_full_access": true,
-      "standalone_8215_pid_and_timestamp_unchanged_during_r20": true
+      "standalone_8215_pid_and_timestamp_unchanged_during_r20": true,
+      "main_start_monotonic": 188703695080,
+      "pid_timestamp_config_and_release_unchanged_during_r21": true
+    },
+    "r21_deployment": {
+      "router_release": "codex-account-router-0.2.4-linux-x64",
+      "router_main_pid": 516181,
+      "router_main_start_monotonic": 197570548095,
+      "router_ready_status": 200,
+      "first_deployment_attempt_rolled_back": true,
+      "installer_regression_covered": true,
+      "final_deployment_succeeded": true,
+      "standalone_8215_unchanged_after_fresh_parallel_repair_baseline": true,
+      "routed_8216_app_web_unchanged": true,
+      "tailnet_8215_http_status": 200,
+      "tailnet_8216_http_status": 200,
+      "router_journal_sensitive_marker_matches": 0,
+      "single_transient_readiness_503_observed": true,
+      "subsequent_ready_200_samples": 20,
+      "post_r21_live_title_generation_verified": false,
+      "model_manager_refresh_retested": false
     }
   },
   "blockers": [
@@ -373,7 +444,7 @@
     "Direct Tailnet HTTP still requires a browser compatibility shim; HTTPS remains preferable.",
     "Every authorized Tailnet principal reaching 8216 can use the configured routed accounts and workspace authority.",
     "Standalone 8215 now deliberately runs Codex with danger-full-access and without the outer systemd filesystem/network sandbox. Any prompt injection or malicious repository content can access everything available to the unprivileged codex Unix account; root/passwordless sudo was not granted.",
-    "One auxiliary 8216 thread-title request returned HTTP 405 and model-manager refreshes can time out; the fixed signed-in chat model path completed, but these remain operational follow-up work."
+    "R21 now accepts the exact HTTP/SSE path that previously returned HTTP 405, but no post-R21 real title-generation request was sent; model-manager refreshes can time out and were not rechecked."
   ],
-  "updated_at": "2026-07-29T19:34:33+08:00"
+  "updated_at": "2026-07-29T20:18:15+08:00"
 }
