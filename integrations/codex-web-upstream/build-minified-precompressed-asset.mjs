@@ -28,8 +28,8 @@ const MAX_INDEX_BYTES = 256 * 1024;
 const MAX_STARTUP_FASTPATH_BYTES = 16 * 1024;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const OPERATION_TIMEOUT_MS = 120_000;
-const PRELOAD_MODULE_SCRIPT =
-  '    <script type="module" src="./assets/preload.js"></script>';
+const PRELOAD_URL = `./assets/${PRELOAD_NAME}`;
+const PRELOAD_MODULE_SCRIPT = preloadModuleScript(PRELOAD_URL);
 const STARTUP_FASTPATH_SCRIPT =
   '    <script src="./tailnet-startup-fastpath.js"></script>';
 const INLINE_STARTUP_FASTPATH_MARKER =
@@ -43,6 +43,10 @@ function modulePreloadBlock(assetUrl) {
     `      href="${assetUrl}"`,
     "    />",
   ].join("\n");
+}
+
+function preloadModuleScript(preloadUrl) {
+  return `    <script type="module" src="${preloadUrl}"></script>`;
 }
 
 const MAIN_MODULE_PRELOAD_BLOCK = modulePreloadBlock(ASSET_URL);
@@ -97,6 +101,16 @@ export function versionedAssetUrl(outputSha256) {
   return `${ASSET_URL}?v=${outputSha256.slice(0, 16)}`;
 }
 
+export function versionedPreloadUrl(outputSha256) {
+  if (
+    typeof outputSha256 !== "string" ||
+    !SHA256_PATTERN.test(outputSha256)
+  ) {
+    throw new Error("preload output hash is invalid");
+  }
+  return `./assets/preload-${outputSha256.slice(0, 8)}.js`;
+}
+
 function countOccurrences(value, needle) {
   return value.split(needle).length - 1;
 }
@@ -116,7 +130,12 @@ function inlineStartupFastpath(startupFastpathBytes) {
   ].join("\n");
 }
 
-function versionIndex(indexBytes, outputSha256, startupFastpathBytes) {
+function versionIndex(
+  indexBytes,
+  outputSha256,
+  preloadOutputSha256,
+  startupFastpathBytes,
+) {
   const index = indexBytes.toString("utf8");
   if (
     !Buffer.from(index).equals(indexBytes) ||
@@ -130,6 +149,7 @@ function versionIndex(indexBytes, outputSha256, startupFastpathBytes) {
     throw new Error("index boundary is invalid");
   }
   const assetUrl = versionedAssetUrl(outputSha256);
+  const preloadUrl = versionedPreloadUrl(preloadOutputSha256);
   const importMap = [
     '    <script type="importmap">',
     `      ${JSON.stringify({ imports: { [ASSET_URL]: assetUrl } })}`,
@@ -142,10 +162,12 @@ function versionIndex(indexBytes, outputSha256, startupFastpathBytes) {
   ].join("\n");
   return Object.freeze({
     assetUrl,
+    preloadUrl,
     bytes: Buffer.from(
       index
         .replace(`${MAIN_MODULE_PRELOAD_BLOCK}\n`, "")
-        .replace(STARTUP_FASTPATH_SCRIPT, earlyMainModuleHint),
+        .replace(STARTUP_FASTPATH_SCRIPT, earlyMainModuleHint)
+        .replace(PRELOAD_MODULE_SCRIPT, preloadModuleScript(preloadUrl)),
     ),
   });
 }
@@ -429,9 +451,31 @@ export async function buildMinifiedPrecompressedAsset({
     await run(process.execPath, ["--check", temporaryPreload]);
 
     const outputSha256 = sha256(output.bytes);
+    const preloadOutputSha256 = sha256(preloadOutput.bytes);
+    const preloadUrl = versionedPreloadUrl(preloadOutputSha256);
+    const versionedPreload = path.resolve(path.dirname(index), preloadUrl);
+    if (
+      path.dirname(versionedPreload) !== assetsDirectory ||
+      path.basename(versionedPreload) !==
+        `preload-${preloadOutputSha256.slice(0, 8)}.js`
+    ) {
+      throw new Error("versioned preload boundary is invalid");
+    }
+    const temporaryVersionedPreload = path.join(
+      assetsDirectory,
+      `.${path.basename(versionedPreload)}.${nonce}.next.js`,
+    );
+    const temporaryVersionedPreloadGzip = `${temporaryVersionedPreload}.gz`;
+    const temporaryVersionedPreloadBrotli = `${temporaryVersionedPreload}.br`;
+    temporaryFiles.push(
+      temporaryVersionedPreload,
+      temporaryVersionedPreloadGzip,
+      temporaryVersionedPreloadBrotli,
+    );
     const versionedIndex = versionIndex(
       indexInput.bytes,
       outputSha256,
+      preloadOutputSha256,
       startupFastpathInput.bytes,
     );
     const mode = input.stat.mode & 0o777;
@@ -451,6 +495,21 @@ export async function buildMinifiedPrecompressedAsset({
     );
     await writeTemporary(
       temporaryPreloadBrotli,
+      compressedPreload.brotli,
+      preloadMode,
+    );
+    await writeTemporary(
+      temporaryVersionedPreload,
+      preloadOutput.bytes,
+      preloadMode,
+    );
+    await writeTemporary(
+      temporaryVersionedPreloadGzip,
+      compressedPreload.gzip,
+      preloadMode,
+    );
+    await writeTemporary(
+      temporaryVersionedPreloadBrotli,
       compressedPreload.brotli,
       preloadMode,
     );
@@ -480,6 +539,12 @@ export async function buildMinifiedPrecompressedAsset({
     await fs.rename(temporaryBrotli, `${asset}.br`);
     await fs.rename(temporaryPreloadGzip, `${preload}.gz`);
     await fs.rename(temporaryPreloadBrotli, `${preload}.br`);
+    await fs.rename(temporaryVersionedPreloadGzip, `${versionedPreload}.gz`);
+    await fs.rename(
+      temporaryVersionedPreloadBrotli,
+      `${versionedPreload}.br`,
+    );
+    await fs.rename(temporaryVersionedPreload, versionedPreload);
     await fs.rename(temporaryStylesheetGzip, `${stylesheet}.gz`);
     await fs.rename(temporaryStylesheetBrotli, `${stylesheet}.br`);
     await fs.rename(temporaryIndexGzip, `${index}.gz`);
@@ -496,13 +561,14 @@ export async function buildMinifiedPrecompressedAsset({
       terser_version:
         optimizeMain === undefined ? null : EXPECTED_TERSER_VERSION,
       asset_url: versionedIndex.assetUrl,
+      preload_url: versionedIndex.preloadUrl,
       input_sha256: expectedSha256,
       output_sha256: outputSha256,
       index_input_sha256: expectedIndexSha256,
       index_output_sha256: sha256(versionedIndex.bytes),
       startup_fastpath_sha256: expectedStartupFastpathSha256,
       preload_input_sha256: expectedPreloadSha256,
-      preload_output_sha256: sha256(preloadOutput.bytes),
+      preload_output_sha256: preloadOutputSha256,
       stylesheet_sha256: expectedStylesheetSha256,
       input_bytes: input.bytes.length,
       primary_output_bytes: primaryOutput.bytes.length,

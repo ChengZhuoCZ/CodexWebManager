@@ -18,6 +18,7 @@ import {
   MIN_TERSER_BROTLI_REDUCTION_BPS,
   terserArguments,
   versionedAssetUrl,
+  versionedPreloadUrl,
 } from "../../../integrations/codex-web-upstream/build-minified-precompressed-asset.mjs";
 import {
   inlineVersionedStartupFastpath,
@@ -338,10 +339,31 @@ test("builds deterministic precompressed files only after a pinned minifier prod
   assert.equal((await stat(`${indexFile}.br`)).mode & 0o777, 0o640);
   const outputSha256 = createHash("sha256").update(minified).digest("hex");
   const versionedUrl = versionedAssetUrl(outputSha256);
+  const preloadOutputSha256 = createHash("sha256")
+    .update(minifiedPreload)
+    .digest("hex");
+  const preloadUrl = versionedPreloadUrl(preloadOutputSha256);
+  const versionedPreloadFile = path.join(
+    assets,
+    path.basename(preloadUrl),
+  );
   assert.equal(result.asset_url, versionedUrl);
+  assert.equal(result.preload_url, preloadUrl);
+  assert.deepEqual(await readFile(versionedPreloadFile), minifiedPreload);
+  assert.deepEqual(
+    gunzipSync(await readFile(`${versionedPreloadFile}.gz`)),
+    minifiedPreload,
+  );
+  assert.deepEqual(
+    brotliDecompressSync(await readFile(`${versionedPreloadFile}.br`)),
+    minifiedPreload,
+  );
+  assert.equal((await stat(versionedPreloadFile)).mode & 0o777, 0o640);
+  assert.equal((await stat(`${versionedPreloadFile}.gz`)).mode & 0o777, 0o640);
+  assert.equal((await stat(`${versionedPreloadFile}.br`)).mode & 0o777, 0o640);
   assert.ok(
     versionedIndex.indexOf('<script type="importmap">') <
-      versionedIndex.indexOf('<script type="module" src="./assets/preload.js">'),
+      versionedIndex.indexOf(`<script type="module" src="${preloadUrl}">`),
   );
   assert.ok(
     versionedIndex.indexOf('<script type="importmap">') <
@@ -358,9 +380,14 @@ test("builds deterministic precompressed files only after a pinned minifier prod
       '<script data-codex-tailnet-startup-fastpath>',
     ) <
       versionedIndex.indexOf(
-        '<script type="module" src="./assets/preload.js">',
+        `<script type="module" src="${preloadUrl}">`,
       ),
   );
+  assert.doesNotMatch(
+    versionedIndex,
+    /<script type="module" src="\.\/assets\/preload\.js"><\/script>/,
+  );
+  assert.equal(versionedIndex.split(preloadUrl).length - 1, 1);
   assert.match(versionedIndex, /globalThis\.__startupFixture = true/);
   assert.doesNotMatch(
     versionedIndex,
@@ -605,6 +632,18 @@ test("minified asset builder rejects unpinned input and fixes the esbuild contra
   assert.equal(
     versionedAssetUrl("a".repeat(64)),
     "./assets/app-initial-BTphDPeq.js?v=aaaaaaaaaaaaaaaa",
+  );
+  assert.equal(
+    versionedPreloadUrl("b".repeat(64)),
+    "./assets/preload-bbbbbbbb.js",
+  );
+  assert.throws(
+    () => versionedPreloadUrl("B".repeat(64)),
+    /preload output hash is invalid/,
+  );
+  assert.throws(
+    () => versionedPreloadUrl("../preload.js"),
+    /preload output hash is invalid/,
   );
 });
 
