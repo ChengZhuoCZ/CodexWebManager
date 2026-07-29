@@ -238,6 +238,10 @@
     {
       "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
       "result": "R27 security audit qualified; 89/89 focused security tests and 492/492 retained strict UI evidence passed; 344 repository files were scanned with zero findings"
+    },
+    {
+      "command": "two deterministic 0.2.7 Linux x64 builds plus target-host no-credential release verification",
+      "result": "byte-identical artifacts at SHA-256 eeb4ff06; 48-file payload, checksum, installation, loopback-only listeners, health, no-account fail-closed readiness and clean SIGTERM passed without reading or configuring any real account"
     }
   ],
   "evidence": [
@@ -267,7 +271,9 @@
     "evidence/M6.9/standalone-8215-startup-r6-safe-network-repair.md",
     "evidence/M6.9/standalone-8215-startup-r7-peer-relay-grant.md",
     "evidence/M6.9/router-r27-weekly-quota-persistence-summary.json",
-    "evidence/M6.9/router-r27-security-summary.json"
+    "evidence/M6.9/router-r27-security-summary.json",
+    "evidence/M6.9/router-r27-linux-verify.json",
+    "evidence/M6.9/deploy-router-r27.sh"
   ],
   "observations": {
     "continuation_r27_start": {
@@ -282,6 +288,7 @@
       "expected_result": "Use no-credential fixtures to persist a fresh weekly-quota exhaustion observation through a simulated router restart so the exhausted account is not immediately rescheduled. Preserve standalone 8215 PID 510876/508396 and active-enter monotonic timestamps 196497166178/194490256399; send no real model request and execute no real account switch."
     },
     "continuation_r27_fixture_result": {
+      "implementation_revision": "3f8723f40c7c841859399077d3b010dca5d12c97",
       "weekly_quota_exhaustion_persisted": true,
       "persistence_kind": "quota_exhausted",
       "default_cooldown_seconds": 3600,
@@ -302,6 +309,16 @@
       "model_request_sent": false,
       "account_switch_tested": false,
       "seamless_account_continuity_claimed": false
+    },
+    "continuation_r27_release_candidate": {
+      "router_release": "codex-account-router-0.2.7-linux-x64",
+      "artifact_sha256": "eeb4ff069d083bb0259ec82a4d1ab4ab16edb5747bdc523f7a941883529ea8a4",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 48,
+      "linux_verification_passed": true,
+      "credentials_present_in_verification": false,
+      "account_switch_tested": false,
+      "deployment_status": "pending"
     },
     "continuation_r24_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
@@ -857,5 +874,5 @@
     "R24 current_route is reset on router restart until the next routed request selects an account; no production model request was sent merely to repopulate it.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-07-30T02:35:00+08:00"
+  "updated_at": "2026-07-30T02:41:00+08:00"
 }
