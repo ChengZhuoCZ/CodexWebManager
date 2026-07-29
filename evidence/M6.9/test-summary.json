@@ -441,6 +441,29 @@
         "strict_ui_passed": 492,
         "audit_stage": "final_evidence_commit"
       }
+    },
+    {
+      "command": "subagent current-incident 8215 startup-page R3 review",
+      "result": {
+        "fresh_r23_baseline_captured": true,
+        "root_http_status": 200,
+        "boot_assets": 8,
+        "boot_assets_http_200_and_mime_valid": 8,
+        "tailnet_fresh_url_http_status": 200,
+        "tailnet_websocket_status": 101,
+        "ipc_roundtrip_ok": true,
+        "unix_socket_connected": true,
+        "account_present": true,
+        "model_count": 7,
+        "browser_signed_in_composer_verified": true,
+        "browser_cold_composer_ms_single_observation": 50489,
+        "stable_startup_latency_claimed": false,
+        "services_or_files_mutated": false,
+        "all_five_service_pid_start_and_unit_hashes_unchanged": true,
+        "both_releases_unchanged": true,
+        "model_request_sent": false,
+        "account_switch_tested": false
+      }
     }
   ],
   "failure_injections": {
@@ -866,6 +889,30 @@
     "model_count": 7,
     "model_request_sent": false,
     "routed_8216_services_unchanged": true
+  },
+  "standalone_8215_startup_review_r3": {
+    "explicit_parallel_user_request": true,
+    "fresh_r23_baseline_captured": true,
+    "root_http_status": 200,
+    "boot_assets": 8,
+    "boot_assets_http_200_and_mime_valid": 8,
+    "tailnet_fresh_url": "http://100.95.50.98:8215/?repair=20260729-r3",
+    "tailnet_fresh_url_http_status": 200,
+    "tailnet_fresh_url_total_ms": 514,
+    "tailnet_websocket_status": 101,
+    "ipc_roundtrip_ok": true,
+    "unix_socket_connected": true,
+    "account_present": true,
+    "model_count": 7,
+    "browser_signed_in_composer_verified": true,
+    "browser_cold_composer_ms_single_observation": 50489,
+    "stable_startup_latency_claimed": false,
+    "services_or_files_mutated": false,
+    "all_five_service_pid_start_and_unit_hashes_unchanged": true,
+    "both_releases_unchanged": true,
+    "model_request_sent": false,
+    "account_switch_tested": false,
+    "evidence": "evidence/M6.9/standalone-8215-startup-r3-review.md"
   },
   "deployed_asset": {
     "release": "c3e92f0f-20260729-m69-router-r23",

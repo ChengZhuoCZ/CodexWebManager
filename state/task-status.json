@@ -171,6 +171,10 @@
     {
       "command": "M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
       "result": "R23 final evidence revision 2dbb6a5 qualified; 85/85 focused security tests and 492/492 strict UI evidence passed; 334 repository files scanned with zero findings"
+    },
+    {
+      "command": "subagent current-incident 8215 startup-page R3 review",
+      "result": "fresh R23 baselines captured; HTML plus all eight boot assets, Tailnet HTTP and WebSocket 101, benign Web IPC, Unix socket connection, App Server initialize/account read and seven-model catalog passed; a fresh in-app browser reached the signed-in composer after a noisy approximately 50-second cold observation; no service restart or file mutation was justified; all five service PID/start/unit hashes and both releases remained unchanged; no model request or account switch sent"
     }
   ],
   "evidence": [
@@ -188,7 +192,8 @@
     "evidence/M6.9/router-r22-model-cache-summary.json",
     "evidence/M6.9/standalone-8215-startup-r2-review.md",
     "evidence/M6.9/deploy-router-r23.sh",
-    "evidence/M6.9/router-r23-startup-summary.json"
+    "evidence/M6.9/router-r23-startup-summary.json",
+    "evidence/M6.9/standalone-8215-startup-r3-review.md"
   ],
   "observations": {
     "continuation_r23_start": {
@@ -502,6 +507,14 @@
       "round_2_review_server_side_healthy": true,
       "round_2_review_mutation_performed": false,
       "pid_timestamp_config_and_release_unchanged_during_r22": true,
+      "round_3_current_incident_server_side_healthy": true,
+      "round_3_fresh_tailnet_url": "http://100.95.50.98:8215/?repair=20260729-r3",
+      "round_3_mutation_performed": false,
+      "round_3_browser_signed_in_composer_verified": true,
+      "round_3_browser_cold_composer_ms_single_observation": 50489,
+      "round_3_stable_startup_latency_claimed": false,
+      "round_3_model_request_sent": false,
+      "round_3_account_switch_tested": false,
       "pid_timestamp_config_and_release_unchanged_during_r23": true
     },
     "routed_app_server": {
@@ -607,5 +620,5 @@
     "R23 deterministically removes 56354 Brotli bytes and adds two pinned modulepreload hints, but the Tailnet path remains on DERP(tok) and single-run browser timing remains variable; no stable end-to-end speedup is claimed.",
     "Because the content-hashed main URL and identity bytes are unchanged, a browser that already cached the earlier Brotli representation can retain it until normal cache eviction."
   ],
-  "updated_at": "2026-07-29T22:22:38+08:00"
+  "updated_at": "2026-07-29T22:32:18+08:00"
 }
