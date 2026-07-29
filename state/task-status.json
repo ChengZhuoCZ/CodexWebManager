@@ -18,6 +18,7 @@
     "r20_continuation": "90a87e020cb9c4f6387656399603ec3893524f59",
     "r21_continuation": "c61f0a9ddc173bd1763e1d8efc8f87b1c5e9de9c",
     "r22_continuation": "67c62ca3c750c8982b43cca7741832c49477d8a4",
+    "r23_continuation": "63db37b8bd57c935f4a1a9ddc72dbcc3d87b2937",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
@@ -168,6 +169,17 @@
     "evidence/M6.9/standalone-8215-startup-r2-review.md"
   ],
   "observations": {
+    "continuation_r23_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-routed-failover-performance",
+      "commit": "63db37b8bd57c935f4a1a9ddc72dbcc3d87b2937",
+      "dependencies": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_result": "Profile the real 8216 post-R22 browser startup timeline and qualify one evidence-backed bounded optimization for the remaining startup or IPC delay, while preserving every 8215 PID, timestamp, release and effective-unit hash and sending no model conversation or account-switch request."
+    },
     "continuation_r22_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-routed-failover-performance",
