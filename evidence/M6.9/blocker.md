@@ -13,18 +13,20 @@ new-request A-to-B switch cannot be executed.
 - weekly quota and explicit pre-semantic HTTP/SSE/WebSocket failure matrices
   pass with bounded attempts, backoff, and total deadline;
 - no replay after semantic output is enforced;
-- 8216 reproducible esbuild minification, output-hash module versioning, mature
-  static-plugin Brotli/gzip negotiation for main/preload/CSS, signed-in
-  composer, two single-account model requests, and the post-fix log boundary
-  are verified in release r14;
-- normal navigation revalidates HTML and loads the versioned main module
-  instead of the pre-r11 immutable entry;
-- compressed variants preserve the original asset cache policy, emit
-  `Vary: Accept-Encoding`, honor q-values, and return validator-based 304;
-- 8215 remained active, independent, and HTTP 200;
-- strict matrix: 255/255;
+- 8216 reproducible minification, output-hash module versioning,
+  Brotli/gzip negotiation, and clean-room authenticated Statsig event
+  collection disablement are verified in release r15;
+- live signed-in composer and one fixed non-private single-account model
+  sentinel completed;
+- r15 page diagnostics contained zero Statsig/manual-flush/event-drop warnings
+  and zero error logs;
+- App Server timing probes completed in 1.5-23.2 ms per method after a
+  15.8 ms initialization, while browser startup remained variable;
+- 8215 remained active, independent, HTTP 200, and retained its activation
+  timestamp;
+- strict matrix: 256/256;
 - focused security tests: 82/82;
-- repository secret scan: 317 files, zero findings.
+- repository secret scan: 318 files, zero findings.
 
 ## Required external input
 
@@ -45,4 +47,5 @@ After enrollment, M6.9 still requires:
    identifier, token, cookie, or complete quota response.
 
 Until those steps pass, real automatic account switching and cross-account
-continuity remain unverified.
+continuity remain unverified. No seamless continuity or in-flight computation
+resume is claimed.

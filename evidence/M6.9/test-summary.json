@@ -2,15 +2,25 @@
   "schema_version": 1,
   "task": "M6.9",
   "input_revision": "d41f2f282390f3f95e6795dd713d657b51788cc5",
-  "implementation_revision": "65d879224d3deeabe48a60faf9894bcd795a7126",
+  "r15_continuation_input_revision": "29685527792ddc7dab007c7d5a554ebfe0c6269b",
+  "implementation_revision": "151066ba29d32042f1addbb69a5341951fc8ed65",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "commands": [
     {
+      "command": "<bundled-node> --check integrations/codex-web-upstream/build-minified-precompressed-asset.mjs && <bundled-node> --test packages/account-router/test/codex-web-upstream-fastpath.test.mjs",
+      "result": {
+        "passed": true,
+        "focused_tests": 8,
+        "real_patch_dry_run": true,
+        "r15_only_added_diff_line": "loggingEnabled: `disabled`,"
+      }
+    },
+    {
       "command": "<bundled-node> --test",
       "result": {
-        "tests": 255,
-        "passed": 230,
+        "tests": 256,
+        "passed": 231,
         "failed": 0,
         "skipped": 25,
         "skip_reason": "Pinned codex-web fixture variables were intentionally absent."
@@ -19,11 +29,11 @@
     {
       "command": "M4_2_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_3_CODEX_WEB_ROOT=<clean-888692f-fixture> M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
       "result": {
-        "tests": 255,
-        "passed": 255,
+        "tests": 256,
+        "passed": 256,
         "failed": 0,
         "skipped": 0,
-        "unit": 139,
+        "unit": 140,
         "integration": 69,
         "e2e": 47
       }
@@ -31,35 +41,33 @@
     {
       "command": "M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> scripts/run-security-audit.mjs --summary <private-summary>",
       "result": {
+        "input_revision": "151066ba29d32042f1addbb69a5341951fc8ed65",
         "qualified": true,
         "security_tests": 82,
         "security_tests_passed": 82,
         "security_tests_failed": 0,
         "security_tests_skipped": 0,
-        "repository_files_scanned": 317,
+        "repository_files_scanned": 318,
         "findings": 0,
         "strict_ui_tests": 492,
         "strict_ui_passed": 492
       }
     },
     {
-      "command": "<bundled-node> --check integrations/codex-web-upstream/build-minified-precompressed-asset.mjs && <bundled-node> --test test/codex-web-upstream-fastpath.test.mjs",
-      "result": {
-        "passed": true,
-        "focused_tests": 7
-      }
-    },
-    {
-      "command": "<bundled-node> integrations/codex-web-upstream/build-minified-precompressed-asset.mjs --asset <absolute-main> --expected-sha256 2b7df9ee... --preload <absolute-preload> --expected-preload-sha256 74ef238a... --stylesheet <absolute-css> --expected-stylesheet-sha256 3db81509... --index <absolute-index> --expected-index-sha256 e4f70043... --esbuild <absolute-esbuild-0.27.0>",
+      "command": "<bundled-node> integrations/codex-web-upstream/build-minified-precompressed-asset.mjs --asset <absolute-main> --expected-sha256 deddbbe9... --preload <absolute-preload> --expected-preload-sha256 74ef238a... --stylesheet <absolute-css> --expected-stylesheet-sha256 3db81509... --index <absolute-index> --expected-index-sha256 e4f70043... --esbuild <absolute-esbuild-0.27.0>",
       "result": {
         "passed": true,
         "esbuild_version": "0.27.0",
-        "asset_url": "./assets/app-initial-BTphDPeq.js?v=3376a89421953463",
-        "input_bytes": 22822120,
-        "output_bytes": 14138809,
-        "gzip_bytes": 4345029,
-        "brotli_bytes": 3293232,
-        "output_sha256": "3376a894219534630a550a314f4e64f1fa3e85cd12e76d32d0fdb7381c2645a9",
+        "esbuild_sha256": "734cac3a18b8b5ed6a9a0e73f227ab94321f2859d2e65d700d83d19121860ee6",
+        "asset_url": "./assets/app-initial-BTphDPeq.js?v=5d211964500013a9",
+        "input_bytes": 22822156,
+        "input_sha256": "deddbbe9d598ff414c13ca8c7c346fb0d2b059ca487ebca6fd37616e7a0196e1",
+        "output_bytes": 14138835,
+        "gzip_bytes": 4345031,
+        "gzip_file_sha256": "d235f938d9d268068b34b2caf5089b05b666daebb0d2b6fa91783cba1df903ed",
+        "brotli_bytes": 3294106,
+        "brotli_file_sha256": "21fe4e5d04e95e5b8df9391e32922808b86eac83bcc3bf3198d7b93398825b94",
+        "output_sha256": "5d211964500013a9c68eb546775cb6cb071b080591881109239fec10bebbc7e0",
         "preload_input_bytes": 607155,
         "preload_output_bytes": 253451,
         "preload_gzip_bytes": 79865,
@@ -70,7 +78,30 @@
         "stylesheet_brotli_bytes": 13143,
         "stylesheet_sha256": "3db81509f04faef314889c39d777a310297c2856330f52fd994a07c67a9c7774",
         "index_input_sha256": "e4f70043d26d402c93abdf9e9ecbbdb3a4af4b1f92aaf49d6b3b77f486706139",
-        "index_output_sha256": "1ea73bdcd7a5ef303e9435796b58dc2cb66ba7916084c0afe7c9c1b8851c13fc"
+        "index_output_bytes": 15629,
+        "index_output_sha256": "89fe33825e43f5de90525c0da05e9d51bef94df27a5667aa3d244d15b2a9fa36",
+        "gzip_and_brotli_decode_to_identity": true
+      }
+    },
+    {
+      "command": "<sanitized-app-server-timing-probe> <private-unix-socket>",
+      "result": {
+        "initialize_ms": 15.8,
+        "round_1_ms": {
+          "account_read": 1.7,
+          "model_list": 1.7,
+          "thread_list": 23.2,
+          "config_read": 2.4
+        },
+        "round_2_ms": {
+          "account_read": 1.5,
+          "model_list": 1.5,
+          "thread_list": 6.7,
+          "config_read": 1.9
+        },
+        "model_count": 7,
+        "thread_count": 6,
+        "body_or_identifier_recorded": false
       }
     }
   ],
@@ -90,107 +121,59 @@
       "result": "environment failure: loopback listen returned EPERM; the identical command passed outside that restriction"
     },
     {
-      "command": "strict matrix with the existing temporary 888692f scratch fixture",
-      "result": "one E2E fixture-copy failure caused by five stale cache-query suffixes in /private/tmp; the temporary fixture was cleaned without changing the repository and the full rerun passed 255/255"
-    },
-    {
-      "command": "r13 remote patch dry-run against an inactive copied release",
-      "result": "failed closed before activation because the unified-diff hunk count was malformed; r12 remained active, 8215 was untouched, a real patch-application regression test was added, and r14 passed both local and remote dry-runs"
-    },
-    {
-      "command": "strict matrix in the restricted workspace sandbox after the r13 cache fix",
-      "result": "environment failure: loopback listen returned EPERM; the same 255-test matrix passed outside the network restriction"
+      "command": "first r15 deployment archive validation",
+      "result": "rejected before extraction and activation because macOS metadata produced four AppleDouble members in addition to the four allowlisted files; a clean four-member archive passed without changing 8215"
     }
   ],
   "live_browser": {
     "composer_present": true,
     "account_signed_in": true,
-    "r9_usable_screen_ms": 6531,
-    "r10_usable_screen_ms": [
-      4280,
-      1861,
-      2002
-    ],
-    "r11_usable_screen_ms": [
-      15271,
-      6332
-    ],
-    "r11_import_map_count": 1,
-    "r11_import_map_and_preload_url_match": true,
     "r14_usable_screen_ms": [
       5452,
       9841,
       7548
     ],
-    "r14_import_map_count": 1,
-    "r14_import_map_and_preload_url_match": true,
-    "single_account_model_request_completed": true,
-    "r11_single_account_model_request_completed": true,
-    "r14_single_account_model_requests_completed": 2,
-    "r14_second_model_response_postcheck_upper_bound_ms": 25813,
+    "r15_cold_usable_screen_upper_bound_ms": 10132,
+    "r15_cached_navigation_ms": 439,
+    "r15_cached_usable_screen_ms": 6590,
+    "r15_import_map_count": 1,
+    "r15_import_map_and_preload_url_match": true,
+    "r15_single_account_model_requests_completed": 1,
+    "r15_statsig_manual_flush_or_event_drop_warnings": 0,
+    "r15_error_logs": 0,
+    "r15_other_logs": 1,
+    "r15_other_log_category": "existing React route warning",
+    "browser_plugin_instrumentation_errors_excluded_from_page_evidence": true,
     "startup_speed_claimed_stable": false,
+    "model_latency_claimed_precise": false,
     "prompt_or_response_body_recorded": false
-  },
-  "server_local_timing": {
-    "root_total_ms": [
-      1.46,
-      1.185,
-      0.474
-    ],
-    "brotli_asset_total_ms": [
-      4.391,
-      3.731,
-      4.3
-    ]
   },
   "log_boundary": {
     "standard_output": "null",
     "standard_error": "journal",
-    "r11_model_check_journal_lines": 13,
-    "r14_model_check_journal_lines": 21,
+    "r15_model_check_journal_lines": 17,
     "syntax_chunk_or_unhandled_error_matches": 0,
-    "prompt_credential_account_cookie_or_body_pattern_matches": 0
+    "sensitive_shape_matches": 0,
+    "system_priority_error_entries": 1,
+    "priority_entry_comm": "nologin",
+    "priority_entry_length": 48,
+    "priority_entry_sha256": "04d0ec641b0286ade0653c7be75090beaae7357ecc9f78c181e857b43c2e03a6",
+    "same_priority_entry_occurrences_before_r15_since_0400": 13,
+    "classified_as_new_r15_application_error": false
   },
   "deployed_asset": {
-    "release": "c3e92f0f-20260729-m69-router-r14",
-    "asset_url": "./assets/app-initial-BTphDPeq.js?v=3376a89421953463",
-    "served_identity_sha256": "3376a894219534630a550a314f4e64f1fa3e85cd12e76d32d0fdb7381c2645a9",
+    "release": "c3e92f0f-20260729-m69-router-r15",
+    "asset_url": "./assets/app-initial-BTphDPeq.js?v=5d211964500013a9",
+    "served_identity_sha256": "5d211964500013a9c68eb546775cb6cb071b080591881109239fec10bebbc7e0",
     "served_preload_sha256": "65708a1c2c053568691f6691b76290a6bd07df09ea84ef1186ac77090649fc5a",
     "served_stylesheet_sha256": "3db81509f04faef314889c39d777a310297c2856330f52fd994a07c67a9c7774",
-    "served_index_sha256": "1ea73bdcd7a5ef303e9435796b58dc2cb66ba7916084c0afe7c9c1b8851c13fc",
+    "served_index_sha256": "89fe33825e43f5de90525c0da05e9d51bef94df27a5667aa3d244d15b2a9fa36",
     "syntax_checked": true,
     "gzip_and_brotli_decode_to_identity": true,
     "fastify_static_precompressed_enabled": true,
     "vary_accept_encoding": true,
     "compressed_cache_policy_normalized_to_identity_path": true,
-    "q_value_negotiation_verified": true,
-    "conditional_brotli_etag_status": 304,
-    "blocking_browser_syntax_or_chunk_load_error_observed": false,
-    "normal_navigation_busts_pre_r11_immutable_main_module": true
-  },
-  "tailnet_transfer_timing": {
-    "main_brotli_bytes": 3293232,
-    "main_brotli_total_ms": [
-      2216.849,
-      2208.318,
-      2276.747
-    ],
-    "preload_baseline_identity_total_ms": [
-      1257,
-      1265
-    ],
-    "preload_brotli_bytes": 69315,
-    "preload_brotli_total_ms": [
-      667.319,
-      667.796,
-      668.279
-    ],
-    "stylesheet_brotli_bytes": 13143,
-    "stylesheet_brotli_total_ms": [
-      493.514,
-      500.629,
-      496.7
-    ]
+    "blocking_browser_syntax_or_chunk_load_error_observed": false
   },
   "real_two_account_e2e": {
     "executed": false,
