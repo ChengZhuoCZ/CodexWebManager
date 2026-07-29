@@ -1,0 +1,125 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "continuation": "R24",
+  "generated_at": "2026-07-29T23:20:02+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-routed-failover-performance",
+  "input_revision": "7300bf967398ca92d9f309b3c4ea34bb191fa1d3",
+  "implementation_revision": "f7628456553bddafb23c88eb94f789fef2193eca",
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "implementation": {
+    "manual_switch_callback_wired": true,
+    "manual_selection_scope": "next_new_request",
+    "manual_preference_persisted_across_restart": false,
+    "semantic_http_stream_guard_wired": true,
+    "semantic_websocket_stream_guard_wired": true,
+    "semantic_guard_balanced_on_failure": true,
+    "automatic_pre_semantic_route_event_wired": true,
+    "credential_failure_clears_manual_preference": true,
+    "published_route_fields_sanitized": true,
+    "post_semantic_replay_permitted": false
+  },
+  "tests": {
+    "test_first_expected_failure": {
+      "tests": 6,
+      "passed": 3,
+      "failed": 3,
+      "failures": [
+        "production current_route remained null",
+        "active_streams remained zero during semantic SSE",
+        "automatic post-quota current_route remained null"
+      ]
+    },
+    "focused_final": {
+      "tests": 37,
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r24-strict-matrix-summary.json",
+      "sha256": "5f77a703bb0ff3f48bd2fa692be55d970d779aca66a17a6b999c42a75cd25106",
+      "tests": 272,
+      "passed": 272,
+      "failed": 0,
+      "skipped": 0,
+      "unit": 150,
+      "integration": 75,
+      "e2e": 47
+    },
+    "security": {
+      "summary": "evidence/M6.9/router-r24-security-summary.json",
+      "sha256": "794f07bd87814421985a9e209aa61f8835e7c32662e327bba228d0f8db7216bc",
+      "qualified": true,
+      "focused_tests": 89,
+      "passed": 89,
+      "failed": 0,
+      "skipped": 0,
+      "repository_files_scanned": 340,
+      "findings": 0,
+      "strict_ui_tests": 492,
+      "strict_ui_passed": 492
+    }
+  },
+  "release": {
+    "name": "codex-account-router-0.2.6-linux-x64",
+    "artifact_bytes": 395317,
+    "artifact_sha256": "718bbf6f24d9c2c742c064754af622501f05a3230c6a2670e6f7c60fce932c04",
+    "payload_file_count": 48,
+    "two_builds_byte_identical": true,
+    "uploaded_sha256_matches": true,
+    "linux_verification": "evidence/M6.9/router-r24-linux-verify.json",
+    "first_verifier_invocation_rejected_before_execution": true,
+    "first_verifier_rejection_reason": "The generated checksum sidecar had not been uploaded."
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r24.sh",
+    "script_sha256": "5618a0ad758c63d0b7e91a11f11fce3b7cd71715b373480780eabfb01bc1316c",
+    "first_unprivileged_attempt_changed_current": false,
+    "first_unprivileged_attempt_restarted_service": false,
+    "first_unprivileged_attempt_reason": "The root-owned release directory rejected creation before activation.",
+    "previous_router_release": "codex-account-router-0.2.5-linux-x64",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "router_pid_before": 524721,
+    "router_pid_after": 548777,
+    "router_start_monotonic_before": 200897483122,
+    "router_start_monotonic_after": 209169242080,
+    "router_effective_unit_sha256": "230dba0a5f7e283f4db2291e4bc6ab7b078eebd63e89e9275a9028185531dddc",
+    "readiness_samples": 20,
+    "readiness_200_samples": 20,
+    "standalone_8215": {
+      "app_server_pid": 508396,
+      "web_pid": 510876,
+      "release": "c3e92f0-20260729-tailnet-startup-r3",
+      "pid_start_unit_and_release_unchanged": true
+    },
+    "routed_8216": {
+      "app_server_pid": 495033,
+      "web_pid": 538278,
+      "release": "c3e92f0f-20260729-m69-router-r23",
+      "pid_start_unit_and_release_unchanged": true
+    }
+  },
+  "live_verification": {
+    "tailnet_8215_http_status": 200,
+    "tailnet_8215_total_ms_single_observation": 885.142,
+    "tailnet_8216_http_status": 200,
+    "tailnet_8216_total_ms_single_observation": 867.757,
+    "routed_8216_signed_in_composer_verified": true,
+    "model_request_sent": false,
+    "account_switch_tested": false,
+    "stable_end_to_end_speedup_claimed": false
+  },
+  "residual_risks": [
+    "The manual account preference is process-local and is lost when the router restarts.",
+    "The current route is reset on router restart until the next routed request selects an account.",
+    "The second credential remains isolated to standalone 8215, so real two-account router E2E is not executed.",
+    "Cross-account continuity and in-flight computation resume remain unverified and are not claimed."
+  ],
+  "real_account_configured_for_r24_test": false,
+  "account_switch_tested": false,
+  "seamless_account_continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}

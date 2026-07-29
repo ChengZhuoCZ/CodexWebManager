@@ -19,9 +19,11 @@
   "r23_continuation_input_revision": "c978381407801fffaee72bad4958a282741f7bf0",
   "r23_implementation_revision": "9e312bc290b8ef8a5a117f96d19431bf113190cf",
   "r23_final_security_input_revision": "2dbb6a5590a4ba643c18c70e245a6461de34cf1a",
+  "r24_continuation_input_revision": "7300bf967398ca92d9f309b3c4ea34bb191fa1d3",
+  "r24_implementation_revision": "f7628456553bddafb23c88eb94f789fef2193eca",
   "standalone_8215_fix_revision": "d75c655c8fb3e3066245fec4060abd7aec5c4a46",
   "standalone_8215_full_access_revision": "acac3d5fdf6a77db8d84d85c3537b5d19614114f",
-  "implementation_revision": "9e312bc290b8ef8a5a117f96d19431bf113190cf",
+  "implementation_revision": "f7628456553bddafb23c88eb94f789fef2193eca",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "commands": [
@@ -873,6 +875,67 @@
       "model_request_sent": false,
       "account_switch_tested": false
     }
+  },
+  "r24_runtime_switch": {
+    "implementation_revision": "f7628456553bddafb23c88eb94f789fef2193eca",
+    "manual_selection_scope": "next_new_request",
+    "manual_preference_persisted_across_restart": false,
+    "semantic_http_stream_guard_wired": true,
+    "semantic_websocket_stream_guard_wired": true,
+    "automatic_pre_semantic_route_event_wired": true,
+    "post_semantic_replay_permitted": false,
+    "focused_tests": {
+      "tests": 37,
+      "passed": 37,
+      "failed": 0,
+      "skipped": 0
+    },
+    "strict_matrix": {
+      "tests": 272,
+      "passed": 272,
+      "failed": 0,
+      "skipped": 0,
+      "unit": 150,
+      "integration": 75,
+      "e2e": 47,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    },
+    "security_audit": {
+      "input_revision": "f7628456553bddafb23c88eb94f789fef2193eca",
+      "qualified": true,
+      "focused_tests": 89,
+      "passed": 89,
+      "failed": 0,
+      "skipped": 0,
+      "repository_files_scanned": 340,
+      "findings": 0,
+      "strict_ui_tests": 492,
+      "strict_ui_passed": 492
+    },
+    "release": {
+      "name": "codex-account-router-0.2.6-linux-x64",
+      "sha256": "718bbf6f24d9c2c742c064754af622501f05a3230c6a2670e6f7c60fce932c04",
+      "artifact_bytes": 395317,
+      "payload_files": 48,
+      "two_builds_byte_identical": true,
+      "linux_no_credential_verification_passed": true
+    },
+    "deployment": {
+      "script_sha256": "5618a0ad758c63d0b7e91a11f11fce3b7cd71715b373480780eabfb01bc1316c",
+      "previous_router_release": "codex-account-router-0.2.5-linux-x64",
+      "active_router_release": "codex-account-router-0.2.6-linux-x64",
+      "router_pid_before": 524721,
+      "router_pid_after": 548777,
+      "readiness_samples": 20,
+      "readiness_200_samples": 20,
+      "standalone_8215_unchanged": true,
+      "routed_8216_app_web_unchanged": true,
+      "routed_8216_signed_in_composer_verified": true
+    },
+    "model_request_sent": false,
+    "account_switch_tested": false,
+    "seamless_account_continuity_claimed": false
   },
   "standalone_8215_startup_repair": {
     "explicit_parallel_user_request": true,
