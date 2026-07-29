@@ -15,16 +15,18 @@ new-request A-to-B switch cannot be executed.
 - no replay after semantic output is enforced;
 - 8216 reproducible minification, output-hash module versioning,
   Brotli/gzip negotiation, and clean-room authenticated Statsig event
-  collection disablement are verified in release r15;
-- live signed-in composer and one fixed non-private single-account model
+  collection disablement are verified;
+- r16 deterministically places the main-module resource hint before the
+  synchronous Tailnet startup shim while preserving the r15 asset URL/cache;
+- live r16 signed-in composer and one fixed non-private single-account model
   sentinel completed;
-- r15 page diagnostics contained zero Statsig/manual-flush/event-drop warnings
+- r16 page diagnostics contained zero Statsig/manual-flush/event-drop warnings
   and zero error logs;
 - App Server timing probes completed in 1.5-23.2 ms per method after a
   15.8 ms initialization, while browser startup remained variable;
 - 8215 remained active, independent, HTTP 200, and retained its activation
-  timestamp;
-- strict matrix: 256/256;
+  timestamp through r16;
+- strict release matrix: 256/256;
 - focused security tests: 82/82;
 - repository secret scan: 318 files, zero findings.
 

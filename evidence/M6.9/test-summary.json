@@ -2,8 +2,9 @@
   "schema_version": 1,
   "task": "M6.9",
   "input_revision": "d41f2f282390f3f95e6795dd713d657b51788cc5",
-  "r15_continuation_input_revision": "29685527792ddc7dab007c7d5a554ebfe0c6269b",
-  "implementation_revision": "151066ba29d32042f1addbb69a5341951fc8ed65",
+  "r15_implementation_revision": "151066ba29d32042f1addbb69a5341951fc8ed65",
+  "r16_continuation_input_revision": "bd8be6a6a8b5b6dd5371fc089f94435f34eab3ff",
+  "implementation_revision": "aba6568899b70666907f7667c4e0e3c5ad62dba0",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "commands": [
@@ -12,22 +13,24 @@
       "result": {
         "passed": true,
         "focused_tests": 8,
+        "test_first_failure_observed": true,
         "real_patch_dry_run": true,
-        "r15_only_added_diff_line": "loggingEnabled: `disabled`,"
+        "early_main_hint_before_synchronous_shim": true,
+        "main_hint_count": 1
       }
     },
     {
       "command": "<bundled-node> --test",
       "result": {
-        "tests": 256,
-        "passed": 231,
+        "tests": 267,
+        "passed": 242,
         "failed": 0,
         "skipped": 25,
         "skip_reason": "Pinned codex-web fixture variables were intentionally absent."
       }
     },
     {
-      "command": "M4_2_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_3_CODEX_WEB_ROOT=<clean-888692f-fixture> M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "command": "M4_2_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_3_CODEX_WEB_ROOT=<clean-888692f-fixture> M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
       "result": {
         "tests": 256,
         "passed": 256,
@@ -39,9 +42,9 @@
       }
     },
     {
-      "command": "M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> scripts/run-security-audit.mjs --summary <private-summary>",
+      "command": "M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
       "result": {
-        "input_revision": "151066ba29d32042f1addbb69a5341951fc8ed65",
+        "input_revision": "aba6568899b70666907f7667c4e0e3c5ad62dba0",
         "qualified": true,
         "security_tests": 82,
         "security_tests_passed": 82,
@@ -54,7 +57,7 @@
       }
     },
     {
-      "command": "<bundled-node> integrations/codex-web-upstream/build-minified-precompressed-asset.mjs --asset <absolute-main> --expected-sha256 deddbbe9... --preload <absolute-preload> --expected-preload-sha256 74ef238a... --stylesheet <absolute-css> --expected-stylesheet-sha256 3db81509... --index <absolute-index> --expected-index-sha256 e4f70043... --esbuild <absolute-esbuild-0.27.0>",
+      "command": "<bundled-node> integrations/codex-web-upstream/build-minified-precompressed-asset.mjs <pinned-r16-inputs-and-esbuild>",
       "result": {
         "passed": true,
         "esbuild_version": "0.27.0",
@@ -68,7 +71,6 @@
         "brotli_bytes": 3294106,
         "brotli_file_sha256": "21fe4e5d04e95e5b8df9391e32922808b86eac83bcc3bf3198d7b93398825b94",
         "output_sha256": "5d211964500013a9c68eb546775cb6cb071b080591881109239fec10bebbc7e0",
-        "preload_input_bytes": 607155,
         "preload_output_bytes": 253451,
         "preload_gzip_bytes": 79865,
         "preload_brotli_bytes": 69315,
@@ -79,7 +81,7 @@
         "stylesheet_sha256": "3db81509f04faef314889c39d777a310297c2856330f52fd994a07c67a9c7774",
         "index_input_sha256": "e4f70043d26d402c93abdf9e9ecbbdb3a4af4b1f92aaf49d6b3b77f486706139",
         "index_output_bytes": 15629,
-        "index_output_sha256": "89fe33825e43f5de90525c0da05e9d51bef94df27a5667aa3d244d15b2a9fa36",
+        "index_output_sha256": "154633d5fd2cdd26b06b699de69c16bc6f6d7804d1d97882e605c36ce4391bac",
         "gzip_and_brotli_decode_to_identity": true
       }
     },
@@ -87,21 +89,46 @@
       "command": "<sanitized-app-server-timing-probe> <private-unix-socket>",
       "result": {
         "initialize_ms": 15.8,
-        "round_1_ms": {
-          "account_read": 1.7,
-          "model_list": 1.7,
-          "thread_list": 23.2,
-          "config_read": 2.4
-        },
-        "round_2_ms": {
-          "account_read": 1.5,
-          "model_list": 1.5,
-          "thread_list": 6.7,
-          "config_read": 1.9
-        },
-        "model_count": 7,
-        "thread_count": 6,
+        "method_min_ms": 1.5,
+        "method_max_ms": 23.2,
         "body_or_identifier_recorded": false
+      }
+    },
+    {
+      "command": "three read-only Tailnet HTTP probes each for HTML, synchronous shim, and Brotli main module",
+      "result": {
+        "html_ttfb_ms": [
+          329.478,
+          331.802,
+          329.854
+        ],
+        "html_total_ms": [
+          497.809,
+          500.189,
+          499.398
+        ],
+        "shim_bytes": 1942,
+        "shim_ttfb_ms": [
+          330.951,
+          332.061,
+          330.307
+        ],
+        "shim_total_ms": [
+          331.106,
+          332.133,
+          330.499
+        ],
+        "main_brotli_bytes": 3294106,
+        "main_ttfb_ms": [
+          332.834,
+          335.984,
+          331.412
+        ],
+        "main_total_ms": [
+          2216.305,
+          8671.039,
+          2374.784
+        ]
       }
     }
   ],
@@ -117,57 +144,70 @@
   },
   "non_final_test_attempts": [
     {
+      "command": "r16 ordering assertion against the r15 builder behavior",
+      "result": "failed as expected because the main hint followed the synchronous startup shim; passed after implementation"
+    },
+    {
+      "command": "esbuild minification with non-error console calls marked pure",
+      "result": "rejected as immaterial: identity saved 1886 bytes and Brotli saved 534 bytes"
+    },
+    {
       "command": "<bundled-node> --test in restricted filesystem sandbox",
       "result": "environment failure: loopback listen returned EPERM; the identical command passed outside that restriction"
     },
     {
       "command": "first r15 deployment archive validation",
-      "result": "rejected before extraction and activation because macOS metadata produced four AppleDouble members in addition to the four allowlisted files; a clean four-member archive passed without changing 8215"
+      "result": "rejected before activation because macOS metadata added four non-allowlisted members; the clean archive passed without changing 8215"
     }
   ],
   "live_browser": {
     "composer_present": true,
     "account_signed_in": true,
-    "r14_usable_screen_ms": [
-      5452,
-      9841,
-      7548
+    "r16_import_map_count": 1,
+    "r16_main_hint_count": 1,
+    "r16_head_child_indices": {
+      "import_map": 2,
+      "main_hint": 3,
+      "startup_shim": 4,
+      "preload_module": 5
+    },
+    "r16_resource_order_verified": true,
+    "r16_cached_usable_screen_ms": [
+      7118,
+      8104,
+      10452
     ],
-    "r15_cold_usable_screen_upper_bound_ms": 10132,
-    "r15_cached_navigation_ms": 439,
-    "r15_cached_usable_screen_ms": 6590,
-    "r15_import_map_count": 1,
-    "r15_import_map_and_preload_url_match": true,
-    "r15_single_account_model_requests_completed": 1,
-    "r15_statsig_manual_flush_or_event_drop_warnings": 0,
-    "r15_error_logs": 0,
-    "r15_other_logs": 1,
-    "r15_other_log_category": "existing React route warning",
+    "r16_single_account_model_requests_completed": 1,
+    "r16_model_observation_ms": 6842,
+    "r16_statsig_manual_flush_or_event_drop_warnings": 0,
+    "r16_error_logs": 0,
+    "r16_other_logs": 1,
+    "r16_other_log_category": "existing React route warning",
     "browser_plugin_instrumentation_errors_excluded_from_page_evidence": true,
     "startup_speed_claimed_stable": false,
-    "model_latency_claimed_precise": false,
+    "model_latency_claimed_guaranteed": false,
     "prompt_or_response_body_recorded": false
   },
   "log_boundary": {
     "standard_output": "null",
     "standard_error": "journal",
-    "r15_model_check_journal_lines": 17,
-    "syntax_chunk_or_unhandled_error_matches": 0,
+    "r16_model_check_journal_lines": 15,
+    "application_error_matches": 0,
     "sensitive_shape_matches": 0,
     "system_priority_error_entries": 1,
     "priority_entry_comm": "nologin",
     "priority_entry_length": 48,
     "priority_entry_sha256": "04d0ec641b0286ade0653c7be75090beaae7357ecc9f78c181e857b43c2e03a6",
-    "same_priority_entry_occurrences_before_r15_since_0400": 13,
-    "classified_as_new_r15_application_error": false
+    "priority_entry_predates_r16": true,
+    "classified_as_new_r16_application_error": false
   },
   "deployed_asset": {
-    "release": "c3e92f0f-20260729-m69-router-r15",
+    "release": "c3e92f0f-20260729-m69-router-r16",
     "asset_url": "./assets/app-initial-BTphDPeq.js?v=5d211964500013a9",
     "served_identity_sha256": "5d211964500013a9c68eb546775cb6cb071b080591881109239fec10bebbc7e0",
     "served_preload_sha256": "65708a1c2c053568691f6691b76290a6bd07df09ea84ef1186ac77090649fc5a",
     "served_stylesheet_sha256": "3db81509f04faef314889c39d777a310297c2856330f52fd994a07c67a9c7774",
-    "served_index_sha256": "89fe33825e43f5de90525c0da05e9d51bef94df27a5667aa3d244d15b2a9fa36",
+    "served_index_sha256": "154633d5fd2cdd26b06b699de69c16bc6f6d7804d1d97882e605c36ce4391bac",
     "syntax_checked": true,
     "gzip_and_brotli_decode_to_identity": true,
     "fastify_static_precompressed_enabled": true,

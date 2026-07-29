@@ -11,11 +11,11 @@
   ],
   "input_revisions": {
     "workspace": "d41f2f282390f3f95e6795dd713d657b51788cc5",
-    "r15_continuation": "29685527792ddc7dab007c7d5a554ebfe0c6269b",
+    "r16_continuation": "bd8be6a6a8b5b6dd5371fc089f94435f34eab3ff",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "151066ba29d32042f1addbb69a5341951fc8ed65",
+  "output_revision": "aba6568899b70666907f7667c4e0e3c5ad62dba0",
   "workspace_branch": "codex/m6-9-routed-failover-performance",
   "workspace_input_revision": "d41f2f282390f3f95e6795dd713d657b51788cc5",
   "depends_on": [
@@ -33,31 +33,31 @@
   "tests": [
     {
       "command": "<bundled-node> --check integrations/codex-web-upstream/build-minified-precompressed-asset.mjs && <bundled-node> --test packages/account-router/test/codex-web-upstream-fastpath.test.mjs",
-      "result": "8 passed, 0 failed; real patch dry-run passed; the only r15 added line is the authenticated loggingEnabled disabled option"
+      "result": "8 passed, 0 failed; test-first ordering assertion failed against r15 then passed; one versioned main hint is before the synchronous startup shim"
     },
     {
       "command": "<bundled-node> --test",
-      "result": "256 tests, 231 passed, 0 failed, 25 fixture-dependent skips"
+      "result": "267 tests, 242 passed, 0 failed, 25 fixture-dependent skips"
     },
     {
-      "command": "M4_2_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_3_CODEX_WEB_ROOT=<clean-888692f-fixture> M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "command": "M4_2_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_3_CODEX_WEB_ROOT=<clean-888692f-fixture> M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
       "result": "256 passed, 0 failed, 0 skipped; unit 140, integration 69, E2E 47"
     },
     {
-      "command": "M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> scripts/run-security-audit.mjs --summary <private-summary>",
-      "result": "qualified at implementation revision 151066ba; 82 focused tests passed; 318 repository files scanned; 0 findings; strict UI 492/492"
+      "command": "M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "qualified at implementation revision aba6568; 82 focused tests passed; 318 repository files scanned; 0 findings; strict UI 492/492"
     },
     {
-      "command": "<bundled-node> integrations/codex-web-upstream/build-minified-precompressed-asset.mjs <pinned-r15-inputs-and-esbuild>",
-      "result": "main: 22,822,156 -> 14,138,835 identity / 4,345,031 gzip / 3,294,106 Brotli; preload and CSS unchanged; syntax, decoded hashes, import map and index hash passed"
+      "command": "<bundled-node> integrations/codex-web-upstream/build-minified-precompressed-asset.mjs <pinned-r16-inputs-and-esbuild>",
+      "result": "main and compressed hashes remained identical to r15; r16 index SHA-256 154633d5; import map and early unique main hint passed"
     },
     {
-      "command": "<sanitized-app-server-timing-probe> <private-unix-socket>",
-      "result": "initialize 15.8 ms; account/read 1.5-1.7 ms; model/list 1.5-1.7 ms; thread/list 6.7-23.2 ms; config/read 1.9-2.4 ms; no bodies or identifiers retained"
+      "command": "read-only Mac-to-8216 Tailnet transfer probes",
+      "result": "HTML and synchronous shim each showed about 330 ms TTFB; r16 removes that shim request from the cold main-module discovery dependency while preserving the main asset URL and cache"
     },
     {
-      "command": "live Tailnet browser, HTTP, journal and service probes against isolated r15 on 8216",
-      "result": "signed-in composer and one fixed non-private model sentinel completed; zero Statsig/event-drop warnings and zero page error logs; cold/cached usable-screen observations 10.132/6.590 seconds retained without a stable-speed claim; 17 journal lines had 0 application-error and 0 sensitive-shape matches; one pre-existing nologin host entry; 8215 and 8216 HTTP 200; 8215 activation timestamp unchanged"
+      "command": "live Tailnet browser, model, HTTP, journal and service probes against isolated r16 on 8216",
+      "result": "DOM order import map/main hint/startup shim/preload module passed; signed-in composer and one fixed non-private model sentinel completed in a 6.842-second observation; zero page Statsig/error logs; cached usable-screen observations 7.118/8.104/10.452 seconds retained without a stable-speed claim; 15 journal lines had 0 application-error and 0 sensitive-shape matches; one pre-existing nologin host entry; 8215 and 8216 HTTP 200; 8215 and App Server activation timestamps unchanged"
     }
   ],
   "evidence": [
@@ -67,6 +67,17 @@
     "evidence/M6.9/blocker.md"
   ],
   "observations": {
+    "continuation_r16_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-routed-failover-performance",
+      "commit": "bd8be6a6a8b5b6dd5371fc089f94435f34eab3ff",
+      "dependencies": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_result": "Move the versioned 8216 main-module resource hint ahead of the synchronous Tailnet startup shim so its multi-megabyte transfer can overlap one Tailnet RTT, without changing behavior or touching 8215."
+    },
     "continuation_r15_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-routed-failover-performance",
@@ -102,16 +113,15 @@
     },
     "scope_boundary": "M6.9 may change only the isolated routed 8216 deployment and account-router private configuration. It must not restart, reconfigure or replace standalone 8215.",
     "implementation": {
-      "revision": "151066ba29d32042f1addbb69a5341951fc8ed65",
+      "revision": "aba6568899b70666907f7667c4e0e3c5ad62dba0",
       "router_release": "codex-account-router-0.2.2-linux-x64",
-      "routed_codex_web_release": "c3e92f0f-20260729-m69-router-r15",
+      "routed_codex_web_release": "c3e92f0f-20260729-m69-router-r16",
       "atomic_account_enrollment_installed": true,
       "esbuild_version": "0.27.0",
       "patched_input_asset_bytes": 22822156,
       "decoded_asset_bytes": 14138835,
       "gzip_asset_bytes": 4345031,
       "brotli_asset_bytes": 3294106,
-      "preload_input_bytes": 607155,
       "preload_identity_bytes": 253451,
       "preload_gzip_bytes": 79865,
       "preload_brotli_bytes": 69315,
@@ -120,19 +130,20 @@
       "stylesheet_brotli_bytes": 13143,
       "decoded_asset_sha256": "5d211964500013a9c68eb546775cb6cb071b080591881109239fec10bebbc7e0",
       "versioned_asset_url": "./assets/app-initial-BTphDPeq.js?v=5d211964500013a9",
-      "versioned_index_sha256": "89fe33825e43f5de90525c0da05e9d51bef94df27a5667aa3d244d15b2a9fa36",
+      "versioned_index_sha256": "154633d5fd2cdd26b06b699de69c16bc6f6d7804d1d97882e605c36ce4391bac",
       "authenticated_statsig_logging_disabled": true,
+      "early_main_hint_before_startup_shim": true,
+      "cold_discovery_rtt_removed_ms_observed": 330,
       "app_server_initialize_ms": 15.8,
       "app_server_method_min_ms": 1.5,
       "app_server_method_max_ms": 23.2,
-      "r14_usable_screen_ms": [
-        5452,
-        9841,
-        7548
+      "r16_cached_usable_screen_ms": [
+        7118,
+        8104,
+        10452
       ],
-      "r15_cold_usable_screen_upper_bound_ms": 10132,
-      "r15_cached_usable_screen_ms": 6590,
-      "r15_page_statsig_event_drop_warnings": 0,
+      "r16_model_observation_ms": 6842,
+      "r16_page_statsig_event_drop_warnings": 0,
       "routed_standard_output": "null",
       "routed_standard_error": "journal"
     },
@@ -155,8 +166,8 @@
       "active_enter_timestamp": "2026-07-29 04:30:41 CST"
     },
     "routed_8216": {
-      "active_enter_timestamp": "2026-07-29 08:23:49 CST",
-      "release": "c3e92f0f-20260729-m69-router-r15"
+      "active_enter_timestamp": "2026-07-29 09:03:17 CST",
+      "release": "c3e92f0f-20260729-m69-router-r16"
     }
   },
   "blockers": [
@@ -165,11 +176,12 @@
   "residual_risks": [
     "Cross-account continuity remains unverified and is not claimed.",
     "Pre-fix codex-web-router journal records may contain upstream IPC bodies or response headers. Per-unit deletion is unavailable without vacuuming unrelated system logs; retention and access must be handled operationally.",
-    "Release r15 removed the authenticated page-side Statsig event queue and drop warnings, but cold and cached usable-screen observations were 10.132 and 6.590 seconds; remaining large-bundle transfer, parse and renderer cost is not yet safely reducible.",
+    "Release r16 deterministically removes about one observed 330 ms Tailnet request from cold main-module discovery, but cached usable-screen observations still varied between 7.118 and 10.452 seconds.",
+    "The main bundle remains 3.294 MB over Brotli and 14.139 MB decoded; transfer, parse and renderer work remain the dominant likely optimization area without a safe upstream chunk boundary.",
     "The App Server timing probe shows its initialization and sampled methods are not the remaining multi-second startup component, but it does not prove an exact browser critical-path breakdown.",
     "Browser control plugin instrumentation errors were distinct from the served page and were excluded from codex-web performance evidence.",
     "Direct Tailnet HTTP still requires a browser compatibility shim; HTTPS remains preferable.",
     "Every authorized Tailnet principal reaching 8216 can use the configured routed accounts and workspace authority."
   ],
-  "updated_at": "2026-07-29T08:41:32+08:00"
+  "updated_at": "2026-07-29T09:13:57+08:00"
 }
