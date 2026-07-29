@@ -39,6 +39,13 @@ A-to-B switch cannot yet be executed.
   upgrade test and was deployed by restarting only the router; both 8215 and
   8216 Web/App Server PID, start-time, release, and unit-config invariants
   remained unchanged;
+- r22 adds a five-minute, 32-entry, two-MiB-per-entry model-catalog cache keyed
+  by selected account and normalized `client_version` route; errors,
+  credentials, request IDs, rate-limit headers, and cookies are never cached;
+- the deterministic 0.2.5 Linux release passed no-credential target-host
+  verification and was deployed by restarting only the router; a live
+  302,492-byte catalog changed from 1.740 seconds cold to 0.0023 seconds fresh,
+  without replaying the upstream request-ID header;
 - live r17 signed-in composer and two fixed non-private single-account model
   sentinels completed;
 - live r18 signed-in composer and one fixed non-private single-account model
@@ -59,9 +66,9 @@ A-to-B switch cannot yet be executed.
 - r20 activation started only the isolated 8216 units and preserved the 8215
   Web/App Server PIDs and timestamps through two rollback attempts and the
   final successful deployment;
-- strict release matrix: 262/262;
+- strict release matrix: 267/267;
 - focused security tests: 85/85;
-- repository secret scan: 326 files, zero findings.
+- repository secret scan: 331 files, zero findings.
 
 ## Required external input
 
@@ -85,9 +92,10 @@ Until those steps pass, real automatic account switching and cross-account
 continuity remain unverified. No seamless continuity or in-flight computation
 resume is claimed.
 
-Independent of that external gate, r21 now accepts the exact HTTP/SSE route
+Independent of that external gate, r21 accepts the exact HTTP/SSE route
 that previously returned 405. The deployed module and no-credential fixtures
 passed, but no post-r21 real title-generation request was sent, so live title
-generation is not claimed as verified. Model-manager refreshes can still time
-out and were not re-exercised. Neither condition is evidence of a successful
-or failed cross-account switch.
+generation is not claimed as verified. R22 avoids repeated fresh
+model-catalog waits, but its first request after restart or TTL expiry still
+depends on provider latency. Neither condition is evidence of a successful or
+failed cross-account switch.

@@ -1,0 +1,174 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "continuation": "R22",
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "input_revision": "67c62ca3c750c8982b43cca7741832c49477d8a4",
+  "implementation_revision": "f256483bee89137259e32bf158b4b1b24a4d9ff2",
+  "minimal_experiment": {
+    "method": "Two sequential authorized model-catalog reads; no prompt, generation, or account switch",
+    "status_codes": [
+      200,
+      200
+    ],
+    "response_bytes": [
+      302492,
+      302492
+    ],
+    "response_sha256_equal": true,
+    "response_sha256": "58714fb9877ba2d187dc30fcfd4b97159c2fa468389d047d6c0a437873996479",
+    "first_total_seconds": 2.486788,
+    "second_total_seconds": 0.252994,
+    "model_count": 8,
+    "model_names_recorded": false
+  },
+  "cache": {
+    "route_id": "codex_models",
+    "key_fields": [
+      "selected account id",
+      "normalized upstream target including client_version"
+    ],
+    "ttl_ms": 300000,
+    "max_entries": 32,
+    "max_body_bytes": 2097152,
+    "success_json_only": true,
+    "errors_cached": false,
+    "credentials_cached": false,
+    "cross_account_entries_shared": false,
+    "cached_response_headers": [
+      "cache-control",
+      "content-type",
+      "etag",
+      "last-modified",
+      "recomputed content-length"
+    ],
+    "request_ids_cached": false,
+    "rate_limit_headers_cached": false,
+    "set_cookie_cached": false,
+    "lru_bounded": true,
+    "expired_entries_served": false
+  },
+  "tests": {
+    "focused": {
+      "tests": 22,
+      "passed": 22,
+      "failed": 0
+    },
+    "strict_matrix": {
+      "summary_sha256": "c9cb3f53604399fa3166e3ef498f2f036f2c0fd7aa9b95fb68bedebc9e62ceca",
+      "tests": 267,
+      "passed": 267,
+      "failed": 0,
+      "skipped": 0,
+      "unit": 149,
+      "integration": 71,
+      "e2e": 47,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    },
+    "security": {
+      "qualified": true,
+      "focused_tests": 85,
+      "passed": 85,
+      "failed": 0,
+      "skipped": 0,
+      "repository_files_scanned": 331,
+      "findings": 0
+    }
+  },
+  "release": {
+    "name": "codex-account-router-0.2.5-linux-x64",
+    "artifact_bytes": 389680,
+    "artifact_sha256": "4b2df22e926fb02324fcc547efe66f5eb6e1160e7492d7ed1f52439bc2d8465e",
+    "payload_file_count": 48,
+    "two_builds_byte_identical": true,
+    "uploaded_sha256_matches": true,
+    "linux_verification": {
+      "verified": true,
+      "health_status": 200,
+      "readiness_status": 503,
+      "readiness_reason": "no_accounts",
+      "admin_bind": "127.0.0.1",
+      "model_bind": "127.0.0.1",
+      "sigterm_exit_code": 0,
+      "account_configuration_present": false,
+      "account_switch_tested": false
+    },
+    "first_verifier_invocation_rejected": true,
+    "first_verifier_rejection_reason": "The uploaded verifier lacked its expected package-root/scripts directory structure and read unrelated old package metadata; the artifact was not installed or executed by that invocation."
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r22.sh",
+    "script_sha256": "7b2eda7a368c90d68d0dfc98cd8d3e1899b96e93ad848877e40b8cf49ce26fc5",
+    "previous_router_release": "codex-account-router-0.2.4-linux-x64",
+    "active_router_release": "codex-account-router-0.2.5-linux-x64",
+    "router_pid_before": 516181,
+    "router_pid_after": 524721,
+    "router_start_monotonic_after": 200897483122,
+    "router_effective_unit_sha256": "230dba0a5f7e283f4db2291e4bc6ab7b078eebd63e89e9275a9028185531dddc",
+    "model_catalog_probe": {
+      "first_status": 200,
+      "first_start_transfer_seconds": 1.739591,
+      "first_total_seconds": 1.739898,
+      "second_status": 200,
+      "second_start_transfer_seconds": 0.001977,
+      "second_total_seconds": 0.002306,
+      "response_bytes": 302492,
+      "response_sha256_equal": true,
+      "first_upstream_request_id_header": "present",
+      "second_upstream_request_id_header": "absent",
+      "prompt_or_generation_sent": false,
+      "account_switch_tested": false
+    },
+    "readiness_samples": {
+      "samples": 20,
+      "status_200": 20,
+      "other_status": 0,
+      "sample_interval_seconds": 0.2
+    },
+    "router_journal_sensitive_marker_matches": 0
+  },
+  "service_invariants": {
+    "standalone_8215": {
+      "web_pid": 510876,
+      "web_start_monotonic": 196497166049,
+      "web_effective_unit_sha256": "543ddc71409cc088522e80651955a988cc9f2229e9da29dc8a9107c3def3ea1a",
+      "app_server_pid": 508396,
+      "app_server_start_monotonic": 194490256322,
+      "app_server_effective_unit_sha256": "daaefec18fde144f1801e5b4e60a13cfe9e7c8abe98799192ee59a0f3b66db2f",
+      "release": "c3e92f0-20260729-tailnet-startup-r3",
+      "unchanged": true
+    },
+    "routed_8216": {
+      "web_pid": 495185,
+      "web_start_monotonic": 188703695080,
+      "web_effective_unit_sha256": "bcf691a9362a8f91c4a8d2680631b238bd6ba9ada7e18975bdc567ace4823ca2",
+      "app_server_pid": 495033,
+      "app_server_start_monotonic": 188703455553,
+      "app_server_effective_unit_sha256": "5b44e7e28c57daebdf97eb9e5bbb1e5cd6655a7511a7117079988326fea1be2b",
+      "web_release": "c3e92f0f-20260729-m69-router-r20",
+      "unchanged": true
+    }
+  },
+  "tailnet_http": {
+    "standalone_8215": {
+      "status": 200,
+      "start_transfer_seconds": 0.314892,
+      "total_seconds": 0.4839,
+      "bytes": 17576
+    },
+    "routed_8216": {
+      "status": 200,
+      "start_transfer_seconds": 0.325417,
+      "total_seconds": 0.501102,
+      "bytes": 17585
+    },
+    "stable_end_to_end_latency_claimed": false
+  },
+  "continuity": {
+    "real_two_account_switch_tested": false,
+    "seamless_cross_account_continuity_claimed": false,
+    "in_flight_computation_resume_claimed": false
+  }
+}

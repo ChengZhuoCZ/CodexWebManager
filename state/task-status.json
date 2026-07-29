@@ -23,7 +23,7 @@
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "2335798ace91eff2ad6e85ae6d7892d06f1b891a",
+  "output_revision": "f256483bee89137259e32bf158b4b1b24a4d9ff2",
   "workspace_branch": "codex/m6-9-routed-failover-performance",
   "workspace_input_revision": "d41f2f282390f3f95e6795dd713d657b51788cc5",
   "depends_on": [
@@ -126,6 +126,30 @@
     {
       "command": "subagent 8215 startup diagnosis and standalone-only repair",
       "result": "dead one-shot Unix-socket proxy confirmed; only 8215 Web restarted and a standalone PartOf drop-in was installed; actual IPC WebSocket plus initialize/account/model-list passed without a model request; all 8216 PID/start values remained unchanged"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/model-catalog-cache.test.mjs packages/account-router/test/auxiliary-endpoints.test.mjs packages/account-router/test/failover-proxy.test.mjs",
+      "result": "R22 focused cache/unit/auxiliary/failover coverage passed 22/22; account and client-version isolation, TTL, LRU bound, body copying, error rejection, header sanitization and deployed failover integration passed"
+    },
+    {
+      "command": "M4_1_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_2_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_3_CODEX_WEB_ROOT=<clean-888692f-fixture> M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": "R22 strict matrix passed 267/267 with no skips: unit 149, integration 71, E2E 47; fixtures used no real account and executed no account switching"
+    },
+    {
+      "command": "M4_1_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_2_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_3_CODEX_WEB_ROOT=<clean-888692f-fixture> M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "R22 qualified; 85/85 focused tests passed; 331 repository files scanned with zero findings; the first invocation without fixture variables failed closed and was not used as passing evidence"
+    },
+    {
+      "command": "two deterministic 0.2.5 Linux x64 builds plus target-host no-credential release verification",
+      "result": "byte-identical 389680-byte artifacts at SHA-256 4b2df22e; 48-file payload, checksum, installation, loopback-only listeners, health, no-account readiness and clean SIGTERM passed; the first verifier invocation rejected an incorrect uploaded directory layout before artifact execution"
+    },
+    {
+      "command": "rollback-capable R22 router-only deployment, authorized model-catalog read-only probes, service invariants, readiness/journal scan and Tailnet HTTP probes",
+      "result": "0.2.5 activated by restarting only the router; cold model catalog was 1.740 seconds and fresh cache hit 0.0023 seconds with equal 302492-byte content and no replayed request-ID header; readiness 20/20; 0 journal sensitive-marker matches; 8215 and 8216 Web/App Server PID/start/config/release invariants passed"
+    },
+    {
+      "command": "subagent 8215 round-2 startup-page independent review",
+      "result": "all eight boot resources, Tailnet WebSocket, Web IPC, Unix socket, account read and seven-model catalog passed without a model request; no service or file was changed and all 8216 baselines remained unchanged; remaining symptom requires a browser hard refresh or Console evidence"
     }
   ],
   "evidence": [
@@ -138,7 +162,10 @@
     "evidence/M6.9/deploy-8215-full-access.sh",
     "evidence/M6.9/standalone-8215-full-access.json",
     "evidence/M6.9/router-r21-release-summary.json",
-    "evidence/M6.9/standalone-8215-startup-repair.md"
+    "evidence/M6.9/standalone-8215-startup-repair.md",
+    "evidence/M6.9/deploy-router-r22.sh",
+    "evidence/M6.9/router-r22-model-cache-summary.json",
+    "evidence/M6.9/standalone-8215-startup-r2-review.md"
   ],
   "observations": {
     "continuation_r22_start": {
@@ -259,11 +286,12 @@
       "expected_result": "Restore signed-in standalone 8215 browser and model use, reduce the uncompressed startup transfer, prevent future verbose IPC/model stdout from entering the journal, activate the separately authorized standalone account without enrolling it into the router, and later give only its Codex App Server Full Access without modifying 8216."
     },
     "implementation": {
-      "revision": "c2708371515d560ea024e8c7d1dfc2d5187fa6fb",
+      "revision": "f256483bee89137259e32bf158b4b1b24a4d9ff2",
       "r21_route_revision": "2f0757de08586821b7c05828a8a3246fb83ba864",
       "r21_release_revision": "c2708371515d560ea024e8c7d1dfc2d5187fa6fb",
-      "router_release": "codex-account-router-0.2.4-linux-x64",
-      "router_artifact_sha256": "8eef578534a56cf5778b0f0665337bfc1da5040d3118627327a8d4924428f7dd",
+      "r22_model_cache_revision": "f256483bee89137259e32bf158b4b1b24a4d9ff2",
+      "router_release": "codex-account-router-0.2.5-linux-x64",
+      "router_artifact_sha256": "4b2df22e926fb02324fcc547efe66f5eb6e1160e7492d7ed1f52439bc2d8465e",
       "codex_http_fallback_route_id": "codex_responses_http",
       "codex_http_fallback_contract_version": 2,
       "routed_codex_web_release": "c3e92f0f-20260729-m69-router-r20",
@@ -343,6 +371,16 @@
       "r21_post_semantic_replay_blocked": true,
       "r21_continuation_replay_blocked": true,
       "r21_deliberate_prompt_title_or_model_request_sent": false,
+      "r22_model_catalog_cache_ttl_ms": 300000,
+      "r22_model_catalog_cache_max_entries": 32,
+      "r22_model_catalog_cache_max_body_bytes": 2097152,
+      "r22_strict_tests_passed": 267,
+      "r22_security_tests_passed": 85,
+      "r22_repository_files_scanned": 331,
+      "r22_live_cold_model_catalog_ms": 1739.898,
+      "r22_live_cached_model_catalog_ms": 2.306,
+      "r22_live_model_catalog_bytes": 302492,
+      "r22_account_switch_tested": false,
       "standalone_8215_pre_switch_model_observation_ms": 3728,
       "standalone_8215_post_switch_model_observation_ms": 27319,
       "standalone_standard_output": "null",
@@ -369,6 +407,9 @@
       "r21_router_release": "codex-account-router-0.2.4-linux-x64",
       "r21_http_fallback_route_deployed": true,
       "r21_deliberate_prompt_title_or_model_request_sent": false,
+      "r22_router_release": "codex-account-router-0.2.5-linux-x64",
+      "r22_model_catalog_cache_deployed": true,
+      "r22_model_catalog_probe_completed": true,
       "real_two_account_switch_executed": false
     },
     "standalone_8215": {
@@ -404,14 +445,18 @@
       "startup_repair_part_of_drop_in_sha256": "e97ded1beb0a49263a0e596b72f20ceff3dce35c589c3912b73c36a1b567c104",
       "startup_repair_ipc_websocket_verified": true,
       "startup_repair_model_request_sent": false,
-      "pid_and_timestamp_unchanged_during_r21_deployment": true
+      "pid_and_timestamp_unchanged_during_r21_deployment": true,
+      "round_2_review_server_side_healthy": true,
+      "round_2_review_mutation_performed": false,
+      "pid_timestamp_config_and_release_unchanged_during_r22": true
     },
     "routed_app_server": {
       "restarted_for_r20": true,
       "main_pid": 495033,
       "active_enter_timestamp": "2026-07-29 17:32:54 CST",
       "main_start_monotonic": 188703455553,
-      "pid_and_timestamp_unchanged_during_r21": true
+      "pid_and_timestamp_unchanged_during_r21": true,
+      "pid_timestamp_config_unchanged_during_r22": true
     },
     "routed_8216": {
       "main_pid": 495185,
@@ -421,7 +466,8 @@
       "pid_and_timestamp_unchanged_during_8215_full_access": true,
       "standalone_8215_pid_and_timestamp_unchanged_during_r20": true,
       "main_start_monotonic": 188703695080,
-      "pid_timestamp_config_and_release_unchanged_during_r21": true
+      "pid_timestamp_config_and_release_unchanged_during_r21": true,
+      "pid_timestamp_config_and_release_unchanged_during_r22": true
     },
     "r21_deployment": {
       "router_release": "codex-account-router-0.2.4-linux-x64",
@@ -440,6 +486,27 @@
       "subsequent_ready_200_samples": 20,
       "post_r21_live_title_generation_verified": false,
       "model_manager_refresh_retested": false
+    },
+    "r22_deployment": {
+      "router_release": "codex-account-router-0.2.5-linux-x64",
+      "router_main_pid": 524721,
+      "router_main_start_monotonic": 200897483122,
+      "router_ready_status": 200,
+      "final_deployment_succeeded": true,
+      "standalone_8215_unchanged": true,
+      "routed_8216_app_web_unchanged": true,
+      "tailnet_8215_http_status": 200,
+      "tailnet_8216_http_status": 200,
+      "router_journal_sensitive_marker_matches": 0,
+      "readiness_samples": 20,
+      "readiness_200_samples": 20,
+      "model_catalog_cold_total_ms": 1739.898,
+      "model_catalog_cached_total_ms": 2.306,
+      "model_catalog_response_bytes": 302492,
+      "model_catalog_response_sha256_equal": true,
+      "cached_request_id_header_replayed": false,
+      "deliberate_prompt_or_generation_sent": false,
+      "account_switch_tested": false
     }
   },
   "blockers": [
@@ -456,7 +523,8 @@
     "Direct Tailnet HTTP still requires a browser compatibility shim; HTTPS remains preferable.",
     "Every authorized Tailnet principal reaching 8216 can use the configured routed accounts and workspace authority.",
     "Standalone 8215 now deliberately runs Codex with danger-full-access and without the outer systemd filesystem/network sandbox. Any prompt injection or malicious repository content can access everything available to the unprivileged codex Unix account; root/passwordless sudo was not granted.",
-    "R21 now accepts the exact HTTP/SSE path that previously returned HTTP 405, but no post-R21 real title-generation request was sent; model-manager refreshes can time out and were not rechecked."
+    "R21 accepts the exact HTTP/SSE path that previously returned HTTP 405, but no post-R21 real title-generation request was sent.",
+    "R22 avoids repeated fresh model-catalog waits, but the first request after router restart or TTL expiry still depends on provider latency; the five-minute cache is in-memory only and is not an availability guarantee."
   ],
-  "updated_at": "2026-07-29T20:25:15+08:00"
+  "updated_at": "2026-07-29T20:59:24+08:00"
 }

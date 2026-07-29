@@ -14,9 +14,11 @@
   "r20_implementation_revision": "83d062d337c75c05bb4797d442fe1d8fe4ad255b",
   "r21_continuation_input_revision": "c61f0a9ddc173bd1763e1d8efc8f87b1c5e9de9c",
   "r21_implementation_revision": "c2708371515d560ea024e8c7d1dfc2d5187fa6fb",
+  "r22_continuation_input_revision": "67c62ca3c750c8982b43cca7741832c49477d8a4",
+  "r22_implementation_revision": "f256483bee89137259e32bf158b4b1b24a4d9ff2",
   "standalone_8215_fix_revision": "d75c655c8fb3e3066245fec4060abd7aec5c4a46",
   "standalone_8215_full_access_revision": "acac3d5fdf6a77db8d84d85c3537b5d19614114f",
-  "implementation_revision": "c2708371515d560ea024e8c7d1dfc2d5187fa6fb",
+  "implementation_revision": "f256483bee89137259e32bf158b4b1b24a4d9ff2",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "commands": [
@@ -642,6 +644,65 @@
     "historical_title_generation_405_addressed_at_router_layers": true,
     "post_r21_live_title_generation_verified": false,
     "model_manager_refresh_retested": false
+  },
+  "r22_model_catalog_cache": {
+    "cache_key": [
+      "selected_account_id",
+      "normalized_upstream_target"
+    ],
+    "ttl_ms": 300000,
+    "max_entries": 32,
+    "max_body_bytes": 2097152,
+    "successful_valid_json_only": true,
+    "errors_credentials_request_ids_rate_limits_or_cookies_cached": false,
+    "focused_tests": {
+      "tests": 22,
+      "passed": 22,
+      "failed": 0
+    },
+    "strict_matrix": {
+      "tests": 267,
+      "passed": 267,
+      "failed": 0,
+      "skipped": 0,
+      "unit": 149,
+      "integration": 71,
+      "e2e": 47,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    },
+    "security_audit": {
+      "qualified": true,
+      "focused_tests": 85,
+      "passed": 85,
+      "repository_files_scanned": 331,
+      "findings": 0
+    },
+    "release": {
+      "name": "codex-account-router-0.2.5-linux-x64",
+      "sha256": "4b2df22e926fb02324fcc547efe66f5eb6e1160e7492d7ed1f52439bc2d8465e",
+      "artifact_bytes": 389680,
+      "payload_files": 48,
+      "two_builds_byte_identical": true,
+      "linux_no_credential_verification_passed": true
+    },
+    "deployment": {
+      "active_router_release": "codex-account-router-0.2.5-linux-x64",
+      "router_pid_before": 516181,
+      "router_pid_after": 524721,
+      "model_catalog_cold_total_ms": 1739.898,
+      "model_catalog_cached_total_ms": 2.306,
+      "model_catalog_response_bytes": 302492,
+      "model_catalog_response_sha256_equal": true,
+      "cached_request_id_header_replayed": false,
+      "readiness_samples": 20,
+      "readiness_200_samples": 20,
+      "standalone_8215_unchanged": true,
+      "routed_8216_app_web_unchanged": true,
+      "router_journal_sensitive_marker_matches": 0
+    },
+    "deliberate_prompt_or_generation_sent": false,
+    "account_switch_tested": false
   },
   "standalone_8215_startup_repair": {
     "explicit_parallel_user_request": true,

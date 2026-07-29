@@ -2,13 +2,14 @@
   "schema_version": 1,
   "task": "M6.9",
   "implementation_mode": "clean-room",
-  "implementation_revision": "83d062d337c75c05bb4797d442fe1d8fe4ad255b",
+  "implementation_revision": "f256483bee89137259e32bf158b4b1b24a4d9ff2",
   "r18_implementation_revision": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
   "r19_implementation_revision": "40b2f1715a7691e85e3ed0303cccfd5ef6f6a2e8",
   "r20_implementation_revision": "83d062d337c75c05bb4797d442fe1d8fe4ad255b",
   "r21_implementation_revision": "c2708371515d560ea024e8c7d1dfc2d5187fa6fb",
-  "router_release": "codex-account-router-0.2.4-linux-x64",
-  "router_artifact_sha256": "8eef578534a56cf5778b0f0665337bfc1da5040d3118627327a8d4924428f7dd",
+  "r22_implementation_revision": "f256483bee89137259e32bf158b4b1b24a4d9ff2",
+  "router_release": "codex-account-router-0.2.5-linux-x64",
+  "router_artifact_sha256": "4b2df22e926fb02324fcc547efe66f5eb6e1160e7492d7ed1f52439bc2d8465e",
   "routed_codex_web_release": "c3e92f0f-20260729-m69-router-r20",
   "user_facing_codex_web_port": 8214,
   "standalone_codex_web_port": 8215,
@@ -315,6 +316,59 @@
     },
     "post_r21_live_title_generation_verified": false,
     "model_manager_refresh_retested": false
+  },
+  "r22_deployment": {
+    "implementation_revision": "f256483bee89137259e32bf158b4b1b24a4d9ff2",
+    "release": "codex-account-router-0.2.5-linux-x64",
+    "artifact_sha256": "4b2df22e926fb02324fcc547efe66f5eb6e1160e7492d7ed1f52439bc2d8465e",
+    "artifact_bytes": 389680,
+    "payload_file_count": 48,
+    "deployment_script_sha256": "7b2eda7a368c90d68d0dfc98cd8d3e1899b96e93ad848877e40b8cf49ce26fc5",
+    "two_builds_byte_identical": true,
+    "linux_no_credential_verification_passed": true,
+    "previous_release": "codex-account-router-0.2.4-linux-x64",
+    "router_main_pid_before": 516181,
+    "router_main_pid_after": 524721,
+    "router_start_monotonic_after": 200897483122,
+    "router_ready_status": 200,
+    "model_catalog_probe": {
+      "cold_total_ms": 1739.898,
+      "cached_total_ms": 2.306,
+      "response_bytes": 302492,
+      "response_sha256_equal": true,
+      "cached_request_id_header_replayed": false,
+      "prompt_or_generation_sent": false
+    },
+    "standalone_8215": {
+      "http_status": 200,
+      "web_pid_preserved": 510876,
+      "web_start_monotonic_preserved": 196497166049,
+      "app_server_pid_preserved": 508396,
+      "app_server_start_monotonic_preserved": 194490256322,
+      "release_preserved": "c3e92f0-20260729-tailnet-startup-r3",
+      "effective_unit_hashes_preserved": true
+    },
+    "routed_8216": {
+      "http_status": 200,
+      "web_pid_preserved": 495185,
+      "web_start_monotonic_preserved": 188703695080,
+      "app_server_pid_preserved": 495033,
+      "app_server_start_monotonic_preserved": 188703455553,
+      "release_preserved": "c3e92f0f-20260729-m69-router-r20",
+      "effective_unit_hashes_preserved": true
+    },
+    "tailnet_http": {
+      "standalone_8215_total_seconds": 0.4839,
+      "routed_8216_total_seconds": 0.501102,
+      "stable_latency_claimed": false
+    },
+    "router_journal_sensitive_marker_matches": 0,
+    "stability_readiness": {
+      "samples": 20,
+      "status_200_samples": 20,
+      "other_status_samples": 0
+    },
+    "account_switch_tested": false
   },
   "real_two_account_e2e_executed": false,
   "account_switch_scenario_executed": false,
