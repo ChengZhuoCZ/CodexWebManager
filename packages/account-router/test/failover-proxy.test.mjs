@@ -310,6 +310,7 @@ test("discards preflight SSE from a failed account and emits one successful stre
 });
 
 test("returns an in-stream unsafe_to_replay error after a semantic SSE event", async (context) => {
+  const semanticTransitions = [];
   const { origin, resolverCalls } = await fixture(context, {
     A(_request, response) {
       response.writeHead(200, { "content-type": "text/event-stream" });
@@ -318,6 +319,9 @@ test("returns an in-stream unsafe_to_replay error after a semantic SSE event", a
       setImmediate(() => response.destroy());
     },
     B(_request, response) { completeSse(response, "must-not-run"); },
+  }, {
+    onSemanticStreamStart() { semanticTransitions.push("start"); },
+    onSemanticStreamEnd() { semanticTransitions.push("end"); },
   });
   const response = await fetch(`${origin}/v1/responses`, {
     method: "POST",
@@ -329,6 +333,7 @@ test("returns an in-stream unsafe_to_replay error after a semantic SSE event", a
   assert.match(body, /response\.function_call_arguments\.delta/);
   assert.match(body, /event: error[\s\S]*unsafe_to_replay/);
   assert.equal(resolverCalls.length, 1);
+  assert.deepEqual(semanticTransitions, ["start", "end"]);
 });
 
 test("does not replay a continuation body even before semantic output", async (context) => {

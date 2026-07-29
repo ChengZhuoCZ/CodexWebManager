@@ -23,6 +23,11 @@ import {
 
 class RequestBodyLimitError extends Error {}
 class ResponseBodyLimitError extends Error {}
+const SEMANTIC_RESPONSE_ROUTES = new Set([
+  "responses_http",
+  "responses_compact",
+  "codex_responses_http",
+]);
 
 function isPlainObject(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
@@ -396,6 +401,8 @@ export function createFailoverHttpHandler({
   failoverStateMachine,
   modelCatalogCache,
   onAttemptFailure,
+  onSemanticStreamEnd,
+  onSemanticStreamStart,
   onWeeklyQuotaObservation,
   quotaNow,
   requestBodyLimitBytes,
@@ -408,6 +415,12 @@ export function createFailoverHttpHandler({
   }
   if (typeof resolveUpstream !== "function") throw new TypeError("resolveUpstream is required");
   if (typeof onAttemptFailure !== "function") throw new TypeError("onAttemptFailure is required");
+  if (typeof onSemanticStreamStart !== "function") {
+    throw new TypeError("onSemanticStreamStart is required");
+  }
+  if (typeof onSemanticStreamEnd !== "function") {
+    throw new TypeError("onSemanticStreamEnd is required");
+  }
   if (typeof onWeeklyQuotaObservation !== "function") {
     throw new TypeError("onWeeklyQuotaObservation is required");
   }
@@ -466,20 +479,37 @@ export function createFailoverHttpHandler({
           };
         },
         async attempt({ observeEvent, selection, signal }) {
-          await upstreamAttempt({
-            body,
-            configuration: selection.configuration,
-            modelCatalogCache,
-            onWeeklyQuotaObservation,
-            observeEvent,
-            quotaNow,
-            requestHeaders: request.headers,
-            response,
-            responseBodyLimitBytes,
-            route,
-            signal,
-            upstreamHeadersTimeoutMs,
-          });
+          let semanticStreamStarted = false;
+          const observeTrackedEvent = (eventType) => {
+            const classification = observeEvent(eventType);
+            if (
+              SEMANTIC_RESPONSE_ROUTES.has(route.route_id) &&
+              classification !== "preflight" &&
+              !semanticStreamStarted
+            ) {
+              semanticStreamStarted = true;
+              onSemanticStreamStart();
+            }
+            return classification;
+          };
+          try {
+            await upstreamAttempt({
+              body,
+              configuration: selection.configuration,
+              modelCatalogCache,
+              onWeeklyQuotaObservation,
+              observeEvent: observeTrackedEvent,
+              quotaNow,
+              requestHeaders: request.headers,
+              response,
+              responseBodyLimitBytes,
+              route,
+              signal,
+              upstreamHeadersTimeoutMs,
+            });
+          } finally {
+            if (semanticStreamStarted) onSemanticStreamEnd();
+          }
         },
         onAttemptFailure,
       });

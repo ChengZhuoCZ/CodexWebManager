@@ -142,6 +142,8 @@ export function createProxyHandler({
   failoverStateMachine = null,
   modelCatalogCache = undefined,
   onAttemptFailure = async () => undefined,
+  onSemanticStreamEnd = () => undefined,
+  onSemanticStreamStart = () => undefined,
   onWeeklyQuotaObservation = () => undefined,
   quotaNow = () => Date.now(),
 } = {}) {
@@ -160,6 +162,12 @@ export function createProxyHandler({
   }
   if (typeof onAttemptFailure !== "function") {
     throw new TypeError("onAttemptFailure must be a function");
+  }
+  if (typeof onSemanticStreamStart !== "function") {
+    throw new TypeError("onSemanticStreamStart must be a function");
+  }
+  if (typeof onSemanticStreamEnd !== "function") {
+    throw new TypeError("onSemanticStreamEnd must be a function");
   }
   if (typeof onWeeklyQuotaObservation !== "function") {
     throw new TypeError("onWeeklyQuotaObservation must be a function");
@@ -189,6 +197,8 @@ export function createProxyHandler({
         failoverStateMachine,
         modelCatalogCache: catalogCache,
         onAttemptFailure,
+        onSemanticStreamEnd,
+        onSemanticStreamStart,
         onWeeklyQuotaObservation,
         quotaNow,
         requestBodyLimitBytes,
@@ -207,6 +217,8 @@ export function createProxyHandler({
     : createWebSocketFailoverHandler({
         failoverStateMachine,
         onAttemptFailure,
+        onSemanticStreamEnd,
+        onSemanticStreamStart,
         onWeeklyQuotaObservation,
         quotaNow,
         resolveUpstream,

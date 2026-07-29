@@ -125,8 +125,14 @@ export function createRuntimeComposition({
   });
   const eventBroker = createEventBroker({ now: () => new Date(now()).toISOString() });
   const adminState = createAdminState({ accountCatalog, eventBroker });
-  const activeRequests = new Map(accountCatalog.listPublic().map(({ id }) => [id, 0]));
+  const publicAccounts = accountCatalog.listPublic();
+  const accountIds = Object.freeze(publicAccounts.map(({ id }) => id));
+  const activeRequests = new Map(publicAccounts.map(({ id }) => [id, 0]));
+  const lastUnavailableReason = new Map();
   const probeTokens = new Map();
+  let preferredAccountId = null;
+  let currentAccountId = null;
+  let activeSemanticStreams = 0;
   let pendingPersistence = Promise.resolve();
   let persistenceFailure = null;
 
@@ -193,7 +199,7 @@ export function createRuntimeComposition({
   }
 
   async function candidates() {
-    return await Promise.all(accountCatalog.listPublic().map(async (account) => {
+    return await Promise.all(publicAccounts.map(async (account) => {
       const circuit = circuitBreaker.snapshot(account.id);
       return Object.freeze({
         account,
@@ -202,6 +208,55 @@ export function createRuntimeComposition({
         quota: await quotaAdapter.read({ accountId: account.id }),
       });
     }));
+  }
+
+  async function scheduledDecision(excluded, preferred = preferredAccountId) {
+    const values = await candidates();
+    if (preferred !== null && !excluded.has(preferred)) {
+      const forcedExclusions = new Set(excluded);
+      for (const accountId of accountIds) {
+        if (accountId !== preferred) forcedExclusions.add(accountId);
+      }
+      const forced = scheduler.select(values, {
+        excludeAccountIds: [...forcedExclusions],
+      });
+      if (forced.status === "selected") return forced;
+    }
+    return scheduler.select(values, {
+      excludeAccountIds: [...excluded],
+    });
+  }
+
+  function routeReasonFor(accountId) {
+    if (currentAccountId === null) return "startup";
+    if (currentAccountId === accountId) return null;
+    return lastUnavailableReason.get(currentAccountId) ?? "startup";
+  }
+
+  function recordSelectedRoute(accountId) {
+    const reason = routeReasonFor(accountId);
+    if (reason === null) {
+      lastUnavailableReason.delete(accountId);
+      return;
+    }
+    const fromAccountId = currentAccountId;
+    adminState.recordSwitch({
+      fromAccountId,
+      toAccountId: accountId,
+      reason,
+    });
+    currentAccountId = accountId;
+    lastUnavailableReason.delete(accountId);
+  }
+
+  function onSemanticStreamStart() {
+    activeSemanticStreams += 1;
+    adminState.setActiveStreams(activeSemanticStreams);
+  }
+
+  function onSemanticStreamEnd() {
+    activeSemanticStreams = Math.max(0, activeSemanticStreams - 1);
+    adminState.setActiveStreams(activeSemanticStreams);
   }
 
   function updateFailureStatus(accountId, kind) {
@@ -240,12 +295,19 @@ export function createRuntimeComposition({
       weekly_remaining_ratio: quota?.weekly.remaining_ratio ?? null,
       snapshot_observed_at: quota?.observed_at ?? null,
       cooldown_until: circuit.phase === "closed" ? null : circuit.cooldown_until,
-      last_switch_reason: reason,
+      ...(reason === null ? {} : { last_switch_reason: reason }),
     });
   }
 
   function onWeeklyQuotaObservation({ accountId, observation }) {
     quotaTracker.record(accountId, observation);
+    if (
+      observation.weekly.status === "available" &&
+      observation.weekly.remaining_ratio === 0
+    ) {
+      lastUnavailableReason.set(accountId, "quota_exhausted");
+      if (preferredAccountId === accountId) preferredAccountId = null;
+    }
     refreshAvailableStatus(accountId);
   }
 
@@ -259,6 +321,8 @@ export function createRuntimeComposition({
       ...(probeToken === null ? {} : { probeToken }),
     });
     probeTokens.delete(accountId);
+    lastUnavailableReason.set(accountId, kind);
+    if (preferredAccountId === accountId) preferredAccountId = null;
     updateFailureStatus(accountId, kind);
     await persistCircuitState();
   }
@@ -266,9 +330,7 @@ export function createRuntimeComposition({
   async function resolveUpstream(_route, selectionContext = {}) {
     const excluded = new Set(selectionContext.excludeAccountIds ?? []);
     for (;;) {
-      const decision = scheduler.select(await candidates(), {
-        excludeAccountIds: [...excluded],
-      });
+      const decision = await scheduledDecision(excluded);
       if (decision.status !== "selected") return null;
       const accountId = decision.selected_account_id;
       const publicAccount = accountCatalog.getPublic(accountId);
@@ -295,12 +357,20 @@ export function createRuntimeComposition({
           ...(circuitLease.probe ? { probeToken: circuitLease.probe_token } : {}),
         });
         probeTokens.delete(accountId);
+        lastUnavailableReason.set(accountId, "auth_expired");
+        if (preferredAccountId === accountId) preferredAccountId = null;
         updateFailureStatus(accountId, "auth_expired");
         await persistCircuitState();
         excluded.add(accountId);
         continue;
       }
 
+      try {
+        recordSelectedRoute(accountId);
+      } catch {
+        secretLease.dispose();
+        throw new Error("runtime route state is unavailable");
+      }
       activeRequests.set(accountId, activeRequests.get(accountId) + 1);
       let released = false;
       return {
@@ -329,11 +399,41 @@ export function createRuntimeComposition({
     }
   }
 
+  async function onSwitchRequest({ accountAlias }) {
+    if (activeSemanticStreams > 0) return Object.freeze({ accepted: false });
+    const toAccountId = adminState.findAccountIdByAlias(accountAlias);
+    if (toAccountId === null || toAccountId === currentAccountId) {
+      return Object.freeze({ accepted: false });
+    }
+    const decision = await scheduledDecision(
+      new Set(),
+      toAccountId,
+    );
+    if (
+      decision.status !== "selected" ||
+      decision.selected_account_id !== toAccountId
+    ) {
+      return Object.freeze({ accepted: false });
+    }
+    if (activeSemanticStreams > 0) return Object.freeze({ accepted: false });
+    const fromAccountId = currentAccountId;
+    preferredAccountId = toAccountId;
+    currentAccountId = toAccountId;
+    return Object.freeze({
+      accepted: true,
+      fromAccountId,
+      toAccountId,
+      reason: "manual",
+    });
+  }
+
   const failoverStateMachine = createFailoverStateMachine(failoverOptions);
   const proxyHandler = createProxyHandler({
     resolveUpstream,
     failoverStateMachine,
     onAttemptFailure,
+    onSemanticStreamEnd,
+    onSemanticStreamStart,
     onWeeklyQuotaObservation,
     quotaNow: now,
   });
@@ -341,6 +441,7 @@ export function createRuntimeComposition({
     authenticator,
     state: adminState,
     eventBroker,
+    onSwitchRequest,
   });
   const adminService = createRouterService({
     adminHost,

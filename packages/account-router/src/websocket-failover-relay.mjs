@@ -346,6 +346,8 @@ function errorMessage(error) {
 export function createWebSocketFailoverHandler({
   failoverStateMachine,
   onAttemptFailure,
+  onSemanticStreamEnd,
+  onSemanticStreamStart,
   onWeeklyQuotaObservation,
   quotaNow,
   resolveUpstream,
@@ -353,6 +355,12 @@ export function createWebSocketFailoverHandler({
 }) {
   if (typeof onWeeklyQuotaObservation !== "function") {
     throw new TypeError("onWeeklyQuotaObservation must be a function");
+  }
+  if (typeof onSemanticStreamStart !== "function") {
+    throw new TypeError("onSemanticStreamStart must be a function");
+  }
+  if (typeof onSemanticStreamEnd !== "function") {
+    throw new TypeError("onSemanticStreamEnd must be a function");
   }
   if (typeof quotaNow !== "function") throw new TypeError("quotaNow must be a function");
   return (request, downstream, head) => {
@@ -446,6 +454,15 @@ export function createWebSocketFailoverHandler({
             };
           },
           async attempt({ accountId, observeEvent, selection, signal }) {
+            let semanticStreamStarted = false;
+            const observeTrackedEvent = (eventType) => {
+              const classification = observeEvent(eventType);
+              if (classification !== "preflight" && !semanticStreamStarted) {
+                semanticStreamStarted = true;
+                onSemanticStreamStart();
+              }
+              return classification;
+            };
             let connection = selection.existing === true ? current : null;
             if (connection === null || connection.destroyed || connection.accountId !== accountId) {
               current?.destroy();
@@ -465,11 +482,17 @@ export function createWebSocketFailoverHandler({
               current = connection;
             }
             try {
-              await connection.runResponse({ observeEvent, payload, signal });
+              await connection.runResponse({
+                observeEvent: observeTrackedEvent,
+                payload,
+                signal,
+              });
             } catch (error) {
               if (current === connection) current = null;
               connection.destroy();
               throw error;
+            } finally {
+              if (semanticStreamStarted) onSemanticStreamEnd();
             }
           },
           onAttemptFailure,

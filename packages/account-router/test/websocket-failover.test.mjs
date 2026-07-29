@@ -264,6 +264,7 @@ test("reconnects and replays an initial WebSocket request only before semantic o
 });
 
 test("emits unsafe_to_replay and never selects B after WebSocket semantic output", async (context) => {
+  const semanticTransitions = [];
   const { client, collector, resolverCalls } = await fixture(context, {
     A(_message, socket) {
       sendEvent(socket, { type: "response.created" });
@@ -271,6 +272,9 @@ test("emits unsafe_to_replay and never selects B after WebSocket semantic output
       setImmediate(() => socket.destroy());
     },
     B(_message, socket) { sendCompleted(socket, "must-not-run"); },
+  }, {
+    onSemanticStreamStart() { semanticTransitions.push("start"); },
+    onSemanticStreamEnd() { semanticTransitions.push("end"); },
   });
   sendCreate(client);
   const error = await collector.waitFor((message) => message.type === "error");
@@ -279,6 +283,7 @@ test("emits unsafe_to_replay and never selects B after WebSocket semantic output
   assert.ok(collector.messages.some((message) =>
     message.type === "response.function_call_arguments.delta"));
   assert.deepEqual(resolverCalls, [[]]);
+  assert.deepEqual(semanticTransitions, ["start", "end"]);
 });
 
 test("keeps a continuation on its existing WebSocket and refuses replacement after failure", async (context) => {

@@ -73,12 +73,15 @@ CLI enables the protected admin routes only when `CODEX_ROUTER_ADMIN_TOKEN_FILE`
 - `GET /v1/accounts`: sanitized account runtime status without internal IDs or credential binding
   fields.
 - `GET /v1/events`: bounded SSE backlog and live sanitized events, with `Last-Event-ID` replay.
-- `POST /v1/switch`: validates a manual request and delegates it to an injected switch callback.
+- `POST /v1/switch`: validates a manual request and, in the standalone runtime, records an
+  eligible account as the bounded preference for the next new request.
 
 All four routes require a dedicated admin bearer token. Proxy-like headers are rejected, bodies
 are bounded, unknown fields fail closed, and manual switch requests are rejected while a semantic
-stream is active. The M1.3 tests use fixture accounts and an injected callback only; they do not
-access or switch any real account.
+stream is active. The runtime starts that guard only after the first semantic HTTP SSE or WebSocket
+event and releases it on every terminal or failure path. Automatic pre-semantic failover and manual
+selection publish only sanitized route aliases, reasons, and `new_backend_session` continuity.
+Tests use fixture accounts only; they do not access or switch any real account.
 
 ## Optional codex-web status bridge
 
