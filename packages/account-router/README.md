@@ -168,8 +168,10 @@ When `CODEX_ROUTER_STATE_DIRECTORY` is configured, the runtime loads this state 
 listeners, persists bounded failure/cooldown mutations plus the validated sanitized weekly
 observation, and flushes pending writes during shutdown. The optional weekly state contains only the
 internal public-config key, observed time, remaining ratio, and reset time; old schema-1 files without
-that field remain valid. Restored open/half-open health and Weekly quota are reflected in sanitized
-admin status. Persistence failure makes readiness and later selection fail closed.
+that field remain valid. A restored weekly entry is discarded when its explicit reset timestamp is
+at or before the startup clock, and the next atomic save removes that historical entry. Restored
+open/half-open health and unexpired Weekly quota are reflected in sanitized admin status.
+Persistence failure makes readiness and later selection fail closed.
 
 Release `0.2.0` and later include `bin/codex-stack-deploy`. It validates schema-1 configuration/state,
 creates private snapshots that exclude credentials, atomically activates immutable releases, and

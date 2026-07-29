@@ -10,7 +10,7 @@ const OBSERVED_AT_MS = Date.parse("2026-07-28T00:00:00.000Z");
 
 function weeklyEvent({
   usedPercent = 25,
-  resetAt = 1_785_196_800,
+  resetAt = 1_785_200_400,
   slot = "secondary",
 } = {}) {
   return {
@@ -38,7 +38,7 @@ test("records only the documented weekly Codex window as a sanitized observation
     weekly: {
       status: "available",
       remaining_ratio: 0.75,
-      resets_at: "2026-07-28T00:00:00.000Z",
+      resets_at: "2026-07-28T01:00:00.000Z",
       confidence: "high",
     },
   });
@@ -71,7 +71,7 @@ test("exports and restores only deterministic sanitized weekly state", () => {
         account_id: "account-a",
         observed_at: "2026-07-27T08:00:00.000Z",
         remaining_ratio: 0,
-        resets_at: "2026-07-28T00:00:00.000Z",
+        resets_at: "2026-07-28T01:00:00.000Z",
       },
     ],
     now: () => OBSERVED_AT_MS,
@@ -82,13 +82,13 @@ test("exports and restores only deterministic sanitized weekly state", () => {
       account_id: "account-a",
       observed_at: "2026-07-27T08:00:00.000Z",
       remaining_ratio: 0,
-      resets_at: "2026-07-28T00:00:00.000Z",
+      resets_at: "2026-07-28T01:00:00.000Z",
     },
     {
       account_id: "account-b",
       observed_at: "2026-07-28T00:00:00.000Z",
       remaining_ratio: 0.75,
-      resets_at: "2026-07-28T00:00:00.000Z",
+      resets_at: "2026-07-28T01:00:00.000Z",
     },
   ]);
   assert.equal(tracker.read("account-a").weekly.remaining_ratio, 0);
@@ -110,6 +110,22 @@ test("exports and restores only deterministic sanitized weekly state", () => {
     }),
     /weekly quota state/,
   );
+});
+
+test("does not restore a weekly snapshot at or after its explicit reset boundary", () => {
+  const tracker = createWeeklyQuotaTracker({
+    accountIds: ["account-a"],
+    initialState: [{
+      account_id: "account-a",
+      observed_at: "2026-07-27T08:00:00.000Z",
+      remaining_ratio: 0,
+      resets_at: "2026-07-28T00:00:00.000Z",
+    }],
+    now: () => OBSERVED_AT_MS,
+  });
+
+  assert.equal(tracker.read("account-a"), null);
+  assert.deepEqual(tracker.exportState(), []);
 });
 
 test("extracts only a codex.rate_limits JSON object from bounded SSE bytes", () => {

@@ -239,12 +239,17 @@ export function createWeeklyQuotaTracker({
     known.add(accountId);
   }
   const observations = new Map();
+  const restoredAt = initialState.length === 0 ? null : readClock(now);
   for (const entry of normalizeWeeklyQuotaStateEntries(initialState)) {
     if (!known.has(entry.account_id)) continue;
-    observations.set(
-      entry.account_id,
-      observationFromStateEntry(entry).observation,
-    );
+    const observation = observationFromStateEntry(entry).observation;
+    if (
+      observation.weekly.resets_at !== null &&
+      Date.parse(observation.weekly.resets_at) <= restoredAt
+    ) {
+      continue;
+    }
+    observations.set(entry.account_id, observation);
   }
   const requireAccount = (accountId) => {
     if (!known.has(accountId)) throw new Error("unknown account");

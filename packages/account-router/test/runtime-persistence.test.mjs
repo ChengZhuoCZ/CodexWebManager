@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { createAdminAuthenticator } from "../src/admin-auth.mjs";
+import { createCircuitBreaker } from "../src/circuit-breaker.mjs";
 import { createRuntimeComposition } from "../src/runtime-composition.mjs";
 import { defineSecretProvider, SecretLease, SecretProviderRegistry } from "../src/secrets.mjs";
 import { createCircuitStateStore } from "../src/state-store.mjs";
@@ -255,6 +256,33 @@ test("a fresh weekly exhaustion observation remains excluded after a simulated p
   await afterRestart.text();
   assert.deepEqual(upstreamAccounts, ["fixture-a", "fixture-b"]);
   await second.stop();
+});
+
+test("restart discards a persisted weekly snapshot at its explicit reset boundary", async (context) => {
+  const circuitStateStore = await privateStateStore(context);
+  const breaker = createCircuitBreaker({ now: () => NOW });
+  breaker.snapshot("fixture-account-a");
+  await circuitStateStore.save({
+    ...breaker.exportState(),
+    weekly_quota: [{
+      account_id: "fixture-account-a",
+      observed_at: "2026-07-27T07:00:00.000Z",
+      remaining_ratio: 0,
+      resets_at: "2026-07-27T08:00:00.000Z",
+    }],
+  });
+
+  const runtime = createRuntimeComposition(runtimeOptions({
+    circuitStateStore,
+    initialCircuitState: await circuitStateStore.load(),
+    upstreamOrigin: "http://127.0.0.1:1",
+  }));
+  await runtime.start();
+  const status = await adminStatus(runtime);
+  assert.equal(status.accounts[0].weekly_remaining_ratio, null);
+  assert.equal(status.accounts[0].snapshot_observed_at, null);
+  await runtime.stop();
+  assert.deepEqual((await circuitStateStore.load()).weekly_quota, []);
 });
 
 test("a persistence failure makes readiness and later selection fail closed", async () => {
