@@ -31,6 +31,14 @@ A-to-B switch cannot yet be executed.
   eight-character content-hash filename; live identity/gzip/Brotli hashes pass
   and the versioned response is immutable while the retained unversioned path
   stays compatible;
+- r21 qualifies the exact Codex HTTP/SSE fallback
+  `POST /backend-api/codex/responses`; its fixture matrix proves bounded
+  pre-semantic failover, post-semantic no-replay, and continuation no-replay,
+  while query-bearing and non-allowlisted variants remain rejected;
+- the corrected deterministic 0.2.4 Linux release passed an existing-symlink
+  upgrade test and was deployed by restarting only the router; both 8215 and
+  8216 Web/App Server PID, start-time, release, and unit-config invariants
+  remained unchanged;
 - live r17 signed-in composer and two fixed non-private single-account model
   sentinels completed;
 - live r18 signed-in composer and one fixed non-private single-account model
@@ -51,9 +59,9 @@ A-to-B switch cannot yet be executed.
 - r20 activation started only the isolated 8216 units and preserved the 8215
   Web/App Server PIDs and timestamps through two rollback attempts and the
   final successful deployment;
-- strict release matrix: 259/259;
-- focused security tests: 83/83;
-- repository secret scan: 320 files, zero findings.
+- strict release matrix: 262/262;
+- focused security tests: 85/85;
+- repository secret scan: 326 files, zero findings.
 
 ## Required external input
 
@@ -77,8 +85,9 @@ Until those steps pass, real automatic account switching and cross-account
 continuity remain unverified. No seamless continuity or in-flight computation
 resume is claimed.
 
-Independent of that external gate, one auxiliary 8216 thread-title request
-currently receives HTTP 405 and model-manager refreshes can time out. The
-fixed signed-in chat model path completed after r20, so these are residual
-operational follow-ups rather than evidence of a successful or failed
-cross-account switch.
+Independent of that external gate, r21 now accepts the exact HTTP/SSE route
+that previously returned 405. The deployed module and no-credential fixtures
+passed, but no post-r21 real title-generation request was sent, so live title
+generation is not claimed as verified. Model-manager refreshes can still time
+out and were not re-exercised. Neither condition is evidence of a successful
+or failed cross-account switch.

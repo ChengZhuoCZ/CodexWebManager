@@ -1,0 +1,80 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "implementation_mode": "clean-room",
+  "implementation_revision": "c2708371515d560ea024e8c7d1dfc2d5187fa6fb",
+  "target": {
+    "os": "linux",
+    "architecture": "x64"
+  },
+  "artifact": {
+    "name": "codex-account-router-0.2.4-linux-x64.tar.gz",
+    "sha256": "8eef578534a56cf5778b0f0665337bfc1da5040d3118627327a8d4924428f7dd",
+    "bytes": 382000,
+    "payload_file_count": 47,
+    "two_builds_byte_identical": true,
+    "electron_required": false,
+    "display_server_required": false,
+    "node_modules_present": false
+  },
+  "linux_verification": {
+    "checksum_passed": true,
+    "existing_current_symlink_seeded": true,
+    "existing_current_symlink_replaced": true,
+    "temporary_link_not_moved_into_previous_release": true,
+    "health_status": 200,
+    "readiness_status": 503,
+    "readiness_reason": "no_accounts",
+    "admin_bind": "127.0.0.1",
+    "model_bind": "127.0.0.1",
+    "sigterm_exit_code": 0,
+    "account_configuration_present": false,
+    "account_switch_tested": false
+  },
+  "deployment": {
+    "previous_release": "codex-account-router-0.2.2-linux-x64",
+    "active_release": "codex-account-router-0.2.4-linux-x64",
+    "deployment_script_sha256": "ee4a1f1f2f1d15f453c4363caaf11c88c50c3c248d70be0e56d079bcf3e1028c",
+    "first_attempt_rolled_back": true,
+    "first_attempt_failure": "The 0.2.3 installer used mv -f for an existing current symlink to a directory; the invariant failed before activating the candidate router and the old release was restored ready.",
+    "installer_regression_added": true,
+    "final_deployment_succeeded": true,
+    "router_ready_status": 200,
+    "route_probe": {
+      "route_id": "codex_responses_http",
+      "method": "POST",
+      "transport": "http",
+      "canonical_path": "/backend-api/codex/responses",
+      "upstream_target": "/backend-api/codex/responses",
+      "query_rejected": true
+    },
+    "real_provider_request_sent": false
+  },
+  "service_invariants": {
+    "standalone_8215_web_pid": 510876,
+    "standalone_8215_web_start_monotonic": 196497166049,
+    "standalone_8215_app_server_pid": 508396,
+    "standalone_8215_app_server_start_monotonic": 194490256322,
+    "routed_8216_web_pid": 495185,
+    "routed_8216_web_start_monotonic": 188703695080,
+    "routed_8216_app_server_pid": 495033,
+    "routed_8216_app_server_start_monotonic": 188703455553,
+    "all_values_unchanged_during_final_deployment": true
+  },
+  "tailnet_http": {
+    "standalone_8215_status": 200,
+    "standalone_8215_total_seconds": 0.485202,
+    "routed_8216_status": 200,
+    "routed_8216_total_seconds": 0.500358,
+    "stable_latency_claimed": false
+  },
+  "log_scan": {
+    "router_journal_sensitive_marker_matches": 0
+  },
+  "continuity": {
+    "architecture_mode": "LIMITED_MODE",
+    "real_two_account_switch_tested": false,
+    "seamless_cross_account_continuity_claimed": false,
+    "in_flight_computation_resume_claimed": false
+  }
+}

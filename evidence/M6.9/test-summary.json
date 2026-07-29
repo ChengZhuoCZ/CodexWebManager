@@ -12,9 +12,11 @@
   "r19_implementation_revision": "40b2f1715a7691e85e3ed0303cccfd5ef6f6a2e8",
   "r20_continuation_input_revision": "90a87e020cb9c4f6387656399603ec3893524f59",
   "r20_implementation_revision": "83d062d337c75c05bb4797d442fe1d8fe4ad255b",
+  "r21_continuation_input_revision": "c61f0a9ddc173bd1763e1d8efc8f87b1c5e9de9c",
+  "r21_implementation_revision": "c2708371515d560ea024e8c7d1dfc2d5187fa6fb",
   "standalone_8215_fix_revision": "d75c655c8fb3e3066245fec4060abd7aec5c4a46",
   "standalone_8215_full_access_revision": "acac3d5fdf6a77db8d84d85c3537b5d19614114f",
-  "implementation_revision": "83d062d337c75c05bb4797d442fe1d8fe4ad255b",
+  "implementation_revision": "c2708371515d560ea024e8c7d1dfc2d5187fa6fb",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "commands": [
@@ -580,6 +582,79 @@
     "config_read_approval_policy": "never",
     "config_read_error": false,
     "post_activation_linux_sandbox_error_matches": 0
+  },
+  "r21_http_fallback": {
+    "route_contract_version": 2,
+    "route_id": "codex_responses_http",
+    "method": "POST",
+    "transport": "http",
+    "canonical_path": "/backend-api/codex/responses",
+    "query_rejected": true,
+    "test_first_http_405_observed": true,
+    "focused_route_and_failover_tests": {
+      "tests": 18,
+      "passed": 18,
+      "failed": 0
+    },
+    "strict_matrix": {
+      "tests": 262,
+      "passed": 262,
+      "failed": 0,
+      "skipped": 0,
+      "unit": 145,
+      "integration": 70,
+      "e2e": 47,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    },
+    "security_audit": {
+      "qualified": true,
+      "focused_tests": 85,
+      "passed": 85,
+      "repository_files_scanned": 326,
+      "findings": 0
+    },
+    "safety": {
+      "pre_semantic_retry_bounded": true,
+      "post_semantic_replay_blocked": true,
+      "continuation_replay_blocked": true
+    },
+    "release": {
+      "name": "codex-account-router-0.2.4-linux-x64",
+      "sha256": "8eef578534a56cf5778b0f0665337bfc1da5040d3118627327a8d4924428f7dd",
+      "two_builds_byte_identical": true,
+      "linux_existing_current_upgrade_verified": true
+    },
+    "deployment": {
+      "first_attempt_rolled_back": true,
+      "first_attempt_cause": "0.2.3 installer did not replace an existing current symlink to a directory",
+      "final_attempt_succeeded": true,
+      "active_router_release": "codex-account-router-0.2.4-linux-x64",
+      "deployed_route_probe_passed": true,
+      "standalone_8215_unchanged": true,
+      "routed_8216_app_web_unchanged": true,
+      "router_journal_sensitive_marker_matches": 0
+    },
+    "live_provider_request_sent": false,
+    "historical_title_generation_405_addressed_at_router_layers": true,
+    "post_r21_live_title_generation_verified": false,
+    "model_manager_refresh_retested": false
+  },
+  "standalone_8215_startup_repair": {
+    "explicit_parallel_user_request": true,
+    "cause": "The standalone Web process retained a dead one-shot Unix-socket proxy after the App Server replaced its socket.",
+    "web_restarted": true,
+    "web_pid": 510876,
+    "web_start_monotonic": 196497166049,
+    "app_server_restarted": false,
+    "app_server_pid": 508396,
+    "app_server_start_monotonic": 194490256322,
+    "lifecycle_part_of_drop_in_installed": true,
+    "ipc_websocket_opened": true,
+    "account_present": true,
+    "model_count": 7,
+    "model_request_sent": false,
+    "routed_8216_services_unchanged": true
   },
   "deployed_asset": {
     "release": "c3e92f0f-20260729-m69-router-r20",
