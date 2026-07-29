@@ -633,9 +633,12 @@
       "deployed_route_probe_passed": true,
       "standalone_8215_unchanged": true,
       "routed_8216_app_web_unchanged": true,
-      "router_journal_sensitive_marker_matches": 0
+      "router_journal_sensitive_marker_matches": 0,
+      "single_transient_readiness_503_observed": true,
+      "subsequent_ready_200_samples": 20,
+      "transient_reason_classified": false
     },
-    "live_provider_request_sent": false,
+    "deliberate_prompt_title_or_model_request_sent": false,
     "historical_title_generation_405_addressed_at_router_layers": true,
     "post_r21_live_title_generation_verified": false,
     "model_manager_refresh_retested": false

@@ -283,7 +283,7 @@
     "router_ready_status": 200,
     "codex_http_fallback_route_probe_passed": true,
     "query_variant_rejected": true,
-    "real_provider_request_sent": false,
+    "deliberate_prompt_title_or_model_request_sent": false,
     "standalone_8215": {
       "http_status": 200,
       "web_pid_preserved": 510876,
@@ -308,6 +308,11 @@
       "stable_latency_claimed": false
     },
     "router_journal_sensitive_marker_matches": 0,
+    "stability_readiness": {
+      "single_transient_503_observed": true,
+      "subsequent_ready_200_samples": 20,
+      "explanation": "The process remained active and later readiness was stable. This is consistent with the single account temporarily reaching its concurrency limit, but the 503 body was not retained."
+    },
     "post_r21_live_title_generation_verified": false,
     "model_manager_refresh_retested": false
   },

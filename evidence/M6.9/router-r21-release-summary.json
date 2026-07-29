@@ -48,7 +48,7 @@
       "upstream_target": "/backend-api/codex/responses",
       "query_rejected": true
     },
-    "real_provider_request_sent": false
+    "deliberate_prompt_title_or_model_request_sent": false
   },
   "service_invariants": {
     "standalone_8215_web_pid": 510876,
@@ -70,6 +70,12 @@
   },
   "log_scan": {
     "router_journal_sensitive_marker_matches": 0
+  },
+  "stability_readiness": {
+    "single_transient_503_observed": true,
+    "reason_inference": "Consistent with the sole account being temporarily excluded at its concurrency limit; the 503 body was not retained.",
+    "subsequent_half_second_samples": 20,
+    "subsequent_ready_200_samples": 20
   },
   "continuity": {
     "architecture_mode": "LIMITED_MODE",
