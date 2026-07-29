@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_implementation_and_release_candidate",
+  "generated_at": "2026-07-30T03:10:00+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "a47abd7362815977896b734ac17b02b95ac4508e",
+  "output_revision": "79f6249508a4bcae384ad2589a9a6a6e4c7a9540",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Persist the last validated sanitized Weekly quota observation with circuit state so restart restores both eligibility inputs and the Weekly panel value.",
+    "runtime_state_schema_version": 1,
+    "legacy_state_without_weekly_quota_supported": true,
+    "persisted_weekly_fields": [
+      "account_id",
+      "observed_at",
+      "remaining_ratio",
+      "resets_at"
+    ],
+    "generic_429_inferred_as_weekly_exhaustion": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "node --test packages/account-router/test/runtime-persistence.test.mjs",
+    "before_implementation": {
+      "tests": 3,
+      "passed": 2,
+      "failed": 1,
+      "observed_failure": "The private runtime-state document had no weekly_quota entry and the restarted admin panel could not restore Weekly quota."
+    }
+  },
+  "verification": {
+    "focused_runtime_state": {
+      "tests": 22,
+      "passed": 22,
+      "failed": 0,
+      "skipped": 0
+    },
+    "critical_failover_and_restart": {
+      "tests": 61,
+      "passed": 61,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "HTTP/SSE bounded pre-semantic failover and post-semantic no-replay",
+        "WebSocket bounded pre-semantic failover and post-semantic no-replay",
+        "weekly exhaustion, reset-derived cooldown and sanitized snapshot persistence",
+        "simulated process restart and deployment snapshot rollback compatibility"
+      ]
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 274,
+      "passed": 249,
+      "failed": 0,
+      "skipped": 25
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r29-strict-matrix-summary.json",
+      "tests": 274,
+      "passed": 274,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r29-security-summary.json",
+      "qualified": true,
+      "files_scanned": 358,
+      "findings": 0,
+      "focused_tests": 89,
+      "focused_passed": 89,
+      "retained_strict_ui_passed": 492
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r29-linux-release-verify.json",
+      "release": "codex-account-router-0.2.8-linux-x64",
+      "sha256": "8cb5614d2713a82c66799567acf3ebc727601a445e15efe1944a40c51c595876",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r29.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure and non-writable /opt/codex-account-router boundary are unchanged.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.8-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200
+    },
+    "app_server": {
+      "pid": 508396,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "app_server_pid": 495033,
+    "http_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.8 is verified but is not active until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "The persisted weekly snapshot depends on an explicit sanitized provider observation; generic 429 responses do not prove weekly exhaustion.",
+    "A weekly reset farther than the 24-hour circuit maximum receives a bounded half-open recheck rather than an unbounded sleep.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
