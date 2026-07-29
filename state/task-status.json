@@ -19,6 +19,7 @@
     "r21_continuation": "c61f0a9ddc173bd1763e1d8efc8f87b1c5e9de9c",
     "r22_continuation": "67c62ca3c750c8982b43cca7741832c49477d8a4",
     "r23_continuation": "c978381407801fffaee72bad4958a282741f7bf0",
+    "r24_continuation": "7300bf967398ca92d9f309b3c4ea34bb191fa1d3",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
@@ -196,6 +197,17 @@
     "evidence/M6.9/standalone-8215-startup-r3-review.md"
   ],
   "observations": {
+    "continuation_r24_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-routed-failover-performance",
+      "commit": "7300bf967398ca92d9f309b3c4ea34bb191fa1d3",
+      "dependencies": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_result": "Wire the existing production runtime to accept bounded manual account preferences, publish sanitized automatic route changes as new backend sessions, and reject manual switches during real semantic streams, while using fixtures only and preserving every 8215 process, release, unit and credential boundary."
+    },
     "continuation_r23_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-routed-failover-performance",
@@ -620,5 +632,5 @@
     "R23 deterministically removes 56354 Brotli bytes and adds two pinned modulepreload hints, but the Tailnet path remains on DERP(tok) and single-run browser timing remains variable; no stable end-to-end speedup is claimed.",
     "Because the content-hashed main URL and identity bytes are unchanged, a browser that already cached the earlier Brotli representation can retain it until normal cache eviction."
   ],
-  "updated_at": "2026-07-29T22:32:18+08:00"
+  "updated_at": "2026-07-29T22:39:21+08:00"
 }
