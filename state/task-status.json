@@ -21,7 +21,7 @@
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "5c84482abe2c6b4d47ef5722a537d039b3b0b257",
+  "output_revision": "f6227a5564abe8446cd66dd50d7604ba45d23f51",
   "workspace_branch": "codex/m6-9-routed-failover-performance",
   "workspace_input_revision": "d41f2f282390f3f95e6795dd713d657b51788cc5",
   "depends_on": [
@@ -99,7 +99,7 @@
     },
     {
       "command": "rollback-capable standalone 8215 Full Access deployment and live systemd/process/HTTP/journal probes",
-      "result": "Codex danger-full-access plus approval_policy=never and outer systemd relaxation verified; 8215/8216 HTTP 200; 0 post-activation Linux-sandbox error matches; all three 8216 PIDs and timestamps unchanged"
+      "result": "Codex danger-full-access plus approval_policy=never verified in both live argv and a no-model config/read RPC; outer systemd relaxation verified; 8215/8216 HTTP 200; 0 post-activation Linux-sandbox error matches; all three 8216 PIDs and timestamps unchanged"
     }
   ],
   "evidence": [
@@ -320,6 +320,7 @@
       "app_server_main_pid": 508396,
       "sandbox_mode": "danger-full-access",
       "approval_policy": "never",
+      "config_read_verified": true,
       "systemd_outer_restrictions_disabled": true,
       "service_identity": "codex:codex",
       "root_or_passwordless_sudo_granted": false,
@@ -362,5 +363,5 @@
     "Standalone 8215 now deliberately runs Codex with danger-full-access and without the outer systemd filesystem/network sandbox. Any prompt injection or malicious repository content can access everything available to the unprivileged codex Unix account; root/passwordless sudo was not granted.",
     "One auxiliary 8216 thread-title request returned HTTP 405 and model-manager refreshes can time out; the fixed signed-in chat model path completed, but these remain operational follow-up work."
   ],
-  "updated_at": "2026-07-29T19:17:23+08:00"
+  "updated_at": "2026-07-29T19:28:29+08:00"
 }
