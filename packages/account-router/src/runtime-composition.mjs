@@ -10,6 +10,10 @@ import { createFailoverStateMachine } from "./failover-state-machine.mjs";
 import { createModelProxyService } from "./model-service.mjs";
 import { createProxyHandler } from "./proxy-handler.mjs";
 import { createQuotaSnapshotAdapter } from "./quota-snapshot.mjs";
+import {
+  circuitStateFromRuntimeState,
+  normalizeRuntimeStateDocument,
+} from "./runtime-state.mjs";
 import { createDeterministicScheduler } from "./scheduler.mjs";
 import { createRouterService } from "./service.mjs";
 import { createWeeklyQuotaTracker } from "./weekly-quota-tracker.mjs";
@@ -112,10 +116,17 @@ export function createRuntimeComposition({
     }
   }
 
+  const initialRuntimeState = initialCircuitState === null
+    ? null
+    : normalizeRuntimeStateDocument(initialCircuitState);
   const scheduler = createDeterministicScheduler({ now });
-  const circuitBreaker = createCircuitBreaker({ now, initialState: initialCircuitState });
+  const circuitBreaker = createCircuitBreaker({
+    now,
+    initialState: circuitStateFromRuntimeState(initialRuntimeState),
+  });
   const quotaTracker = createWeeklyQuotaTracker({
     accountIds: accountCatalog.listPublic().map(({ id }) => id),
+    initialState: initialRuntimeState?.weekly_quota ?? [],
     now,
   });
   const quotaAdapter = createQuotaSnapshotAdapter({
@@ -140,21 +151,28 @@ export function createRuntimeComposition({
     return new Error("runtime state persistence is unavailable");
   }
 
-  async function persistCircuitState() {
+  function exportRuntimeState() {
+    return Object.freeze({
+      ...circuitBreaker.exportState(),
+      weekly_quota: quotaTracker.exportState(),
+    });
+  }
+
+  async function persistRuntimeState() {
     if (stateStore === null) return;
     if (persistenceFailure !== null) throw persistenceUnavailable();
     try {
-      await stateStore.save(circuitBreaker.exportState());
+      await stateStore.save(exportRuntimeState());
     } catch (error) {
       persistenceFailure = error;
       throw persistenceUnavailable();
     }
   }
 
-  function queueCircuitStatePersistence() {
+  function queueRuntimeStatePersistence() {
     if (stateStore === null) return;
     const operation = pendingPersistence.then(() =>
-      stateStore.save(circuitBreaker.exportState()));
+      stateStore.save(exportRuntimeState()));
     pendingPersistence = operation.catch((error) => {
       persistenceFailure = error;
     });
@@ -163,8 +181,22 @@ export function createRuntimeComposition({
   for (const account of accountCatalog.listPublic()) {
     if (!account.enabled) continue;
     const restored = circuitBreaker.snapshot(account.id);
-    if (restored.phase === "closed" && restored.last_failure_kind === null) continue;
+    const quota = quotaTracker.read(account.id);
+    const quotaStatus = quota === null
+      ? {}
+      : {
+          five_hour_remaining_ratio: null,
+          weekly_remaining_ratio: quota.weekly.remaining_ratio,
+          snapshot_observed_at: quota.observed_at,
+        };
+    if (restored.phase === "closed" && restored.last_failure_kind === null) {
+      if (quota !== null) {
+        adminState.updateAccountStatus(account.id, quotaStatus);
+      }
+      continue;
+    }
     adminState.updateAccountStatus(account.id, {
+      ...quotaStatus,
       state: restored.phase === "half_open"
         ? "half_open"
         : restored.phase === "closed"
@@ -317,8 +349,8 @@ export function createRuntimeComposition({
       probeTokens.delete(accountId);
       lastUnavailableReason.set(accountId, "quota_exhausted");
       if (preferredAccountId === accountId) preferredAccountId = null;
-      queueCircuitStatePersistence();
     }
+    queueRuntimeStatePersistence();
     refreshAvailableStatus(accountId);
   }
 
@@ -335,7 +367,7 @@ export function createRuntimeComposition({
     lastUnavailableReason.set(accountId, kind);
     if (preferredAccountId === accountId) preferredAccountId = null;
     updateFailureStatus(accountId, kind);
-    await persistCircuitState();
+    await persistRuntimeState();
   }
 
   async function resolveUpstream(_route, selectionContext = {}) {
@@ -352,7 +384,7 @@ export function createRuntimeComposition({
       }
       if (circuitLease.probe) {
         probeTokens.set(accountId, circuitLease.probe_token);
-        await persistCircuitState();
+        await persistRuntimeState();
       }
 
       const binding = accountCatalog.getCredentialBinding(accountId);
@@ -371,7 +403,7 @@ export function createRuntimeComposition({
         lastUnavailableReason.set(accountId, "auth_expired");
         if (preferredAccountId === accountId) preferredAccountId = null;
         updateFailureStatus(accountId, "auth_expired");
-        await persistCircuitState();
+        await persistRuntimeState();
         excluded.add(accountId);
         continue;
       }
@@ -400,7 +432,7 @@ export function createRuntimeComposition({
           if (circuitLease.probe && activeProbe === circuitLease.probe_token) {
             circuitBreaker.recordSuccess(accountId, { probeToken: circuitLease.probe_token });
             probeTokens.delete(accountId);
-            queueCircuitStatePersistence();
+            queueRuntimeStatePersistence();
           }
           if (circuitBreaker.snapshot(accountId).phase === "closed") {
             refreshAvailableStatus(accountId);
@@ -503,7 +535,7 @@ export function createRuntimeComposition({
       state = RUNTIME_STATES.STOPPING;
       await Promise.allSettled([modelService.stop(), adminService.stop()]);
       await pendingPersistence;
-      await persistCircuitState();
+      await persistRuntimeState();
       state = RUNTIME_STATES.STOPPED;
     },
     toString() {

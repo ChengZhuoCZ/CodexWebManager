@@ -93,6 +93,12 @@ async function writeOperationalFiles(configFile, stateFile, alias = "Fixture A")
     version: 1,
     saved_at: "2026-07-27T08:00:00.000Z",
     accounts: [],
+    weekly_quota: [{
+      account_id: "fixture-account-a",
+      observed_at: "2026-07-27T08:00:00.000Z",
+      remaining_ratio: 0.5,
+      resets_at: "2026-07-28T00:00:00.000Z",
+    }],
   })}\n`, { mode: 0o600 });
   await chmod(configFile, 0o600);
   await chmod(stateFile, 0o600);
@@ -169,6 +175,10 @@ test("upgrade snapshots config/state, activates an immutable release, and rolls 
   );
   assert.match(await readFile(fixture.configFile, "utf8"), /Fixture A/);
   assert.doesNotMatch(await readFile(fixture.configFile, "utf8"), /Mutated/);
+  assert.equal(
+    JSON.parse(await readFile(fixture.stateFile, "utf8")).weekly_quota[0].remaining_ratio,
+    0.5,
+  );
   assert.deepEqual(fixture.serviceEvents, ["stop", "start", "stop", "start"]);
 });
 

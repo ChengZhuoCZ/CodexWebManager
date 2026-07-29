@@ -63,6 +63,55 @@ test("accepts a weekly primary slot and a one-minute duration normalization", ()
   });
 });
 
+test("exports and restores only deterministic sanitized weekly state", () => {
+  const tracker = createWeeklyQuotaTracker({
+    accountIds: ["account-b", "account-a"],
+    initialState: [
+      {
+        account_id: "account-a",
+        observed_at: "2026-07-27T08:00:00.000Z",
+        remaining_ratio: 0,
+        resets_at: "2026-07-28T00:00:00.000Z",
+      },
+    ],
+    now: () => OBSERVED_AT_MS,
+  });
+  tracker.observe("account-b", weeklyEvent({ usedPercent: 25 }));
+  assert.deepEqual(tracker.exportState(), [
+    {
+      account_id: "account-a",
+      observed_at: "2026-07-27T08:00:00.000Z",
+      remaining_ratio: 0,
+      resets_at: "2026-07-28T00:00:00.000Z",
+    },
+    {
+      account_id: "account-b",
+      observed_at: "2026-07-28T00:00:00.000Z",
+      remaining_ratio: 0.75,
+      resets_at: "2026-07-28T00:00:00.000Z",
+    },
+  ]);
+  assert.equal(tracker.read("account-a").weekly.remaining_ratio, 0);
+  assert.doesNotMatch(
+    JSON.stringify(tracker.exportState()),
+    /credential|secret|authorization|token|email/i,
+  );
+
+  assert.throws(
+    () => createWeeklyQuotaTracker({
+      accountIds: ["account-a"],
+      initialState: [{
+        account_id: "account-a",
+        observed_at: "2026-07-27T08:00:00.000Z",
+        remaining_ratio: 0,
+        resets_at: "2026-07-28T00:00:00.000Z",
+        credential_ref: "fixture-private-reference",
+      }],
+    }),
+    /weekly quota state/,
+  );
+});
+
 test("extracts only a codex.rate_limits JSON object from bounded SSE bytes", () => {
   const event = weeklyEvent({ usedPercent: 100 });
   const bytes = Buffer.from(

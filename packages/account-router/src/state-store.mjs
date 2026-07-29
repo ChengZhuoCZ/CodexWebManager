@@ -3,7 +3,7 @@ import { chmod, lstat, mkdir, open, rename, unlink } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { inspect } from "node:util";
 import { randomUUID } from "node:crypto";
-import { normalizeCircuitStateDocument } from "./circuit-breaker.mjs";
+import { normalizeRuntimeStateDocument } from "./runtime-state.mjs";
 
 const FILE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.json$/;
 const DEFAULT_FILE_NAME = "circuit-state.json";
@@ -122,7 +122,7 @@ export function createCircuitStateStore({
         throw new Error("circuit state file is too large");
       }
       try {
-        return normalizeCircuitStateDocument(JSON.parse(buffer.subarray(0, length).toString("utf8")));
+        return normalizeRuntimeStateDocument(JSON.parse(buffer.subarray(0, length).toString("utf8")));
       } catch {
         throw new Error("invalid state file");
       }
@@ -179,7 +179,7 @@ export function createCircuitStateStore({
       return enqueue(readDocument);
     },
     async save(document) {
-      const normalized = normalizeCircuitStateDocument(document);
+      const normalized = normalizeRuntimeStateDocument(document);
       return enqueue(() => writeDocument(normalized));
     },
     toString() {

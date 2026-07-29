@@ -37,6 +37,7 @@ export { listProxyRoutes, normalizeProxyRoute, ProxyRouteError } from "./proxy-r
 export { createQuotaSnapshotAdapter } from "./quota-snapshot.mjs";
 export {
   createWeeklyQuotaTracker,
+  normalizeWeeklyQuotaStateEntries,
   parseRateLimitSseEvent,
   weeklyQuotaObservationFromEvent,
 } from "./weekly-quota-tracker.mjs";
@@ -70,5 +71,9 @@ export {
   StatusBridgeError,
 } from "./status-bridge.mjs";
 export { createCircuitStateStore } from "./state-store.mjs";
+export {
+  circuitStateFromRuntimeState,
+  normalizeRuntimeStateDocument,
+} from "./runtime-state.mjs";
 export { createDeploymentManager } from "./deployment-manager.mjs";
 export { createEventBroker } from "./event-broker.mjs";

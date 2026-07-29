@@ -84,13 +84,22 @@ test("loads the private circuit state selected by the runtime state directory", 
     now: () => Date.parse("2026-07-27T08:00:00.000Z"),
   });
   breaker.recordFailure("account-a", { kind: "network_error" });
-  await store.save(breaker.exportState());
+  await store.save({
+    ...breaker.exportState(),
+    weekly_quota: [{
+      account_id: "account-a",
+      observed_at: "2026-07-27T08:00:00.000Z",
+      remaining_ratio: 0.25,
+      resets_at: "2026-07-28T00:00:00.000Z",
+    }],
+  });
 
   const options = await loadRuntimeBootstrap({
     CODEX_ROUTER_STATE_DIRECTORY: directory,
   });
   assert.equal(options.initialCircuitState.accounts[0].account_id, "account-a");
   assert.equal(options.initialCircuitState.accounts[0].last_failure_kind, "network_error");
+  assert.equal(options.initialCircuitState.weekly_quota[0].remaining_ratio, 0.25);
   assert.equal(options.circuitStateStore.toString(), "[CircuitStateStore]");
 });
 

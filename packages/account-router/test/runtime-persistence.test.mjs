@@ -217,6 +217,14 @@ test("a fresh weekly exhaustion observation remains excluded after a simulated p
       accountId === "fixture-account-a")?.cooldown_until,
     "2026-07-28T00:00:00.000Z",
   );
+  assert.deepEqual(saved.weekly_quota, [
+    {
+      account_id: "fixture-account-a",
+      observed_at: "2026-07-27T08:00:00.000Z",
+      remaining_ratio: 0,
+      resets_at: "2026-07-28T00:00:00.000Z",
+    },
+  ]);
 
   const second = createRuntimeComposition(runtimeOptions({
     accounts,
@@ -226,6 +234,12 @@ test("a fresh weekly exhaustion observation remains excluded after a simulated p
   }));
   context.after(() => second.stop());
   await second.start();
+  const restartedStatus = await adminStatus(second);
+  assert.equal(restartedStatus.accounts[0].weekly_remaining_ratio, 0);
+  assert.equal(
+    restartedStatus.accounts[0].snapshot_observed_at,
+    "2026-07-27T08:00:00.000Z",
+  );
   const ready = await fetch(`http://127.0.0.1:${second.addresses.admin.port}/readyz`);
   assert.equal(ready.status, 200);
   assert.equal((await ready.json()).usable_accounts, 1);
@@ -240,6 +254,7 @@ test("a fresh weekly exhaustion observation remains excluded after a simulated p
   assert.equal(afterRestart.status, 200);
   await afterRestart.text();
   assert.deepEqual(upstreamAccounts, ["fixture-a", "fixture-b"]);
+  await second.stop();
 });
 
 test("a persistence failure makes readiness and later selection fail closed", async () => {

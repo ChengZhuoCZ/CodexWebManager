@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import test from "node:test";
 import { createCircuitBreaker } from "../src/circuit-breaker.mjs";
+import { circuitStateFromRuntimeState } from "../src/runtime-state.mjs";
 import { createCircuitStateStore } from "../src/state-store.mjs";
 
 const NOW = Date.parse("2026-07-16T08:00:00.000Z");
@@ -24,7 +25,15 @@ test("atomically persists and restores circuit state across a simulated restart"
   const store = createCircuitStateStore({ directory });
   const before = breaker();
   before.recordFailure("account-a", { kind: "quota_exhausted" });
-  await store.save(before.exportState());
+  await store.save({
+    ...before.exportState(),
+    weekly_quota: [{
+      account_id: "account-a",
+      observed_at: "2026-07-16T08:00:00.000Z",
+      remaining_ratio: 0,
+      resets_at: "2026-07-17T08:00:00.000Z",
+    }],
+  });
 
   const path = join(directory, "circuit-state.json");
   const metadata = await lstat(path);
@@ -33,8 +42,9 @@ test("atomically persists and restores circuit state across a simulated restart"
   assert.equal((await readFile(path, "utf8")).endsWith("\n"), true);
 
   const loaded = await store.load();
-  const after = breaker(loaded);
+  const after = breaker(circuitStateFromRuntimeState(loaded));
   assert.deepEqual(after.snapshot("account-a"), before.snapshot("account-a"));
+  assert.equal(loaded.weekly_quota[0].remaining_ratio, 0);
   assert.doesNotMatch(JSON.stringify(loaded), /credential|secret|authorization|token|email/i);
 });
 
@@ -49,6 +59,19 @@ test("returns null for a missing state file and preserves the last valid file on
   await store.save(valid);
   await assert.rejects(
     store.save({ ...valid, credential_ref: "fixture-private-reference" }),
+    /state document/,
+  );
+  await assert.rejects(
+    store.save({
+      ...valid,
+      weekly_quota: [{
+        account_id: "account-a",
+        observed_at: "2026-07-16T08:00:00.000Z",
+        remaining_ratio: 0,
+        resets_at: null,
+        credential_ref: "fixture-private-reference",
+      }],
+    }),
     /state document/,
   );
   assert.deepEqual(await store.load(), valid);

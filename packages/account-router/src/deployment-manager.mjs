@@ -17,7 +17,7 @@ import {
 import path from "node:path";
 import { inspect } from "node:util";
 import { createAccountCatalog } from "./accounts.mjs";
-import { normalizeCircuitStateDocument } from "./circuit-breaker.mjs";
+import { normalizeRuntimeStateDocument } from "./runtime-state.mjs";
 
 const PACKAGE_NAME = "@codex-web-manager/account-router";
 const RELEASE_NAME_PATTERN =
@@ -323,7 +323,7 @@ async function readOperationalFile(filePath, role, required) {
   if (role === "accounts configuration") {
     validateAccountsDocument(document);
   } else {
-    normalizeCircuitStateDocument(document);
+    normalizeRuntimeStateDocument(document);
   }
   return {
     bytes: result.bytes,
@@ -548,7 +548,7 @@ async function loadSnapshot(backupRoot, snapshotIdValue) {
     }
     const document = parseJson(result.bytes, "snapshot file");
     if (role === "accounts") validateAccountsDocument(document);
-    else normalizeCircuitStateDocument(document);
+    else normalizeRuntimeStateDocument(document);
     files[role] = { bytes: result.bytes, ...record };
   }
   return { directory, files, manifest };

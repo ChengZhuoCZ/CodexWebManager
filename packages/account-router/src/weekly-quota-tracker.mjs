@@ -3,6 +3,13 @@ import { inspect } from "node:util";
 const ACCOUNT_ID_PATTERN = /^[A-Za-z0-9._-]{1,128}$/;
 const WEEKLY_WINDOW_MINUTES = new Set([10_079, 10_080]);
 const MAX_SSE_EVENT_BYTES = 256 * 1024;
+const MAX_ACCOUNTS = 1_000;
+const STATE_ENTRY_FIELDS = new Set([
+  "account_id",
+  "observed_at",
+  "remaining_ratio",
+  "resets_at",
+]);
 
 function isPlainObject(value) {
   if (value === null || typeof value !== "object" || Array.isArray(value)) return false;
@@ -155,8 +162,69 @@ function validateStoredObservation(observation) {
   }
 }
 
-export function createWeeklyQuotaTracker({ accountIds, now = () => Date.now() } = {}) {
-  if (!Array.isArray(accountIds) || accountIds.length > 1_000 || typeof now !== "function") {
+function observationFromStateEntry(entry) {
+  if (!isPlainObject(entry)) throw new Error("weekly quota state entry is invalid");
+  for (const field of Object.keys(entry)) {
+    if (!STATE_ENTRY_FIELDS.has(field)) {
+      throw new Error("weekly quota state entry is invalid");
+    }
+  }
+  if (
+    typeof entry.account_id !== "string" ||
+    !ACCOUNT_ID_PATTERN.test(entry.account_id)
+  ) {
+    throw new Error("weekly quota state account id is invalid");
+  }
+  const observation = {
+    observed_at: entry.observed_at,
+    five_hour: { status: "unavailable", reason: "unsupported" },
+    weekly: {
+      status: "available",
+      remaining_ratio: entry.remaining_ratio,
+      resets_at: entry.resets_at,
+      confidence: "high",
+    },
+  };
+  validateStoredObservation(observation);
+  return Object.freeze({
+    accountId: entry.account_id,
+    observation: freezeObservation({
+      observedAt: observation.observed_at,
+      remainingRatio: observation.weekly.remaining_ratio,
+      resetsAt: observation.weekly.resets_at,
+    }),
+  });
+}
+
+export function normalizeWeeklyQuotaStateEntries(entries) {
+  if (!Array.isArray(entries) || entries.length > MAX_ACCOUNTS) {
+    throw new Error("weekly quota state must be a bounded array");
+  }
+  const seen = new Set();
+  const normalized = entries.map((entry) => {
+    const restored = observationFromStateEntry(entry);
+    if (seen.has(restored.accountId)) {
+      throw new Error("weekly quota state account ids must be unique");
+    }
+    seen.add(restored.accountId);
+    return Object.freeze({
+      account_id: restored.accountId,
+      observed_at: restored.observation.observed_at,
+      remaining_ratio: restored.observation.weekly.remaining_ratio,
+      resets_at: restored.observation.weekly.resets_at,
+    });
+  });
+  normalized.sort((left, right) =>
+    left.account_id < right.account_id ? -1 : left.account_id > right.account_id ? 1 : 0);
+  return Object.freeze(normalized);
+}
+
+export function createWeeklyQuotaTracker({
+  accountIds,
+  initialState = [],
+  now = () => Date.now(),
+} = {}) {
+  if (!Array.isArray(accountIds) || accountIds.length > MAX_ACCOUNTS || typeof now !== "function") {
     throw new TypeError("weekly quota tracker configuration is invalid");
   }
   const known = new Set();
@@ -171,6 +239,13 @@ export function createWeeklyQuotaTracker({ accountIds, now = () => Date.now() } 
     known.add(accountId);
   }
   const observations = new Map();
+  for (const entry of normalizeWeeklyQuotaStateEntries(initialState)) {
+    if (!known.has(entry.account_id)) continue;
+    observations.set(
+      entry.account_id,
+      observationFromStateEntry(entry).observation,
+    );
+  }
   const requireAccount = (accountId) => {
     if (!known.has(accountId)) throw new Error("unknown account");
   };
@@ -190,6 +265,16 @@ export function createWeeklyQuotaTracker({ accountIds, now = () => Date.now() } 
     read(accountId) {
       requireAccount(accountId);
       return observations.get(accountId) ?? null;
+    },
+    exportState() {
+      return normalizeWeeklyQuotaStateEntries(
+        [...observations.entries()].map(([accountId, observation]) => ({
+          account_id: accountId,
+          observed_at: observation.observed_at,
+          remaining_ratio: observation.weekly.remaining_ratio,
+          resets_at: observation.weekly.resets_at,
+        })),
+      );
     },
     toString() {
       return "[WeeklyQuotaTracker]";
