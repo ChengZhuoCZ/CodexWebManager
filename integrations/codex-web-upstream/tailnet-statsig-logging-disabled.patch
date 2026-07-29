@@ -1,0 +1,14 @@
+--- a/scratch/asar/webview/assets/app-initial-BTphDPeq.js
++++ b/scratch/asar/webview/assets/app-initial-BTphDPeq.js
+@@ -743397,10 +743397,11 @@
+       (Etu = {
+         overrideAdapter: window.__ELECTRON_SHIM__.overrideAdapter,
++        loggingEnabled: `disabled`,
+         networkConfig: {
+           preventAllNetworkTraffic: true,
+           api: xtu,
+           logEventUrl: r9l,
+           sdkExceptionUrl: Stu,
+           networkOverrideFunc: Qeu,
+         },
+       }),

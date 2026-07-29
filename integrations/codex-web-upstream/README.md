@@ -67,6 +67,14 @@ also applies `tailnet-ipc-statsig-fastpath.patch` to the pinned
 initialize, registration, and log-event hosts/paths and never matches provider,
 account, or model endpoints.
 
+`preventAllNetworkTraffic` short-circuits the Statsig SDK before that override
+and still lets the authenticated client collect, batch, compress, and then
+discard analytics events. Apply `tailnet-statsig-logging-disabled.patch` after
+the IPC patch to give the authenticated client the same
+`loggingEnabled: "disabled"` setting already used by the pre-login client. The
+patch adds exactly that option; it does not change experiment evaluation,
+network routes, model requests, account requests, or App Server traffic.
+
 The main pinned desktop bundle is about 22.8 MB and the browser preload is
 about 607 KB. Because the upstream Fastify server does not enable its existing
 precompressed-file support, the routed release may run
@@ -94,11 +102,11 @@ node build-minified-precompressed-asset.mjs \
   --esbuild /absolute/pinned/esbuild
 ```
 
-Build order is important: upstream build, compatibility/IPC patches,
-minification/index versioning, then precompression. Minifying before the
-integration patches would invalidate the reviewed patch boundaries. Running
-the builder more than once against the same candidate fails closed; start from
-a fresh inactive release instead.
+Build order is important: upstream build, compatibility/IPC patches, the
+authenticated Statsig logging patch, minification/index versioning, then
+precompression. Minifying before the integration patches would invalidate the
+reviewed patch boundaries. Running the builder more than once against the same
+candidate fails closed; start from a fresh inactive release instead.
 
 The adapter enables the pinned `@fastify/static` `preCompressed` option instead
 of implementing content negotiation itself. That mature plugin prefers

@@ -24,6 +24,10 @@ const startupBackgroundPatch = new URL(
   "../../../integrations/codex-web-upstream/tailnet-startup-background.patch",
   import.meta.url,
 );
+const statsigLoggingPatch = new URL(
+  "../../../integrations/codex-web-upstream/tailnet-statsig-logging-disabled.patch",
+  import.meta.url,
+);
 
 function indexFixture() {
   return `<!doctype html>
@@ -150,6 +154,49 @@ test("startup background patch replaces the transparent white flash without chan
   assert.match(patch, /prefers-color-scheme: dark/);
   assert.match(patch, /electron-dark/);
   assert.doesNotMatch(patch, /backend-api|responses|Authorization|Cookie|fetch\(/);
+});
+
+test("routed Statsig patch disables post-login event collection without changing network routes", async (context) => {
+  const patch = await readFile(statsigLoggingPatch, "utf8");
+  const additions = patch
+    .split("\n")
+    .filter((line) => line.startsWith("+") && !line.startsWith("+++"));
+
+  assert.match(patch, /loggingEnabled:\s*`disabled`/);
+  assert.deepEqual(additions, ["+        loggingEnabled: `disabled`,"]);
+  assert.doesNotMatch(
+    additions.join("\n"),
+    /backend-api|responses|Authorization|Cookie|fetch\(|networkOverrideFunc:/,
+  );
+
+  const directory = await mkdtemp(path.join(os.tmpdir(), "codex-statsig-patch-"));
+  context.after(() => rm(directory, { recursive: true, force: true }));
+  const assets = path.join(directory, "scratch", "asar", "webview", "assets");
+  await mkdir(assets, { recursive: true });
+  await writeFile(
+    path.join(assets, "app-initial-BTphDPeq.js"),
+    `      (Etu = {
+        overrideAdapter: window.__ELECTRON_SHIM__.overrideAdapter,
+        networkConfig: {
+          preventAllNetworkTraffic: true,
+          api: xtu,
+          logEventUrl: r9l,
+          sdkExceptionUrl: Stu,
+          networkOverrideFunc: Qeu,
+        },
+      }),
+`,
+  );
+  const dryRun = spawnSync(
+    "patch",
+    ["-p1", "--dry-run", "-i", fileURLToPath(statsigLoggingPatch)],
+    { cwd: directory, encoding: "utf8" },
+  );
+  assert.equal(
+    dryRun.status,
+    0,
+    `patch dry-run failed: ${dryRun.stderr || dryRun.stdout}`,
+  );
 });
 
 test("builds deterministic precompressed files only after a pinned minifier produces smaller valid JavaScript", async (context) => {
