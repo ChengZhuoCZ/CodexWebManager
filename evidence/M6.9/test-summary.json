@@ -8,8 +8,10 @@
   "r17_continuation_input_revision": "66da7a9094baa741faef623e5d6727350ab831ef",
   "r18_continuation_input_revision": "0aa80c4b1223253d3b2d2cb428db1679df52bbe3",
   "r18_implementation_revision": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
+  "r19_continuation_input_revision": "2c29e3a895feefd5c9a62f8bf8b699e0a7dd408f",
+  "r19_implementation_revision": "40b2f1715a7691e85e3ed0303cccfd5ef6f6a2e8",
   "standalone_8215_fix_revision": "d75c655c8fb3e3066245fec4060abd7aec5c4a46",
-  "implementation_revision": "d75c655c8fb3e3066245fec4060abd7aec5c4a46",
+  "implementation_revision": "40b2f1715a7691e85e3ed0303cccfd5ef6f6a2e8",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "commands": [
@@ -17,7 +19,7 @@
       "command": "<bundled-node> --check integrations/codex-web-upstream/build-minified-precompressed-asset.mjs && <bundled-node> --check integrations/codex-web-upstream/inline-versioned-startup-fastpath.mjs && <bundled-node> --test packages/account-router/test/codex-web-upstream-fastpath.test.mjs",
       "result": {
         "passed": true,
-        "focused_tests": 9,
+        "focused_tests": 10,
         "test_first_failure_observed": true,
         "real_patch_dry_run": true,
         "early_main_hint_before_synchronous_shim": true,
@@ -30,8 +32,8 @@
     {
       "command": "<bundled-node> --test",
       "result": {
-        "tests": 269,
-        "passed": 244,
+        "tests": 270,
+        "passed": 245,
         "failed": 0,
         "skipped": 25,
         "skip_reason": "Pinned codex-web fixture variables were intentionally absent."
@@ -40,11 +42,11 @@
     {
       "command": "M4_2_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_3_CODEX_WEB_ROOT=<clean-888692f-fixture> M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
       "result": {
-        "tests": 258,
-        "passed": 258,
+        "tests": 259,
+        "passed": 259,
         "failed": 0,
         "skipped": 0,
-        "unit": 142,
+        "unit": 143,
         "integration": 69,
         "e2e": 47
       }
@@ -52,7 +54,7 @@
     {
       "command": "M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
       "result": {
-        "input_revision": "d75c655c8fb3e3066245fec4060abd7aec5c4a46",
+        "input_revision": "40b2f1715a7691e85e3ed0303cccfd5ef6f6a2e8",
         "qualified": true,
         "security_tests": 83,
         "security_tests_passed": 83,
@@ -166,6 +168,68 @@
       }
     },
     {
+      "command": "pinned Terser 5.49.0 second-stage builder run twice against the qualified r18 main input",
+      "result": {
+        "passed": true,
+        "terser_version": "5.49.0",
+        "terser_cli_sha256": "312a3f9b37d3f5316ee384bfdc347313dae6f0f9056c44b3cae56c8e4e9f4496",
+        "identity_bytes": 13936387,
+        "gzip_bytes": 4243211,
+        "brotli_bytes": 3173689,
+        "identity_sha256": "e2d356e06763a8287003e5a087acb09a09160a1d6bc8fbf9cecccdfdaf82b6b0",
+        "gzip_sha256": "1c6c15a253441c4afd366e46dcadc3056a16d5be85c43ec755324c2064cc9a1c",
+        "brotli_sha256": "0899d532efde663c13196219d5e89b355469969397739c2db890593740bf9be1",
+        "deterministic_second_run": true,
+        "brotli_reduction_bytes": 120417,
+        "minimum_brotli_reduction_percent": 1
+      }
+    },
+    {
+      "command": "r19 corrected-cache-key deployment plus live 8216 browser, model, journal and service probes",
+      "result": {
+        "release": "c3e92f0f-20260729-m69-router-r19",
+        "asset_url": "./assets/app-initial-BTphDPeq.js?v=e2d356e06763a828",
+        "index_identity_bytes": 17576,
+        "index_brotli_bytes": 4150,
+        "index_gzip_bytes": 5961,
+        "index_identity_sha256": "ccbf0a8318d6559939605f4b291f0bf50cd14539ea7fc2fe76b0923cf7152d88",
+        "index_brotli_sha256": "78cb8fb70825554a0e911ed69dcf3b9e0487ef66482228f7409226a907416b64",
+        "index_gzip_sha256": "5891e0c3f225392579a81e6930acd6af6515088ad4e95b228a1958976ff976cf",
+        "composer_present": true,
+        "single_account_model_request_completed": true,
+        "model_observation_ms": 3673,
+        "journal_lines": 10,
+        "sensitive_shape_matches": 0,
+        "fixture_sentinel_matches": 0,
+        "standalone_8215_timestamp_unchanged": true,
+        "routed_app_server_timestamp_unchanged": true
+      }
+    },
+    {
+      "command": "user-authorized isolated device login, rollback-capable 8215-only credential activation, browser/model and sanitized journal probes",
+      "result": {
+        "authorization_status": "success",
+        "credential_contents_or_identity_recorded": false,
+        "credential_source_isolated": true,
+        "credential_mode": "0600",
+        "credential_owner": "root",
+        "temporary_login_home_removed": true,
+        "standalone_app_server_restarted": true,
+        "standalone_web_restarted": true,
+        "routed_8216_web_timestamp_unchanged": true,
+        "routed_8216_app_server_timestamp_unchanged": true,
+        "standalone_http_status": 200,
+        "routed_http_status": 200,
+        "composer_present": true,
+        "single_account_model_request_completed": true,
+        "model_observation_ms": 27319,
+        "journal_lines": 36,
+        "sensitive_shape_matches": 0,
+        "fixture_sentinel_matches": 0,
+        "router_account_enrollment_executed": false
+      }
+    },
+    {
       "command": "<sanitized-app-server-timing-probe> <private-unix-socket>",
       "result": {
         "initialize_ms": 15.8,
@@ -254,6 +318,22 @@
     {
       "command": "first standalone r3 activation verifier",
       "result": "rolled back because the verifier did not normalize CRLF response headers; the hash-checked candidate and Brotli decode were valid, and the corrected activation verifier passed"
+    },
+    {
+      "command": "Brotli encoder-setting variants against the r18 main identity",
+      "result": "rejected because all tested variants produced the identical 3294106-byte body"
+    },
+    {
+      "command": "esbuild tree-shaking against the r18 main identity",
+      "result": "rejected because identity decreased by 5588 bytes but Brotli increased by 100 bytes"
+    },
+    {
+      "command": "conservative Terser pass retaining function and class names",
+      "result": "rejected because the mixed compressed reduction remained below the one-percent acceptance threshold"
+    },
+    {
+      "command": "first standalone 8215 credential activation verifier",
+      "result": "rolled back because an unprivileged socket metadata check could not traverse the mode-0700 runtime directory; service startup itself had no error and the corrected scoped privileged check passed"
     }
   ],
   "live_browser": {
@@ -283,9 +363,19 @@
     "r18_composer_present": true,
     "r18_model_requests_completed": 1,
     "r18_model_observation_ms": 9173,
+    "r19_composer_present": true,
+    "r19_first_page_observation_ms": 28315,
+    "r19_warm_usable_screen_ms": [
+      22745,
+      16537
+    ],
+    "r19_warm_observation_cutoff_ms": 29439,
+    "r19_model_requests_completed": 1,
+    "r19_model_observation_ms": 3673,
     "standalone_8215_composer_present": true,
-    "standalone_8215_post_boundary_model_requests_completed": 1,
-    "standalone_8215_model_observation_ms": 3728,
+    "standalone_8215_post_boundary_model_requests_completed": 2,
+    "standalone_8215_pre_switch_model_observation_ms": 3728,
+    "standalone_8215_post_switch_model_observation_ms": 27319,
     "browser_plugin_instrumentation_errors_excluded_from_page_evidence": true,
     "startup_speed_claimed_stable": false,
     "model_latency_claimed_guaranteed": false,
@@ -327,17 +417,33 @@
     "fixture_sentinel_matches": 0,
     "new_application_error_entries": 0
   },
+  "r19_log_boundary": {
+    "standard_output": "null",
+    "standard_error": "journal",
+    "model_check_journal_lines": 10,
+    "sensitive_shape_matches": 0,
+    "fixture_sentinel_matches": 0
+  },
+  "standalone_8215_post_switch_log_boundary": {
+    "standard_output": "null",
+    "standard_error": "journal",
+    "model_check_journal_lines": 36,
+    "sensitive_shape_matches": 0,
+    "fixture_sentinel_matches": 0
+  },
   "deployed_asset": {
-    "release": "c3e92f0f-20260729-m69-router-r18",
-    "asset_url": "./assets/app-initial-BTphDPeq.js?v=5d211964500013a9",
-    "served_identity_sha256": "5d211964500013a9c68eb546775cb6cb071b080591881109239fec10bebbc7e0",
+    "release": "c3e92f0f-20260729-m69-router-r19",
+    "asset_url": "./assets/app-initial-BTphDPeq.js?v=e2d356e06763a828",
+    "served_identity_sha256": "e2d356e06763a8287003e5a087acb09a09160a1d6bc8fbf9cecccdfdaf82b6b0",
     "served_preload_sha256": "65708a1c2c053568691f6691b76290a6bd07df09ea84ef1186ac77090649fc5a",
     "served_stylesheet_sha256": "3db81509f04faef314889c39d777a310297c2856330f52fd994a07c67a9c7774",
-    "served_index_sha256": "1b7845677d03bbc104e14a55483cdb3fcb94ed6d4ea83e60e1655e19d10fa9e1",
-    "served_index_gzip_sha256": "5cc228cc53565ff7c08e49ae6502a363cf658f151800ea49da763d94777cb0e6",
-    "served_index_brotli_sha256": "5aa50067197a9ceebe8cb4efcabd1f7d7baaba9bb195d6ff7b22df54b54a0cd6",
-    "served_index_gzip_bytes": 5960,
-    "served_index_brotli_bytes": 4149,
+    "served_gzip_sha256": "1c6c15a253441c4afd366e46dcadc3056a16d5be85c43ec755324c2064cc9a1c",
+    "served_brotli_sha256": "0899d532efde663c13196219d5e89b355469969397739c2db890593740bf9be1",
+    "served_index_sha256": "ccbf0a8318d6559939605f4b291f0bf50cd14539ea7fc2fe76b0923cf7152d88",
+    "served_index_gzip_sha256": "5891e0c3f225392579a81e6930acd6af6515088ad4e95b228a1958976ff976cf",
+    "served_index_brotli_sha256": "78cb8fb70825554a0e911ed69dcf3b9e0487ef66482228f7409226a907416b64",
+    "served_index_gzip_bytes": 5961,
+    "served_index_brotli_bytes": 4150,
     "startup_fastpath_sha256": "3eb857920a3be9ceb4ff9be0c0746199dab0f8c4e4a02d3762380508a429aabd",
     "startup_fastpath_inlined": true,
     "external_startup_script_count": 0,
@@ -350,7 +456,7 @@
   },
   "real_two_account_e2e": {
     "executed": false,
-    "reason": "Only one user-authorized account credential is configured on the server."
+    "reason": "The second user-authorized credential is isolated to standalone 8215 and was not authorized or enrolled as a router account."
   },
   "seamless_account_continuity_claimed": false,
   "in_flight_computation_resume_claimed": false

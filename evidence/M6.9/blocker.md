@@ -2,9 +2,11 @@
 
 ## Blocking condition
 
-The server contains one configured, enabled, usable user-authorized account
-credential. A second private Codex credential is not present, so a real
-new-request A-to-B switch cannot be executed.
+The router contains one configured, enabled, usable user-authorized account
+credential. A second user-authorized credential now exists only as the
+standalone 8215 systemd credential. The user authorized changing 8215, not
+copying or enrolling that credential into the router, so a real new-request
+A-to-B switch cannot yet be executed.
 
 ## Completed before blocking
 
@@ -23,6 +25,8 @@ new-request A-to-B switch cannot be executed.
   the r16 main URL/cache;
 - r18 adds deterministic 4,149-byte Brotli and 5,960-byte gzip representations
   for the final HTML while preserving its identity bytes and hash;
+- r19 adds a pinned, fail-closed Terser 5.49.0 second stage; its deterministic
+  3,173,689-byte Brotli main response is 120,417 bytes smaller than r18;
 - live r17 signed-in composer and two fixed non-private single-account model
   sentinels completed;
 - live r18 signed-in composer and one fixed non-private single-account model
@@ -35,18 +39,21 @@ new-request A-to-B switch cannot be executed.
   with an immutable optimized release and a stdout-discarding systemd log
   boundary; its signed-in composer and real model path completed, and the
   post-boundary journal contained zero sensitive-shape or sentinel matches;
-- r18 activation changed only 8216 and preserved repaired 8215 plus the routed
+- a later explicitly authorized 8215 account change isolated the standalone
+  credential from the router, completed a signed-in browser/model check, and
+  left both 8216 activation timestamps unchanged;
+- r19 activation changed only 8216 and preserved repaired 8215 plus the routed
   App Server activation timestamps;
-- strict release matrix: 258/258;
+- strict release matrix: 259/259;
 - focused security tests: 83/83;
 - repository secret scan: 319 files, zero findings.
 
 ## Required external input
 
-Stage a second user-authorized Codex `auth.json` as a private regular mode
-`0600` file on the server without printing or pasting its contents into chat
-or shell history. The installed `codex-router-account enroll` workflow can
-then add it atomically.
+Explicitly authorize enrolling the standalone-only credential into the
+account router. The installed `codex-router-account enroll` workflow can then
+copy it atomically from its existing private root-owned mode-`0600` path
+without printing or pasting its contents into chat or shell history.
 
 After enrollment, M6.9 still requires:
 
