@@ -212,6 +212,11 @@ test("a fresh weekly exhaustion observation remains excluded after a simulated p
       accountId === "fixture-account-a")?.last_failure_kind,
     "quota_exhausted",
   );
+  assert.equal(
+    saved.accounts.find(({ account_id: accountId }) =>
+      accountId === "fixture-account-a")?.cooldown_until,
+    "2026-07-28T00:00:00.000Z",
+  );
 
   const second = createRuntimeComposition(runtimeOptions({
     accounts,

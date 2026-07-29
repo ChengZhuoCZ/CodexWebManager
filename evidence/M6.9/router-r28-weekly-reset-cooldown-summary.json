@@ -1,0 +1,109 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_implementation",
+  "generated_at": "2026-07-30T02:50:00+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "0b93593804cd2385125ae998eac53c1556ff8151",
+  "prior_commit_audit": {
+    "commits": [
+      "3f8723f40c7c841859399077d3b010dca5d12c97",
+      "776f3525ed64395581e5e7be04bbb0bfb6b1de34",
+      "0b93593804cd2385125ae998eac53c1556ff8151"
+    ],
+    "production_scope_qualified": true,
+    "secret_boundary_qualified": true,
+    "deployment_scope_qualified": true,
+    "finding": "The three existing commit messages did not include their test commands as required by the current AGENTS.md; test evidence exists, history was not rewritten, and later commits must include test commands."
+  },
+  "change": {
+    "summary": "Derive quota_exhausted circuit cooldown from the sanitized weekly reset timestamp and persist that bounded cooldown through the existing private circuit-state store.",
+    "minimum_cooldown_seconds": 3600,
+    "maximum_cooldown_seconds": 86400,
+    "fixture_reset_delay_seconds": 57600,
+    "persisted_fixture_cooldown_until": "2026-07-28T00:00:00.000Z",
+    "non_quota_failures_accept_reset_delay": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "node --test packages/account-router/test/circuit-breaker.test.mjs packages/account-router/test/runtime-persistence.test.mjs",
+    "before_implementation": {
+      "tests": 9,
+      "passed": 7,
+      "failed": 2,
+      "observed_failures": [
+        "quota_exhausted rejected the reset-derived retryAfterMs value",
+        "the persisted cooldown ended after the fixed one-hour policy instead of the synthetic weekly reset"
+      ]
+    }
+  },
+  "verification": {
+    "weekly_runtime_focused": {
+      "tests": 17,
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0
+    },
+    "failover_and_no_replay": {
+      "tests": 42,
+      "passed": 42,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "HTTP/SSE quota, 429, auth, network, upstream 5xx and malformed SSE before semantic output",
+        "HTTP/SSE unsafe_to_replay after semantic output",
+        "WebSocket pre-semantic replay and post-semantic no-replay",
+        "weekly persistence and simulated restart"
+      ]
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 273,
+      "passed": 248,
+      "failed": 0,
+      "skipped": 25
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r28-strict-matrix-summary.json",
+      "tests": 273,
+      "passed": 273,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r28-security-summary.json",
+      "qualified": true,
+      "files_scanned": 352,
+      "findings": 0,
+      "focused_tests": 89,
+      "focused_passed": 89
+    }
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running"
+    },
+    "app_server": {
+      "pid": 508396,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "The sanitized weekly snapshot itself is not yet persisted, so the account panel reports unknown weekly quota after restart until a new observation arrives.",
+    "A reset farther than 24 hours is intentionally capped and receives a bounded half-open recheck rather than an unbounded sleep.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}

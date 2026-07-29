@@ -306,8 +306,12 @@ export function createRuntimeComposition({
       observation.weekly.remaining_ratio === 0
     ) {
       const probeToken = probeTokens.get(accountId) ?? null;
+      const resetDelayMs = observation.weekly.resets_at === null
+        ? null
+        : Math.max(0, Date.parse(observation.weekly.resets_at) - now());
       circuitBreaker.recordFailure(accountId, {
         kind: "quota_exhausted",
+        ...(resetDelayMs === null ? {} : { retryAfterMs: resetDelayMs }),
         ...(probeToken === null ? {} : { probeToken }),
       });
       probeTokens.delete(accountId);

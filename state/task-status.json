@@ -22,6 +22,7 @@
     "r24_continuation": "7300bf967398ca92d9f309b3c4ea34bb191fa1d3",
     "r25_continuation": "6471d544ba9c1933984b58bcef5f622416117b46",
     "r27_continuation": "73c342da334e3d5f37aa24f686959913d7d20c56",
+    "r28_continuation": "0b93593804cd2385125ae998eac53c1556ff8151",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
@@ -246,6 +247,26 @@
     {
       "command": "sudo -n bash evidence/M6.9/deploy-router-r27.sh",
       "result": "R27 deployment was blocked before script execution because this environment cannot transition to root GID; one bounded attempt was made, 0.2.6 and router PID 548777 remained active, all 8215/8216 PID and ActiveEnter baselines were unchanged, and no credential, model request or account switch was touched"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/circuit-breaker.test.mjs packages/account-router/test/runtime-persistence.test.mjs",
+      "result": "R28 minimal fixture-only experiment failed before implementation as expected: 9 tests, 7 passed and 2 failed because quota exhaustion rejected a reset-derived delay and persisted the fixed one-hour cooldown instead of the 16-hour fixture reset"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/failure-injection-matrix.test.mjs packages/account-router/test/failover-proxy.test.mjs packages/account-router/test/websocket-failover.test.mjs packages/account-router/test/semantic-gates.test.mjs packages/account-router/test/runtime-persistence.test.mjs packages/account-router/test/runtime-weekly-quota.test.mjs packages/account-router/test/circuit-breaker.test.mjs packages/account-router/test/runtime-composition.test.mjs",
+      "result": "R28 focused weekly/runtime plus HTTP/SSE/WebSocket failover and no-replay suite passed 42/42; all six pre-semantic failure classes, post-semantic unsafe_to_replay, restart persistence and bounded cooldown paths passed"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test",
+      "result": "R28 package-complete suite passed 248/273 with 0 failures and 25 expected pinned-public-fixture skips"
+    },
+    {
+      "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": "R28 clean strict matrix passed on its sole bounded attempt: 273/273 with no skips; unit 150, integration 76 and E2E 47"
+    },
+    {
+      "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "R28 final-tree security audit qualified; 89/89 focused security tests and retained 492/492 strict UI evidence passed; 352 repository files were scanned with zero findings"
     }
   ],
   "evidence": [
@@ -278,9 +299,44 @@
     "evidence/M6.9/router-r27-security-summary.json",
     "evidence/M6.9/router-r27-linux-verify.json",
     "evidence/M6.9/deploy-router-r27.sh",
-    "evidence/M6.9/router-r27-deployment-attempt.json"
+    "evidence/M6.9/router-r27-deployment-attempt.json",
+    "evidence/M6.9/router-r28-weekly-reset-cooldown-summary.json",
+    "evidence/M6.9/router-r28-strict-matrix-summary.json",
+    "evidence/M6.9/router-r28-security-summary.json"
   ],
   "observations": {
+    "continuation_r28_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8215-worker",
+      "commit": "0b93593804cd2385125ae998eac53c1556ff8151",
+      "dependencies": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_result": "Use fixtures only to persist a bounded weekly-reset-derived quota cooldown across router restart, while preserving 8215 PID 510876/508396 and ActiveEnter monotonic timestamps 196497166178/194490256399."
+    },
+    "continuation_r28_fixture_result": {
+      "weekly_reset_derived_cooldown_persisted": true,
+      "minimum_cooldown_seconds": 3600,
+      "maximum_cooldown_seconds": 86400,
+      "fixture_reset_delay_seconds": 57600,
+      "strict_matrix_passed": 273,
+      "security_tests_passed": 89,
+      "security_scan_files": 352,
+      "security_findings": 0,
+      "prior_commit_scope_audit_passed": true,
+      "prior_commit_message_test_command_finding": true,
+      "standalone_web_pid": 510876,
+      "standalone_web_active_enter_monotonic": 196497166178,
+      "standalone_app_pid": 508396,
+      "standalone_app_active_enter_monotonic": 194490256399,
+      "standalone_8215_changed": false,
+      "real_account_configured_for_test": false,
+      "model_request_sent": false,
+      "account_switch_tested": false,
+      "seamless_account_continuity_claimed": false
+    },
     "continuation_r27_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-8215-worker",
@@ -882,7 +938,10 @@
     "Because the content-hashed main URL and identity bytes are unchanged, a browser that already cached the earlier Brotli representation can retain it until normal cache eviction.",
     "R24 manual account selection is an in-memory preference for the next new request and is lost when the router restarts.",
     "R24 current_route is reset on router restart until the next routed request selects an account; no production model request was sent merely to repopulate it.",
+    "R28 persists a bounded reset-derived circuit cooldown, but the sanitized weekly quota snapshot itself is not yet persisted; after router restart the account remains ineligible while the panel reports unknown weekly quota until a new observation arrives.",
+    "R28 caps a weekly reset delay at the existing 24-hour circuit maximum, so a farther reset receives a bounded half-open recheck rather than sleeping until the full provider reset time.",
+    "The existing local commits 3f8723f, 776f352 and 0b93593 have test evidence but their commit messages omit the test commands required by the current AGENTS.md; history was not rewritten and later commit messages include test commands.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-07-30T02:36:30+08:00"
+  "updated_at": "2026-07-30T02:52:54+08:00"
 }

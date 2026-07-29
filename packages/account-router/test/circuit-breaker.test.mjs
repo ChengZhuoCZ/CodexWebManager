@@ -50,6 +50,11 @@ test("applies distinct bounded cooldowns for quota, auth, 429, network, and 5xx"
     retryAfterMs: 60_000,
   });
   assert.equal(Date.parse(clamped.cooldown_until) - START, 10_000);
+  const weeklyReset = breaker.recordFailure("account-weekly-reset", {
+    kind: "quota_exhausted",
+    retryAfterMs: 8_000,
+  });
+  assert.equal(Date.parse(weeklyReset.cooldown_until) - START, 8_000);
   assert.throws(
     () => breaker.recordFailure("account-network", { kind: "network_error", retryAfterMs: 1_000 }),
     /retryAfterMs/,

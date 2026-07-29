@@ -416,11 +416,13 @@ export function createCircuitBreaker({
       }
       if (retryAfterMs !== null) {
         if (
-          kind !== "rate_limited" ||
+          (kind !== "rate_limited" && kind !== "quota_exhausted") ||
           !Number.isSafeInteger(retryAfterMs) ||
           retryAfterMs < 0
         ) {
-          throw new Error("retryAfterMs is valid only for rate_limited failures");
+          throw new Error(
+            "retryAfterMs is valid only for rate_limited or quota_exhausted failures",
+          );
         }
       }
       const state = getState(accountId);

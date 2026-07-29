@@ -154,8 +154,9 @@ M2.3 exports `createCircuitBreaker()` with distinct bounded policies for quota e
 authentication, rate limits, network errors, and upstream 5xx failures. An open account rejects
 acquisition until its cooldown boundary, then enters half-open and grants at most the configured
 number of explicit probe leases. Probe success closes the circuit; probe failure reopens it and
-invalidates every outstanding lease. Retry-after input is accepted only for rate limits and is
-clamped to the configured maximum.
+invalidates every outstanding lease. Retry-after input is accepted for rate limits, while a
+sanitized weekly reset may extend quota-exhaustion cooldown; both are clamped to the configured
+maximum and other failure kinds reject the field.
 
 `createCircuitStateStore()` atomically writes versioned state through a private temporary file and
 rename. It requires an absolute service-user-owned private directory, rejects symlinked,
