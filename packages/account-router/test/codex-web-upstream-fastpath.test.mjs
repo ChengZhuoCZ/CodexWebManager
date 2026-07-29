@@ -14,6 +14,10 @@ import {
   EXPECTED_ESBUILD_VERSION,
   versionedAssetUrl,
 } from "../../../integrations/codex-web-upstream/build-minified-precompressed-asset.mjs";
+import {
+  inlineVersionedStartupFastpath,
+  inlineVersionedStartupFastpathFile,
+} from "../../../integrations/codex-web-upstream/inline-versioned-startup-fastpath.mjs";
 import { localStartupRpcResponse } from "../../../integrations/codex-web-upstream/codex-remote-fastpath.mjs";
 
 const precompressedAssetPatch = new URL(
@@ -208,6 +212,10 @@ test("builds deterministic precompressed files only after a pinned minifier prod
   const preloadFile = path.join(assets, "preload.js");
   const stylesheetFile = path.join(assets, "app-initial-Czet5G9g.css");
   const indexFile = path.join(directory, "index.html");
+  const startupFastpathFile = path.join(
+    directory,
+    "tailnet-startup-fastpath.js",
+  );
   const original = Buffer.from("const intentionallyLongFixtureName = 40 + 2;\n");
   const minified = Buffer.from("const a=42;\n");
   const originalPreload = Buffer.from(
@@ -216,10 +224,14 @@ test("builds deterministic precompressed files only after a pinned minifier prod
   const minifiedPreload = Buffer.from("const p=42;\n");
   const stylesheet = Buffer.from("body { color: rgb(1, 2, 3); }\n");
   const originalIndex = Buffer.from(indexFixture());
+  const startupFastpath = Buffer.from(
+    "(() => { globalThis.__startupFixture = true; })();\n",
+  );
   await writeFile(asset, original, { mode: 0o640 });
   await writeFile(preloadFile, originalPreload, { mode: 0o640 });
   await writeFile(stylesheetFile, stylesheet, { mode: 0o640 });
   await writeFile(indexFile, originalIndex, { mode: 0o640 });
+  await writeFile(startupFastpathFile, startupFastpath, { mode: 0o640 });
   const expectedSha256 = createHash("sha256").update(original).digest("hex");
   const expectedPreloadSha256 = createHash("sha256")
     .update(originalPreload)
@@ -229,6 +241,9 @@ test("builds deterministic precompressed files only after a pinned minifier prod
     .digest("hex");
   const expectedIndexSha256 = createHash("sha256")
     .update(originalIndex)
+    .digest("hex");
+  const expectedStartupFastpathSha256 = createHash("sha256")
+    .update(startupFastpath)
     .digest("hex");
 
   const result = await buildMinifiedPrecompressedAsset({
@@ -240,6 +255,8 @@ test("builds deterministic precompressed files only after a pinned minifier prod
     expectedStylesheetSha256,
     indexFile,
     expectedIndexSha256,
+    startupFastpathFile,
+    expectedStartupFastpathSha256,
     minify: async ({ inputFile, outputFile }) => {
       if (inputFile === asset) {
         await writeFile(outputFile, minified);
@@ -280,6 +297,11 @@ test("builds deterministic precompressed files only after a pinned minifier prod
   assert.equal(result.preload_input_bytes, originalPreload.length);
   assert.equal(result.preload_output_bytes, minifiedPreload.length);
   assert.equal(result.stylesheet_bytes, stylesheet.length);
+  assert.equal(result.startup_fastpath_bytes, startupFastpath.length);
+  assert.equal(
+    result.startup_fastpath_sha256,
+    expectedStartupFastpathSha256,
+  );
   const versionedIndex = await readFile(indexFile, "utf8");
   const outputSha256 = createHash("sha256").update(minified).digest("hex");
   const versionedUrl = versionedAssetUrl(outputSha256);
@@ -295,8 +317,21 @@ test("builds deterministic precompressed files only after a pinned minifier prod
   assert.ok(
     versionedIndex.indexOf(`href="${versionedUrl}"`) <
       versionedIndex.indexOf(
-        '<script src="./tailnet-startup-fastpath.js"></script>',
+        '<script data-codex-tailnet-startup-fastpath>',
       ),
+  );
+  assert.ok(
+    versionedIndex.indexOf(
+      '<script data-codex-tailnet-startup-fastpath>',
+    ) <
+      versionedIndex.indexOf(
+        '<script type="module" src="./assets/preload.js">',
+      ),
+  );
+  assert.match(versionedIndex, /globalThis\.__startupFixture = true/);
+  assert.doesNotMatch(
+    versionedIndex,
+    /<script src="\.\/tailnet-startup-fastpath\.js"><\/script>/,
   );
   assert.ok(
     versionedIndex.includes(
@@ -324,14 +359,20 @@ test("minified asset builder rejects unpinned input and fixes the esbuild contra
   const preloadFile = path.join(assets, "preload.js");
   const stylesheetFile = path.join(assets, "app-initial-Czet5G9g.css");
   const indexFile = path.join(directory, "index.html");
+  const startupFastpathFile = path.join(
+    directory,
+    "tailnet-startup-fastpath.js",
+  );
   const assetBytes = Buffer.from("const fixture = true;\n");
   const preloadBytes = Buffer.from("const preloadFixture = true;\n");
   const stylesheetBytes = Buffer.from("body { color: black; }\n");
   const indexBytes = Buffer.from(indexFixture());
+  const startupFastpathBytes = Buffer.from("(() => {})();\n");
   await writeFile(asset, assetBytes, { mode: 0o600 });
   await writeFile(preloadFile, preloadBytes, { mode: 0o600 });
   await writeFile(stylesheetFile, stylesheetBytes, { mode: 0o600 });
   await writeFile(indexFile, indexBytes, { mode: 0o600 });
+  await writeFile(startupFastpathFile, startupFastpathBytes, { mode: 0o600 });
   const assetSha256 = createHash("sha256").update(assetBytes).digest("hex");
   const preloadSha256 = createHash("sha256")
     .update(preloadBytes)
@@ -340,6 +381,13 @@ test("minified asset builder rejects unpinned input and fixes the esbuild contra
     .update(stylesheetBytes)
     .digest("hex");
   const indexSha256 = createHash("sha256").update(indexBytes).digest("hex");
+  const startupFastpathSha256 = createHash("sha256")
+    .update(startupFastpathBytes)
+    .digest("hex");
+  const pinnedStartupFastpath = {
+    startupFastpathFile,
+    expectedStartupFastpathSha256: startupFastpathSha256,
+  };
   let called = false;
 
   await assert.rejects(
@@ -352,6 +400,7 @@ test("minified asset builder rejects unpinned input and fixes the esbuild contra
       expectedStylesheetSha256: stylesheetSha256,
       indexFile,
       expectedIndexSha256: indexSha256,
+      ...pinnedStartupFastpath,
       minify: async () => {
         called = true;
       },
@@ -369,6 +418,7 @@ test("minified asset builder rejects unpinned input and fixes the esbuild contra
       expectedStylesheetSha256: stylesheetSha256,
       indexFile,
       expectedIndexSha256: indexSha256,
+      ...pinnedStartupFastpath,
       minify: async () => {
         called = true;
       },
@@ -386,6 +436,7 @@ test("minified asset builder rejects unpinned input and fixes the esbuild contra
       expectedStylesheetSha256: "0".repeat(64),
       indexFile,
       expectedIndexSha256: indexSha256,
+      ...pinnedStartupFastpath,
       minify: async () => {
         called = true;
       },
@@ -403,6 +454,7 @@ test("minified asset builder rejects unpinned input and fixes the esbuild contra
       expectedStylesheetSha256: stylesheetSha256,
       indexFile,
       expectedIndexSha256: "0".repeat(64),
+      ...pinnedStartupFastpath,
       minify: async () => {
         called = true;
       },
@@ -410,6 +462,52 @@ test("minified asset builder rejects unpinned input and fixes the esbuild contra
     /asset build failed/,
   );
   assert.equal(called, false);
+  await assert.rejects(
+    buildMinifiedPrecompressedAsset({
+      assetFile: asset,
+      expectedSha256: assetSha256,
+      preloadFile,
+      expectedPreloadSha256: preloadSha256,
+      stylesheetFile,
+      expectedStylesheetSha256: stylesheetSha256,
+      indexFile,
+      expectedIndexSha256: indexSha256,
+      startupFastpathFile,
+      expectedStartupFastpathSha256: "0".repeat(64),
+      minify: async () => {
+        called = true;
+      },
+    }),
+    /asset build failed/,
+  );
+  assert.equal(called, false);
+  const unsafeStartupFastpath = Buffer.from(
+    '(() => { globalThis.fixture = "</script>"; })();\n',
+  );
+  await writeFile(startupFastpathFile, unsafeStartupFastpath, {
+    mode: 0o600,
+  });
+  await assert.rejects(
+    buildMinifiedPrecompressedAsset({
+      assetFile: asset,
+      expectedSha256: assetSha256,
+      preloadFile,
+      expectedPreloadSha256: preloadSha256,
+      stylesheetFile,
+      expectedStylesheetSha256: stylesheetSha256,
+      indexFile,
+      expectedIndexSha256: indexSha256,
+      startupFastpathFile,
+      expectedStartupFastpathSha256: createHash("sha256")
+        .update(unsafeStartupFastpath)
+        .digest("hex"),
+      minify: async ({ outputFile }) => {
+        await writeFile(outputFile, "let x=1;\n");
+      },
+    }),
+    /asset build failed/,
+  );
+  await writeFile(startupFastpathFile, startupFastpathBytes, { mode: 0o600 });
   const alreadyVersionedIndex = Buffer.from(
     indexFixture().replace(
       '    <script type="module" src="./assets/preload.js"></script>',
@@ -430,6 +528,7 @@ test("minified asset builder rejects unpinned input and fixes the esbuild contra
       expectedIndexSha256: createHash("sha256")
         .update(alreadyVersionedIndex)
         .digest("hex"),
+      ...pinnedStartupFastpath,
       minify: async ({ outputFile }) => {
         await writeFile(outputFile, "let x=1;\n");
       },
@@ -453,5 +552,133 @@ test("minified asset builder rejects unpinned input and fixes the esbuild contra
   assert.equal(
     versionedAssetUrl("a".repeat(64)),
     "./assets/app-initial-BTphDPeq.js?v=aaaaaaaaaaaaaaaa",
+  );
+});
+
+test("atomically inlines a pinned startup fastpath into an already-versioned index", async (context) => {
+  const directory = await mkdtemp(
+    path.join(os.tmpdir(), "codex-versioned-startup-inline-"),
+  );
+  context.after(() => rm(directory, { recursive: true, force: true }));
+  const indexFile = path.join(directory, "index.html");
+  const startupFastpathFile = path.join(
+    directory,
+    "tailnet-startup-fastpath.js",
+  );
+  const versionedUrl =
+    "./assets/app-initial-BTphDPeq.js?v=aaaaaaaaaaaaaaaa";
+  const startupFastpath = Buffer.from(
+    "(() => { globalThis.__versionedStartupFixture = true; })();\n",
+  );
+  const versionedIndex = Buffer.from(
+    indexFixture()
+      .replace(
+        [
+          "    <link",
+          '      rel="modulepreload"',
+          "      crossorigin",
+          '      href="./assets/app-initial-BTphDPeq.js"',
+          "    />",
+          "",
+        ].join("\n"),
+        "",
+      )
+      .replace(
+        '    <script src="./tailnet-startup-fastpath.js"></script>',
+        [
+          '    <script type="importmap">',
+          `      {"imports":{"./assets/app-initial-BTphDPeq.js":"${versionedUrl}"}}`,
+          "    </script>",
+          "    <link",
+          '      rel="modulepreload"',
+          "      crossorigin",
+          `      href="${versionedUrl}"`,
+          "    />",
+          '    <script src="./tailnet-startup-fastpath.js"></script>',
+        ].join("\n"),
+      ),
+  );
+  await writeFile(indexFile, versionedIndex, { mode: 0o640 });
+  await writeFile(startupFastpathFile, startupFastpath, { mode: 0o640 });
+  const indexSha256 = createHash("sha256")
+    .update(versionedIndex)
+    .digest("hex");
+  const startupFastpathSha256 = createHash("sha256")
+    .update(startupFastpath)
+    .digest("hex");
+
+  await assert.rejects(
+    inlineVersionedStartupFastpathFile({
+      indexFile,
+      expectedIndexSha256: "0".repeat(64),
+      startupFastpathFile,
+      expectedStartupFastpathSha256: startupFastpathSha256,
+    }),
+    /versioned startup inline failed/,
+  );
+  assert.deepEqual(await readFile(indexFile), versionedIndex);
+  assert.throws(
+    () =>
+      inlineVersionedStartupFastpath(
+        Buffer.from(
+          versionedIndex
+            .toString("utf8")
+            .replace(
+              [
+                '    <script src="./tailnet-startup-fastpath.js"></script>',
+                '    <script type="module" src="./assets/preload.js"></script>',
+              ].join("\n"),
+              [
+                '    <script type="module" src="./assets/preload.js"></script>',
+                '    <script src="./tailnet-startup-fastpath.js"></script>',
+              ].join("\n"),
+            ),
+        ),
+        startupFastpath,
+      ),
+    /versioned startup order is invalid/,
+  );
+
+  const result = await inlineVersionedStartupFastpathFile({
+    indexFile,
+    expectedIndexSha256: indexSha256,
+    startupFastpathFile,
+    expectedStartupFastpathSha256: startupFastpathSha256,
+  });
+
+  const output = await readFile(indexFile, "utf8");
+  assert.equal(result.event, "versioned_startup_fastpath_inlined");
+  assert.equal(result.asset_url, versionedUrl);
+  assert.equal(result.startup_fastpath_bytes, startupFastpath.length);
+  assert.equal(
+    (output.match(/data-codex-tailnet-startup-fastpath/g) ?? []).length,
+    1,
+  );
+  assert.match(output, /globalThis\.__versionedStartupFixture = true/);
+  assert.doesNotMatch(
+    output,
+    /<script src="\.\/tailnet-startup-fastpath\.js"><\/script>/,
+  );
+  assert.ok(
+    output.indexOf(`href="${versionedUrl}"`) <
+      output.indexOf("data-codex-tailnet-startup-fastpath"),
+  );
+  assert.ok(
+    output.indexOf("data-codex-tailnet-startup-fastpath") <
+      output.indexOf('<script type="module" src="./assets/preload.js">'),
+  );
+  assert.equal((await stat(indexFile)).mode & 0o777, 0o640);
+  await assert.rejects(
+    inlineVersionedStartupFastpathFile({
+      indexFile,
+      expectedIndexSha256: result.index_output_sha256,
+      startupFastpathFile,
+      expectedStartupFastpathSha256: startupFastpathSha256,
+    }),
+    /versioned startup inline failed/,
+  );
+  assert.equal(
+    createHash("sha256").update(await readFile(indexFile)).digest("hex"),
+    result.index_output_sha256,
   );
 });

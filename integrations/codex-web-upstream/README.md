@@ -89,11 +89,13 @@ for all three startup assets, and rewrites the inactive release's index with
 an early import map plus matching `modulepreload` URL. Both point to a query
 version derived from the minified main-asset SHA-256. The builder relocates
 the unique main-module preload next to that import map and ahead of the
-synchronous Tailnet startup shim. This lets the multi-megabyte main transfer
-overlap the shim's Tailnet round trip instead of waiting behind it, while
-preserving exactly one resource hint and the original script execution order.
-Any missing, duplicate, already-versioned, or differently laid-out anchor
-fails closed:
+synchronous Tailnet startup shim. It also verifies the shim's path, size,
+syntax, and SHA-256, rejects an HTML closing-script boundary, and inlines the
+1.9 KB source at the same execution position. This lets the multi-megabyte
+main transfer start immediately and removes the shim's separate Tailnet
+request without changing its execution order. Any missing, duplicate,
+already-versioned, differently laid-out, unpinned, or unsafe anchor fails
+closed:
 
 ```sh
 node build-minified-precompressed-asset.mjs \
@@ -105,6 +107,8 @@ node build-minified-precompressed-asset.mjs \
   --expected-stylesheet-sha256 <64-hex-stylesheet-input-sha256> \
   --index /absolute/release/webview/index.html \
   --expected-index-sha256 <64-hex-index-input-sha256> \
+  --startup-fastpath /absolute/release/webview/tailnet-startup-fastpath.js \
+  --expected-startup-fastpath-sha256 <64-hex-startup-input-sha256> \
   --esbuild /absolute/pinned/esbuild
 ```
 
@@ -113,6 +117,21 @@ authenticated Statsig logging patch, minification/index versioning, then
 precompression. Minifying before the integration patches would invalidate the
 reviewed patch boundaries. Running the builder more than once against the same
 candidate fails closed; start from a fresh inactive release instead.
+
+For an already-qualified versioned release, use
+`inline-versioned-startup-fastpath.mjs` to produce an index-only successor
+without rebuilding or renaming the cached main module. The adapter requires
+the exact current index and startup-script hashes, accepts only the expected
+same-directory layout, verifies the import-map/hint/shim/preload order, and
+atomically replaces only `index.html`:
+
+```sh
+node inline-versioned-startup-fastpath.mjs \
+  --index /absolute/inactive-release/webview/index.html \
+  --expected-index-sha256 <64-hex-versioned-index-sha256> \
+  --startup-fastpath /absolute/inactive-release/webview/tailnet-startup-fastpath.js \
+  --expected-startup-fastpath-sha256 <64-hex-startup-input-sha256>
+```
 
 The adapter enables the pinned `@fastify/static` `preCompressed` option instead
 of implementing content negotiation itself. That mature plugin prefers

@@ -18,14 +18,18 @@ const ASSET_URL = `./assets/${ASSET_NAME}`;
 const PRELOAD_NAME = "preload.js";
 const STYLESHEET_NAME = "app-initial-Czet5G9g.css";
 const INDEX_NAME = "index.html";
+const STARTUP_FASTPATH_NAME = "tailnet-startup-fastpath.js";
 const MAX_ASSET_BYTES = 64 * 1024 * 1024;
 const MAX_INDEX_BYTES = 256 * 1024;
+const MAX_STARTUP_FASTPATH_BYTES = 16 * 1024;
 const SHA256_PATTERN = /^[a-f0-9]{64}$/;
 const OPERATION_TIMEOUT_MS = 120_000;
 const PRELOAD_MODULE_SCRIPT =
   '    <script type="module" src="./assets/preload.js"></script>';
 const STARTUP_FASTPATH_SCRIPT =
   '    <script src="./tailnet-startup-fastpath.js"></script>';
+const INLINE_STARTUP_FASTPATH_MARKER =
+  "    <script data-codex-tailnet-startup-fastpath>";
 
 function modulePreloadBlock(assetUrl) {
   return [
@@ -77,13 +81,29 @@ function countOccurrences(value, needle) {
   return value.split(needle).length - 1;
 }
 
-function versionIndex(indexBytes, outputSha256) {
+function inlineStartupFastpath(startupFastpathBytes) {
+  const source = startupFastpathBytes.toString("utf8");
+  if (
+    !Buffer.from(source).equals(startupFastpathBytes) ||
+    /<\/script/iu.test(source)
+  ) {
+    throw new Error("startup fastpath inline boundary is invalid");
+  }
+  return [
+    INLINE_STARTUP_FASTPATH_MARKER,
+    source.trimEnd(),
+    "    </script>",
+  ].join("\n");
+}
+
+function versionIndex(indexBytes, outputSha256, startupFastpathBytes) {
   const index = indexBytes.toString("utf8");
   if (
     !Buffer.from(index).equals(indexBytes) ||
     countOccurrences(index, PRELOAD_MODULE_SCRIPT) !== 1 ||
     countOccurrences(index, STARTUP_FASTPATH_SCRIPT) !== 1 ||
     countOccurrences(index, `${MAIN_MODULE_PRELOAD_BLOCK}\n`) !== 1 ||
+    index.includes(INLINE_STARTUP_FASTPATH_MARKER) ||
     index.includes('<script type="importmap">') ||
     index.includes(`${ASSET_URL}?v=`)
   ) {
@@ -98,7 +118,7 @@ function versionIndex(indexBytes, outputSha256) {
   const earlyMainModuleHint = [
     importMap,
     modulePreloadBlock(assetUrl),
-    STARTUP_FASTPATH_SCRIPT,
+    inlineStartupFastpath(startupFastpathBytes),
   ].join("\n");
   return Object.freeze({
     assetUrl,
@@ -211,6 +231,8 @@ export async function buildMinifiedPrecompressedAsset({
   expectedStylesheetSha256,
   indexFile,
   expectedIndexSha256,
+  startupFastpathFile,
+  expectedStartupFastpathSha256,
   minify,
 } = {}) {
   const temporaryFiles = [];
@@ -219,6 +241,10 @@ export async function buildMinifiedPrecompressedAsset({
     const preload = assertAbsolute(preloadFile, "preload file");
     const stylesheet = assertAbsolute(stylesheetFile, "stylesheet file");
     const index = assertAbsolute(indexFile, "index file");
+    const startupFastpath = assertAbsolute(
+      startupFastpathFile,
+      "startup fastpath file",
+    );
     const assetsDirectory = path.dirname(asset);
     if (
       path.basename(asset) !== ASSET_NAME ||
@@ -228,6 +254,8 @@ export async function buildMinifiedPrecompressedAsset({
       path.dirname(preload) !== assetsDirectory ||
       path.dirname(stylesheet) !== assetsDirectory ||
       path.resolve(path.dirname(index), "assets", ASSET_NAME) !== asset ||
+      path.resolve(path.dirname(index), STARTUP_FASTPATH_NAME) !==
+        startupFastpath ||
       typeof expectedSha256 !== "string" ||
       !SHA256_PATTERN.test(expectedSha256) ||
       typeof expectedPreloadSha256 !== "string" ||
@@ -236,6 +264,8 @@ export async function buildMinifiedPrecompressedAsset({
       !SHA256_PATTERN.test(expectedStylesheetSha256) ||
       typeof expectedIndexSha256 !== "string" ||
       !SHA256_PATTERN.test(expectedIndexSha256) ||
+      typeof expectedStartupFastpathSha256 !== "string" ||
+      !SHA256_PATTERN.test(expectedStartupFastpathSha256) ||
       typeof minify !== "function"
     ) {
       throw new Error("asset build input is invalid");
@@ -244,6 +274,9 @@ export async function buildMinifiedPrecompressedAsset({
     const preloadInput = await readRegularFile(preload);
     const stylesheetInput = await readRegularFile(stylesheet);
     const indexInput = await readRegularFile(index, { maximum: MAX_INDEX_BYTES });
+    const startupFastpathInput = await readRegularFile(startupFastpath, {
+      maximum: MAX_STARTUP_FASTPATH_BYTES,
+    });
     if (sha256(input.bytes) !== expectedSha256) {
       throw new Error("asset input hash changed");
     }
@@ -256,6 +289,12 @@ export async function buildMinifiedPrecompressedAsset({
     if (sha256(indexInput.bytes) !== expectedIndexSha256) {
       throw new Error("index input hash changed");
     }
+    if (
+      sha256(startupFastpathInput.bytes) !== expectedStartupFastpathSha256
+    ) {
+      throw new Error("startup fastpath input hash changed");
+    }
+    await run(process.execPath, ["--check", startupFastpath]);
 
     const nonce = randomUUID();
     // Keep the final suffix as .js so `node --check` uses the ESM syntax path.
@@ -304,7 +343,11 @@ export async function buildMinifiedPrecompressedAsset({
     await run(process.execPath, ["--check", temporaryPreload]);
 
     const outputSha256 = sha256(output.bytes);
-    const versionedIndex = versionIndex(indexInput.bytes, outputSha256);
+    const versionedIndex = versionIndex(
+      indexInput.bytes,
+      outputSha256,
+      startupFastpathInput.bytes,
+    );
     const mode = input.stat.mode & 0o777;
     const preloadMode = preloadInput.stat.mode & 0o777;
     const stylesheetMode = stylesheetInput.stat.mode & 0o777;
@@ -356,6 +399,7 @@ export async function buildMinifiedPrecompressedAsset({
       output_sha256: outputSha256,
       index_input_sha256: expectedIndexSha256,
       index_output_sha256: sha256(versionedIndex.bytes),
+      startup_fastpath_sha256: expectedStartupFastpathSha256,
       preload_input_sha256: expectedPreloadSha256,
       preload_output_sha256: sha256(preloadOutput.bytes),
       stylesheet_sha256: expectedStylesheetSha256,
@@ -363,6 +407,7 @@ export async function buildMinifiedPrecompressedAsset({
       output_bytes: output.bytes.length,
       index_input_bytes: indexInput.bytes.length,
       index_output_bytes: versionedIndex.bytes.length,
+      startup_fastpath_bytes: startupFastpathInput.bytes.length,
       gzip_bytes: compressed.gzip.length,
       brotli_bytes: compressed.brotli.length,
       preload_input_bytes: preloadInput.bytes.length,
@@ -398,6 +443,8 @@ function parseArguments(argv) {
         "--expected-stylesheet-sha256",
         "--index",
         "--expected-index-sha256",
+        "--startup-fastpath",
+        "--expected-startup-fastpath-sha256",
       ]).has(option) ||
       typeof value !== "string" ||
       values.has(option)
@@ -416,6 +463,8 @@ function parseArguments(argv) {
     "--expected-stylesheet-sha256",
     "--index",
     "--expected-index-sha256",
+    "--startup-fastpath",
+    "--expected-startup-fastpath-sha256",
   ]) {
     if (!values.has(required)) throw new Error("asset build command is incomplete");
   }
@@ -429,6 +478,10 @@ function parseArguments(argv) {
     expectedStylesheetSha256: values.get("--expected-stylesheet-sha256"),
     indexFile: values.get("--index"),
     expectedIndexSha256: values.get("--expected-index-sha256"),
+    startupFastpathFile: values.get("--startup-fastpath"),
+    expectedStartupFastpathSha256: values.get(
+      "--expected-startup-fastpath-sha256",
+    ),
   });
 }
 
@@ -443,6 +496,9 @@ async function main() {
     expectedStylesheetSha256: options.expectedStylesheetSha256,
     indexFile: options.indexFile,
     expectedIndexSha256: options.expectedIndexSha256,
+    startupFastpathFile: options.startupFastpathFile,
+    expectedStartupFastpathSha256:
+      options.expectedStartupFastpathSha256,
     minify: createPinnedEsbuildMinifier(options.esbuildFile),
   });
   process.stdout.write(`${JSON.stringify(result)}\n`);
