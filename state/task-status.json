@@ -213,6 +213,10 @@
     {
       "command": "standalone 8215 R6 temporary nftables bypass, two-sided Tailscale probes, UPnP inventory, codex-UID country check and Mac peer-relay preparation",
       "result": "temporary root UDP/41641 bypass matched 90 packets but did not leave DERP and was fully rolled back; persistent nftables SHA-256 and all five production PID/start baselines were preserved; UPnP mapping creation failed closed because 16 unrelated mappings filled the inner router table, so none were deleted; codex UID egress returned JP; Mac relay candidate enabled on UDP 40000 with no exit node, pending a narrow interactive Tailnet grant; no model request or account switch"
+    },
+    {
+      "command": "standalone 8215 R7 narrow Tailnet Peer Relay grant, two-sided capability/handshake probes, bounded UPnP diagnostics, static transfer/browser timing and service invariants",
+      "result": "exact server-to-Mac relay grant saved and propagated; server listed the Mac as its sole relay candidate, but UDP 40000 remained unreachable through the Mac-side double NAT and the relay session stayed at zero packets with no open endpoint; the diagnostic mapping was removed; three cache-busting 3294106-byte Brotli transfers completed in 3.257/3.577/2.573 seconds and one browser observation reached the signed-in composer in 6.282 seconds; all five PID/start baselines and JP Codex egress were preserved; no model request or account switch"
     }
   ],
   "evidence": [
@@ -239,7 +243,8 @@
     "evidence/M6.9/router-r24-runtime-switch-summary.json",
     "evidence/M6.9/standalone-8215-startup-r4-review.md",
     "evidence/M6.9/standalone-8215-startup-r5-network-diagnosis.md",
-    "evidence/M6.9/standalone-8215-startup-r6-safe-network-repair.md"
+    "evidence/M6.9/standalone-8215-startup-r6-safe-network-repair.md",
+    "evidence/M6.9/standalone-8215-startup-r7-peer-relay-grant.md"
   ],
   "observations": {
     "continuation_r24_start": {
@@ -747,10 +752,35 @@
       "routed_8216_signed_in_composer_verified": true,
       "model_request_sent": false,
       "account_switch_tested": false
+    },
+    "standalone_8215_startup_r7": {
+      "input_revision": "f4a0ae1c093ae93c0fe77835efcb44eec8b7493c",
+      "tailnet_relay_grant_saved": true,
+      "relay_source": "100.95.50.98",
+      "relay_destination": "100.94.10.13",
+      "relay_server_port": 40000,
+      "exit_node_selected": false,
+      "server_recognized_relay_candidate": true,
+      "relay_handshake_completed": false,
+      "relay_open_endpoints": 0,
+      "data_path": "DERP",
+      "main_brotli_bytes": 3294106,
+      "main_transfer_seconds": [
+        3.257,
+        3.577,
+        2.573
+      ],
+      "browser_signed_in_composer_seconds": 6.282,
+      "codex_egress_country": "JP",
+      "all_five_service_pid_start_invariants_passed": true,
+      "model_request_sent": false,
+      "account_switch_tested": false,
+      "stable_startup_speed_claimed": false
     }
   },
   "blockers": [
-    "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, two-binding restart verification and provider-level failover proof can run."
+    "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, two-binding restart verification and provider-level failover proof can run.",
+    "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
   "residual_risks": [
     "Cross-account continuity remains unverified and is not claimed.",
@@ -768,7 +798,8 @@
     "R23 deterministically removes 56354 Brotli bytes and adds two pinned modulepreload hints, but the Tailnet path remains on DERP(tok) and single-run browser timing remains variable; no stable end-to-end speedup is claimed.",
     "Because the content-hashed main URL and identity bytes are unchanged, a browser that already cached the earlier Brotli representation can retain it until normal cache eviction.",
     "R24 manual account selection is an in-memory preference for the next new request and is lost when the router restarts.",
-    "R24 current_route is reset on router restart until the next routed request selects an account; no production model request was sent merely to repopulate it."
+    "R24 current_route is reset on router restart until the next routed request selects an account; no production model request was sent merely to repopulate it.",
+    "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-07-29T23:34:00+08:00"
+  "updated_at": "2026-07-30T01:58:18+08:00"
 }
