@@ -205,6 +205,10 @@
     {
       "command": "subagent 8215 startup-page R4 read-only review plus fresh in-app browser page",
       "result": "HTML and all eight startup resources, Tailnet TCP/WebSocket, 4 ms benign IPC, connected Unix socket, approximately 45 ms initialize and approximately 47 ms account/seven-model reads passed; fresh R4 URL reached the signed-in composer in one 14.65-second observation; no service/file mutation, model request or account switch; 8216 Web/App Server invariants remained unchanged"
+    },
+    {
+      "command": "standalone 8215 R5 HTTP compression, Tailnet path, two-sided NAT, firewall, fixed-port and browser startup probes",
+      "result": "8215 root HTTP 200 in 0.56 seconds; immutable main 14,138,835 identity / 4,345,031 gzip / 3,294,106 Brotli bytes; Brotli transfer varied from about 23 to 64 seconds; both directions remained on DERP with no direct connection; host UDP 41641 was already allowed; the first router reported a private 192.168.33.0/24 WAN address, proving upstream double NAT; no service, release, unit, credential, model request or account switch changed"
     }
   ],
   "evidence": [
@@ -229,7 +233,8 @@
     "evidence/M6.9/router-r24-security-summary.json",
     "evidence/M6.9/router-r24-linux-verify.json",
     "evidence/M6.9/router-r24-runtime-switch-summary.json",
-    "evidence/M6.9/standalone-8215-startup-r4-review.md"
+    "evidence/M6.9/standalone-8215-startup-r4-review.md",
+    "evidence/M6.9/standalone-8215-startup-r5-network-diagnosis.md"
   ],
   "observations": {
     "continuation_r24_start": {
@@ -269,6 +274,18 @@
         "G-SECRETS"
       ],
       "expected_result": "Measure the deployed 8216 static and router hot paths, then qualify one bounded clean-room optimization that reduces avoidable startup or first-response delay without restarting, reconfiguring, or mutating standalone 8215 and without sending a production model request or testing account switching."
+    },
+    "continuation_r25_8215_priority_override": {
+      "authorized_by_user": true,
+      "input_revision": "b322095fa069799428300da6696ba4a3dd53635d",
+      "expected_result": "Resolve standalone 8215 startup latency first while preserving routed 8216 and the account router, sending no model request, and keeping the canonical http://100.95.50.98:8215/ address.",
+      "root_cause": "Mac-to-server Tailscale traffic remains DERP-relayed because the server is behind upstream double NAT; the immutable Brotli main module takes about 23 to 64 seconds to transfer while server and App Server initialization remain below 50 ms.",
+      "repository_mutated": false,
+      "remote_services_restarted": false,
+      "model_request_sent": false,
+      "account_switch_tested": false,
+      "preferred_repair": "configure the existing directly reachable VPS as a narrowly authorized Tailscale peer relay",
+      "repair_blocker": "the separate VPS has no explicitly authorized SSH login identity in this thread"
     },
     "continuation_r23_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
