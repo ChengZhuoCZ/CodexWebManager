@@ -27,7 +27,7 @@
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "f7628456553bddafb23c88eb94f789fef2193eca",
+  "output_revision": "776f3525ed64395581e5e7be04bbb0bfb6b1de34",
   "workspace_branch": "codex/m6-9-8215-worker",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -242,6 +242,10 @@
     {
       "command": "two deterministic 0.2.7 Linux x64 builds plus target-host no-credential release verification",
       "result": "byte-identical artifacts at SHA-256 eeb4ff06; 48-file payload, checksum, installation, loopback-only listeners, health, no-account fail-closed readiness and clean SIGTERM passed without reading or configuring any real account"
+    },
+    {
+      "command": "sudo -n bash evidence/M6.9/deploy-router-r27.sh",
+      "result": "R27 deployment was blocked before script execution because this environment cannot transition to root GID; one bounded attempt was made, 0.2.6 and router PID 548777 remained active, all 8215/8216 PID and ActiveEnter baselines were unchanged, and no credential, model request or account switch was touched"
     }
   ],
   "evidence": [
@@ -273,7 +277,8 @@
     "evidence/M6.9/router-r27-weekly-quota-persistence-summary.json",
     "evidence/M6.9/router-r27-security-summary.json",
     "evidence/M6.9/router-r27-linux-verify.json",
-    "evidence/M6.9/deploy-router-r27.sh"
+    "evidence/M6.9/deploy-router-r27.sh",
+    "evidence/M6.9/router-r27-deployment-attempt.json"
   ],
   "observations": {
     "continuation_r27_start": {
@@ -318,7 +323,11 @@
       "linux_verification_passed": true,
       "credentials_present_in_verification": false,
       "account_switch_tested": false,
-      "deployment_status": "pending"
+      "deployment_status": "blocked_before_script_execution",
+      "deployment_attempts": 1,
+      "active_router_release_after_attempt": "codex-account-router-0.2.6-linux-x64",
+      "active_router_pid_after_attempt": 548777,
+      "production_state_changed": false
     },
     "continuation_r24_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
@@ -852,6 +861,7 @@
     }
   },
   "blockers": [
+    "The verified 0.2.7 router release cannot be activated from this execution environment because sudo cannot transition to root GID and /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r27.sh is required.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, two-binding restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -874,5 +884,5 @@
     "R24 current_route is reset on router restart until the next routed request selects an account; no production model request was sent merely to repopulate it.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-07-30T02:41:00+08:00"
+  "updated_at": "2026-07-30T02:36:30+08:00"
 }

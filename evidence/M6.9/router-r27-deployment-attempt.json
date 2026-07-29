@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "generated_at": "2026-07-30T02:36:30+08:00",
+  "release_candidate": {
+    "name": "codex-account-router-0.2.7-linux-x64",
+    "artifact_path": "/tmp/codex-account-router-0.2.7-linux-x64.tar.gz",
+    "sha256": "eeb4ff069d083bb0259ec82a4d1ab4ab16edb5747bdc523f7a941883529ea8a4",
+    "rollback_script": "evidence/M6.9/deploy-router-r27.sh"
+  },
+  "attempt": {
+    "command": "sudo -n bash evidence/M6.9/deploy-router-r27.sh",
+    "status": "blocked_before_script_execution",
+    "reason": "the execution environment denied sudo root-GID transition before the rollback script could start",
+    "script_body_started": false,
+    "retry_limit": 1,
+    "attempts_used": 1
+  },
+  "post_attempt_invariants": {
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "router_pid": 548777,
+    "router_active_enter_monotonic": 209169242318,
+    "routed_web_pid": 538278,
+    "routed_web_active_enter_monotonic": 205386075436,
+    "routed_app_server_pid": 495033,
+    "routed_app_server_active_enter_monotonic": 188703455626,
+    "standalone_web_pid": 510876,
+    "standalone_web_active_enter_monotonic": 196497166178,
+    "standalone_app_server_pid": 508396,
+    "standalone_app_server_active_enter_monotonic": 194490256399,
+    "service_modified": false,
+    "service_restarted": false,
+    "release_symlink_modified": false,
+    "credential_read": false,
+    "credential_modified": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "required_external_action": "Run the hash-pinned rollback script from a host execution context that can write /opt/codex-account-router and restart codex-account-router.service."
+}
