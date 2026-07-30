@@ -1,0 +1,157 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_next_request_route_persistence_and_release_candidate",
+  "generated_at": "2026-07-30T12:16:12+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "35b857ccd49f85f9896f827ed8eba637f96b9823",
+  "output_revision": "f962bd56f8e3129ade7b53a45b6697af914ab485",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Persist an accepted eligible manual route preference across a normal router restart so it still applies at the next new request boundary.",
+    "state_file": "routing-state.json",
+    "state_file_private_and_atomic": true,
+    "circuit_state_schema_changed": false,
+    "circuit_state_contains_routing": false,
+    "older_release_can_ignore_separate_file": true,
+    "persisted_fields": [
+      "current_account_id",
+      "preferred_account_id"
+    ],
+    "aliases_persisted": false,
+    "credential_bindings_persisted": false,
+    "upstream_account_identifiers_persisted": false,
+    "unknown_or_disabled_restored_route_activated": false,
+    "admin_projection_contains_only_sanitized_alias": true,
+    "admin_projection_continuity": "new_backend_session",
+    "active_semantic_stream_switch_policy_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "timeout 30s node --test --test-name-pattern='accepted manual next-request preference' packages/account-router/test/runtime-persistence.test.mjs",
+    "before_implementation": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "observed_failure": "After an accepted fixture selection and normal stop, the private state had no routing field, so the next process could not restore the preference.",
+      "bounded_cleanup": "All listeners used test cleanup hooks and the command exited normally in 114 milliseconds."
+    }
+  },
+  "verification": {
+    "focused_persistence_and_runtime": {
+      "tests": 27,
+      "passed": 27,
+      "failed": 0,
+      "skipped": 0
+    },
+    "critical_failover_and_restart": {
+      "tests": 77,
+      "passed": 77,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "HTTP/SSE bounded pre-semantic failover and post-semantic no-replay",
+        "WebSocket bounded pre-semantic failover and post-semantic no-replay",
+        "weekly/circuit persistence and restart behavior",
+        "manual next-request route persistence and sanitized restore",
+        "private atomic state files and rollback-compatible primary state",
+        "active semantic-stream manual-switch rejection"
+      ]
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 281,
+      "passed": 256,
+      "failed": 0,
+      "skipped": 25
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r32-strict-matrix-summary.json",
+      "tests": 281,
+      "passed": 281,
+      "failed": 0,
+      "skipped": 0,
+      "final_tree_attempt_limit": 1,
+      "final_tree_attempts_used": 1,
+      "pre_rollback_hardening_pass_also_completed": true
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r32-security-summary.json",
+      "qualified": true,
+      "files_scanned": 373,
+      "findings": 0,
+      "focused_tests": 90,
+      "focused_passed": 90,
+      "retained_strict_ui_passed": 492
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r32-linux-release-verify.json",
+      "release": "codex-account-router-0.2.11-linux-x64",
+      "sha256": "722723f04c169ba1f73e2ba10aea6f69887dd173a76a1209552780f9b6e99da0",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    },
+    "tooling_correction": {
+      "unaccepted_invocation": "npm run check",
+      "reason": "npm was absent from the non-login shell before test execution.",
+      "accepted_replacement": "Bundled Node syntax checks plus focused, complete and strict test suites.",
+      "code_failure_observed": false
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r32.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure and non-writable /opt/codex-account-router boundary are unchanged.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.11-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200
+    },
+    "app_server": {
+      "pid": 508396,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "app_server_pid": 495033,
+    "http_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.11 is verified but is not active until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "A normal service stop flushes the route file and the next model selection waits for any queued route write; an abrupt process loss between the accepted admin response and the asynchronous write is not claimed crash-proof.",
+    "The restored preference is applied only to a new request; no active semantic stream is moved, replayed or recovered.",
+    "The test uses synthetic accounts only and does not qualify a real A-to-B switch.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
