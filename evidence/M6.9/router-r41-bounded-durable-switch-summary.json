@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_bounded_durable_manual_switch_and_release_candidate",
+  "generated_at": "2026-07-30T14:16:06+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "1d1187cd35ef77dedae34759eee7d7c1bafe0974",
+  "output_revision": "660615fd2014be7ac348571a9584309acb39933c",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Bound an effective manual next-request switch across serialized route selection and private candidate persistence, and make the production private state store cancellation-aware before its atomic commit.",
+    "default_manual_switch_deadline_ms": 5000,
+    "maximum_manual_switch_deadline_ms": 60000,
+    "deadline_includes_routing_queue": true,
+    "deadline_includes_candidate_persistence": true,
+    "production_state_store_observes_abort_signal": true,
+    "abort_checked_immediately_before_commit": true,
+    "final_commit_section": "synchronous rename plus directory fsync",
+    "timed_out_candidate_accepted": false,
+    "timed_out_candidate_replaces_durable_intent": false,
+    "clean_cancellation_preserves_prior_route": true,
+    "clean_cancellation_keeps_readiness": true,
+    "distinct_late_storage_error_fails_closed": true,
+    "effective_switch_still_waits_for_prior_writes": true,
+    "active_semantic_stream_rejection_changed": false,
+    "automatic_route_policy_changed": false,
+    "retry_policy_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "stalled_effective_switch": {
+      "command": "umask 0022; timeout --signal=TERM --kill-after=5s 30s node --test --test-name-pattern='bounds an effective switch' packages/account-router/test/runtime-persistence.test.mjs",
+      "before_implementation": {
+        "tests": 1,
+        "passed": 0,
+        "failed": 1,
+        "observed_failure": "The effective fixture switch remained pending behind its stalled candidate route save and did not settle within the 250 millisecond assertion bound.",
+        "external_elapsed_seconds": 3.37,
+        "node_command_duration_ms": 3350.177662,
+        "test_duration_ms": 3287.567516,
+        "bounded_cleanup": "The synthetic candidate-save gate was released during fixture cleanup and the externally bounded command exited normally."
+      },
+      "after_implementation": {
+        "tests": 1,
+        "passed": 1,
+        "failed": 0,
+        "external_elapsed_seconds": 0.36,
+        "node_command_duration_ms": 341.897091,
+        "test_duration_ms": 135.428336,
+        "http_status": 503,
+        "sanitized_error": "switch_request_failed",
+        "prior_route_remained_usable": true
+      }
+    },
+    "pre_cancelled_state_save": {
+      "command": "umask 0022; timeout --signal=TERM --kill-after=5s 30s node --test --test-name-pattern='pre-cancelled route save' packages/account-router/test/state-store.test.mjs",
+      "before_implementation": {
+        "tests": 1,
+        "passed": 0,
+        "failed": 1,
+        "observed_failure": "The state store did not reject a pre-cancelled save and replaced the prior fixture route.",
+        "external_elapsed_seconds": 0.09,
+        "node_command_duration_ms": 72.639239,
+        "test_duration_ms": 31.407775
+      },
+      "after_implementation": {
+        "tests": 1,
+        "passed": 1,
+        "failed": 0,
+        "external_elapsed_seconds": 0.08,
+        "node_command_duration_ms": 58.576995,
+        "test_duration_ms": 18.142787,
+        "prior_durable_route_preserved": true
+      }
+    }
+  },
+  "verification": {
+    "late_storage_fixture_assertion_correction": {
+      "attempt_limit": 2,
+      "attempts_used": 2,
+      "first_attempt_product_failure": false,
+      "first_attempt_issue": "The fixture incorrectly expected the established model-proxy fail-closed mapping to be HTTP 503; actual safe behavior was readiness 503 and sanitized model-proxy HTTP 502 selector_failed with no additional upstream contact.",
+      "corrected_attempt_passed": true,
+      "production_state_changed": false
+    },
+    "late_storage_failure_fixture": {
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "readiness_status": 503,
+      "model_proxy_status": 502,
+      "model_proxy_reason": "selector_failed",
+      "additional_upstream_contacts": 0,
+      "storage_error_exposed": false
+    },
+    "focused_persistence_runtime_and_state_machine": {
+      "tests": 54,
+      "passed": 54,
+      "failed": 0,
+      "skipped": 0
+    },
+    "critical_failover_and_restart": {
+      "tests": 103,
+      "passed": 103,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "HTTP/SSE bounded pre-semantic failover and post-semantic no-replay",
+        "WebSocket bounded pre-semantic failover and post-semantic no-replay",
+        "weekly/circuit/route persistence and restart behavior",
+        "durable effective manual switching with a bounded total deadline",
+        "clean cancellation and distinct late storage failure behavior",
+        "active semantic-stream manual-switch rejection",
+        "bounded retry and total-deadline policies"
+      ]
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 295,
+      "passed": 270,
+      "failed": 0,
+      "skipped": 25
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r41-strict-matrix-summary.json",
+      "tests": 295,
+      "passed": 295,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r41-security-summary.json",
+      "qualified": true,
+      "files_scanned": 418,
+      "findings": 0,
+      "focused_tests": 90,
+      "focused_passed": 90,
+      "retained_strict_ui_passed": 492
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r41-linux-release-verify.json",
+      "release": "codex-account-router-0.2.20-linux-x64",
+      "sha256": "aed23645b26adde51a1240d0350f33dbd4e41a548c77599d5b9fcaa1e088cebc",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r41.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure and non-writable /opt/codex-account-router boundary are unchanged.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.20-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200
+    },
+    "app_server": {
+      "pid": 508396,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "app_server_pid": 495033,
+    "http_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.20 is verified but is not active until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "The synchronous final rename and directory-fsync section prevents timer interleaving but depends on the local filesystem returning those kernel calls; no hard real-time latency guarantee is claimed.",
+    "A timed-out or rejected switch does not migrate a backend session, resume an old request or recover in-flight computation.",
+    "The tests use synthetic accounts only and do not qualify a real A-to-B switch.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
