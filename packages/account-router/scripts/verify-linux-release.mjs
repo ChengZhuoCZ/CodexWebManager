@@ -162,6 +162,7 @@ function scrubbedRuntimeEnvironment(homeDirectory) {
   for (const [name, value] of Object.entries(process.env)) {
     if (
       !name.startsWith("CODEX_ROUTER_") &&
+      name !== "CREDENTIALS_DIRECTORY" &&
       !["DISPLAY", "WAYLAND_DISPLAY", "XAUTHORITY"].includes(name)
     ) {
       environment[name] = value;
@@ -234,7 +235,68 @@ async function waitForExit(child, timeoutMs = 10_000) {
   const timeout = new Promise((_, reject) => {
     timer = setTimeout(() => reject(new Error("installed router stop timed out")), timeoutMs);
   });
-  return Promise.race([once(child, "exit"), timeout]).finally(() => clearTimeout(timer));
+  return Promise.race([once(child, "close"), timeout]).finally(() => clearTimeout(timer));
+}
+
+async function waitForStalledStartup(child, timeoutMs = 5_000) {
+  let pending = "";
+  let stdout = "";
+  let stderr = "";
+  let settled = false;
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+  child.stderr.on("data", (chunk) => {
+    stderr += chunk;
+  });
+
+  const stalled = new Promise((resolve, reject) => {
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("installed router stalled-start fixture timed out"));
+    }, timeoutMs);
+    const onExit = (code, signal) => {
+      cleanup();
+      reject(
+        new Error(
+          `installed router exited before the stalled-start fixture (code=${code}, signal=${signal})`,
+        ),
+      );
+    };
+    const onData = (chunk) => {
+      stdout += chunk;
+      if (settled) return;
+      pending += chunk;
+      const lines = pending.split("\n");
+      pending = lines.pop() ?? "";
+      for (const line of lines) {
+        if (line === "") continue;
+        let record;
+        try {
+          record = JSON.parse(line);
+        } catch {
+          continue;
+        }
+        if (record.event === "fixture_runtime_load_stalled") {
+          settled = true;
+          cleanup();
+          resolve();
+          return;
+        }
+      }
+    };
+    function cleanup() {
+      clearTimeout(timer);
+      child.off("exit", onExit);
+    }
+    child.once("exit", onExit);
+    child.stdout.on("data", onData);
+  });
+
+  await stalled;
+  return {
+    getStdout: () => stdout,
+    getStderr: () => stderr,
+  };
 }
 
 async function collectNames(directory, prefix = "") {
@@ -324,6 +386,53 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
     assert(exitCode === 0 && signal === null, "installed router did not exit cleanly on SIGTERM");
     assert(started.getStderr() === "", "installed router wrote an error log");
 
+    const stalledAccountsPath = path.join(temporaryRoot, "synthetic-stalled-accounts.json");
+    child = spawn(
+      process.execPath,
+      [
+        "--import",
+        pathToFileURL(
+          path.join(PACKAGE_ROOT, "fixtures/startup/stall-runtime-load.mjs"),
+        ).href,
+        path.join(installedRoot, "lib/account-router/src/main.mjs"),
+      ],
+      {
+        cwd: current,
+        env: {
+          ...scrubbedRuntimeEnvironment(homeDirectory),
+          CODEX_ROUTER_ACCOUNTS_FILE: stalledAccountsPath,
+          CODEX_ROUTER_CREDENTIAL_ROOT: path.join(temporaryRoot, "synthetic-credentials"),
+          CODEX_ROUTER_TEST_STALLED_ACCOUNTS_FILE: stalledAccountsPath,
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    const stalled = await waitForStalledStartup(child);
+    child.kill("SIGTERM");
+    const [startupExitCode, startupExitSignal] = await waitForExit(child);
+    child = undefined;
+    const stalledStdout = stalled.getStdout();
+    const stalledStderr = stalled.getStderr();
+    const startupInterruption = {
+      signal: "SIGTERM",
+      stalled_before_runtime_creation: true,
+      exit_code: startupExitCode,
+      exit_signal: startupExitSignal,
+      router_stopping_emitted: stalledStdout.includes('"event":"router_stopping"'),
+      router_started_emitted: stalledStdout.includes('"event":"router_started"'),
+      router_start_failed_emitted: stalledStderr.includes('"event":"router_start_failed"'),
+      stderr_bytes: Buffer.byteLength(stalledStderr),
+    };
+    assert(
+      startupInterruption.exit_code === 0 &&
+        startupInterruption.exit_signal === null &&
+        startupInterruption.router_stopping_emitted === true &&
+        startupInterruption.router_started_emitted === false &&
+        startupInterruption.router_start_failed_emitted === false &&
+        startupInterruption.stderr_bytes === 0,
+      "installed router did not stop cleanly during stalled startup",
+    );
+
     return {
       health_status: healthResponse.status,
       readiness_status: readinessResponse.status,
@@ -335,6 +444,7 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       account_configuration_present: false,
       account_switch_tested: false,
       architecture,
+      startup_interruption: startupInterruption,
     };
   } finally {
     if (child && child.exitCode === null && child.signalCode === null) {

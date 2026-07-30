@@ -1,13 +1,17 @@
 import assert from "node:assert/strict";
+import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 import {
   buildLinuxRelease,
   readLinuxReleaseArchive,
 } from "../scripts/build-linux-release.mjs";
+
+const packageDirectory = path.dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
 
 async function temporaryDirectory(context) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "router-linux-release-test-"));
@@ -111,4 +115,51 @@ test("rejects unsupported Linux architectures before writing an artifact", async
     /architecture must be x64 or arm64/i,
   );
   assert.deepEqual(await fs.readdir(outputDirectory), []);
+});
+
+test("installed release verifies stalled startup SIGTERM", async (context) => {
+  const temporaryRoot = await temporaryDirectory(context);
+  const release = await buildLinuxRelease({
+    architecture: "x64",
+    outputDirectory: path.join(temporaryRoot, "release"),
+    sourceDateEpoch: 0,
+  });
+  const summaryPath = path.join(temporaryRoot, "verify-summary.json");
+  const environment = { ...process.env };
+  for (const name of Object.keys(environment)) {
+    if (name.startsWith("CODEX_ROUTER_")) delete environment[name];
+  }
+  delete environment.CREDENTIALS_DIRECTORY;
+  const result = spawnSync(
+    process.execPath,
+    [
+      "scripts/verify-linux-release.mjs",
+      "--arch",
+      "x64",
+      "--artifact",
+      release.artifactPath,
+      "--summary",
+      summaryPath,
+    ],
+    {
+      cwd: packageDirectory,
+      env: environment,
+      encoding: "utf8",
+      timeout: 15_000,
+    },
+  );
+
+  assert.equal(result.signal, null);
+  assert.equal(result.status, 0, result.stderr);
+  const summary = JSON.parse(await fs.readFile(summaryPath, "utf8"));
+  assert.deepEqual(summary.runtime.startup_interruption, {
+    signal: "SIGTERM",
+    stalled_before_runtime_creation: true,
+    exit_code: 0,
+    exit_signal: null,
+    router_stopping_emitted: true,
+    router_started_emitted: false,
+    router_start_failed_emitted: false,
+    stderr_bytes: 0,
+  });
 });
