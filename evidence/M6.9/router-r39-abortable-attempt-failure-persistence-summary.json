@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_abortable_attempt_failure_persistence_and_release_candidate",
+  "generated_at": "2026-07-30T13:42:24+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "1a3a18e13a34a4f54f4e5b26d0cad28f8221937b",
+  "output_revision": "2f6771eb4b83609dab3cfeea61b95dd27b9de3dd",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Propagate the existing bounded failure-callback signal into retryable upstream-failure circuit and route persistence so an abandoned private checkpoint cannot retain the serialized selector after the total deadline.",
+    "selection_deadline_applies_to_attempt_failure_callback": true,
+    "client_cancellation_applies_to_attempt_failure_callback": true,
+    "pending_runtime_state_wait_observes_signal": true,
+    "pending_routing_state_wait_observes_signal": true,
+    "attempt_failure_circuit_checkpoint_observes_signal": true,
+    "attempt_failure_route_checkpoint_observes_signal": true,
+    "deadline_http_status": 503,
+    "deadline_error_type": "all_accounts_unavailable",
+    "deadline_reason": "total_deadline_exceeded",
+    "deadline_attempts": 1,
+    "deadline_semantic_output": false,
+    "deadline_upstream_contacts": 1,
+    "routing_lock_released": true,
+    "manual_next_request_route_accepted_while_old_save_pending": true,
+    "manual_switch_marks_new_backend_session": true,
+    "different_eligible_account_serves_only_later_new_request": true,
+    "timed_out_request_replayed_or_resumed": false,
+    "retry_policy_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "timeout --signal=TERM --kill-after=5s 30s node --test --test-name-pattern='attempt-failure persistence outlives' packages/account-router/test/runtime-persistence.test.mjs",
+    "before_implementation": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "observed_failure": "The first request received its bounded total-deadline response after one pre-semantic fixture 5xx, but the stalled attempt-failure checkpoint retained the routing lock so the manual next-request route did not settle within 100 milliseconds.",
+      "external_elapsed_seconds": 3.46,
+      "node_command_duration_ms": 3441.490097,
+      "test_duration_ms": 3377.600229,
+      "bounded_cleanup": "The synthetic state-store gate was settled during fixture cleanup and the command exited normally."
+    },
+    "after_implementation": {
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "external_elapsed_seconds": 0.45,
+      "node_command_duration_ms": 433.367554,
+      "test_duration_ms": 284.270829
+    }
+  },
+  "verification": {
+    "direct_persistence_and_state_machine": {
+      "tests": 29,
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0
+    },
+    "focused_persistence_runtime_and_state_machine": {
+      "tests": 50,
+      "passed": 50,
+      "failed": 0,
+      "skipped": 0,
+      "failure_injections": [
+        "fixture account A returns a classified upstream 5xx before semantic output",
+        "the first attempt-failure circuit checkpoint remains pending beyond the 250 millisecond total deadline",
+        "the old callback releases the serialized routing lock after deadline abandonment",
+        "a fixture manual next-request route to B is accepted while the old save remains pending",
+        "a later separate new request uses B and succeeds with new_backend_session status"
+      ]
+    },
+    "critical_failover_and_restart": {
+      "tests": 99,
+      "passed": 99,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "HTTP/SSE bounded pre-semantic failover and post-semantic no-replay",
+        "WebSocket bounded pre-semantic failover and post-semantic no-replay",
+        "weekly/circuit/route persistence and restart behavior",
+        "durable and abortable automatic routing plus durable manual routing",
+        "abortable credential, auth-failure, half-open and attempt-failure checkpoints",
+        "active semantic-stream manual-switch rejection",
+        "bounded retry and total-deadline policies"
+      ]
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 291,
+      "passed": 266,
+      "failed": 0,
+      "skipped": 25
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r39-strict-matrix-summary.json",
+      "tests": 291,
+      "passed": 291,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 2,
+      "attempts_used": 2,
+      "first_attempt_qualified": false,
+      "first_attempt_reason": "The invocation omitted the required umask 0022; four temporary-file permission fixtures failed without a product assertion or production-state change.",
+      "final_attempt_qualified": true
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r39-security-summary.json",
+      "qualified": true,
+      "files_scanned": 408,
+      "findings": 0,
+      "focused_tests": 90,
+      "focused_passed": 90,
+      "retained_strict_ui_passed": 492
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r39-linux-release-verify.json",
+      "release": "codex-account-router-0.2.18-linux-x64",
+      "sha256": "32cfe6dd8e8e23437e77ce7cb4506639c148050a850951d76db71f657bc6a3fd",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    }
+  },
+  "qualification_invocation_notes": [
+    "The first strict-matrix invocation omitted the required umask 0022 and produced four temporary-file permission-fixture failures; the only permitted retry used the correct umask and passed 291/291."
+  ],
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r39.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure and non-writable /opt/codex-account-router boundary are unchanged.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.18-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200
+    },
+    "app_server": {
+      "pid": 508396,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "app_server_pid": 495033,
+    "http_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.18 is verified but is not active until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "AbortSignal abandonment does not cancel an already-issued atomic state save. Later operations are separate new requests, not continuation of the timed-out request.",
+    "A manual next-request route acceptance does not migrate an existing backend session or recover in-flight work.",
+    "The timed-out request is not replayed or resumed. Only a later new request can use another eligible account.",
+    "The tests use synthetic accounts only and do not qualify a real A-to-B switch.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
