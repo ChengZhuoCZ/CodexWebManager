@@ -1,0 +1,150 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_durable_automatic_route_before_upstream_and_release_candidate",
+  "generated_at": "2026-07-30T12:38:23+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "2d5a672bf7f11d6f8c0e05241a2e8087a4b8cb3f",
+  "output_revision": "4f0986a24d170f1124864f415412203f9df04ab1",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Persist a changed automatic route through the private atomic routing-state boundary before updating the in-memory route or opening the selected upstream attempt.",
+    "automatic_route_waits_for_private_state_write": true,
+    "persistence_failure_http_status": 502,
+    "persistence_failure_error_type": "protocol_error",
+    "persistence_failure_reason": "selector_failed",
+    "persistence_failure_attempts": 0,
+    "persistence_failure_semantic_output": false,
+    "persistence_failure_upstream_contacts": 0,
+    "in_memory_route_changes_after_persistence": true,
+    "sanitized_switch_event_changes_after_persistence": true,
+    "selected_secret_lease_disposed_on_persistence_failure": true,
+    "retry_policy_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "timeout 30s node --test --test-name-pattern='does not contact an automatic route' packages/account-router/test/runtime-persistence.test.mjs",
+    "before_implementation": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "observed_failure": "The fixture route store rejected its save, but the response was HTTP 200 from the fixture upstream instead of a pre-contact sanitized 502.",
+      "bounded_cleanup": "The command exited normally in 89 milliseconds."
+    }
+  },
+  "verification": {
+    "focused_persistence_and_runtime": {
+      "tests": 32,
+      "passed": 32,
+      "failed": 0,
+      "skipped": 0,
+      "failure_injections": [
+        "an automatic route save failure returns before any upstream contact",
+        "a successful automatic upstream attempt remains blocked until the private save gate is released",
+        "manual acknowledgement and semantic-race rollback remain unchanged"
+      ]
+    },
+    "critical_failover_and_restart": {
+      "tests": 94,
+      "passed": 94,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "HTTP/SSE bounded pre-semantic failover and post-semantic no-replay",
+        "WebSocket bounded pre-semantic failover and post-semantic no-replay",
+        "weekly/circuit/route persistence and restart behavior",
+        "durable automatic and manual routing boundaries",
+        "active semantic-stream manual-switch rejection",
+        "bounded retry and total-deadline policies"
+      ]
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 286,
+      "passed": 261,
+      "failed": 0,
+      "skipped": 25
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r34-strict-matrix-summary.json",
+      "tests": 286,
+      "passed": 286,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r34-security-summary.json",
+      "qualified": true,
+      "files_scanned": 383,
+      "findings": 0,
+      "focused_tests": 90,
+      "focused_passed": 90,
+      "retained_strict_ui_passed": 492
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r34-linux-release-verify.json",
+      "release": "codex-account-router-0.2.13-linux-x64",
+      "sha256": "1fd7a4f6a3da250f538120633c819057cf527a2dda3831909f401cbf0605b82d",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r34.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure and non-writable /opt/codex-account-router boundary are unchanged.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.13-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200
+    },
+    "app_server": {
+      "pid": 508396,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "app_server_pid": 495033,
+    "http_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.13 is verified but is not active until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "Persist-before-contact adds one local private atomic write only when the automatic route changes; this is fixture-covered but has not been measured on deployed 8216, so no production latency claim is made.",
+    "A private routing-state persistence failure makes automatic and manual route changes fail closed until an operator resolves the state boundary.",
+    "The tests use synthetic accounts only and do not qualify a real A-to-B switch.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
