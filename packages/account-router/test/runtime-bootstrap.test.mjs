@@ -4,7 +4,10 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { createCircuitBreaker } from "../src/circuit-breaker.mjs";
-import { loadRuntimeBootstrap } from "../src/runtime-bootstrap.mjs";
+import {
+  loadInitialRuntimeState,
+  loadRuntimeBootstrap,
+} from "../src/runtime-bootstrap.mjs";
 import {
   createCircuitStateStore,
   createRoutingStateStore,
@@ -120,6 +123,78 @@ test("loads the private circuit state selected by the runtime state directory", 
   });
   assert.equal(options.circuitStateStore.toString(), "[CircuitStateStore]");
   assert.equal(options.routingStateStore.toString(), "[RoutingStateStore]");
+});
+
+test("bounds both startup state loads with one total deadline", async (context) => {
+  let releaseRoutingLoad;
+  let announceRoutingLoad;
+  const routingLoadGate = new Promise((resolve) => {
+    releaseRoutingLoad = resolve;
+  });
+  const routingLoadStarted = new Promise((resolve) => {
+    announceRoutingLoad = resolve;
+  });
+  let circuitSignal = null;
+  let routingSignal = null;
+  const circuitState = Object.freeze({ fixture: "circuit" });
+  const operation = loadInitialRuntimeState({
+    circuitStateStore: {
+      async load({ signal = null } = {}) {
+        circuitSignal = signal;
+        return circuitState;
+      },
+    },
+    routingStateStore: {
+      async load({ signal = null } = {}) {
+        routingSignal = signal;
+        announceRoutingLoad();
+        await routingLoadGate;
+        return Object.freeze({ fixture: "routing" });
+      },
+    },
+    deadlineMs: 100,
+  });
+  context.after(async () => {
+    releaseRoutingLoad();
+    await operation.catch(() => undefined);
+  });
+  await routingLoadStarted;
+
+  const outcome = await Promise.race([
+    operation.then(
+      () => "resolved",
+      (error) => error?.message,
+    ),
+    new Promise((resolve) => setTimeout(() => resolve("timed_out"), 250)),
+  ]);
+
+  assert.equal(outcome, "runtime state load deadline exceeded");
+  assert.equal(circuitSignal, routingSignal);
+  assert.equal(routingSignal?.aborted, true);
+});
+
+test("rejects invalid startup state load boundaries before reading a store", async () => {
+  let loadCalls = 0;
+  const store = {
+    async load() {
+      loadCalls += 1;
+      return null;
+    },
+  };
+  for (const deadlineMs of [0, 60_001, 1.5]) {
+    await assert.rejects(
+      loadInitialRuntimeState({
+        circuitStateStore: store,
+        deadlineMs,
+      }),
+      /startup state load deadline must be an integer from 1 through 60000/,
+    );
+  }
+  await assert.rejects(
+    loadInitialRuntimeState({ routingStateStore: {} }),
+    /routing state store is invalid/,
+  );
+  assert.equal(loadCalls, 0);
 });
 
 test("rejects incomplete, permissive, symlinked, and credential-bearing account configuration", async (context) => {

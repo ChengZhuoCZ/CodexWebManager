@@ -16,6 +16,8 @@ import {
 } from "./state-store.mjs";
 
 const DEFAULT_UPSTREAM_ORIGIN = "https://chatgpt.com";
+const DEFAULT_STARTUP_STATE_LOAD_DEADLINE_MS = 5_000;
+const MAX_STARTUP_STATE_LOAD_DEADLINE_MS = 60_000;
 const MAX_CONFIG_BYTES = 1024 * 1024;
 const CONFIG_FIELDS = new Set(["version", "accounts"]);
 
@@ -110,6 +112,75 @@ async function loadAdminAuthenticator(filePath, credentialsDirectory) {
   }
 }
 
+function assertStateStore(value, label) {
+  if (
+    value !== null &&
+    (typeof value !== "object" || typeof value.load !== "function")
+  ) {
+    throw new TypeError(`${label} state store is invalid`);
+  }
+  return value;
+}
+
+function abortReason(signal) {
+  return signal?.reason instanceof Error
+    ? signal.reason
+    : new Error("runtime state load aborted");
+}
+
+function awaitWithAbort(operation, signal) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (callback, value) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener("abort", onAbort);
+      callback(value);
+    };
+    const onAbort = () => finish(reject, abortReason(signal));
+    signal.addEventListener("abort", onAbort, { once: true });
+    Promise.resolve(operation).then(
+      (value) => finish(resolve, value),
+      (error) => finish(reject, error),
+    );
+    if (signal.aborted) onAbort();
+  });
+}
+
+export async function loadInitialRuntimeState({
+  circuitStateStore = null,
+  routingStateStore = null,
+  deadlineMs = DEFAULT_STARTUP_STATE_LOAD_DEADLINE_MS,
+} = {}) {
+  const circuitStore = assertStateStore(circuitStateStore, "circuit");
+  const routingStore = assertStateStore(routingStateStore, "routing");
+  if (
+    !Number.isSafeInteger(deadlineMs) ||
+    deadlineMs < 1 ||
+    deadlineMs > MAX_STARTUP_STATE_LOAD_DEADLINE_MS
+  ) {
+    throw new Error("startup state load deadline must be an integer from 1 through 60000");
+  }
+  const controller = new AbortController();
+  const deadlineError = new Error("runtime state load deadline exceeded");
+  const timer = setTimeout(() => controller.abort(deadlineError), deadlineMs);
+  const signal = controller.signal;
+  try {
+    const initialCircuitState = circuitStore === null
+      ? null
+      : await awaitWithAbort(circuitStore.load({ signal }), signal);
+    const initialRoutingState = routingStore === null
+      ? null
+      : await awaitWithAbort(routingStore.load({ signal }), signal);
+    return Object.freeze({ initialCircuitState, initialRoutingState });
+  } catch (error) {
+    if (signal.aborted) throw abortReason(signal);
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function loadRuntimeBootstrap(environment = process.env) {
   const listenerConfig = loadRuntimeConfig(environment);
   const accountsFile = environment.CODEX_ROUTER_ACCOUNTS_FILE;
@@ -148,12 +219,8 @@ export async function loadRuntimeBootstrap(environment = process.env) {
   const routingStateStore = absoluteStateDirectory === null
     ? null
     : createRoutingStateStore({ directory: absoluteStateDirectory });
-  const initialCircuitState = circuitStateStore === null
-    ? null
-    : await circuitStateStore.load();
-  const initialRoutingState = routingStateStore === null
-    ? null
-    : await routingStateStore.load();
+  const { initialCircuitState, initialRoutingState } =
+    await loadInitialRuntimeState({ circuitStateStore, routingStateStore });
 
   return Object.freeze({
     ...listenerConfig,

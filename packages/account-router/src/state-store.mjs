@@ -111,9 +111,12 @@ function createStateStore({
     return result;
   }
 
-  async function ensureDirectory() {
+  async function ensureDirectory(signal = null) {
+    throwIfAborted(signal);
     await mkdir(directory, { recursive: true, mode: 0o700 });
+    throwIfAborted(signal);
     const metadata = await lstat(directory);
+    throwIfAborted(signal);
     if (metadata.isSymbolicLink()) {
       throw new Error("circuit state directory must not be a symlink");
     }
@@ -124,12 +127,16 @@ function createStateStore({
     assertPrivate(metadata, "circuit state directory");
   }
 
-  async function readDocument() {
-    await ensureDirectory();
+  async function readDocument({ signal = null } = {}) {
+    throwIfAborted(signal);
+    await ensureDirectory(signal);
+    throwIfAborted(signal);
     let before;
     try {
       before = await lstat(path);
+      throwIfAborted(signal);
     } catch (error) {
+      if (signal?.aborted) throw abortReason(signal);
       if (error?.code === "ENOENT") {
         return null;
       }
@@ -154,7 +161,9 @@ function createStateStore({
     let handle;
     try {
       handle = await open(path, flags);
+      throwIfAborted(signal);
       const after = await handle.stat();
+      throwIfAborted(signal);
       if (after.dev !== before.dev || after.ino !== before.ino) {
         throw new Error("circuit state file changed while opening");
       }
@@ -164,12 +173,14 @@ function createStateStore({
       const buffer = Buffer.allocUnsafe(maxBytes + 1);
       let length = 0;
       while (length < buffer.length) {
+        throwIfAborted(signal);
         const { bytesRead } = await handle.read(
           buffer,
           length,
           buffer.length - length,
           null,
         );
+        throwIfAborted(signal);
         if (bytesRead === 0) {
           break;
         }
@@ -178,6 +189,7 @@ function createStateStore({
       if (length > maxBytes) {
         throw new Error("circuit state file is too large");
       }
+      throwIfAborted(signal);
       try {
         return normalizeStoredDocument(JSON.parse(buffer.subarray(0, length).toString("utf8")));
       } catch {
@@ -207,7 +219,7 @@ function createStateStore({
     { signal = null, beforeCommit = null } = {},
   ) {
     throwIfAborted(signal);
-    await ensureDirectory();
+    await ensureDirectory(signal);
     throwIfAborted(signal);
     const serialized = `${JSON.stringify(document)}\n`;
     if (Buffer.byteLength(serialized) > maxBytes) {
@@ -242,8 +254,9 @@ function createStateStore({
   }
 
   const store = {
-    async load() {
-      return enqueue(readDocument);
+    async load({ signal = null } = {}) {
+      throwIfAborted(signal);
+      return enqueue(() => readDocument({ signal }));
     },
     async save(document, { signal = null, beforeCommit = null } = {}) {
       throwIfAborted(signal);

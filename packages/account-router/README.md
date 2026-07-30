@@ -197,6 +197,11 @@ in-flight probes. M2.3 tests use a virtual clock and private temporary directori
 When `CODEX_ROUTER_STATE_DIRECTORY` is configured, the runtime loads this state before starting
 listeners, persists bounded failure/cooldown mutations plus the validated sanitized weekly
 observation and accepted next-request route preference, and flushes pending writes during shutdown.
+The initial circuit and routing reads share one five-second total startup deadline. Both production
+stores receive the same cancellation signal and check it before and between asynchronous
+filesystem boundaries; bootstrap also abandons an implementation that ignores the signal. Expiry
+fails startup with a sanitized error so the service manager can apply its bounded restart policy
+instead of leaving a router process waiting before its listeners exist.
 Graceful shutdown has one five-second total deadline by default, below the packaged systemd
 20-second stop window. Listener shutdown, queued routing mutations, queued private writes, and both
 final state checkpoints share that deadline. Private writes receive its cancellation signal and

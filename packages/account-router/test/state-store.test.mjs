@@ -144,6 +144,24 @@ test("returns null for a missing state file and preserves the last valid file on
   assert.deepEqual(await routingStore.load(), validRouting);
 });
 
+test("rejects pre-cancelled private state loads before filesystem access", async (context) => {
+  const directory = await privateDirectory(context);
+  const circuitStore = createCircuitStateStore({ directory });
+  const routingStore = createRoutingStateStore({ directory });
+  const cancellation = new Error("fixture startup state load cancelled");
+  const controller = new AbortController();
+  controller.abort(cancellation);
+
+  await assert.rejects(
+    circuitStore.load({ signal: controller.signal }),
+    (error) => error === cancellation,
+  );
+  await assert.rejects(
+    routingStore.load({ signal: controller.signal }),
+    (error) => error === cancellation,
+  );
+});
+
 test("prevents a pre-cancelled route save from replacing durable intent", async (context) => {
   const directory = await privateDirectory(context);
   const routingStore = createRoutingStateStore({ directory });
