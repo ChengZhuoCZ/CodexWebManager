@@ -34,6 +34,8 @@ const FAILURE_ADMIN_STATES = Object.freeze({
 });
 const DEFAULT_MANUAL_SWITCH_DEADLINE_MS = 5_000;
 const MAX_MANUAL_SWITCH_DEADLINE_MS = 60_000;
+const DEFAULT_SHUTDOWN_DEADLINE_MS = 5_000;
+const MAX_SHUTDOWN_DEADLINE_MS = 60_000;
 
 function validateOrigin(value) {
   let origin;
@@ -98,6 +100,7 @@ export function createRuntimeComposition({
   circuitStateStore = null,
   initialCircuitState = null,
   manualSwitchDeadlineMs = DEFAULT_MANUAL_SWITCH_DEADLINE_MS,
+  shutdownDeadlineMs = DEFAULT_SHUTDOWN_DEADLINE_MS,
   routingStateStore = null,
   initialRoutingState = null,
   adminHost = defaults.adminHost,
@@ -115,6 +118,13 @@ export function createRuntimeComposition({
     manualSwitchDeadlineMs > MAX_MANUAL_SWITCH_DEADLINE_MS
   ) {
     throw new Error("manual switch deadline must be an integer from 1 through 60000");
+  }
+  if (
+    !Number.isSafeInteger(shutdownDeadlineMs) ||
+    shutdownDeadlineMs < 1 ||
+    shutdownDeadlineMs > MAX_SHUTDOWN_DEADLINE_MS
+  ) {
+    throw new Error("shutdown deadline must be an integer from 1 through 60000");
   }
   const registry = assertSecretRegistry(secretRegistry);
   const authenticator = assertAuthenticator(adminAuthenticator);
@@ -177,6 +187,7 @@ export function createRuntimeComposition({
   let pendingRoutingPersistence = Promise.resolve();
   let routingPersistenceFailure = null;
   let routingMutationTail = Promise.resolve();
+  const shutdownController = new AbortController();
 
   function persistenceUnavailable() {
     return new Error("runtime state persistence is unavailable");
@@ -302,10 +313,17 @@ export function createRuntimeComposition({
 
   function queueRuntimeStatePersistence() {
     if (stateStore === null) return;
-    const operation = pendingPersistence.then(() =>
-      stateStore.save(exportRuntimeState()));
+    const signal = shutdownController.signal;
+    const operation = pendingPersistence.then(() => {
+      throwIfAborted(signal);
+      return awaitWithAbort(stateStore.save(exportRuntimeState(), { signal }), signal, {
+        onLateReject(error) {
+          if (!signal.aborted) persistenceFailure = error;
+        },
+      });
+    });
     pendingPersistence = operation.catch((error) => {
-      persistenceFailure = error;
+      if (!signal.aborted) persistenceFailure = error;
     });
   }
 
@@ -343,10 +361,17 @@ export function createRuntimeComposition({
 
   function queueRoutingStatePersistence() {
     if (routeStateStore === null) return;
-    const operation = pendingRoutingPersistence.then(() =>
-      routeStateStore.save(exportRoutingState()));
+    const signal = shutdownController.signal;
+    const operation = pendingRoutingPersistence.then(() => {
+      throwIfAborted(signal);
+      return awaitWithAbort(routeStateStore.save(exportRoutingState(), { signal }), signal, {
+        onLateReject(error) {
+          if (!signal.aborted) routingPersistenceFailure = error;
+        },
+      });
+    });
     pendingRoutingPersistence = operation.catch((error) => {
-      routingPersistenceFailure = error;
+      if (!signal.aborted) routingPersistenceFailure = error;
     });
   }
 
@@ -793,6 +818,35 @@ export function createRuntimeComposition({
   const modelService = createModelProxyService({ modelHost, modelPort, proxyHandler });
   let state = RUNTIME_STATES.CREATED;
   let addresses = null;
+  let stopPromise = null;
+
+  async function performStop() {
+    const signal = shutdownController.signal;
+    const deadlineError = new Error("runtime shutdown deadline exceeded");
+    const deadline = setTimeout(() => {
+      shutdownController.abort(deadlineError);
+    }, shutdownDeadlineMs);
+    try {
+      await awaitWithAbort(
+        Promise.allSettled([modelService.stop(), adminService.stop()]),
+        signal,
+      );
+      await awaitWithAbort(routingMutationTail, signal);
+      await awaitWithAbort(pendingPersistence, signal);
+      await awaitWithAbort(pendingRoutingPersistence, signal);
+      await persistRuntimeState({ signal });
+      await persistRoutingState(undefined, { signal });
+    } catch (error) {
+      if (signal.aborted) throw abortReason(signal);
+      throw error;
+    } finally {
+      clearTimeout(deadline);
+      if (!signal.aborted) {
+        shutdownController.abort(new Error("runtime stopped"));
+      }
+      state = RUNTIME_STATES.STOPPED;
+    }
+  }
 
   const runtime = {
     get state() {
@@ -829,15 +883,10 @@ export function createRuntimeComposition({
         state = RUNTIME_STATES.STOPPED;
         return;
       }
-      if (state === RUNTIME_STATES.STOPPING) return;
+      if (stopPromise !== null) return stopPromise;
       state = RUNTIME_STATES.STOPPING;
-      await Promise.allSettled([modelService.stop(), adminService.stop()]);
-      await routingMutationTail;
-      await pendingPersistence;
-      await pendingRoutingPersistence;
-      await persistRuntimeState();
-      await persistRoutingState();
-      state = RUNTIME_STATES.STOPPED;
+      stopPromise = performStop();
+      return stopPromise;
     },
     toString() {
       return "[RuntimeComposition]";

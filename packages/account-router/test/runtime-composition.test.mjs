@@ -512,6 +512,24 @@ test("validates runtime composition and stops both listeners together", async ()
       secretRegistry: registry,
       upstreamOrigin: "https://example.invalid",
     },
+    {
+      accounts: [],
+      shutdownDeadlineMs: 0,
+      secretRegistry: registry,
+      upstreamOrigin: "https://example.invalid",
+    },
+    {
+      accounts: [],
+      shutdownDeadlineMs: 60_001,
+      secretRegistry: registry,
+      upstreamOrigin: "https://example.invalid",
+    },
+    {
+      accounts: [],
+      shutdownDeadlineMs: 1.5,
+      secretRegistry: registry,
+      upstreamOrigin: "https://example.invalid",
+    },
   ]) {
     assert.throws(() => createRuntimeComposition(options));
   }

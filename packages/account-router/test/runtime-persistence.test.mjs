@@ -95,6 +95,7 @@ function runtimeOptions({
   },
   initialCircuitState,
   manualSwitchDeadlineMs,
+  shutdownDeadlineMs,
   routingStateStore,
   initialRoutingState,
   now = () => NOW,
@@ -109,6 +110,7 @@ function runtimeOptions({
     failoverOptions,
     initialCircuitState,
     manualSwitchDeadlineMs,
+    shutdownDeadlineMs,
     routingStateStore,
     initialRoutingState,
     modelPort: 0,
@@ -1736,4 +1738,124 @@ test("a persistence failure makes readiness and later selection fail closed", as
   const ready = await fetch(`http://127.0.0.1:${runtime.addresses.admin.port}/readyz`);
   assert.equal(ready.status, 503);
   await assert.rejects(runtime.stop(), /state persistence is unavailable/);
+});
+
+test("bounds shutdown when final private state persistence is stalled", async (context) => {
+  let announceSave;
+  let releaseSave;
+  const saveStarted = new Promise((resolve) => {
+    announceSave = resolve;
+  });
+  const saveGate = new Promise((resolve) => {
+    releaseSave = resolve;
+  });
+  let observedSignal = null;
+  const runtime = createRuntimeComposition(runtimeOptions({
+    circuitStateStore: {
+      async load() { return null; },
+      async save(_document, { signal = null } = {}) {
+        observedSignal = signal;
+        announceSave();
+        await saveGate;
+      },
+    },
+    shutdownDeadlineMs: 100,
+    upstreamOrigin: "http://127.0.0.1:1",
+  }));
+  let stopPromise = null;
+  context.after(async () => {
+    releaseSave();
+    await stopPromise?.catch(() => undefined);
+    await runtime.stop().catch(() => undefined);
+  });
+  await runtime.start();
+
+  stopPromise = runtime.stop();
+  await saveStarted;
+  const concurrentStopPromise = runtime.stop();
+  const outcome = await Promise.race([
+    Promise.all([
+      stopPromise.then(
+        () => "resolved",
+        (error) => error?.message,
+      ),
+      concurrentStopPromise.then(
+        () => "resolved",
+        (error) => error?.message,
+      ),
+    ]),
+    new Promise((resolve) => setTimeout(() => resolve("timed_out"), 250)),
+  ]);
+
+  assert.deepEqual(outcome, [
+    "runtime shutdown deadline exceeded",
+    "runtime shutdown deadline exceeded",
+  ]);
+  assert.equal(observedSignal?.aborted, true);
+  assert.equal(runtime.state, "stopped");
+});
+
+test("cancels stalled queued route persistence at the shutdown deadline", async (context) => {
+  let announceQueuedSave;
+  let releaseQueuedSave;
+  const queuedSaveStarted = new Promise((resolve) => {
+    announceQueuedSave = resolve;
+  });
+  const queuedSaveGate = new Promise((resolve) => {
+    releaseQueuedSave = resolve;
+  });
+  let queuedSaveSignal = null;
+  let saveCalls = 0;
+  const upstream = http.createServer((request, response) => {
+    request.resume();
+    quotaSse(response, 25);
+  });
+  context.after(() => close(upstream));
+  const upstreamOrigin = await listen(upstream);
+  const runtime = createRuntimeComposition(runtimeOptions({
+    routingStateStore: {
+      async load() { return null; },
+      async save(_document, { signal = null } = {}) {
+        saveCalls += 1;
+        if (saveCalls !== 2) return;
+        queuedSaveSignal = signal;
+        announceQueuedSave();
+        await queuedSaveGate;
+      },
+    },
+    shutdownDeadlineMs: 100,
+    upstreamOrigin,
+  }));
+  let stopPromise = null;
+  context.after(async () => {
+    releaseQueuedSave();
+    await stopPromise?.catch(() => undefined);
+    await runtime.stop().catch(() => undefined);
+  });
+  await runtime.start();
+
+  const response = await fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/v1/responses`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: '{"input":"fixture"}',
+    },
+  );
+  assert.equal(response.status, 200);
+  await response.text();
+  await queuedSaveStarted;
+
+  stopPromise = runtime.stop();
+  const outcome = await Promise.race([
+    stopPromise.then(
+      () => "resolved",
+      (error) => error?.message,
+    ),
+    new Promise((resolve) => setTimeout(() => resolve("timed_out"), 250)),
+  ]);
+
+  assert.equal(outcome, "runtime shutdown deadline exceeded");
+  assert.equal(queuedSaveSignal?.aborted, true);
+  assert.equal(runtime.state, "stopped");
 });

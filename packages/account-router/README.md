@@ -197,6 +197,13 @@ in-flight probes. M2.3 tests use a virtual clock and private temporary directori
 When `CODEX_ROUTER_STATE_DIRECTORY` is configured, the runtime loads this state before starting
 listeners, persists bounded failure/cooldown mutations plus the validated sanitized weekly
 observation and accepted next-request route preference, and flushes pending writes during shutdown.
+Graceful shutdown has one five-second total deadline by default, below the packaged systemd
+20-second stop window. Listener shutdown, queued routing mutations, queued private writes, and both
+final state checkpoints share that deadline. Private writes receive its cancellation signal and
+check it before atomic commit; concurrent stop callers share the same completion result. If the
+deadline expires, the process reports a sanitized stop failure and exits nonzero instead of waiting
+without bound. This bounds process shutdown only; it does not restore an in-flight request or
+running computation.
 The optional weekly state contains only the internal public-config key, observed time, remaining
 ratio, and reset time. Route intent uses a separate private, atomically replaced
 `routing-state.json` so an older release can ignore it during rollback without encountering a new
