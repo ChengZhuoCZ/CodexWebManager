@@ -901,6 +901,16 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
     };
     const syntheticAllPoolUnavailableRoleSequence = [];
     const syntheticAllPoolUnavailableFailureSequence = [];
+    const preSemanticFailureInjections = Object.freeze({
+      rate_limited: "http_429",
+      auth_expired: "http_401",
+      network_error: "connection_closed_before_headers",
+      upstream_5xx: "http_503",
+    });
+    const syntheticPreSemanticClassificationRoleSequences =
+      Object.fromEntries(
+        Object.keys(preSemanticFailureInjections).map((kind) => [kind, []]),
+      );
     let syntheticFixtureScenario = "weekly_quota_restart";
     const syntheticResetAtSeconds = Math.ceil(
       (Date.now() + 60 * 60_000) / 1_000,
@@ -990,6 +1000,62 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
             '{"error":{"type":"upstream_unavailable","message":"installed-secondary-upstream-body"}}',
           );
         }
+        return;
+      }
+      const preSemanticClassificationPrefix =
+        "pre_semantic_classification_";
+      const preSemanticClassification =
+        syntheticFixtureScenario.startsWith(preSemanticClassificationPrefix)
+          ? syntheticFixtureScenario.slice(
+            preSemanticClassificationPrefix.length,
+          )
+          : null;
+      if (
+        preSemanticClassification !== null &&
+        Object.hasOwn(
+          syntheticPreSemanticClassificationRoleSequences,
+          preSemanticClassification,
+        )
+      ) {
+        syntheticPreSemanticClassificationRoleSequences[
+          preSemanticClassification
+        ].push(role);
+        if (role === "primary") {
+          if (preSemanticClassification === "rate_limited") {
+            response.writeHead(429, {
+              "content-type": "application/json",
+              "retry-after": "0",
+            });
+            response.end('{"error":{"type":"rate_limit"}}');
+          } else if (preSemanticClassification === "auth_expired") {
+            response.writeHead(401, {
+              "content-type": "application/json",
+            });
+            response.end('{"error":{"type":"invalid_auth"}}');
+          } else if (preSemanticClassification === "network_error") {
+            request.socket.destroy();
+          } else {
+            response.writeHead(503, {
+              "content-type": "application/json",
+            });
+            response.end('{"error":{"type":"upstream_unavailable"}}');
+          }
+          return;
+        }
+        response.writeHead(200, { "content-type": "text/event-stream" });
+        response.write(
+          "event: response.created\ndata: {\"type\":\"response.created\"}\n\n",
+        );
+        response.write(
+          `event: response.output_text.delta\ndata: ${JSON.stringify({
+            type: "response.output_text.delta",
+            delta:
+              `installed-${preSemanticClassification}-secondary`,
+          })}\n\n`,
+        );
+        response.end(
+          "event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n",
+        );
         return;
       }
       if (
@@ -2165,6 +2231,139 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       in_flight_resume_tested: false,
     };
 
+    const preSemanticClassificationReadinessStatuses = [];
+    const preSemanticClassificationDownstreamStatuses = [];
+    const preSemanticClassificationResults = {};
+    for (const classification of Object.keys(preSemanticFailureInjections)) {
+      syntheticFixtureScenario =
+        `pre_semantic_classification_${classification}`;
+      const classificationStateDirectory = path.join(
+        temporaryRoot,
+        `synthetic-${syntheticFixtureScenario}-state`,
+      );
+      await fs.mkdir(classificationStateDirectory, { mode: 0o700 });
+      child = spawn(path.join(current, "bin/codex-account-router"), [], {
+        cwd: current,
+        env: {
+          ...scrubbedRuntimeEnvironment(homeDirectory),
+          CODEX_ROUTER_ACCOUNTS_FILE: syntheticAccountsFile,
+          CODEX_ROUTER_CREDENTIAL_ROOT: syntheticBindingRoot,
+          CODEX_ROUTER_ADMIN_TOKEN_FILE: syntheticAdminTokenFile,
+          CODEX_ROUTER_STATE_DIRECTORY: classificationStateDirectory,
+          CODEX_ROUTER_UPSTREAM_ORIGIN: syntheticUpstreamOrigin,
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      const classificationStarted = await waitForStart(child);
+      const classificationAdminOrigin =
+        `http://127.0.0.1:${classificationStarted.record.bind_port}`;
+      const classificationModelOrigin =
+        `http://127.0.0.1:${classificationStarted.record.model_bind_port}`;
+      const classificationReadyResponse = await fetch(
+        `${classificationAdminOrigin}/readyz`,
+        { signal: AbortSignal.timeout(5_000) },
+      );
+      const classificationReadiness =
+        await classificationReadyResponse.json();
+      assert(
+        classificationReadyResponse.status === 200 &&
+          classificationReadiness.status === "ready" &&
+          classificationReadiness.usable_accounts === 2,
+        `installed router ${classification} fixture readiness was invalid`,
+      );
+      preSemanticClassificationReadinessStatuses.push(
+        classificationReadyResponse.status,
+      );
+
+      const classificationModelResponse = await fetch(
+        `${classificationModelOrigin}/v1/responses`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: '{"input":"installed-pre-semantic-classification-fixture"}',
+          signal: AbortSignal.timeout(5_000),
+        },
+      );
+      const classificationModelBody =
+        await classificationModelResponse.text();
+      const secondaryMarker =
+        `installed-${classification}-secondary`;
+      const roleSequence =
+        syntheticPreSemanticClassificationRoleSequences[classification];
+      const secondarySemanticMarkerReceived =
+        classificationModelBody.includes(secondaryMarker);
+      const completed =
+        classificationModelBody.includes("event: response.completed") &&
+        !classificationModelBody.includes("event: error");
+      assert(
+        classificationModelResponse.status === 200 &&
+          secondarySemanticMarkerReceived &&
+          completed &&
+          JSON.stringify(roleSequence) ===
+            JSON.stringify(["primary", "secondary"]),
+        `installed router did not recover the ${classification} fixture request`,
+      );
+      preSemanticClassificationDownstreamStatuses.push(
+        classificationModelResponse.status,
+      );
+      preSemanticClassificationResults[classification] = {
+        primary_failure_injection:
+          preSemanticFailureInjections[classification],
+        upstream_role_sequence: roleSequence,
+        upstream_attempts: roleSequence.length,
+        secondary_semantic_marker_received:
+          secondarySemanticMarkerReceived,
+        completed,
+        third_upstream_attempt_observed: roleSequence.length > 2,
+      };
+
+      child.kill("SIGTERM");
+      const [classificationExitCode, classificationExitSignal] =
+        await waitForExit(child);
+      child = undefined;
+      assert(
+        classificationExitCode === 0 &&
+          classificationExitSignal === null,
+        `installed router ${classification} fixture did not exit cleanly`,
+      );
+      assert(
+        classificationStarted.getStderr() === "",
+        `installed router ${classification} fixture wrote an error log`,
+      );
+    }
+    assert(
+      fixtureUpstreamFailure === null,
+      fixtureUpstreamFailure ??
+        "installed router synthetic classification verification failed",
+    );
+    const classificationAttemptCounts = Object.values(
+      syntheticPreSemanticClassificationRoleSequences,
+    ).map((sequence) => sequence.length);
+    const syntheticPreSemanticFailureClassifications = {
+      configured_bindings: syntheticBindings.length,
+      scenarios: Object.keys(preSemanticFailureInjections).length,
+      process_starts: Object.keys(preSemanticFailureInjections).length,
+      readiness_statuses: preSemanticClassificationReadinessStatuses,
+      initial_requests: Object.keys(preSemanticFailureInjections).length,
+      downstream_statuses: preSemanticClassificationDownstreamStatuses,
+      classifications: preSemanticClassificationResults,
+      max_upstream_attempts_per_request:
+        Math.max(...classificationAttemptCounts),
+      third_upstream_attempts_observed:
+        classificationAttemptCounts.filter((count) => count > 2).length,
+      local_fixture_upstream_only: true,
+      synthetic_credential_acquisition_tested: true,
+      synthetic_model_requests_sent:
+        Object.keys(preSemanticFailureInjections).length,
+      synthetic_upstream_attempts:
+        classificationAttemptCounts.reduce((total, count) => total + count, 0),
+      manual_switch_tested: false,
+      real_credentials_present: false,
+      real_model_request_sent: false,
+      real_account_switch_tested: false,
+      in_flight_resume_tested: false,
+    };
+
     return {
       health_status: healthResponse.status,
       readiness_status: readinessResponse.status,
@@ -2190,6 +2389,8 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
         syntheticManualSwitchSafetyBoundary,
       synthetic_all_pool_unavailable:
         syntheticAllPoolUnavailable,
+      synthetic_pre_semantic_failure_classifications:
+        syntheticPreSemanticFailureClassifications,
     };
   } finally {
     if (websocketClient?.socket) {
