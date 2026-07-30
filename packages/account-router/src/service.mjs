@@ -52,6 +52,11 @@ export function createRouterService({
   const server = http.createServer(
     createHealthHandler({ getUsableAccountCount, fallback: adminHandler }),
   );
+  const sockets = new Set();
+  server.on("connection", (socket) => {
+    sockets.add(socket);
+    socket.once("close", () => sockets.delete(socket));
+  });
   server.headersTimeout = 10_000;
   server.requestTimeout = 30_000;
   server.keepAliveTimeout = 5_000;
@@ -97,6 +102,8 @@ export function createRouterService({
       }
       state = SERVICE_STATES.STOPPING;
       server.closeIdleConnections?.();
+      server.closeAllConnections?.();
+      for (const socket of sockets) socket.destroy();
       await close(server);
       state = SERVICE_STATES.STOPPED;
     },

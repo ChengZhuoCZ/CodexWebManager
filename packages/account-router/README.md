@@ -200,10 +200,12 @@ observation and accepted next-request route preference, and flushes pending writ
 Graceful shutdown has one five-second total deadline by default, below the packaged systemd
 20-second stop window. Listener shutdown, queued routing mutations, queued private writes, and both
 final state checkpoints share that deadline. Private writes receive its cancellation signal and
-check it before atomic commit; concurrent stop callers share the same completion result. If the
-deadline expires, the process reports a sanitized stop failure and exits nonzero instead of waiting
-without bound. This bounds process shutdown only; it does not restore an in-flight request or
-running computation.
+check it before atomic commit; concurrent stop callers share the same completion result. Stopping
+the admin listener also closes active protected event streams and remaining admin sockets, so an
+SSE client cannot hold the process open until the external systemd kill window. If the deadline
+expires elsewhere, the process reports a sanitized stop failure and exits nonzero instead of
+waiting without bound. This bounds process shutdown only; it does not restore an in-flight request
+or running computation.
 The optional weekly state contains only the internal public-config key, observed time, remaining
 ratio, and reset time. Route intent uses a separate private, atomically replaced
 `routing-state.json` so an older release can ignore it during rollback without encountering a new

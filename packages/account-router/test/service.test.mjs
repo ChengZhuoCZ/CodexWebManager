@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
+import http from "node:http";
 import { once } from "node:events";
 import { promises as fs } from "node:fs";
+import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import test from "node:test";
@@ -114,6 +116,61 @@ test("fails closed for unsupported methods, paths, and query variants", async (c
   assert.equal(await head.text(), "");
 });
 
+test("stops an active admin event stream without waiting for an external kill", async (context) => {
+  const service = createRouterService({
+    adminPort: 0,
+    adminHandler(_request, response, pathname) {
+      assert.equal(pathname, "/fixture-events");
+      response.writeHead(200, {
+        connection: "keep-alive",
+        "content-type": "text/event-stream",
+      });
+      response.write(": fixture-connected\n\n");
+    },
+  });
+  let clientRequest = null;
+  let clientResponse = null;
+  let stopPromise = null;
+  context.after(async () => {
+    clientResponse?.destroy();
+    clientRequest?.destroy();
+    await stopPromise?.catch(() => undefined);
+    await service.stop().catch(() => undefined);
+  });
+  const address = await service.start();
+  const connected = new Promise((resolve, reject) => {
+    clientRequest = http.get(
+      `http://127.0.0.1:${address.port}/fixture-events`,
+      (response) => {
+        clientResponse = response;
+        response.once("data", () => resolve(response));
+      },
+    );
+    clientRequest.once("error", reject);
+  });
+  clientRequest.on("error", () => undefined);
+  const response = await withTimeout(connected, "admin event stream");
+  assert.equal(response.statusCode, 200);
+  const responseClosed = new Promise((resolve) => {
+    for (const event of ["aborted", "close", "error"]) {
+      response.once(event, () => resolve(event));
+    }
+  });
+
+  stopPromise = service.stop();
+  const outcome = await Promise.race([
+    stopPromise.then(() => "stopped"),
+    new Promise((resolve) => setTimeout(() => resolve("timed_out"), 100)),
+  ]);
+
+  assert.equal(outcome, "stopped");
+  assert.match(
+    await withTimeout(responseClosed, "admin event stream close"),
+    /^(?:aborted|close|error)$/,
+  );
+  assert.equal(service.state, SERVICE_STATES.STOPPED);
+});
+
 test("has no desktop-runtime or third-party production dependency", async () => {
   const manifest = JSON.parse(await fs.readFile(path.join(packageDirectory, "package.json"), "utf8"));
   assert.equal(manifest.engines.node, ">=22");
@@ -186,4 +243,97 @@ test("CLI starts headlessly on loopback and exits cleanly on SIGTERM", async (co
   assert.equal(signal, null);
   assert.equal(stderr, "");
   assert.match(stdout, /"event":"router_stopping"/);
+});
+
+test("CLI closes an active protected admin event stream on SIGTERM", async (context) => {
+  const privateDirectory = await fs.mkdtemp(
+    path.join(os.tmpdir(), "codex-router-admin-stop-"),
+  );
+  await fs.chmod(privateDirectory, 0o700);
+  const adminTokenPath = path.join(privateDirectory, "admin-token");
+  const adminToken = "fixture-admin-stop-token-0123456789";
+  await fs.writeFile(adminTokenPath, adminToken, { mode: 0o600 });
+  const childEnvironment = {
+    ...process.env,
+    CODEX_ROUTER_ADMIN_PORT: "0",
+    CODEX_ROUTER_ADMIN_TOKEN_FILE: adminTokenPath,
+    CODEX_ROUTER_MODEL_PORT: "0",
+  };
+  for (const name of [
+    "CODEX_ROUTER_ACCOUNTS_FILE",
+    "CODEX_ROUTER_ADMIN_HOST",
+    "CODEX_ROUTER_CREDENTIAL_ROOT",
+    "CODEX_ROUTER_MODEL_HOST",
+    "CODEX_ROUTER_STATE_DIRECTORY",
+    "CODEX_ROUTER_UPSTREAM_ORIGIN",
+    "CREDENTIALS_DIRECTORY",
+    "DISPLAY",
+    "WAYLAND_DISPLAY",
+    "XAUTHORITY",
+  ]) {
+    delete childEnvironment[name];
+  }
+  const child = spawn(process.execPath, ["src/main.mjs"], {
+    cwd: packageDirectory,
+    env: childEnvironment,
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+  const childExit = once(child, "exit");
+  const streamController = new AbortController();
+  context.after(async () => {
+    streamController.abort();
+    if (child.exitCode === null && child.signalCode === null) {
+      child.kill("SIGKILL");
+    }
+    await childExit;
+    await fs.rm(privateDirectory, { recursive: true, force: true });
+  });
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+  let stdout = "";
+  let stderr = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk;
+  });
+  child.stderr.on("data", (chunk) => {
+    stderr += chunk;
+  });
+
+  await withTimeout(once(child.stdout, "data"), "CLI start");
+  const started = stdout
+    .split("\n")
+    .filter(Boolean)
+    .map((line) => JSON.parse(line))
+    .find((record) => record.event === "router_started");
+  assert.equal(started.bind_address, "127.0.0.1");
+  const events = await fetch(
+    `http://127.0.0.1:${started.bind_port}/v1/events`,
+    {
+      headers: { authorization: `Bearer ${adminToken}` },
+      signal: streamController.signal,
+    },
+  );
+  assert.equal(events.status, 200);
+  const reader = events.body.getReader();
+  const connected = await withTimeout(reader.read(), "admin event stream connect");
+  assert.equal(connected.done, false);
+  assert.match(Buffer.from(connected.value).toString("utf8"), /connected/);
+  const streamTerminated = reader.read().then(
+    ({ done }) => done ? "ended" : "data",
+    () => "aborted",
+  );
+
+  child.kill("SIGTERM");
+  const [code, signal] = await withTimeout(childExit, "CLI active-stream stop");
+  assert.equal(code, 0);
+  assert.equal(signal, null);
+  assert.match(
+    await withTimeout(streamTerminated, "admin event stream termination"),
+    /^(?:aborted|ended)$/,
+  );
+  assert.equal(stderr, "");
+  assert.match(stdout, /"event":"router_stopping"/);
+  assert.doesNotMatch(stdout, /router_stop_failed/);
+  assert.doesNotMatch(stdout, /fixture-admin-stop-token/);
+  assert.doesNotMatch(stderr, /fixture-admin-stop-token/);
 });
