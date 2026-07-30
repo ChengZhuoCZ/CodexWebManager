@@ -1,0 +1,186 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_abortable_auth_failure_persistence_and_release_candidate",
+  "generated_at": "2026-07-30T13:17:42+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "dc2f87c0c1bab9d372013042e64f2b1a9c20a47a",
+  "output_revision": "497c799c1b2a44d8b534e7117680029fad1a3e4e",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Propagate the existing bounded failover selection signal into authentication-failure circuit and route persistence so a stalled private save cannot retain the serialized selector after the request deadline; preserve fail-closed behavior if that abandoned save later truly fails.",
+    "selection_deadline_applies_to_auth_failure_persistence": true,
+    "client_cancellation_applies_to_auth_failure_persistence": true,
+    "deadline_http_status": 503,
+    "deadline_error_type": "all_accounts_unavailable",
+    "deadline_reason": "total_deadline_exceeded",
+    "deadline_attempts": 0,
+    "deadline_semantic_output": false,
+    "deadline_upstream_contacts": 0,
+    "timed_out_auth_failure_lease_disposed": true,
+    "routing_lock_released": true,
+    "subsequent_new_request_can_use_different_eligible_account": true,
+    "subsequent_new_request_http_status": 200,
+    "late_state_save_failure_marks_readiness_unavailable": true,
+    "late_state_save_failure_blocks_later_selection": true,
+    "late_failure_additional_lease_acquisitions": 0,
+    "late_failure_additional_upstream_contacts": 0,
+    "retry_policy_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "discarded_hypothesis": {
+    "command": "timeout 30s node --test --test-name-pattern='queued routing persistence exceeds' packages/account-router/test/runtime-persistence.test.mjs",
+    "result": "passed_without_implementation",
+    "tests": 1,
+    "passed": 1,
+    "failed": 0,
+    "conclusion": "R36's post-wait abort check already prevented a late credential acquisition after queued routing persistence; the redundant fixture was removed without changing production code."
+  },
+  "test_first": {
+    "command": "timeout 30s node --test --test-name-pattern='auth-failure persistence outlives' packages/account-router/test/runtime-persistence.test.mjs",
+    "before_implementation": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "observed_failure": "The first request received its bounded total-deadline response, but the stalled auth-failure state save retained the routing lock so a second new request returned HTTP 503 instead of the expected HTTP 200 through the other eligible fixture account.",
+      "external_command_duration_ms": 288.228,
+      "test_duration_ms": 225.473,
+      "bounded_cleanup": "The synthetic state-store gate was settled during fixture cleanup and the command exited normally."
+    },
+    "late_failure_extension": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "observed_failure": "After the partial implementation released the routing lock, a genuinely rejected late save changed readiness to 503 but the model selector still returned HTTP 200 instead of failing closed with HTTP 502.",
+      "external_command_duration_ms": 225.254,
+      "test_duration_ms": 135.615
+    }
+  },
+  "verification": {
+    "runtime_persistence": {
+      "tests": 14,
+      "passed": 14,
+      "failed": 0,
+      "skipped": 0
+    },
+    "focused_persistence_and_runtime": {
+      "tests": 35,
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0,
+      "failure_injections": [
+        "an invalid synthetic credential records auth_expired and stalls its first circuit-state save beyond the 100 millisecond total deadline",
+        "the invalid SecretLease is disposed and the old selection releases the serialized routing lock",
+        "a later new request uses a different eligible fixture account while the old save remains pending",
+        "a genuine late save rejection makes both readiness and later selection fail closed without another lease or upstream contact"
+      ]
+    },
+    "critical_failover_and_restart": {
+      "tests": 97,
+      "passed": 97,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "HTTP/SSE bounded pre-semantic failover and post-semantic no-replay",
+        "WebSocket bounded pre-semantic failover and post-semantic no-replay",
+        "weekly/circuit/route persistence and restart behavior",
+        "durable and abortable automatic routing plus durable manual routing",
+        "abortable credential acquisition and auth-failure persistence",
+        "active semantic-stream manual-switch rejection",
+        "bounded retry and total-deadline policies"
+      ]
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 289,
+      "passed": 264,
+      "failed": 0,
+      "skipped": 25
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r37-strict-matrix-summary.json",
+      "tests": 289,
+      "passed": 289,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r37-security-summary.json",
+      "qualified": true,
+      "files_scanned": 398,
+      "findings": 0,
+      "focused_tests": 90,
+      "focused_passed": 90,
+      "retained_strict_ui_passed": 492
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r37-linux-release-verify.json",
+      "release": "codex-account-router-0.2.16-linux-x64",
+      "sha256": "1e8cc262d3202b77e60acd0604ae6bbed24b01c3b2fe666b41e36521087dac20",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    }
+  },
+  "qualification_invocation_notes": [
+    "The first five-file focused invocation omitted the required umask 0022 and produced one state-store permission-fixture mismatch; the corrected bounded invocation passed 35/35 and is the qualifying result."
+  ],
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r37.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure and non-writable /opt/codex-account-router boundary are unchanged.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.16-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200
+    },
+    "app_server": {
+      "pid": 508396,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "app_server_pid": 495033,
+    "http_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.16 is verified but is not active until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "AbortSignal abandonment does not cancel an already-issued atomic state save. A different eligible account may serve a later new request while that save is pending; a genuine late rejection then makes readiness and future selection fail closed.",
+    "A process crash before the abandoned auth-failure save completes may lose that classification, so the invalid credential may be rediscovered after restart.",
+    "The timed-out request is not replayed or resumed. Only a later new request can use another eligible account.",
+    "The tests use synthetic accounts only and do not qualify a real A-to-B switch.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
