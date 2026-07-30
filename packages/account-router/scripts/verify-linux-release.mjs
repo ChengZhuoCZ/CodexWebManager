@@ -893,6 +893,11 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
     const syntheticWebSocketRoleSequences = {
       pre_semantic: [],
       post_semantic: [],
+      manual_switch_active: [],
+    };
+    const syntheticManualSwitchHttpRoleSequences = {
+      safe_boundary: [],
+      restart: [],
     };
     let syntheticFixtureScenario = "weekly_quota_restart";
     const syntheticResetAtSeconds = Math.ceil(
@@ -902,6 +907,7 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       syntheticResetAtSeconds * 1_000,
     ).toISOString();
     let fixtureUpstreamFailure = null;
+    let completeManualSwitchWebSocket = null;
     fixtureServer = http.createServer((request, response) => {
       request.resume();
       const upstreamAccountId = request.headers["chatgpt-account-id"];
@@ -964,6 +970,29 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
         }
         return;
       }
+      if (
+        syntheticFixtureScenario === "manual_switch_next_request" ||
+        syntheticFixtureScenario === "manual_switch_restart_request"
+      ) {
+        const sequence = syntheticFixtureScenario === "manual_switch_next_request"
+          ? syntheticManualSwitchHttpRoleSequences.safe_boundary
+          : syntheticManualSwitchHttpRoleSequences.restart;
+        sequence.push(role);
+        response.writeHead(200, { "content-type": "text/event-stream" });
+        response.write(
+          "event: response.created\ndata: {\"type\":\"response.created\"}\n\n",
+        );
+        response.write(
+          `event: response.output_text.delta\ndata: ${JSON.stringify({
+            type: "response.output_text.delta",
+            delta: "installed-manual-switch-secondary",
+          })}\n\n`,
+        );
+        response.end(
+          "event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n",
+        );
+        return;
+      }
       syntheticUpstreamRoleSequence.push(role);
       response.writeHead(200, { "content-type": "text/event-stream" });
       response.write(
@@ -994,6 +1023,7 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       const websocketScenario = new Set([
         "websocket_pre_semantic_failover",
         "websocket_post_semantic_failure",
+        "manual_switch_active_stream",
       ]).has(syntheticFixtureScenario);
       const key = request.headers["sec-websocket-key"];
       if (
@@ -1068,6 +1098,25 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
               });
               sendEvent({ type: "response.completed" });
             }
+            return;
+          }
+          if (syntheticFixtureScenario === "manual_switch_active_stream") {
+            syntheticWebSocketRoleSequences.manual_switch_active.push(role);
+            sendEvent({ type: "response.created" });
+            sendEvent({
+              type: "response.output_text.delta",
+              delta: "installed-manual-switch-active-primary",
+            });
+            if (completeManualSwitchWebSocket !== null) {
+              fixtureUpstreamFailure =
+                "installed router opened duplicate manual-switch fixture streams";
+              socket.destroy();
+              return;
+            }
+            completeManualSwitchWebSocket = () => {
+              completeManualSwitchWebSocket = null;
+              sendEvent({ type: "response.completed" });
+            };
             return;
           }
           syntheticWebSocketRoleSequences.post_semantic.push(role);
@@ -1616,6 +1665,354 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       in_flight_resume_tested: false,
     };
 
+    const manualSwitchStateDirectory = path.join(
+      temporaryRoot,
+      "synthetic-manual-switch-state",
+    );
+    await fs.mkdir(manualSwitchStateDirectory, { mode: 0o700 });
+    const manualSwitchReadinessStatuses = [];
+    const manualSwitchEnvironment = {
+      ...scrubbedRuntimeEnvironment(homeDirectory),
+      CODEX_ROUTER_ACCOUNTS_FILE: syntheticAccountsFile,
+      CODEX_ROUTER_CREDENTIAL_ROOT: syntheticBindingRoot,
+      CODEX_ROUTER_ADMIN_TOKEN_FILE: syntheticAdminTokenFile,
+      CODEX_ROUTER_STATE_DIRECTORY: manualSwitchStateDirectory,
+      CODEX_ROUTER_UPSTREAM_ORIGIN: syntheticUpstreamOrigin,
+    };
+    const routingStatePath = path.join(
+      manualSwitchStateDirectory,
+      "routing-state.json",
+    );
+    const readSyntheticRouting = async () => {
+      const document = JSON.parse(await fs.readFile(routingStatePath, "utf8"));
+      return document.routing;
+    };
+
+    syntheticFixtureScenario = "manual_switch_active_stream";
+    child = spawn(path.join(current, "bin/codex-account-router"), [], {
+      cwd: current,
+      env: manualSwitchEnvironment,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const manualSwitchStarted = await waitForStart(child);
+    const manualSwitchAdminOrigin =
+      `http://127.0.0.1:${manualSwitchStarted.record.bind_port}`;
+    const manualSwitchModelOrigin =
+      `http://127.0.0.1:${manualSwitchStarted.record.model_bind_port}`;
+    const manualSwitchReadyResponse = await fetch(
+      `${manualSwitchAdminOrigin}/readyz`,
+      { signal: AbortSignal.timeout(5_000) },
+    );
+    const manualSwitchReadiness = await manualSwitchReadyResponse.json();
+    assert(
+      manualSwitchReadyResponse.status === 200 &&
+        manualSwitchReadiness.status === "ready" &&
+        manualSwitchReadiness.usable_accounts === 2,
+      "installed router manual-switch fixture readiness was invalid",
+    );
+    manualSwitchReadinessStatuses.push(manualSwitchReadyResponse.status);
+
+    websocketClient = await openSyntheticWebSocket({
+      port: manualSwitchStarted.record.model_bind_port,
+    });
+    const manualSwitchUpgradeStatus = websocketClient.status;
+    sendSyntheticWebSocketCreate(websocketClient.socket);
+    await websocketClient.collector.waitFor(
+      (message) =>
+        message.type === "response.output_text.delta" &&
+        message.delta === "installed-manual-switch-active-primary",
+    );
+    const activeStatusBeforeDeniedSwitch = await waitForSyntheticStatus({
+      adminOrigin: manualSwitchAdminOrigin,
+      adminToken: syntheticAdminToken,
+      predicate(status) {
+        return (
+          status.active_streams === 1 &&
+          status.current_route?.account_alias === syntheticBindings[0].alias &&
+          status.current_route?.continuity === "new_backend_session"
+        );
+      },
+    });
+    const routingBeforeDeniedSwitch = await readSyntheticRouting();
+    const deniedSwitchResponse = await fetch(
+      `${manualSwitchAdminOrigin}/v1/switch`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${syntheticAdminToken}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          account_alias: syntheticBindings[1].alias,
+          reason: "manual",
+        }),
+        signal: AbortSignal.timeout(5_000),
+      },
+    );
+    const deniedSwitchBody = await deniedSwitchResponse.json();
+    const activeStatusAfterDeniedSwitch = await waitForSyntheticStatus({
+      adminOrigin: manualSwitchAdminOrigin,
+      adminToken: syntheticAdminToken,
+      predicate(status) {
+        return (
+          status.active_streams === 1 &&
+          status.current_route?.account_alias === syntheticBindings[0].alias
+        );
+      },
+    });
+    const routingAfterDeniedSwitch = await readSyntheticRouting();
+    const durableRouteUnchanged =
+      JSON.stringify(routingAfterDeniedSwitch) ===
+        JSON.stringify(routingBeforeDeniedSwitch);
+    assert(
+      deniedSwitchResponse.status === 409 &&
+        deniedSwitchBody.error === "active_semantic_stream" &&
+        durableRouteUnchanged,
+      "installed router changed a route during an active semantic stream",
+    );
+    assert(
+      typeof completeManualSwitchWebSocket === "function",
+      "installed router manual-switch fixture stream was not held open",
+    );
+    completeManualSwitchWebSocket();
+    await websocketClient.collector.waitFor(
+      (message) => message.type === "response.completed",
+    );
+    websocketClient.socket.destroy();
+    websocketClient = undefined;
+    const safeBoundaryStatus = await waitForSyntheticStatus({
+      adminOrigin: manualSwitchAdminOrigin,
+      adminToken: syntheticAdminToken,
+      predicate(status) {
+        return (
+          status.active_streams === 0 &&
+          status.current_route?.account_alias === syntheticBindings[0].alias
+        );
+      },
+    });
+
+    const acceptedSwitchResponse = await fetch(
+      `${manualSwitchAdminOrigin}/v1/switch`,
+      {
+        method: "POST",
+        headers: {
+          authorization: `Bearer ${syntheticAdminToken}`,
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          account_alias: syntheticBindings[1].alias,
+          reason: "manual",
+        }),
+        signal: AbortSignal.timeout(5_000),
+      },
+    );
+    const acceptedSwitchBody = await acceptedSwitchResponse.json();
+    const acceptedSwitchStatus = await waitForSyntheticStatus({
+      adminOrigin: manualSwitchAdminOrigin,
+      adminToken: syntheticAdminToken,
+      predicate(status) {
+        return (
+          status.active_streams === 0 &&
+          status.current_route?.account_alias === syntheticBindings[1].alias &&
+          status.current_route?.continuity === "new_backend_session"
+        );
+      },
+    });
+    const acceptedRouting = await readSyntheticRouting();
+    const durablePreferencePersisted =
+      acceptedRouting?.current_account_id === syntheticBindings[1].id &&
+      acceptedRouting?.preferred_account_id === syntheticBindings[1].id;
+    assert(
+      acceptedSwitchResponse.status === 200 &&
+        acceptedSwitchBody.accepted === true &&
+        acceptedSwitchBody.account_alias === syntheticBindings[1].alias &&
+        acceptedSwitchBody.continuity === "new_backend_session" &&
+        durablePreferencePersisted,
+      "installed router did not persist an accepted safe-boundary switch",
+    );
+
+    syntheticFixtureScenario = "manual_switch_next_request";
+    const safeBoundaryModelResponse = await fetch(
+      `${manualSwitchModelOrigin}/v1/responses`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: '{"input":"installed-manual-switch-next-request"}',
+        signal: AbortSignal.timeout(5_000),
+      },
+    );
+    const safeBoundaryModelBody = await safeBoundaryModelResponse.text();
+    const safeBoundaryRequestCompleted =
+      safeBoundaryModelResponse.status === 200 &&
+      safeBoundaryModelBody.includes("installed-manual-switch-secondary") &&
+      safeBoundaryModelBody.includes("event: response.completed");
+    assert(
+      safeBoundaryRequestCompleted &&
+        JSON.stringify(
+          syntheticManualSwitchHttpRoleSequences.safe_boundary,
+        ) === JSON.stringify(["secondary"]),
+      "installed router did not apply a manual switch to the next new request",
+    );
+
+    child.kill("SIGTERM");
+    const [manualSwitchExitCode, manualSwitchExitSignal] =
+      await waitForExit(child);
+    child = undefined;
+    assert(
+      manualSwitchExitCode === 0 && manualSwitchExitSignal === null,
+      "installed router manual-switch fixture did not exit cleanly",
+    );
+    assert(
+      manualSwitchStarted.getStderr() === "",
+      "installed router manual-switch fixture wrote an error log",
+    );
+
+    syntheticFixtureScenario = "manual_switch_restart_request";
+    child = spawn(path.join(current, "bin/codex-account-router"), [], {
+      cwd: current,
+      env: manualSwitchEnvironment,
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const manualSwitchRestarted = await waitForStart(child);
+    const manualSwitchRestartAdminOrigin =
+      `http://127.0.0.1:${manualSwitchRestarted.record.bind_port}`;
+    const manualSwitchRestartModelOrigin =
+      `http://127.0.0.1:${manualSwitchRestarted.record.model_bind_port}`;
+    const manualSwitchRestartReadyResponse = await fetch(
+      `${manualSwitchRestartAdminOrigin}/readyz`,
+      { signal: AbortSignal.timeout(5_000) },
+    );
+    const manualSwitchRestartReadiness =
+      await manualSwitchRestartReadyResponse.json();
+    assert(
+      manualSwitchRestartReadyResponse.status === 200 &&
+        manualSwitchRestartReadiness.status === "ready" &&
+        manualSwitchRestartReadiness.usable_accounts === 2,
+      "installed router manual-switch restart readiness was invalid",
+    );
+    manualSwitchReadinessStatuses.push(
+      manualSwitchRestartReadyResponse.status,
+    );
+    const restartedManualSwitchStatus = await waitForSyntheticStatus({
+      adminOrigin: manualSwitchRestartAdminOrigin,
+      adminToken: syntheticAdminToken,
+      predicate(status) {
+        return (
+          status.active_streams === 0 &&
+          status.current_route?.account_alias === syntheticBindings[1].alias &&
+          status.current_route?.continuity === "new_backend_session"
+        );
+      },
+    });
+    const restartModelResponse = await fetch(
+      `${manualSwitchRestartModelOrigin}/v1/responses`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: '{"input":"installed-manual-switch-restart-request"}',
+        signal: AbortSignal.timeout(5_000),
+      },
+    );
+    const restartModelBody = await restartModelResponse.text();
+    const restartRequestCompleted =
+      restartModelResponse.status === 200 &&
+      restartModelBody.includes("installed-manual-switch-secondary") &&
+      restartModelBody.includes("event: response.completed");
+    assert(
+      restartRequestCompleted &&
+        JSON.stringify(syntheticManualSwitchHttpRoleSequences.restart) ===
+          JSON.stringify(["secondary"]),
+      "installed router did not retain a manual switch across restart",
+    );
+    child.kill("SIGTERM");
+    const [manualSwitchRestartExitCode, manualSwitchRestartExitSignal] =
+      await waitForExit(child);
+    child = undefined;
+    assert(
+      manualSwitchRestartExitCode === 0 &&
+        manualSwitchRestartExitSignal === null,
+      "installed router restarted manual-switch fixture did not exit cleanly",
+    );
+    assert(
+      manualSwitchRestarted.getStderr() === "",
+      "installed router restarted manual-switch fixture wrote an error log",
+    );
+    assert(
+      fixtureUpstreamFailure === null,
+      fixtureUpstreamFailure ??
+        "installed router synthetic manual-switch verification failed",
+    );
+    assert(
+      JSON.stringify(
+        syntheticWebSocketRoleSequences.manual_switch_active,
+      ) === JSON.stringify(["primary"]),
+      "installed router rerouted an active semantic WebSocket stream",
+    );
+    const syntheticManualSwitchSafetyBoundary = {
+      configured_bindings: syntheticBindings.length,
+      process_starts: 2,
+      restart_count: 1,
+      readiness_statuses: manualSwitchReadinessStatuses,
+      active_semantic_stream: {
+        downstream_upgrade_status: manualSwitchUpgradeStatus,
+        upstream_role_sequence:
+          syntheticWebSocketRoleSequences.manual_switch_active,
+        primary_semantic_marker_received: true,
+        active_streams_before_denied_switch:
+          activeStatusBeforeDeniedSwitch.active_streams,
+        denied_switch_status: deniedSwitchResponse.status,
+        denied_switch_error: deniedSwitchBody.error,
+        current_route_role_before:
+          activeStatusBeforeDeniedSwitch.current_route.account_alias ===
+            syntheticBindings[0].alias
+            ? "primary"
+            : "unexpected",
+        current_route_role_after:
+          activeStatusAfterDeniedSwitch.current_route.account_alias ===
+            syntheticBindings[0].alias
+            ? "primary"
+            : "unexpected",
+        durable_route_unchanged: durableRouteUnchanged,
+        completed_before_acceptance:
+          safeBoundaryStatus.active_streams === 0,
+      },
+      safe_boundary: {
+        active_streams_at_acceptance: acceptedSwitchStatus.active_streams,
+        accepted_switch_status: acceptedSwitchResponse.status,
+        accepted: acceptedSwitchBody.accepted,
+        target_role:
+          acceptedSwitchBody.account_alias === syntheticBindings[1].alias
+            ? "secondary"
+            : "unexpected",
+        continuity: acceptedSwitchBody.continuity,
+        next_new_request_role_sequence:
+          syntheticManualSwitchHttpRoleSequences.safe_boundary,
+        next_new_request_completed: safeBoundaryRequestCompleted,
+        durable_preference_persisted: durablePreferencePersisted,
+      },
+      restart: {
+        readiness_status: manualSwitchRestartReadyResponse.status,
+        current_route_role:
+          restartedManualSwitchStatus.current_route.account_alias ===
+            syntheticBindings[1].alias
+            ? "secondary"
+            : "unexpected",
+        continuity:
+          restartedManualSwitchStatus.current_route.continuity,
+        next_new_request_role_sequence:
+          syntheticManualSwitchHttpRoleSequences.restart,
+        next_new_request_completed: restartRequestCompleted,
+      },
+      local_fixture_upstream_only: true,
+      synthetic_credential_acquisition_tested: true,
+      synthetic_manual_switch_tested: true,
+      synthetic_model_requests_sent: 3,
+      real_credentials_present: false,
+      real_model_request_sent: false,
+      real_account_switch_tested: false,
+      in_flight_resume_tested: false,
+    };
+
     return {
       health_status: healthResponse.status,
       readiness_status: readinessResponse.status,
@@ -1637,6 +2034,8 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
         syntheticHttpSseSafetyBoundaries,
       synthetic_websocket_safety_boundaries:
         syntheticWebSocketSafetyBoundaries,
+      synthetic_manual_switch_safety_boundary:
+        syntheticManualSwitchSafetyBoundary,
     };
   } finally {
     if (websocketClient?.socket) {
