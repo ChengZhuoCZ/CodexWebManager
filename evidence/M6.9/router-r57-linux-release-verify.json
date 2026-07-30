@@ -1,0 +1,203 @@
+{
+  "schema_version": 1,
+  "target": {
+    "os": "linux",
+    "architecture": "x64"
+  },
+  "artifact": {
+    "name": "codex-account-router-0.2.29-linux-x64.tar.gz",
+    "sha256": "471bbacf24c78fe41ae81cff3b30da4cf7666cbcf190b76c3dd8fec53a7ca615",
+    "payload_file_count": 49,
+    "electron_required": false,
+    "display_server_required": false,
+    "node_modules_present": false
+  },
+  "install": {
+    "command": "PREFIX=<absolute-directory> sh <release>/install.sh",
+    "node_requirement": ">=22"
+  },
+  "runtime": {
+    "health_status": 200,
+    "readiness_status": 503,
+    "readiness_reason": "no_accounts",
+    "admin_bind": "127.0.0.1",
+    "model_bind": "127.0.0.1",
+    "sigterm_exit_code": 0,
+    "display_environment_present": false,
+    "account_configuration_present": false,
+    "account_switch_tested": false,
+    "architecture": "x64",
+    "startup_interruption": {
+      "signal": "SIGTERM",
+      "stalled_before_runtime_creation": true,
+      "exit_code": 0,
+      "exit_signal": null,
+      "router_stopping_emitted": true,
+      "router_started_emitted": false,
+      "router_start_failed_emitted": false,
+      "stderr_bytes": 0
+    },
+    "startup_interruptions": [
+      {
+        "signal": "SIGTERM",
+        "stalled_before_runtime_creation": true,
+        "exit_code": 0,
+        "exit_signal": null,
+        "router_stopping_emitted": true,
+        "router_started_emitted": false,
+        "router_start_failed_emitted": false,
+        "stderr_bytes": 0
+      },
+      {
+        "signal": "SIGINT",
+        "stalled_before_runtime_creation": true,
+        "exit_code": 0,
+        "exit_signal": null,
+        "router_stopping_emitted": true,
+        "router_started_emitted": false,
+        "router_start_failed_emitted": false,
+        "stderr_bytes": 0
+      }
+    ],
+    "listener_start_interruption": {
+      "signal": "SIGTERM",
+      "stalled_during_listener_start": true,
+      "runtime_created_before_stall": true,
+      "exit_code": 0,
+      "exit_signal": null,
+      "router_stopping_emitted": true,
+      "router_started_emitted": false,
+      "router_start_failed_emitted": false,
+      "stderr_bytes": 0
+    },
+    "listener_start_interruptions": [
+      {
+        "signal": "SIGTERM",
+        "stalled_during_listener_start": true,
+        "runtime_created_before_stall": true,
+        "exit_code": 0,
+        "exit_signal": null,
+        "router_stopping_emitted": true,
+        "router_started_emitted": false,
+        "router_start_failed_emitted": false,
+        "stderr_bytes": 0
+      },
+      {
+        "signal": "SIGINT",
+        "stalled_during_listener_start": true,
+        "runtime_created_before_stall": true,
+        "exit_code": 0,
+        "exit_signal": null,
+        "router_stopping_emitted": true,
+        "router_started_emitted": false,
+        "router_start_failed_emitted": false,
+        "stderr_bytes": 0
+      }
+    ],
+    "synthetic_two_binding_restart": {
+      "configured_bindings": 2,
+      "process_starts": 2,
+      "restart_count": 1,
+      "state_checkpoint_files_after_first_stop": 2,
+      "readiness_statuses": [
+        200,
+        200
+      ],
+      "usable_accounts": [
+        2,
+        2
+      ],
+      "sigterm_exit_codes": [
+        0,
+        0
+      ],
+      "synthetic_credential_acquisition_tested": false,
+      "real_credentials_present": false,
+      "model_request_sent": false,
+      "account_switch_tested": false
+    },
+    "synthetic_weekly_quota_restart": {
+      "configured_bindings": 2,
+      "process_starts": 2,
+      "restart_count": 1,
+      "readiness_statuses": [
+        200,
+        200
+      ],
+      "usable_accounts": [
+        2,
+        1
+      ],
+      "synthetic_model_response_statuses": [
+        200,
+        200
+      ],
+      "completed_sse_responses": 2,
+      "synthetic_upstream_role_sequence": [
+        "primary",
+        "secondary"
+      ],
+      "weekly_zero_persisted": true,
+      "weekly_reset_persisted": true,
+      "cooldown_persisted": true,
+      "next_new_request_route_changed": true,
+      "current_route_continuity": [
+        "new_backend_session",
+        "new_backend_session"
+      ],
+      "synthetic_credential_acquisition_tested": true,
+      "local_fixture_upstream_only": true,
+      "synthetic_model_requests_sent": 2,
+      "manual_switch_tested": false,
+      "real_credentials_present": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "in_flight_resume_tested": false
+    },
+    "synthetic_http_sse_safety_boundaries": {
+      "scenarios": 2,
+      "process_starts": 2,
+      "readiness_statuses": [
+        200,
+        200
+      ],
+      "initial_requests": 2,
+      "pre_semantic": {
+        "downstream_status": 200,
+        "failure_kind": "quota_exhausted",
+        "upstream_role_sequence": [
+          "primary",
+          "secondary"
+        ],
+        "upstream_attempts": 2,
+        "secondary_semantic_marker_received": true,
+        "retry_bound_observed": true
+      },
+      "post_semantic": {
+        "downstream_status": 200,
+        "upstream_role_sequence": [
+          "primary"
+        ],
+        "upstream_attempts": 1,
+        "primary_semantic_marker_received": true,
+        "unsafe_to_replay_exposed": true,
+        "semantic_output": true,
+        "secondary_contacted": false
+      },
+      "local_fixture_upstream_only": true,
+      "synthetic_credential_acquisition_tested": true,
+      "synthetic_model_requests_sent": 2,
+      "synthetic_upstream_attempts": 3,
+      "manual_switch_tested": false,
+      "real_credentials_present": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "in_flight_resume_tested": false
+    }
+  },
+  "continuity": {
+    "architecture_mode": "LIMITED_MODE",
+    "account_switch_tested": false,
+    "seamless_cross_account_continuity_claimed": false
+  }
+}
