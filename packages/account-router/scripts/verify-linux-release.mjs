@@ -729,6 +729,11 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       ]),
     );
     const syntheticUpstreamRoleSequence = [];
+    const syntheticHttpSseRoleSequences = {
+      pre_semantic: [],
+      post_semantic: [],
+    };
+    let syntheticFixtureScenario = "weekly_quota_restart";
     const syntheticResetAtSeconds = Math.ceil(
       (Date.now() + 60 * 60_000) / 1_000,
     );
@@ -752,6 +757,50 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
           "installed router supplied an invalid synthetic upstream request";
         response.writeHead(401, { "content-type": "application/json" });
         response.end('{"error":{"type":"invalid_auth"}}');
+        return;
+      }
+      if (syntheticFixtureScenario === "pre_semantic_failover") {
+        syntheticHttpSseRoleSequences.pre_semantic.push(role);
+        if (role === "primary") {
+          response.writeHead(429, {
+            "content-type": "application/json",
+          });
+          response.end('{"error":{"type":"quota_exhausted"}}');
+          return;
+        }
+        response.writeHead(200, { "content-type": "text/event-stream" });
+        response.write(
+          "event: response.created\ndata: {\"type\":\"response.created\"}\n\n",
+        );
+        response.write(
+          "event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"installed-pre-semantic-secondary\"}\n\n",
+        );
+        response.end(
+          "event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n",
+        );
+        return;
+      }
+      if (syntheticFixtureScenario === "post_semantic_failure") {
+        syntheticHttpSseRoleSequences.post_semantic.push(role);
+        response.writeHead(200, { "content-type": "text/event-stream" });
+        response.write(
+          "event: response.created\ndata: {\"type\":\"response.created\"}\n\n",
+        );
+        response.write(
+          `event: response.output_text.delta\ndata: ${JSON.stringify({
+            type: "response.output_text.delta",
+            delta: role === "primary"
+              ? "installed-post-semantic-primary"
+              : "must-not-contact-secondary",
+          })}\n\n`,
+        );
+        if (role === "primary") {
+          setImmediate(() => response.destroy());
+        } else {
+          response.end(
+            "event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n",
+          );
+        }
         return;
       }
       syntheticUpstreamRoleSequence.push(role);
@@ -961,6 +1010,156 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       in_flight_resume_tested: false,
     };
 
+    const httpSseReadinessStatuses = [];
+    const httpSseResponses = new Map();
+    for (const scenario of [
+      "pre_semantic_failover",
+      "post_semantic_failure",
+    ]) {
+      syntheticFixtureScenario = scenario;
+      const scenarioStateDirectory = path.join(
+        temporaryRoot,
+        `synthetic-${scenario}-state`,
+      );
+      await fs.mkdir(scenarioStateDirectory, { mode: 0o700 });
+      child = spawn(path.join(current, "bin/codex-account-router"), [], {
+        cwd: current,
+        env: {
+          ...scrubbedRuntimeEnvironment(homeDirectory),
+          CODEX_ROUTER_ACCOUNTS_FILE: syntheticAccountsFile,
+          CODEX_ROUTER_CREDENTIAL_ROOT: syntheticBindingRoot,
+          CODEX_ROUTER_ADMIN_TOKEN_FILE: syntheticAdminTokenFile,
+          CODEX_ROUTER_STATE_DIRECTORY: scenarioStateDirectory,
+          CODEX_ROUTER_UPSTREAM_ORIGIN: syntheticUpstreamOrigin,
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      const scenarioStarted = await waitForStart(child);
+      const adminOrigin =
+        `http://127.0.0.1:${scenarioStarted.record.bind_port}`;
+      const modelOrigin =
+        `http://127.0.0.1:${scenarioStarted.record.model_bind_port}`;
+      const readyResponse = await fetch(`${adminOrigin}/readyz`, {
+        signal: AbortSignal.timeout(5_000),
+      });
+      const readiness = await readyResponse.json();
+      assert(
+        readyResponse.status === 200 &&
+          readiness.status === "ready" &&
+          readiness.usable_accounts === 2,
+        `installed router ${scenario} readiness was invalid`,
+      );
+      httpSseReadinessStatuses.push(readyResponse.status);
+
+      const modelResponse = await fetch(`${modelOrigin}/v1/responses`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: '{"input":"installed-release-http-sse-fixture"}',
+        signal: AbortSignal.timeout(5_000),
+      });
+      const modelBody = await modelResponse.text();
+      httpSseResponses.set(scenario, {
+        status: modelResponse.status,
+        body: modelBody,
+      });
+
+      child.kill("SIGTERM");
+      const [scenarioExitCode, scenarioExitSignal] = await waitForExit(child);
+      child = undefined;
+      assert(
+        scenarioExitCode === 0 && scenarioExitSignal === null,
+        `installed router ${scenario} process did not exit cleanly`,
+      );
+      assert(
+        scenarioStarted.getStderr() === "",
+        `installed router ${scenario} process wrote an error log`,
+      );
+    }
+
+    const preSemanticResponse = httpSseResponses.get(
+      "pre_semantic_failover",
+    );
+    assert(
+      preSemanticResponse.status === 200 &&
+        preSemanticResponse.body.includes(
+          "installed-pre-semantic-secondary",
+        ) &&
+        preSemanticResponse.body.includes("event: response.completed"),
+      "installed router did not recover the pre-semantic fixture request",
+    );
+    assert(
+      JSON.stringify(syntheticHttpSseRoleSequences.pre_semantic) ===
+        JSON.stringify(["primary", "secondary"]),
+      "installed router pre-semantic retry was not bounded to primary then secondary",
+    );
+
+    const postSemanticResponse = httpSseResponses.get(
+      "post_semantic_failure",
+    );
+    const inStreamErrorMatch = postSemanticResponse.body.match(
+      /event: error\ndata: ([^\n]+)\n\n/,
+    );
+    const inStreamErrorBody = inStreamErrorMatch === null
+      ? null
+      : JSON.parse(inStreamErrorMatch[1]);
+    assert(
+      postSemanticResponse.status === 200 &&
+        postSemanticResponse.body.includes(
+          "installed-post-semantic-primary",
+        ) &&
+        inStreamErrorBody?.error?.type === "unsafe_to_replay" &&
+        inStreamErrorBody.error.semantic_output === true,
+      "installed router did not expose the post-semantic unsafe-to-replay error",
+    );
+    assert(
+      JSON.stringify(syntheticHttpSseRoleSequences.post_semantic) ===
+        JSON.stringify(["primary"]),
+      "installed router contacted a secondary after semantic output",
+    );
+    assert(
+      fixtureUpstreamFailure === null,
+      fixtureUpstreamFailure ??
+        "installed router synthetic HTTP/SSE verification failed",
+    );
+    const syntheticHttpSseSafetyBoundaries = {
+      scenarios: 2,
+      process_starts: 2,
+      readiness_statuses: httpSseReadinessStatuses,
+      initial_requests: 2,
+      pre_semantic: {
+        downstream_status: preSemanticResponse.status,
+        failure_kind: "quota_exhausted",
+        upstream_role_sequence:
+          syntheticHttpSseRoleSequences.pre_semantic,
+        upstream_attempts:
+          syntheticHttpSseRoleSequences.pre_semantic.length,
+        secondary_semantic_marker_received: true,
+        retry_bound_observed: true,
+      },
+      post_semantic: {
+        downstream_status: postSemanticResponse.status,
+        upstream_role_sequence:
+          syntheticHttpSseRoleSequences.post_semantic,
+        upstream_attempts:
+          syntheticHttpSseRoleSequences.post_semantic.length,
+        primary_semantic_marker_received: true,
+        unsafe_to_replay_exposed: true,
+        semantic_output: true,
+        secondary_contacted: false,
+      },
+      local_fixture_upstream_only: true,
+      synthetic_credential_acquisition_tested: true,
+      synthetic_model_requests_sent: httpSseResponses.size,
+      synthetic_upstream_attempts:
+        syntheticHttpSseRoleSequences.pre_semantic.length +
+        syntheticHttpSseRoleSequences.post_semantic.length,
+      manual_switch_tested: false,
+      real_credentials_present: false,
+      real_model_request_sent: false,
+      real_account_switch_tested: false,
+      in_flight_resume_tested: false,
+    };
+
     return {
       health_status: healthResponse.status,
       readiness_status: readinessResponse.status,
@@ -978,6 +1177,8 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       listener_start_interruptions: listenerStartInterruptions,
       synthetic_two_binding_restart: syntheticTwoBindingRestart,
       synthetic_weekly_quota_restart: syntheticWeeklyQuotaRestart,
+      synthetic_http_sse_safety_boundaries:
+        syntheticHttpSseSafetyBoundaries,
     };
   } finally {
     if (child && child.exitCode === null && child.signalCode === null) {

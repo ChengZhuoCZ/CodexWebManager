@@ -239,4 +239,36 @@ test("installed release verifies stalled startup stop signals", async (context) 
     real_account_switch_tested: false,
     in_flight_resume_tested: false,
   });
+  assert.deepEqual(summary.runtime.synthetic_http_sse_safety_boundaries, {
+    scenarios: 2,
+    process_starts: 2,
+    readiness_statuses: [200, 200],
+    initial_requests: 2,
+    pre_semantic: {
+      downstream_status: 200,
+      failure_kind: "quota_exhausted",
+      upstream_role_sequence: ["primary", "secondary"],
+      upstream_attempts: 2,
+      secondary_semantic_marker_received: true,
+      retry_bound_observed: true,
+    },
+    post_semantic: {
+      downstream_status: 200,
+      upstream_role_sequence: ["primary"],
+      upstream_attempts: 1,
+      primary_semantic_marker_received: true,
+      unsafe_to_replay_exposed: true,
+      semantic_output: true,
+      secondary_contacted: false,
+    },
+    local_fixture_upstream_only: true,
+    synthetic_credential_acquisition_tested: true,
+    synthetic_model_requests_sent: 2,
+    synthetic_upstream_attempts: 3,
+    manual_switch_tested: false,
+    real_credentials_present: false,
+    real_model_request_sent: false,
+    real_account_switch_tested: false,
+    in_flight_resume_tested: false,
+  });
 });
