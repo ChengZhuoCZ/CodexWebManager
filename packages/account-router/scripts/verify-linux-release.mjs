@@ -499,6 +499,112 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       listenerStartInterruptions.push(listenerStartInterruption);
     }
 
+    const syntheticBindingRoot = path.join(temporaryRoot, "synthetic-bindings");
+    const syntheticStateDirectory = path.join(temporaryRoot, "synthetic-state");
+    const syntheticAccountsFile = path.join(syntheticBindingRoot, "accounts.json");
+    await fs.mkdir(syntheticBindingRoot, { mode: 0o700 });
+    await fs.mkdir(syntheticStateDirectory, { mode: 0o700 });
+    const syntheticBindings = [
+      {
+        id: "fixture-account-a",
+        alias: "Fixture Account A",
+        enabled: true,
+        priority: 1,
+        max_concurrency: 1,
+        provider: "openai-codex",
+        secret_provider: "codex-auth",
+        credential_ref: "fixture-a.json",
+      },
+      {
+        id: "fixture-account-b",
+        alias: "Fixture Account B",
+        enabled: true,
+        priority: 2,
+        max_concurrency: 1,
+        provider: "openai-codex",
+        secret_provider: "codex-auth",
+        credential_ref: "fixture-b.json",
+      },
+    ];
+    await fs.writeFile(
+      syntheticAccountsFile,
+      `${JSON.stringify({ version: 1, accounts: syntheticBindings })}\n`,
+      { mode: 0o600 },
+    );
+    for (const binding of syntheticBindings) {
+      await fs.writeFile(
+        path.join(syntheticBindingRoot, binding.credential_ref),
+        "{}\n",
+        { mode: 0o600 },
+      );
+    }
+
+    const syntheticReadinessStatuses = [];
+    const syntheticUsableAccounts = [];
+    const syntheticExitCodes = [];
+    let stateCheckpointFilesAfterFirstStop = 0;
+    for (let processStart = 0; processStart < 2; processStart += 1) {
+      child = spawn(path.join(current, "bin/codex-account-router"), [], {
+        cwd: current,
+        env: {
+          ...scrubbedRuntimeEnvironment(homeDirectory),
+          CODEX_ROUTER_ACCOUNTS_FILE: syntheticAccountsFile,
+          CODEX_ROUTER_CREDENTIAL_ROOT: syntheticBindingRoot,
+          CODEX_ROUTER_STATE_DIRECTORY: syntheticStateDirectory,
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      const syntheticStarted = await waitForStart(child);
+      const syntheticOrigin =
+        `http://127.0.0.1:${syntheticStarted.record.bind_port}`;
+      const syntheticReadyResponse = await fetch(`${syntheticOrigin}/readyz`, {
+        signal: AbortSignal.timeout(5_000),
+      });
+      const syntheticReadiness = await syntheticReadyResponse.json();
+      assert(
+        syntheticReadyResponse.status === 200 &&
+          syntheticReadiness.status === "ready" &&
+          syntheticReadiness.usable_accounts === 2,
+        "installed router did not retain two synthetic bindings across restart",
+      );
+      syntheticReadinessStatuses.push(syntheticReadyResponse.status);
+      syntheticUsableAccounts.push(syntheticReadiness.usable_accounts);
+      child.kill("SIGTERM");
+      const [syntheticExitCode, syntheticExitSignal] = await waitForExit(child);
+      child = undefined;
+      assert(
+        syntheticExitCode === 0 && syntheticExitSignal === null,
+        "installed router with synthetic bindings did not exit cleanly",
+      );
+      assert(
+        syntheticStarted.getStderr() === "",
+        "installed router with synthetic bindings wrote an error log",
+      );
+      syntheticExitCodes.push(syntheticExitCode);
+      if (processStart === 0) {
+        const checkpointFiles = (await fs.readdir(syntheticStateDirectory))
+          .filter((name) => name === "circuit-state.json" || name === "routing-state.json");
+        assert(
+          checkpointFiles.length === 2,
+          "installed router did not persist both restart checkpoints",
+        );
+        stateCheckpointFilesAfterFirstStop = checkpointFiles.length;
+      }
+    }
+    const syntheticTwoBindingRestart = {
+      configured_bindings: syntheticBindings.length,
+      process_starts: 2,
+      restart_count: 1,
+      state_checkpoint_files_after_first_stop: stateCheckpointFilesAfterFirstStop,
+      readiness_statuses: syntheticReadinessStatuses,
+      usable_accounts: syntheticUsableAccounts,
+      sigterm_exit_codes: syntheticExitCodes,
+      synthetic_credential_acquisition_tested: false,
+      real_credentials_present: false,
+      model_request_sent: false,
+      account_switch_tested: false,
+    };
+
     return {
       health_status: healthResponse.status,
       readiness_status: readinessResponse.status,
@@ -514,6 +620,7 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       startup_interruptions: startupInterruptions,
       listener_start_interruption: listenerStartInterruptions[0],
       listener_start_interruptions: listenerStartInterruptions,
+      synthetic_two_binding_restart: syntheticTwoBindingRestart,
     };
   } finally {
     if (child && child.exitCode === null && child.signalCode === null) {

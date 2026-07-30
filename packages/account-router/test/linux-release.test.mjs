@@ -200,4 +200,17 @@ test("installed release verifies stalled startup stop signals", async (context) 
       stderr_bytes: 0,
     })),
   );
+  assert.deepEqual(summary.runtime.synthetic_two_binding_restart, {
+    configured_bindings: 2,
+    process_starts: 2,
+    restart_count: 1,
+    state_checkpoint_files_after_first_stop: 2,
+    readiness_statuses: [200, 200],
+    usable_accounts: [2, 2],
+    sigterm_exit_codes: [0, 0],
+    synthetic_credential_acquisition_tested: false,
+    real_credentials_present: false,
+    model_request_sent: false,
+    account_switch_tested: false,
+  });
 });
