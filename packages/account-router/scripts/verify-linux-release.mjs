@@ -386,52 +386,59 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
     assert(exitCode === 0 && signal === null, "installed router did not exit cleanly on SIGTERM");
     assert(started.getStderr() === "", "installed router wrote an error log");
 
-    const stalledAccountsPath = path.join(temporaryRoot, "synthetic-stalled-accounts.json");
-    child = spawn(
-      process.execPath,
-      [
-        "--import",
-        pathToFileURL(
-          path.join(PACKAGE_ROOT, "fixtures/startup/stall-runtime-load.mjs"),
-        ).href,
-        path.join(installedRoot, "lib/account-router/src/main.mjs"),
-      ],
-      {
-        cwd: current,
-        env: {
-          ...scrubbedRuntimeEnvironment(homeDirectory),
-          CODEX_ROUTER_ACCOUNTS_FILE: stalledAccountsPath,
-          CODEX_ROUTER_CREDENTIAL_ROOT: path.join(temporaryRoot, "synthetic-credentials"),
-          CODEX_ROUTER_TEST_STALLED_ACCOUNTS_FILE: stalledAccountsPath,
+    const startupInterruptions = [];
+    for (const stopSignal of ["SIGTERM", "SIGINT"]) {
+      const stalledAccountsPath = path.join(
+        temporaryRoot,
+        `synthetic-stalled-accounts-${stopSignal.toLowerCase()}.json`,
+      );
+      child = spawn(
+        process.execPath,
+        [
+          "--import",
+          pathToFileURL(
+            path.join(PACKAGE_ROOT, "fixtures/startup/stall-runtime-load.mjs"),
+          ).href,
+          path.join(installedRoot, "lib/account-router/src/main.mjs"),
+        ],
+        {
+          cwd: current,
+          env: {
+            ...scrubbedRuntimeEnvironment(homeDirectory),
+            CODEX_ROUTER_ACCOUNTS_FILE: stalledAccountsPath,
+            CODEX_ROUTER_CREDENTIAL_ROOT: path.join(temporaryRoot, "synthetic-credentials"),
+            CODEX_ROUTER_TEST_STALLED_ACCOUNTS_FILE: stalledAccountsPath,
+          },
+          stdio: ["ignore", "pipe", "pipe"],
         },
-        stdio: ["ignore", "pipe", "pipe"],
-      },
-    );
-    const stalled = await waitForStalledStartup(child);
-    child.kill("SIGTERM");
-    const [startupExitCode, startupExitSignal] = await waitForExit(child);
-    child = undefined;
-    const stalledStdout = stalled.getStdout();
-    const stalledStderr = stalled.getStderr();
-    const startupInterruption = {
-      signal: "SIGTERM",
-      stalled_before_runtime_creation: true,
-      exit_code: startupExitCode,
-      exit_signal: startupExitSignal,
-      router_stopping_emitted: stalledStdout.includes('"event":"router_stopping"'),
-      router_started_emitted: stalledStdout.includes('"event":"router_started"'),
-      router_start_failed_emitted: stalledStderr.includes('"event":"router_start_failed"'),
-      stderr_bytes: Buffer.byteLength(stalledStderr),
-    };
-    assert(
-      startupInterruption.exit_code === 0 &&
-        startupInterruption.exit_signal === null &&
-        startupInterruption.router_stopping_emitted === true &&
-        startupInterruption.router_started_emitted === false &&
-        startupInterruption.router_start_failed_emitted === false &&
-        startupInterruption.stderr_bytes === 0,
-      "installed router did not stop cleanly during stalled startup",
-    );
+      );
+      const stalled = await waitForStalledStartup(child);
+      child.kill(stopSignal);
+      const [startupExitCode, startupExitSignal] = await waitForExit(child);
+      child = undefined;
+      const stalledStdout = stalled.getStdout();
+      const stalledStderr = stalled.getStderr();
+      const startupInterruption = {
+        signal: stopSignal,
+        stalled_before_runtime_creation: true,
+        exit_code: startupExitCode,
+        exit_signal: startupExitSignal,
+        router_stopping_emitted: stalledStdout.includes('"event":"router_stopping"'),
+        router_started_emitted: stalledStdout.includes('"event":"router_started"'),
+        router_start_failed_emitted: stalledStderr.includes('"event":"router_start_failed"'),
+        stderr_bytes: Buffer.byteLength(stalledStderr),
+      };
+      assert(
+        startupInterruption.exit_code === 0 &&
+          startupInterruption.exit_signal === null &&
+          startupInterruption.router_stopping_emitted === true &&
+          startupInterruption.router_started_emitted === false &&
+          startupInterruption.router_start_failed_emitted === false &&
+          startupInterruption.stderr_bytes === 0,
+        `installed router did not stop cleanly during stalled startup on ${stopSignal}`,
+      );
+      startupInterruptions.push(startupInterruption);
+    }
 
     return {
       health_status: healthResponse.status,
@@ -444,7 +451,8 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       account_configuration_present: false,
       account_switch_tested: false,
       architecture,
-      startup_interruption: startupInterruption,
+      startup_interruption: startupInterruptions[0],
+      startup_interruptions: startupInterruptions,
     };
   } finally {
     if (child && child.exitCode === null && child.signalCode === null) {

@@ -117,7 +117,7 @@ test("rejects unsupported Linux architectures before writing an artifact", async
   assert.deepEqual(await fs.readdir(outputDirectory), []);
 });
 
-test("installed release verifies stalled startup SIGTERM", async (context) => {
+test("installed release verifies stalled startup stop signals", async (context) => {
   const temporaryRoot = await temporaryDirectory(context);
   const release = await buildLinuxRelease({
     architecture: "x64",
@@ -162,4 +162,17 @@ test("installed release verifies stalled startup SIGTERM", async (context) => {
     router_start_failed_emitted: false,
     stderr_bytes: 0,
   });
+  assert.deepEqual(
+    summary.runtime.startup_interruptions,
+    ["SIGTERM", "SIGINT"].map((signal) => ({
+      signal,
+      stalled_before_runtime_creation: true,
+      exit_code: 0,
+      exit_signal: null,
+      router_stopping_emitted: true,
+      router_started_emitted: false,
+      router_start_failed_emitted: false,
+      stderr_bytes: 0,
+    })),
+  );
 });
