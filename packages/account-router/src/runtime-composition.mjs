@@ -509,9 +509,12 @@ export function createRuntimeComposition({
     return withRoutingMutation(() => recordWeeklyQuotaObservation(payload));
   }
 
-  async function recordAttemptFailure({ accountId, kind, retryAfterMs }) {
-    await pendingPersistence;
-    await pendingRoutingPersistence;
+  async function recordAttemptFailure({ accountId, kind, retryAfterMs, signal = null }) {
+    throwIfAborted(signal);
+    await awaitWithAbort(pendingPersistence, signal);
+    throwIfAborted(signal);
+    await awaitWithAbort(pendingRoutingPersistence, signal);
+    throwIfAborted(signal);
     if (persistenceFailure !== null || routingPersistenceFailure !== null) {
       throw persistenceUnavailable();
     }
@@ -525,8 +528,9 @@ export function createRuntimeComposition({
     lastUnavailableReason.set(accountId, kind);
     if (preferredAccountId === accountId) preferredAccountId = null;
     updateFailureStatus(accountId, kind);
-    await persistRuntimeState();
-    await persistRoutingState();
+    await persistRuntimeState({ signal });
+    throwIfAborted(signal);
+    await persistRoutingState(undefined, { signal });
   }
 
   function onAttemptFailure(payload) {

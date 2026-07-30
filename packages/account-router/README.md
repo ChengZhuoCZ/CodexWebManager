@@ -98,7 +98,9 @@ marks both readiness and later selection unavailable, while a different eligible
 only a later new request while the prior classification write remains pending. The private
 half-open checkpoint also observes the selection boundary and releases an unconsumed probe on
 deadline or cancellation; a later manual route and a later probe retry remain separate new
-requests.
+requests. A retryable upstream failure's circuit and route checkpoint receives the same bounded
+callback signal, so an abandoned failure record cannot retain the serialized selector; any
+different-account route still applies only to a later new request.
 Tests use fixture accounts only; they do not access or switch any real account.
 
 ## Optional codex-web status bridge

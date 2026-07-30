@@ -299,6 +299,7 @@ test("feeds explicit account failures into the M2.3 circuit breaker callback", a
     baseBackoffMs: 1,
     maxBackoffMs: 1,
   });
+  let callbackSignal;
   const result = await machine.execute({
     replayPolicy: "initial_request",
     selectAccount: selector(["A", "B"]),
@@ -308,11 +309,14 @@ test("feeds explicit account failures into the M2.3 circuit breaker callback", a
       }
       return "complete";
     },
-    async onAttemptFailure({ accountId, kind, retryAfterMs }) {
+    async onAttemptFailure({ accountId, kind, retryAfterMs, signal }) {
+      callbackSignal = signal;
       breaker.recordFailure(accountId, { kind, retryAfterMs });
     },
   });
   assert.equal(result.attempts, 2);
+  assert.ok(callbackSignal instanceof AbortSignal);
+  assert.equal(callbackSignal.aborted, false);
   assert.equal(breaker.snapshot("A").phase, "open");
   assert.equal(breaker.snapshot("A").last_failure_kind, "rate_limited");
   assert.equal(breaker.tryAcquire("A").allowed, false);

@@ -386,12 +386,13 @@ export function createFailoverStateMachine({
                   now,
                   deadlineAt,
                   externalSignal: signal,
-                  invoke: () => onAttemptFailure(Object.freeze({
+                  invoke: (failureSignal) => onAttemptFailure(Object.freeze({
                     accountId,
                     attempt: attempts,
                     kind: failure.kind,
                     retryAfterMs: failure.retryAfterMs,
                     semanticOutput,
+                    signal: failureSignal,
                   })),
                 });
               } catch (error) {

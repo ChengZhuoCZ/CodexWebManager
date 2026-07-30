@@ -941,6 +941,120 @@ test("releases a half-open probe when its persistence checkpoint outlives the de
   assert.equal((await adminStatus(runtime)).accounts[0].state, "healthy");
 });
 
+test("releases the routing lock when attempt-failure persistence outlives the deadline", async (context) => {
+  let releaseSave;
+  let announceSave;
+  const saveGate = new Promise((resolve) => { releaseSave = resolve; });
+  const saveStarted = new Promise((resolve) => { announceSave = resolve; });
+  let saveCalls = 0;
+  const circuitStateStore = {
+    async load() { return null; },
+    async save() {
+      saveCalls += 1;
+      if (saveCalls !== 1) return;
+      announceSave();
+      await saveGate;
+    },
+  };
+  const selectedUpstreamAccounts = [];
+  const upstream = http.createServer((request, response) => {
+    const accountId = request.headers["chatgpt-account-id"];
+    selectedUpstreamAccounts.push(accountId);
+    request.resume();
+    if (accountId === "fixture-a") {
+      response.writeHead(503, { "content-type": "application/json" });
+      response.end('{"error":{"type":"fixture_upstream_unavailable"}}');
+      return;
+    }
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end('{"models":[{"slug":"fixture-model"}]}');
+  });
+  context.after(() => close(upstream));
+  const upstreamOrigin = await listen(upstream);
+  const runtime = createRuntimeComposition(runtimeOptions({
+    accounts: [
+      account({ priority: 10 }),
+      account({
+        id: "fixture-account-b",
+        alias: "Fixture B",
+        priority: 0,
+        credentialRef: "fixture-b",
+      }),
+    ],
+    circuitStateStore,
+    failoverOptions: {
+      maxAttempts: 2,
+      totalDeadlineMs: 250,
+      baseBackoffMs: 1,
+      maxBackoffMs: 1,
+    },
+    routingStateStore: {
+      async load() { return null; },
+      async save() {},
+    },
+    initialRoutingState: null,
+    upstreamOrigin,
+  }));
+  context.after(async () => {
+    releaseSave();
+    await runtime.stop().catch(() => undefined);
+  });
+  await runtime.start();
+
+  const timedOutPromise = fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/backend-api/codex/models`,
+  );
+  await saveStarted;
+  const timedOut = await timedOutPromise;
+  assert.equal(timedOut.status, 503);
+  assert.deepEqual(await timedOut.json(), {
+    error: {
+      type: "all_accounts_unavailable",
+      reason: "total_deadline_exceeded",
+      attempts: 1,
+      semantic_output: false,
+    },
+  });
+  assert.deepEqual(selectedUpstreamAccounts, ["fixture-a"]);
+
+  const switchToBPromise = fetch(
+    `http://127.0.0.1:${runtime.addresses.admin.port}/v1/switch`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${ADMIN_TOKEN}`,
+        "content-type": "application/json",
+      },
+      body: '{"account_alias":"Fixture B","reason":"manual"}',
+    },
+  );
+  const switchSettledBeforeSave = await Promise.race([
+    switchToBPromise.then(() => true),
+    new Promise((resolve) => setTimeout(() => resolve(false), 100)),
+  ]);
+  assert.equal(switchSettledBeforeSave, true);
+  const switchedToB = await switchToBPromise;
+  assert.equal(switchedToB.status, 200);
+  await switchedToB.arrayBuffer();
+
+  const routedToB = await fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/backend-api/codex/models`,
+  );
+  assert.equal(routedToB.status, 200);
+  await routedToB.arrayBuffer();
+  assert.deepEqual(selectedUpstreamAccounts, ["fixture-a", "fixture-b"]);
+
+  releaseSave();
+  await new Promise((resolve) => setImmediate(resolve));
+  const status = await adminStatus(runtime);
+  assert.equal(status.accounts[0].state, "cooling_down");
+  assert.equal(status.accounts[0].last_switch_reason, "upstream_5xx");
+  assert.deepEqual(status.current_route, {
+    account_alias: "Fixture B",
+    continuity: "new_backend_session",
+  });
+});
+
 test("does not acknowledge a manual preference when private route persistence fails", async (context) => {
   const runtime = createRuntimeComposition(runtimeOptions({
     accounts: [
