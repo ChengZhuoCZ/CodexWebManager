@@ -1,0 +1,300 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_installed_websocket_pre_semantic_failure_classifications",
+  "generated_at": "2026-07-31T05:06:22+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "77de7f19a108b2efdd13786707e2fb7b05bf531c",
+  "output_revision": "72557968c7d8f0c8b8cccd2e4c3df07df0731c41",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Verify the installed candidate safely transfers an initial WebSocket request from primary to secondary before semantic output for explicit upgrade 429, upgrade 401, connection close before upgrade headers and upgrade 503 classifications.",
+    "release_payload_changed": false,
+    "release_version_changed": false,
+    "candidate_release": "codex-account-router-0.2.29-linux-x64",
+    "candidate_sha256": "471bbacf24c78fe41ae81cff3b30da4cf7666cbcf190b76c3dd8fec53a7ca615",
+    "synthetic_binding_definitions_per_scenario": 2,
+    "scenarios": 4,
+    "installed_process_starts": 4,
+    "fresh_private_state_directories": 4,
+    "loopback_fixture_upstream_only": true,
+    "runtime_generated_synthetic_credentials": true,
+    "synthetic_credential_values_emitted": false,
+    "startup_deadline_ms": 15000,
+    "readiness_deadline_ms": 5000,
+    "websocket_message_deadline_ms": 2000,
+    "shutdown_deadline_ms": 10000,
+    "max_upstream_attempts_per_request": 2,
+    "observed_upstream_attempts": 8,
+    "third_upstream_attempts_observed": 0,
+    "request_failover_policy_changed": false,
+    "production_release_payload_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "node --test packages/account-router/test/linux-release.test.mjs",
+    "before_implementation": {
+      "tests": 3,
+      "passed": 2,
+      "failed": 1,
+      "observed_failure": "The installed-release verification summary had no synthetic_websocket_pre_semantic_failure_classifications result.",
+      "test_duration_ms": 3201.469194,
+      "node_command_duration_ms": 3285.116402,
+      "attempt_limit": 1,
+      "attempts_used": 1
+    },
+    "after_implementation": {
+      "tests": 3,
+      "passed": 3,
+      "failed": 0,
+      "test_duration_ms": 4178.04311,
+      "node_command_duration_ms": 4262.743499,
+      "attempt_limit": 1,
+      "attempts_used": 1
+    }
+  },
+  "installed_websocket_pre_semantic_failure_classifications": {
+    "summary": "evidence/M6.9/router-r62-linux-release-verify.json",
+    "configured_bindings": 2,
+    "scenarios": 4,
+    "process_starts": 4,
+    "readiness_statuses": [
+      200,
+      200,
+      200,
+      200
+    ],
+    "downstream_upgrade_statuses": [
+      101,
+      101,
+      101,
+      101
+    ],
+    "initial_requests": 4,
+    "classifications": {
+      "rate_limited": {
+        "primary_failure_injection": "upgrade_http_429",
+        "upstream_role_sequence": [
+          "primary",
+          "secondary"
+        ],
+        "upstream_attempts": 2,
+        "secondary_semantic_marker_received": true,
+        "completed": true,
+        "downstream_error_exposed": false,
+        "third_upstream_attempt_observed": false
+      },
+      "auth_expired": {
+        "primary_failure_injection": "upgrade_http_401",
+        "upstream_role_sequence": [
+          "primary",
+          "secondary"
+        ],
+        "upstream_attempts": 2,
+        "secondary_semantic_marker_received": true,
+        "completed": true,
+        "downstream_error_exposed": false,
+        "third_upstream_attempt_observed": false
+      },
+      "network_error": {
+        "primary_failure_injection": "connection_closed_before_upgrade_headers",
+        "upstream_role_sequence": [
+          "primary",
+          "secondary"
+        ],
+        "upstream_attempts": 2,
+        "secondary_semantic_marker_received": true,
+        "completed": true,
+        "downstream_error_exposed": false,
+        "third_upstream_attempt_observed": false
+      },
+      "upstream_5xx": {
+        "primary_failure_injection": "upgrade_http_503",
+        "upstream_role_sequence": [
+          "primary",
+          "secondary"
+        ],
+        "upstream_attempts": 2,
+        "secondary_semantic_marker_received": true,
+        "completed": true,
+        "downstream_error_exposed": false,
+        "third_upstream_attempt_observed": false
+      }
+    },
+    "max_upstream_attempts_per_request": 2,
+    "third_upstream_attempts_observed": 0,
+    "local_fixture_upstream_only": true,
+    "synthetic_credential_acquisition_tested": true,
+    "synthetic_websocket_requests_sent": 4,
+    "synthetic_upstream_attempts": 8,
+    "manual_switch_tested": false,
+    "real_configuration_read": false,
+    "real_credentials_read": false,
+    "real_model_request_sent": false,
+    "real_account_switch_tested": false,
+    "in_flight_resume_tested": false
+  },
+  "verification": {
+    "related_websocket_runtime_and_release": {
+      "tests": 33,
+      "passed": 33,
+      "failed": 0,
+      "skipped": 0,
+      "duration_ms": 4241.386066
+    },
+    "changed_file_syntax": {
+      "command": "node --check packages/account-router/scripts/verify-linux-release.mjs && node --check packages/account-router/test/linux-release.test.mjs && git diff --check",
+      "passed": true
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 321,
+      "passed": 296,
+      "failed": 0,
+      "skipped": 25,
+      "runner": "umask 0022; node --test",
+      "attempt_limit": 1,
+      "attempts_used": 1,
+      "duration_ms": 10323.636493
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r62-strict-matrix-summary.json",
+      "tests": 321,
+      "passed": 321,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1,
+      "unit_passed": 157,
+      "integration_passed": 116,
+      "e2e_passed": 48,
+      "fixture_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf"
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r62-security-summary.json",
+      "qualified": true,
+      "files_scanned": 525,
+      "findings": 0,
+      "focused_tests": 104,
+      "focused_passed": 104,
+      "focused_skipped": 0,
+      "retained_strict_ui_passed": 492,
+      "attempt_limit": 3,
+      "attempts_used": 3,
+      "first_attempt": {
+        "result": "preliminary_passed",
+        "files_scanned": 520,
+        "focused_passed": 104
+      },
+      "second_attempt": {
+        "result": "evidence_tree_pre_state_passed",
+        "files_scanned": 525,
+        "focused_passed": 104
+      },
+      "third_attempt": {
+        "result": "final_state_and_evidence_tree_passed",
+        "files_scanned": 525,
+        "focused_passed": 104
+      }
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r62-linux-release-verify.json",
+      "release": "codex-account-router-0.2.29-linux-x64",
+      "sha256": "471bbacf24c78fe41ae81cff3b30da4cf7666cbcf190b76c3dd8fec53a7ca615",
+      "rebuilt_candidate_matched_existing_archive_byte_for_byte": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "health_status": 200,
+      "no_account_readiness_status": 503,
+      "normal_sigterm_exit_code": 0,
+      "synthetic_websocket_failure_scenarios": 4,
+      "synthetic_websocket_failure_readiness_statuses": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "synthetic_websocket_downstream_upgrade_statuses": [
+        101,
+        101,
+        101,
+        101
+      ],
+      "synthetic_websocket_upstream_attempts": 8,
+      "synthetic_websocket_max_attempts_per_request": 2,
+      "synthetic_websocket_third_attempts": 0,
+      "synthetic_websocket_downstream_intermediate_errors": 0,
+      "synthetic_credential_acquisition_tested": true,
+      "synthetic_websocket_requests_sent": 4,
+      "real_account_configured": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r62.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure is unchanged and /opt/codex-account-router remains root-owned mode 0755 and non-writable by the service user.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.29-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "active_router_effective_unit_sha256": "230dba0a5f7e283f4db2291e4bc6ab7b078eebd63e89e9275a9028185531dddc",
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "exec_start_monotonic": 196497166049,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200,
+      "effective_unit_sha256": "543ddc71409cc088522e80651955a988cc9f2229e9da29dc8a9107c3def3ea1a"
+    },
+    "app_server": {
+      "pid": 508396,
+      "exec_start_monotonic": 194490256322,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running",
+      "effective_unit_sha256": "daaefec18fde144f1801e5b4e60a13cfe9e7c8abe98799192ee59a0f3b66db2f"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "web_exec_start_monotonic": 205386075197,
+    "web_effective_unit_sha256": "bcf691a9362a8f91c4a8d2680631b238bd6ba9ada7e18975bdc567ace4823ca2",
+    "app_server_pid": 495033,
+    "app_server_exec_start_monotonic": 188703455553,
+    "app_server_effective_unit_sha256": "5b44e7e28c57daebdf97eb9e5bbb1e5cd6655a7511a7117079988326fea1be2b",
+    "loopback_http_status": 200,
+    "tailnet_http_status": 200,
+    "router_readyz_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.29 remains a verified but inactive candidate until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "The two credential documents and account headers are runtime-generated synthetic values confined to a private temporary directory and are never emitted in the evidence summary.",
+    "These installed-package scenarios prove separate initial WebSocket requests can transfer before semantic output for four explicit upgrade or connection failure classifications; they do not prove an in-flight request or backend session can be resumed.",
+    "An installed WebSocket whole-pool-unavailable exact terminal error remains fixture-only follow-up work.",
+    "The tests use synthetic runtime/services/accounts and do not qualify a real A-to-B switch.",
+    "No test claims migration, resume or restoration of an in-flight request, backend session or running computation.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
