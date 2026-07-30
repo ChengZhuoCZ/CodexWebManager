@@ -1,0 +1,190 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_bounded_graceful_shutdown_and_release_candidate",
+  "generated_at": "2026-07-30T20:37:11+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "6c2642364cb9c060be6c89d6e4ddaf85f7449e85",
+  "output_revision": "acca9e5717fbffe4dc14e3862e6b3d3321033d28",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Apply one bounded graceful-shutdown signal to listener stop, routing mutations, queued private writes and final state checkpoints so stalled persistence cannot indefinitely wedge a router restart.",
+    "default_shutdown_deadline_ms": 5000,
+    "maximum_shutdown_deadline_ms": 60000,
+    "packaged_systemd_stop_window_ms": 20000,
+    "listener_stop_observes_deadline": true,
+    "routing_mutation_tail_observes_deadline": true,
+    "queued_circuit_state_writes_receive_signal": true,
+    "queued_route_state_writes_receive_signal": true,
+    "final_circuit_checkpoint_observes_deadline": true,
+    "final_route_checkpoint_observes_deadline": true,
+    "concurrent_stop_callers_share_result": true,
+    "deadline_error": "runtime shutdown deadline exceeded",
+    "runtime_state_after_deadline": "stopped",
+    "request_failover_policy_changed": false,
+    "active_semantic_stream_policy_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "timeout 10s node --test --test-name-pattern='bounds shutdown when final private state persistence is stalled' packages/account-router/test/runtime-persistence.test.mjs",
+    "before_implementation": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "observed_failure": "The graceful stop did not settle inside the fixture's 250 millisecond observation window while its final private state save remained stalled.",
+      "node_command_duration_ms": 323.249,
+      "test_duration_ms": 261.9,
+      "bounded_cleanup": "The fixture after-hook released the synthetic state-save gate and awaited the original stop promise so the externally bounded command exited normally."
+    },
+    "after_implementation": {
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "node_command_duration_ms": 325.303,
+      "test_duration_ms": 110.556,
+      "save_abort_signal_observed": true,
+      "deadline_failure_observed": true,
+      "runtime_stopped": true
+    }
+  },
+  "verification": {
+    "shutdown_failure_injection": {
+      "tests": 3,
+      "passed": 3,
+      "failed": 0,
+      "covers": [
+        "stalled final private circuit-state checkpoint",
+        "stalled queued private route-state write",
+        "two concurrent stop callers sharing the deadline failure",
+        "invalid shutdown-deadline configuration"
+      ]
+    },
+    "focused_persistence_runtime_and_state_machine": {
+      "tests": 58,
+      "passed": 58,
+      "failed": 0,
+      "skipped": 0
+    },
+    "critical_failover_and_restart": {
+      "tests": 107,
+      "passed": 107,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "HTTP/SSE bounded pre-semantic failover and post-semantic no-replay",
+        "WebSocket bounded pre-semantic failover and post-semantic no-replay",
+        "weekly/circuit/route persistence and restart behavior",
+        "bounded durable manual switching and active-stream exclusion",
+        "bounded retry, selection and shutdown deadlines"
+      ]
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 299,
+      "passed": 274,
+      "failed": 0,
+      "skipped": 25
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r43-strict-matrix-summary.json",
+      "tests": 299,
+      "passed": 299,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r43-security-summary.json",
+      "qualified": true,
+      "files_scanned": 428,
+      "findings": 0,
+      "focused_tests": 90,
+      "focused_passed": 90,
+      "retained_strict_ui_passed": 492
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r43-linux-release-verify.json",
+      "release": "codex-account-router-0.2.22-linux-x64",
+      "sha256": "a2432050f9ff5b09e855c0358fcfd615ba8e79823118f5bb007688d12dd34625",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "normal_sigterm_exit_code": 0,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    },
+    "tooling_note": {
+      "command": "timeout 60s npm run check",
+      "started": false,
+      "reason": "The host exposes Node v22.23.1 but no npm executable.",
+      "replacement": "Direct node --check passed for every changed JavaScript file."
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r43.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure is unchanged and /opt/codex-account-router remains root-owned mode 0755 and non-writable by the service user.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.22-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "active_router_effective_unit_sha256": "230dba0a5f7e283f4db2291e4bc6ab7b078eebd63e89e9275a9028185531dddc",
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "exec_start_monotonic": 196497166049,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200,
+      "effective_unit_sha256": "543ddc71409cc088522e80651955a988cc9f2229e9da29dc8a9107c3def3ea1a"
+    },
+    "app_server": {
+      "pid": 508396,
+      "exec_start_monotonic": 194490256322,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running",
+      "effective_unit_sha256": "daaefec18fde144f1801e5b4e60a13cfe9e7c8abe98799192ee59a0f3b66db2f"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "web_exec_start_monotonic": 205386075197,
+    "web_effective_unit_sha256": "bcf691a9362a8f91c4a8d2680631b238bd6ba9ada7e18975bdc567ace4823ca2",
+    "app_server_pid": 495033,
+    "app_server_exec_start_monotonic": 188703455553,
+    "app_server_effective_unit_sha256": "5b44e7e28c57daebdf97eb9e5bbb1e5cd6655a7511a7117079988326fea1be2b",
+    "http_status": 200,
+    "tailnet_http_status": 200,
+    "router_readyz_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.22 is verified but is not active until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "A shutdown deadline can end before the latest in-memory change reaches its final checkpoint; restart uses the most recent successfully committed private state.",
+    "Once synchronous rename-plus-directory-fsync begins, timer cancellation cannot interleave and the kernel calls are not a hard real-time latency guarantee.",
+    "A custom state store that ignores AbortSignal may complete its own work late and is not treated as equivalent to the production private store.",
+    "Bounded process shutdown does not replay, migrate, resume or restore an in-flight request or running computation.",
+    "The tests use synthetic accounts only and do not qualify a real A-to-B switch.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
