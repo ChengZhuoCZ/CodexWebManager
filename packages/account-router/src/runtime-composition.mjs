@@ -328,13 +328,17 @@ export function createRuntimeComposition({
     return lastUnavailableReason.get(currentAccountId) ?? "startup";
   }
 
-  function recordSelectedRoute(accountId) {
+  async function recordSelectedRoute(accountId) {
     const reason = routeReasonFor(accountId);
     if (reason === null) {
       lastUnavailableReason.delete(accountId);
       return;
     }
     const fromAccountId = currentAccountId;
+    await persistRoutingState(exportRoutingState({
+      current: accountId,
+      preferred: preferredAccountId,
+    }));
     adminState.recordSwitch({
       fromAccountId,
       toAccountId: accountId,
@@ -342,7 +346,6 @@ export function createRuntimeComposition({
     });
     currentAccountId = accountId;
     lastUnavailableReason.delete(accountId);
-    queueRoutingStatePersistence();
   }
 
   function onSemanticStreamStart() {
@@ -498,7 +501,7 @@ export function createRuntimeComposition({
       }
 
       try {
-        recordSelectedRoute(accountId);
+        await recordSelectedRoute(accountId);
       } catch {
         secretLease.dispose();
         throw new Error("runtime route state is unavailable");

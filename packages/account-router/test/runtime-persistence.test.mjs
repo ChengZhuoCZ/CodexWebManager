@@ -415,6 +415,93 @@ test("an accepted manual next-request preference survives a simulated process re
   assert.deepEqual(upstreamAccounts, ["fixture-b"]);
 });
 
+test("does not contact an automatic route before private route persistence succeeds", async (context) => {
+  let upstreamCalls = 0;
+  const upstream = http.createServer((request, response) => {
+    upstreamCalls += 1;
+    request.resume();
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end('{"models":[{"slug":"fixture-model"}]}');
+  });
+  context.after(() => close(upstream));
+  const upstreamOrigin = await listen(upstream);
+  const runtime = createRuntimeComposition(runtimeOptions({
+    routingStateStore: {
+      async load() { return null; },
+      async save() { throw new Error("fixture route state unavailable"); },
+    },
+    initialRoutingState: null,
+    upstreamOrigin,
+  }));
+  context.after(async () => {
+    await runtime.stop().catch(() => undefined);
+  });
+  await runtime.start();
+
+  const response = await fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/backend-api/codex/models`,
+  );
+  assert.equal(response.status, 502);
+  assert.deepEqual(await response.json(), {
+    error: {
+      type: "protocol_error",
+      reason: "selector_failed",
+      attempts: 0,
+      semantic_output: false,
+    },
+  });
+  assert.equal(upstreamCalls, 0);
+});
+
+test("opens an automatic upstream attempt only after private route persistence completes", async (context) => {
+  let announceSave;
+  let releaseSave;
+  const saveStarted = new Promise((resolve) => { announceSave = resolve; });
+  const saveGate = new Promise((resolve) => { releaseSave = resolve; });
+  let upstreamCalls = 0;
+  const upstream = http.createServer((request, response) => {
+    upstreamCalls += 1;
+    request.resume();
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end('{"models":[{"slug":"fixture-model"}]}');
+  });
+  context.after(() => close(upstream));
+  const upstreamOrigin = await listen(upstream);
+  const runtime = createRuntimeComposition(runtimeOptions({
+    routingStateStore: {
+      async load() { return null; },
+      async save() {
+        announceSave();
+        await saveGate;
+      },
+    },
+    initialRoutingState: null,
+    upstreamOrigin,
+  }));
+  context.after(async () => {
+    releaseSave();
+    await runtime.stop().catch(() => undefined);
+  });
+  await runtime.start();
+
+  const responsePromise = fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/backend-api/codex/models`,
+  );
+  await saveStarted;
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(upstreamCalls, 0);
+
+  releaseSave();
+  const response = await responsePromise;
+  assert.equal(response.status, 200);
+  await response.arrayBuffer();
+  assert.equal(upstreamCalls, 1);
+  assert.deepEqual((await adminStatus(runtime)).current_route, {
+    account_alias: "Fixture A",
+    continuity: "new_backend_session",
+  });
+});
+
 test("does not acknowledge a manual preference when private route persistence fails", async (context) => {
   const runtime = createRuntimeComposition(runtimeOptions({
     accounts: [
