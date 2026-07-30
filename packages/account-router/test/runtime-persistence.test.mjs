@@ -672,6 +672,123 @@ test("releases the routing lock, half-open probe, and late credential lease afte
   assert.equal(firstLease.disposed, true);
 });
 
+test("releases the routing lock when auth-failure persistence outlives the deadline", async (context) => {
+  let acquireCalls = 0;
+  const leases = [];
+  const secretRegistry = new SecretProviderRegistry().register(defineSecretProvider({
+    name: "fixture-secret",
+    async acquire(reference) {
+      acquireCalls += 1;
+      const lease = SecretLease.fromUtf8(
+        reference === "fixture-a"
+          ? "{}"
+          : JSON.stringify({
+              version: 1,
+              authorization: "Bearer fixture-upstream-token",
+              account_id: reference,
+            }),
+      );
+      leases.push(lease);
+      return lease;
+    },
+  }));
+  let rejectSave;
+  let announceSave;
+  const saveGate = new Promise((_, reject) => { rejectSave = reject; });
+  const saveStarted = new Promise((resolve) => { announceSave = resolve; });
+  let saveCalls = 0;
+  const circuitStateStore = {
+    async load() { return null; },
+    async save() {
+      saveCalls += 1;
+      if (saveCalls !== 1) return;
+      announceSave();
+      await saveGate;
+    },
+  };
+  let upstreamCalls = 0;
+  const upstream = http.createServer((request, response) => {
+    upstreamCalls += 1;
+    request.resume();
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end('{"models":[{"slug":"fixture-model"}]}');
+  });
+  context.after(() => close(upstream));
+  const upstreamOrigin = await listen(upstream);
+  const runtime = createRuntimeComposition(runtimeOptions({
+    accounts: [
+      account({ priority: 10 }),
+      account({
+        id: "fixture-account-b",
+        alias: "Fixture B",
+        priority: 0,
+        credentialRef: "fixture-b",
+      }),
+    ],
+    circuitStateStore,
+    failoverOptions: {
+      maxAttempts: 1,
+      totalDeadlineMs: 100,
+      baseBackoffMs: 1,
+      maxBackoffMs: 1,
+    },
+    secretRegistry,
+    upstreamOrigin,
+  }));
+  context.after(async () => {
+    rejectSave(new Error("fixture late circuit-state persistence failure"));
+    await runtime.stop().catch(() => undefined);
+  });
+  await runtime.start();
+
+  const timedOutPromise = fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/backend-api/codex/models`,
+  );
+  await saveStarted;
+  const timedOut = await timedOutPromise;
+  assert.equal(timedOut.status, 503);
+  assert.deepEqual(await timedOut.json(), {
+    error: {
+      type: "all_accounts_unavailable",
+      reason: "total_deadline_exceeded",
+      attempts: 0,
+      semantic_output: false,
+    },
+  });
+  assert.equal(acquireCalls, 1);
+  assert.equal(leases[0].disposed, true);
+  assert.equal(upstreamCalls, 0);
+
+  const recovered = await fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/backend-api/codex/models`,
+  );
+  assert.equal(recovered.status, 200);
+  await recovered.arrayBuffer();
+  assert.equal(acquireCalls, 2);
+  assert.equal(upstreamCalls, 1);
+  assert.equal(leases.every(({ disposed }) => disposed), true);
+  assert.equal((await adminStatus(runtime)).accounts[0].state, "auth_expired");
+
+  rejectSave(new Error("fixture late circuit-state persistence failure"));
+  await new Promise((resolve) => setImmediate(resolve));
+  const ready = await fetch(`http://127.0.0.1:${runtime.addresses.admin.port}/readyz`);
+  assert.equal(ready.status, 503);
+  const unavailable = await fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/backend-api/codex/models`,
+  );
+  assert.equal(unavailable.status, 502);
+  assert.deepEqual(await unavailable.json(), {
+    error: {
+      type: "protocol_error",
+      reason: "selector_failed",
+      attempts: 0,
+      semantic_output: false,
+    },
+  });
+  assert.equal(acquireCalls, 2);
+  assert.equal(upstreamCalls, 1);
+});
+
 test("does not acknowledge a manual preference when private route persistence fails", async (context) => {
   const runtime = createRuntimeComposition(runtimeOptions({
     accounts: [

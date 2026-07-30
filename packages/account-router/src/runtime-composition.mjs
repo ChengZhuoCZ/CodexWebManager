@@ -186,13 +186,20 @@ export function createRuntimeComposition({
     if (signal.aborted) throw abortReason(signal);
   }
 
-  function awaitWithAbort(operation, signal, { onLateResolve = null } = {}) {
+  function awaitWithAbort(
+    operation,
+    signal,
+    { onLateResolve = null, onLateReject = null } = {},
+  ) {
     if (signal === null || signal === undefined) return operation;
     if (!(signal instanceof AbortSignal)) {
       throw new TypeError("runtime abort signal is invalid");
     }
     if (onLateResolve !== null && typeof onLateResolve !== "function") {
       throw new TypeError("runtime late-resolution handler is invalid");
+    }
+    if (onLateReject !== null && typeof onLateReject !== "function") {
+      throw new TypeError("runtime late-rejection handler is invalid");
     }
     return new Promise((resolve, reject) => {
       let settled = false;
@@ -217,7 +224,15 @@ export function createRuntimeComposition({
             }
           }
         },
-        (error) => finish(reject, error),
+        (error) => {
+          if (!finish(reject, error) && onLateReject !== null) {
+            try {
+              onLateReject(error);
+            } catch {
+              // Late cleanup is best-effort after the caller's bounded operation ended.
+            }
+          }
+        },
       );
       if (signal.aborted) onAbort();
     });
@@ -252,12 +267,17 @@ export function createRuntimeComposition({
     return result;
   }
 
-  async function persistRuntimeState() {
+  async function persistRuntimeState({ signal = null } = {}) {
     if (stateStore === null) return;
     if (persistenceFailure !== null) throw persistenceUnavailable();
     try {
-      await stateStore.save(exportRuntimeState());
+      await awaitWithAbort(stateStore.save(exportRuntimeState()), signal, {
+        onLateReject(error) {
+          persistenceFailure = error;
+        },
+      });
     } catch (error) {
+      if (signal?.aborted) throw abortReason(signal);
       persistenceFailure = error;
       throw persistenceUnavailable();
     }
@@ -528,7 +548,9 @@ export function createRuntimeComposition({
     const selectionSignal = selectionContext.signal ?? null;
     throwIfAborted(selectionSignal);
     await pendingRoutingPersistence;
-    if (routingPersistenceFailure !== null) throw persistenceUnavailable();
+    if (persistenceFailure !== null || routingPersistenceFailure !== null) {
+      throw persistenceUnavailable();
+    }
     const excluded = new Set(selectionContext.excludeAccountIds ?? []);
     for (;;) {
       const decision = await scheduledDecision(excluded);
@@ -575,8 +597,8 @@ export function createRuntimeComposition({
         lastUnavailableReason.set(accountId, "auth_expired");
         if (preferredAccountId === accountId) preferredAccountId = null;
         updateFailureStatus(accountId, "auth_expired");
-        await persistRuntimeState();
-        await persistRoutingState();
+        await persistRuntimeState({ signal: selectionSignal });
+        await persistRoutingState(undefined, { signal: selectionSignal });
         excluded.add(accountId);
         continue;
       }

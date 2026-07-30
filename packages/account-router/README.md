@@ -92,7 +92,10 @@ does not apply a late result to the running router's current route. Credential a
 the same signal without misclassifying cancellation as an authentication failure. It releases the
 serialized selector and any unconsumed half-open probe at the boundary, and disposes any
 SecretLease that resolves after abandonment, so a later new request can retry a recovered
-credential provider.
+credential provider. Persisting an authentication-failure classification observes that same
+selection boundary. A timed-out save cannot retain the serialized selector; its late storage error
+marks both readiness and later selection unavailable, while a different eligible account may serve
+only a later new request while the prior classification write remains pending.
 Tests use fixture accounts only; they do not access or switch any real account.
 
 ## Optional codex-web status bridge
