@@ -49,12 +49,13 @@
     "r52_continuation": "194b5cf5e3e3b2ce9583b10081ae7c8027b82bb4",
     "r53_continuation": "5f65e801054f718a57becbe5236ef221e74d21bd",
     "r54_continuation": "af15f9fd3f9e23bb10a8f9fa4541b6f097f395a1",
+    "r55_continuation": "3189f7f7e2d720f8519aa793a3d18d3f50d462f1",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "87aab559deeefa6a2a664f1e78834549016549f9",
+  "output_revision": "791e687143f3bc8eb71efa4109335daac0116dca",
   "workspace_branch": "codex/m6-9-8215-worker",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -1277,6 +1278,38 @@
     {
       "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
       "result": "R54 final evidence-tree security audit passed within its bounded two-attempt limit after one preliminary pass; 104/104 focused security tests and retained 492/492 strict UI evidence passed, and 485 repository files were scanned with zero findings"
+    },
+    {
+      "command": "timeout 20s <bundled-node> --test --test-name-pattern='installed release verifies stalled startup stop signals' packages/account-router/test/linux-release.test.mjs",
+      "result": "R55 minimal fixture failed before implementation as expected because synthetic_two_binding_restart was absent, then passed 1/1 after two installed-candidate processes used the same private fixture state directory with two synthetic enabled binding definitions; no credential acquisition, model request or account switch was tested"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test <release/lifecycle/security files>",
+      "result": "R55 related Linux release, service lifecycle, release documentation, redaction and security-contract suite passed 29/29"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test",
+      "result": "R55 package-complete suite passed 296/321 with 0 failures and 25 expected pinned-public-fixture skips before the final checkpoint-count assertion; the final committed code was subsequently covered by the strict 321/321 matrix"
+    },
+    {
+      "command": "umask 0022; env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": "R55 first attempt failed closed at 153/157 unit tests because the operator command omitted the required umask 0022 precondition; an 18/18 bounded diagnostic passed with the correct umask, then the one permitted corrected retry passed 321/321 with no skips (unit 157, integration 116, E2E 48), no real account configured and no account switch executed"
+    },
+    {
+      "command": "SOURCE_DATE_EPOCH=0 deterministic 0.2.29 Linux x64 rebuild, byte comparison and target-host installed fixture verification",
+      "result": "R55 rebuilt archive matched the existing candidate byte for byte at SHA-256 471bbacf; installed health, fail-closed no-account readiness, private-load/listener-start stop signals and two synthetic binding definitions across one restart all passed without credential acquisition, a model request or an account switch"
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r55.sh",
+      "result": "R55 router-only rollback deployment script syntax, pinned version and artifact hash passed; deployment was not attempted because the known host-privilege blocker and non-writable root-owned target are unchanged, so active release 0.2.6 and all production processes remained unchanged"
+    },
+    {
+      "command": "read-only systemd PID/start/unit-hash plus 8215/8216 HTTP and router readyz probes",
+      "result": "R55 production invariants passed: 8215 PID 510876/508396 and ActiveEnter 196497166178/194490256399 plus unit hashes remained fixed; 8215 HTTP, 8216 loopback/Tailnet HTTP and router readyz were 200; router PID 548777 and active 0.2.6 release remained unchanged"
+    },
+    {
+      "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "R55 final evidence-tree security audit passed within its bounded two-attempt limit after one preliminary pass; 104/104 focused security tests and retained 492/492 strict UI evidence passed, and 490 repository files were scanned with zero findings"
     }
   ],
   "evidence": [
@@ -1442,9 +1475,86 @@
     "evidence/M6.9/router-r54-strict-matrix-summary.json",
     "evidence/M6.9/router-r54-security-summary.json",
     "evidence/M6.9/router-r54-linux-release-verify.json",
-    "evidence/M6.9/deploy-router-r54.sh"
+    "evidence/M6.9/deploy-router-r54.sh",
+    "evidence/M6.9/router-r55-installed-two-binding-restart-summary.json",
+    "evidence/M6.9/router-r55-strict-matrix-summary.json",
+    "evidence/M6.9/router-r55-security-summary.json",
+    "evidence/M6.9/router-r55-linux-release-verify.json",
+    "evidence/M6.9/deploy-router-r55.sh"
   ],
   "observations": {
+    "continuation_r55_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8215-worker",
+      "commit": "3189f7f7e2d720f8519aa793a3d18d3f50d462f1",
+      "dependencies": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_result": "Use fixtures only to prove an installed candidate preserves catalog readiness and both private state checkpoints across one process restart with exactly two synthetic enabled binding definitions, without acquiring credentials, sending a model request, switching accounts or changing 8215 PID 510876/508396 with ActiveEnter monotonic timestamps 196497166178/194490256399."
+    },
+    "continuation_r55_fixture_result": {
+      "implementation_revision": "791e687143f3bc8eb71efa4109335daac0116dca",
+      "release_payload_changed": false,
+      "synthetic_binding_definitions": 2,
+      "installed_process_starts": 2,
+      "restart_count": 1,
+      "same_private_state_directory": true,
+      "state_checkpoint_files_after_first_stop": 2,
+      "readiness_statuses": [
+        200,
+        200
+      ],
+      "catalog_usable_account_counts": [
+        2,
+        2
+      ],
+      "sigterm_exit_codes": [
+        0,
+        0
+      ],
+      "startup_deadline_ms_per_process": 15000,
+      "readiness_deadline_ms_per_process": 5000,
+      "shutdown_deadline_ms_per_process": 10000,
+      "package_tests_passed": 296,
+      "package_fixture_skips": 25,
+      "strict_matrix_passed": 321,
+      "strict_matrix_attempt_limit": 2,
+      "strict_matrix_attempts_used": 2,
+      "strict_matrix_first_attempt_missing_required_umask": true,
+      "security_tests_passed": 104,
+      "security_scan_files": 490,
+      "security_findings": 0,
+      "standalone_web_pid": 510876,
+      "standalone_web_active_enter_monotonic": 196497166178,
+      "standalone_app_pid": 508396,
+      "standalone_app_active_enter_monotonic": 194490256399,
+      "standalone_8215_changed": false,
+      "routed_8216_changed": false,
+      "synthetic_credential_acquisition_tested": false,
+      "real_account_configured_for_test": false,
+      "model_request_sent": false,
+      "real_account_switch_tested": false,
+      "seamless_account_continuity_claimed": false
+    },
+    "continuation_r55_release_candidate": {
+      "router_release": "codex-account-router-0.2.29-linux-x64",
+      "artifact_sha256": "471bbacf24c78fe41ae81cff3b30da4cf7666cbcf190b76c3dd8fec53a7ca615",
+      "rebuilt_archive_matched_existing_candidate": true,
+      "payload_file_count": 49,
+      "linux_verification_passed": true,
+      "installed_two_synthetic_binding_restart_verified": true,
+      "synthetic_credential_acquisition_tested": false,
+      "credentials_present_in_verification": false,
+      "model_request_sent": false,
+      "account_switch_tested": false,
+      "deployment_status": "not_attempted_known_host_privilege_blocker",
+      "deployment_attempts": 0,
+      "active_router_release": "codex-account-router-0.2.6-linux-x64",
+      "active_router_pid": 548777,
+      "production_state_changed": false
+    },
     "continuation_r54_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-8215-worker",
@@ -3528,8 +3638,8 @@
     }
   },
   "blockers": [
-    "The verified 0.2.29 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and the root-owned mode-0755 /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r54.sh is required; no duplicate deployment attempt was made.",
-    "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, two-binding restart verification and provider-level failover proof can run.",
+    "The verified 0.2.29 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and the root-owned mode-0755 /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r55.sh is required; no duplicate deployment attempt was made.",
+    "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, real two-binding credential acquisition/restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
   "residual_risks": [
@@ -3586,6 +3696,8 @@
     "R53 patches only a synthetic verifier child and exercises SIGTERM at one controlled listener boundary. It does not prove every listener implementation or hard cancellation of already executing kernel operations.",
     "R54 verifies SIGTERM and SIGINT against independent installed 0.2.29 processes after runtime construction at the same synthetic listener-start stall, retaining the legacy SIGTERM evidence field while adding an ordered two-signal result.",
     "R54 patches only synthetic verifier children. It does not prove every listener implementation or hard cancellation of already executing kernel operations.",
+    "R55 verifies the installed 0.2.29 candidate starts twice with the same private fixture state directory and two synthetic enabled binding definitions, remains catalog-ready on both starts, persists both state checkpoint files after the first stop and exits cleanly on both SIGTERM requests.",
+    "R55 intentionally never acquires the empty synthetic credential fixtures, never contacts a provider, never sends a model request and never switches accounts. It proves catalog/configuration and checkpoint restart behavior only, not real credential usability or a real two-account E2E.",
     "R32 deliberately keeps routing-state.json separate from circuit-state.json so rollback to 0.2.6 can ignore the new state instead of rejecting an unknown primary-state field.",
     "R34 serializes the short local route-selection/mutation boundary, including credential acquisition and changed-route private state writes. This is covered by fixtures but has not been measured on the deployed 8216 path, so no production latency claim is made.",
     "R31 persists only the last validated sanitized weekly observation. It remains provider-event-dependent, an observation without an explicit reset timestamp is not guessed or expired, and a generic 429 is intentionally not treated as proof of weekly exhaustion.",
@@ -3611,9 +3723,10 @@
     "R52 re-verifies the unchanged 0.2.29 candidate with installed SIGTERM/SIGINT startup-stop parity, but it is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R53 re-verifies the unchanged 0.2.29 candidate with installed listener-start interruption coverage, but it is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R54 re-verifies the unchanged 0.2.29 candidate with installed listener-start SIGTERM/SIGINT parity, but it is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
+    "R55 re-verifies the unchanged 0.2.29 candidate with an installed two-synthetic-binding process restart, but it is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R28 caps a weekly reset delay at the existing 24-hour circuit maximum, so a farther reset receives a bounded half-open recheck rather than sleeping until the full provider reset time.",
     "The existing local commits 3f8723f, 776f352 and 0b93593 have test evidence but their commit messages omit the test commands required by the current AGENTS.md; history was not rewritten and later commit messages include test commands.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-07-31T03:24:45+08:00"
+  "updated_at": "2026-07-31T03:38:55+08:00"
 }
