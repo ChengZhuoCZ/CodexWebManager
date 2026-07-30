@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_bounded_noop_switch_and_release_candidate",
+  "generated_at": "2026-07-30T13:53:50+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "fbeeea41529dcca8618eee0fb750b2960b3bc73e",
+  "output_revision": "f34317f1c0346388a9f0c09c8a3b93ba62ceb84d",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Reject an unknown or already-current manual route inside the serialized mutation boundary before waiting for unrelated queued route persistence; preserve durable acknowledgement and write ordering for every effective switch.",
+    "noop_validation_precedes_queued_route_wait": true,
+    "unknown_alias_rejected_without_route_write": true,
+    "already_current_route_rejected_without_route_write": true,
+    "noop_http_status": 409,
+    "noop_error": "switch_rejected",
+    "additional_route_writes": 0,
+    "effective_switch_still_waits_for_prior_writes": true,
+    "effective_switch_still_requires_atomic_persistence": true,
+    "active_semantic_stream_rejection_changed": false,
+    "automatic_route_policy_changed": false,
+    "retry_policy_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "timeout --signal=TERM --kill-after=5s 30s node --test --test-name-pattern='no-op switch without waiting' packages/account-router/test/runtime-persistence.test.mjs",
+    "before_implementation": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "observed_failure": "A request for the already-current fixture route did not settle within 100 milliseconds because it waited behind an unrelated queued route-state save.",
+      "external_elapsed_seconds": 3.22,
+      "node_command_duration_ms": 3201.538901,
+      "test_duration_ms": 3137.451426,
+      "bounded_cleanup": "The synthetic route-state gate was settled during fixture cleanup and the command exited normally."
+    },
+    "after_implementation": {
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "external_elapsed_seconds": 0.22,
+      "node_command_duration_ms": 195.674162,
+      "test_duration_ms": 35.959951
+    }
+  },
+  "verification": {
+    "focused_persistence_runtime_and_state_machine": {
+      "tests": 51,
+      "passed": 51,
+      "failed": 0,
+      "skipped": 0
+    },
+    "critical_failover_and_restart": {
+      "tests": 100,
+      "passed": 100,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "HTTP/SSE bounded pre-semantic failover and post-semantic no-replay",
+        "WebSocket bounded pre-semantic failover and post-semantic no-replay",
+        "weekly/circuit/route persistence and restart behavior",
+        "durable effective manual switching and bounded no-op rejection",
+        "active semantic-stream manual-switch rejection",
+        "bounded retry and total-deadline policies"
+      ]
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 292,
+      "passed": 267,
+      "failed": 0,
+      "skipped": 25
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r40-strict-matrix-summary.json",
+      "tests": 292,
+      "passed": 292,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r40-security-summary.json",
+      "qualified": true,
+      "files_scanned": 413,
+      "findings": 0,
+      "focused_tests": 90,
+      "focused_passed": 90,
+      "retained_strict_ui_passed": 492
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r40-linux-release-verify.json",
+      "release": "codex-account-router-0.2.19-linux-x64",
+      "sha256": "968765d6657ed5056ddd0d1f018f1f73ee5162b3706ec3b992ff0bac77a7fad5",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r40.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure and non-writable /opt/codex-account-router boundary are unchanged.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.19-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200
+    },
+    "app_server": {
+      "pid": 508396,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "app_server_pid": 495033,
+    "http_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.19 is verified but is not active until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "An effective manual switch intentionally continues to wait for earlier route writes so an older atomic replacement cannot overwrite newer intent.",
+    "A no-op rejection does not migrate a backend session, switch an account or affect an in-flight request.",
+    "The tests use synthetic accounts only and do not qualify a real A-to-B switch.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}

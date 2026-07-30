@@ -34,12 +34,13 @@
     "r37_continuation": "dc2f87c0c1bab9d372013042e64f2b1a9c20a47a",
     "r38_continuation": "8093fe58fc5c9addfbb4c436d6991349841eb431",
     "r39_continuation": "1a3a18e13a34a4f54f4e5b26d0cad28f8221937b",
+    "r40_continuation": "fbeeea41529dcca8618eee0fb750b2960b3bc73e",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "2f6771eb4b83609dab3cfeea61b95dd27b9de3dd",
+  "output_revision": "f34317f1c0346388a9f0c09c8a3b93ba62ceb84d",
   "workspace_branch": "codex/m6-9-8215-worker",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -674,6 +675,42 @@
     {
       "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
       "result": "R39 final-tree security audit qualified; 90/90 focused security tests and retained 492/492 strict UI evidence passed; 408 repository files were scanned with zero findings"
+    },
+    {
+      "command": "timeout --signal=TERM --kill-after=5s 30s <bundled-node> --test --test-name-pattern='no-op switch without waiting' packages/account-router/test/runtime-persistence.test.mjs",
+      "result": "R40 minimal fixture-only experiment failed before implementation as expected: a request for the already-current route did not settle within 100 milliseconds because it waited behind an unrelated queued route-state save; bounded cleanup completed and the command exited normally"
+    },
+    {
+      "command": "timeout --signal=TERM --kill-after=5s 30s <bundled-node> --test --test-name-pattern='no-op switch without waiting' packages/account-router/test/runtime-persistence.test.mjs",
+      "result": "R40 focused fixture passed 1/1 after implementation; the already-current route returned sanitized HTTP 409 without waiting for the queued save and without issuing another route-state write"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test <focused persistence/runtime/state-machine files>",
+      "result": "R40 focused persistence/runtime/state-machine suite passed 51/51; no-op validation is early while effective switch durability and serialization remain unchanged"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test <HTTP/SSE/WebSocket/failover/weekly/restart/state/admin critical files>",
+      "result": "R40 critical suite passed 100/100, covering bounded HTTP/SSE and WebSocket pre-semantic failover, post-semantic no-replay, weekly/circuit/route persistence, durable effective switching, bounded no-op rejection, active-stream rejection, retry bounds and total deadlines"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test",
+      "result": "R40 package-complete suite passed 267/292 with 0 failures and 25 expected pinned-public-fixture skips"
+    },
+    {
+      "command": "umask 0022; env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": "R40 clean strict matrix passed on its sole bounded attempt: 292/292 with no skips; unit 154, integration 91 and E2E 47"
+    },
+    {
+      "command": "two SOURCE_DATE_EPOCH=0 deterministic 0.2.19 Linux x64 builds plus target-host no-credential release verification",
+      "result": "byte-identical artifacts at SHA-256 968765d6; 49-file payload, checksum, installation, loopback-only listeners, health, no-account fail-closed readiness and clean SIGTERM passed without reading or configuring a real account"
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r40.sh",
+      "result": "R40 router-only rollback deployment script syntax and pinned artifact hash passed; deployment was not attempted because the known host-privilege blocker is unchanged, so active release 0.2.6 and all production processes remained unchanged"
+    },
+    {
+      "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "R40 final-tree security audit qualified; 90/90 focused security tests and retained 492/492 strict UI evidence passed; 413 repository files were scanned with zero findings"
     }
   ],
   "evidence": [
@@ -764,9 +801,68 @@
     "evidence/M6.9/router-r39-strict-matrix-summary.json",
     "evidence/M6.9/router-r39-security-summary.json",
     "evidence/M6.9/router-r39-linux-release-verify.json",
-    "evidence/M6.9/deploy-router-r39.sh"
+    "evidence/M6.9/deploy-router-r39.sh",
+    "evidence/M6.9/router-r40-bounded-noop-switch-summary.json",
+    "evidence/M6.9/router-r40-strict-matrix-summary.json",
+    "evidence/M6.9/router-r40-security-summary.json",
+    "evidence/M6.9/router-r40-linux-release-verify.json",
+    "evidence/M6.9/deploy-router-r40.sh"
   ],
   "observations": {
+    "continuation_r40_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8215-worker",
+      "commit": "fbeeea41529dcca8618eee0fb750b2960b3bc73e",
+      "dependencies": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_result": "Use fixtures only to reject an unknown or already-current manual route without waiting for unrelated queued route persistence or writing state, while preserving serialization and atomic durable acknowledgement for every effective next-request switch plus 8215 PID 510876/508396 and ActiveEnter monotonic timestamps 196497166178/194490256399."
+    },
+    "continuation_r40_fixture_result": {
+      "implementation_revision": "f34317f1c0346388a9f0c09c8a3b93ba62ceb84d",
+      "noop_validation_precedes_queued_route_wait": true,
+      "unknown_alias_rejected_without_route_write": true,
+      "already_current_route_rejected_without_route_write": true,
+      "noop_http_status": 409,
+      "noop_error": "switch_rejected",
+      "additional_route_writes": 0,
+      "effective_switch_still_waits_for_prior_writes": true,
+      "effective_switch_still_requires_atomic_persistence": true,
+      "active_semantic_stream_rejection_changed": false,
+      "automatic_route_policy_changed": false,
+      "retry_policy_changed": false,
+      "focused_tests_passed": 51,
+      "critical_tests_passed": 100,
+      "strict_matrix_passed": 292,
+      "security_tests_passed": 90,
+      "security_scan_files": 413,
+      "security_findings": 0,
+      "standalone_web_pid": 510876,
+      "standalone_web_active_enter_monotonic": 196497166178,
+      "standalone_app_pid": 508396,
+      "standalone_app_active_enter_monotonic": 194490256399,
+      "standalone_8215_changed": false,
+      "real_account_configured_for_test": false,
+      "model_request_sent": false,
+      "real_account_switch_tested": false,
+      "seamless_account_continuity_claimed": false
+    },
+    "continuation_r40_release_candidate": {
+      "router_release": "codex-account-router-0.2.19-linux-x64",
+      "artifact_sha256": "968765d6657ed5056ddd0d1f018f1f73ee5162b3706ec3b992ff0bac77a7fad5",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "linux_verification_passed": true,
+      "credentials_present_in_verification": false,
+      "account_switch_tested": false,
+      "deployment_status": "not_attempted_known_host_privilege_blocker",
+      "deployment_attempts": 0,
+      "active_router_release": "codex-account-router-0.2.6-linux-x64",
+      "active_router_pid": 548777,
+      "production_state_changed": false
+    },
     "continuation_r39_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-8215-worker",
@@ -1983,7 +2079,7 @@
     }
   },
   "blockers": [
-    "The verified 0.2.18 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r39.sh is required; no duplicate deployment attempt was made.",
+    "The verified 0.2.19 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r40.sh is required; no duplicate deployment attempt was made.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, two-binding restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -2013,6 +2109,8 @@
     "R38 cannot cancel an already-issued atomic circuit-state save. Manual next-request route acceptance does not migrate a backend session, resume the timed-out request or recover in-flight work.",
     "R39 applies the existing callback deadline to pending state waits and retryable attempt-failure circuit/route checkpoints, releasing the serialized selector after abandonment while preserving the failed account classification in memory.",
     "R39 cannot cancel an already-issued atomic state save. A manual route accepted while that write remains pending affects only a later separate new request and does not migrate or recover the timed-out request.",
+    "R40 rejects unknown and already-current manual routes before waiting for unrelated queued route persistence and performs no state write for that no-op.",
+    "R40 deliberately does not bypass queued persistence for an effective switch; older route writes must settle before newer durable intent to prevent completion-order overwrite.",
     "Node filesystem promises cannot cancel an already-issued atomic save. After an R35 abort the process remains fail closed, but a late successful file replacement may be observed after an operator restart and must be treated as next-request route intent rather than recovery of the timed-out request.",
     "R32 deliberately keeps routing-state.json separate from circuit-state.json so rollback to 0.2.6 can ignore the new state instead of rejecting an unknown primary-state field.",
     "R34 serializes the short local route-selection/mutation boundary, including credential acquisition and changed-route private state writes. This is covered by fixtures but has not been measured on the deployed 8216 path, so no production latency claim is made.",
@@ -2024,9 +2122,10 @@
     "R37 0.2.16 is a verified rollback-capable candidate but is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R38 0.2.17 is a verified rollback-capable candidate but is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R39 0.2.18 is a verified rollback-capable candidate but is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
+    "R40 0.2.19 is a verified rollback-capable candidate but is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R28 caps a weekly reset delay at the existing 24-hour circuit maximum, so a farther reset receives a bounded half-open recheck rather than sleeping until the full provider reset time.",
     "The existing local commits 3f8723f, 776f352 and 0b93593 have test evidence but their commit messages omit the test commands required by the current AGENTS.md; history was not rewritten and later commit messages include test commands.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-07-30T13:42:24+08:00"
+  "updated_at": "2026-07-30T13:53:50+08:00"
 }

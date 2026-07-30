@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "target": {
+    "os": "linux",
+    "architecture": "x64"
+  },
+  "artifact": {
+    "name": "codex-account-router-0.2.19-linux-x64.tar.gz",
+    "sha256": "968765d6657ed5056ddd0d1f018f1f73ee5162b3706ec3b992ff0bac77a7fad5",
+    "payload_file_count": 49,
+    "electron_required": false,
+    "display_server_required": false,
+    "node_modules_present": false
+  },
+  "install": {
+    "command": "PREFIX=<absolute-directory> sh <release>/install.sh",
+    "node_requirement": ">=22"
+  },
+  "runtime": {
+    "health_status": 200,
+    "readiness_status": 503,
+    "readiness_reason": "no_accounts",
+    "admin_bind": "127.0.0.1",
+    "model_bind": "127.0.0.1",
+    "sigterm_exit_code": 0,
+    "display_environment_present": false,
+    "account_configuration_present": false,
+    "account_switch_tested": false,
+    "architecture": "x64"
+  },
+  "continuity": {
+    "architecture_mode": "LIMITED_MODE",
+    "account_switch_tested": false,
+    "seamless_cross_account_continuity_claimed": false
+  }
+}
