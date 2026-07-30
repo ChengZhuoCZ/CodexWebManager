@@ -2,12 +2,18 @@
 
 import { spawn, spawnSync } from "node:child_process";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
-import { once } from "node:events";
+import { EventEmitter, once } from "node:events";
 import { promises as fs } from "node:fs";
 import http from "node:http";
+import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
+import {
+  createTextMessageAssembler,
+  createWebSocketFrameParser,
+  encodeWebSocketFrame,
+} from "../src/websocket-frames.mjs";
 import { readLinuxReleaseArchive } from "./build-linux-release.mjs";
 
 const PACKAGE_ROOT = fileURLToPath(new URL("..", import.meta.url));
@@ -291,6 +297,155 @@ async function closeLoopback(server, timeoutMs = 5_000) {
   }
 }
 
+function websocketAccept(key) {
+  return createHash("sha1")
+    .update(`${key}258EAFA5-E914-47DA-95CA-C5AB0DC85B11`)
+    .digest("base64");
+}
+
+function readUntilSocket(socket, marker, timeoutMs = 5_000) {
+  return new Promise((resolve, reject) => {
+    let buffer = Buffer.alloc(0);
+    const timer = setTimeout(() => {
+      cleanup();
+      reject(new Error("synthetic WebSocket handshake timed out"));
+    }, timeoutMs);
+    const cleanup = () => {
+      clearTimeout(timer);
+      socket.off("data", onData);
+      socket.off("error", onError);
+      socket.off("close", onClose);
+    };
+    const onData = (chunk) => {
+      buffer = Buffer.concat([buffer, chunk]);
+      assert(
+        buffer.length <= 64 * 1024,
+        "synthetic WebSocket handshake exceeded its byte limit",
+      );
+      const index = buffer.indexOf(marker);
+      if (index === -1) return;
+      cleanup();
+      resolve({
+        before: buffer.subarray(0, index + marker.length),
+        after: buffer.subarray(index + marker.length),
+      });
+    };
+    const onError = () => {
+      cleanup();
+      reject(new Error("synthetic WebSocket handshake failed"));
+    };
+    const onClose = () => {
+      cleanup();
+      reject(new Error("synthetic WebSocket closed during its handshake"));
+    };
+    socket.on("data", onData);
+    socket.on("error", onError);
+    socket.on("close", onClose);
+  });
+}
+
+function collectWebSocketMessages(socket, initial = Buffer.alloc(0)) {
+  const messages = [];
+  const events = new EventEmitter();
+  const assemble = createTextMessageAssembler({
+    onMessage(payload) {
+      const message = JSON.parse(payload.toString("utf8"));
+      messages.push(message);
+      events.emit("message", message);
+    },
+  });
+  const parser = createWebSocketFrameParser({
+    expectMasked: false,
+    onFrame(frame) {
+      assemble(frame);
+    },
+  });
+  socket.on("data", (chunk) => {
+    try {
+      parser.push(chunk);
+    } catch {
+      events.emit("failure");
+    }
+  });
+  if (initial.length > 0) parser.push(initial);
+  return {
+    messages,
+    waitFor(predicate, timeoutMs = 5_000) {
+      const existing = messages.find(predicate);
+      if (existing) return Promise.resolve(existing);
+      return new Promise((resolve, reject) => {
+        const cleanup = () => {
+          clearTimeout(timer);
+          events.off("message", onMessage);
+          events.off("failure", onFailure);
+        };
+        const onMessage = (message) => {
+          if (!predicate(message)) return;
+          cleanup();
+          resolve(message);
+        };
+        const onFailure = () => {
+          cleanup();
+          reject(new Error("synthetic WebSocket response was malformed"));
+        };
+        const timer = setTimeout(() => {
+          cleanup();
+          reject(new Error("synthetic WebSocket response timed out"));
+        }, timeoutMs);
+        events.on("message", onMessage);
+        events.on("failure", onFailure);
+      });
+    },
+  };
+}
+
+async function openSyntheticWebSocket({ port }) {
+  const socket = net.connect(port, "127.0.0.1");
+  socket.on("error", () => undefined);
+  try {
+    await once(socket, "connect", { signal: AbortSignal.timeout(5_000) });
+    const key = randomBytes(16).toString("base64");
+    socket.write(
+      "GET /backend-api/codex/responses HTTP/1.1\r\n" +
+      `Host: 127.0.0.1:${port}\r\n` +
+      "Connection: Upgrade\r\n" +
+      "Upgrade: websocket\r\n" +
+      `Sec-WebSocket-Key: ${key}\r\n` +
+      "Sec-WebSocket-Version: 13\r\n\r\n",
+    );
+    const handshake = await readUntilSocket(
+      socket,
+      Buffer.from("\r\n\r\n"),
+    );
+    const headerText = handshake.before.toString("latin1");
+    assert(
+      /^HTTP\/1\.1 101/.test(headerText) &&
+        headerText.toLowerCase().includes(
+          `sec-websocket-accept: ${websocketAccept(key)}`.toLowerCase(),
+        ),
+      "installed router synthetic WebSocket upgrade was invalid",
+    );
+    return {
+      collector: collectWebSocketMessages(socket, handshake.after),
+      socket,
+      status: 101,
+    };
+  } catch (error) {
+    socket.destroy();
+    throw error;
+  }
+}
+
+function sendSyntheticWebSocketCreate(socket) {
+  socket.write(encodeWebSocketFrame(
+    JSON.stringify({
+      type: "response.create",
+      input: ["installed-release-websocket-fixture"],
+    }),
+    { masked: true, opcode: 0x1 },
+  ));
+}
+
 async function waitForSyntheticStatus({
   adminOrigin,
   adminToken,
@@ -403,6 +558,8 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
   await fs.chmod(temporaryRoot, 0o700);
   let child;
   let fixtureServer;
+  let fixtureWebSocketSockets;
+  let websocketClient;
   try {
     const extractionDirectory = path.join(temporaryRoot, "extract");
     const prefix = path.join(temporaryRoot, "install");
@@ -733,6 +890,10 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       pre_semantic: [],
       post_semantic: [],
     };
+    const syntheticWebSocketRoleSequences = {
+      pre_semantic: [],
+      post_semantic: [],
+    };
     let syntheticFixtureScenario = "weekly_quota_restart";
     const syntheticResetAtSeconds = Math.ceil(
       (Date.now() + 60 * 60_000) / 1_000,
@@ -820,6 +981,134 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       response.end(
         "event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n",
       );
+    });
+    fixtureWebSocketSockets = new Set();
+    fixtureServer.on("upgrade", (request, socket, head) => {
+      fixtureWebSocketSockets.add(socket);
+      socket.once("close", () => fixtureWebSocketSockets.delete(socket));
+      socket.on("error", () => undefined);
+      const upstreamAccountId = request.headers["chatgpt-account-id"];
+      const role = roleByUpstreamAccount.get(upstreamAccountId);
+      const expectedAuthorization =
+        expectedAuthorizationByAccount.get(upstreamAccountId);
+      const websocketScenario = new Set([
+        "websocket_pre_semantic_failover",
+        "websocket_post_semantic_failure",
+      ]).has(syntheticFixtureScenario);
+      const key = request.headers["sec-websocket-key"];
+      if (
+        !websocketScenario ||
+        request.method !== "GET" ||
+        request.url !== "/backend-api/codex/responses" ||
+        role === undefined ||
+        request.headers.authorization !== expectedAuthorization ||
+        typeof key !== "string"
+      ) {
+        fixtureUpstreamFailure =
+          "installed router supplied an invalid synthetic WebSocket upstream request";
+        socket.end(
+          "HTTP/1.1 401 Unauthorized\r\n" +
+          "Connection: close\r\n" +
+          "Content-Length: 0\r\n\r\n",
+        );
+        return;
+      }
+      socket.write(
+        "HTTP/1.1 101 Switching Protocols\r\n" +
+        "Connection: Upgrade\r\n" +
+        "Upgrade: websocket\r\n" +
+        `Sec-WebSocket-Accept: ${websocketAccept(key)}\r\n\r\n`,
+      );
+      const sendEvent = (message) => {
+        socket.write(encodeWebSocketFrame(
+          JSON.stringify(message),
+          { opcode: 0x1 },
+        ));
+      };
+      let handled = false;
+      const assemble = createTextMessageAssembler({
+        onMessage(payload) {
+          if (handled) {
+            fixtureUpstreamFailure =
+              "installed router sent duplicate synthetic WebSocket requests";
+            socket.destroy();
+            return;
+          }
+          handled = true;
+          let message;
+          try {
+            message = JSON.parse(payload.toString("utf8"));
+          } catch {
+            fixtureUpstreamFailure =
+              "installed router sent malformed synthetic WebSocket JSON";
+            socket.destroy();
+            return;
+          }
+          if (message?.type !== "response.create") {
+            fixtureUpstreamFailure =
+              "installed router sent an unexpected synthetic WebSocket message";
+            socket.destroy();
+            return;
+          }
+          if (
+            syntheticFixtureScenario ===
+              "websocket_pre_semantic_failover"
+          ) {
+            syntheticWebSocketRoleSequences.pre_semantic.push(role);
+            sendEvent({ type: "response.created" });
+            if (role === "primary") {
+              sendEvent({
+                type: "error",
+                error: { type: "quota_exhausted" },
+              });
+            } else {
+              sendEvent({
+                type: "response.output_text.delta",
+                delta: "installed-websocket-pre-semantic-secondary",
+              });
+              sendEvent({ type: "response.completed" });
+            }
+            return;
+          }
+          syntheticWebSocketRoleSequences.post_semantic.push(role);
+          sendEvent({ type: "response.created" });
+          sendEvent({
+            type: "response.output_text.delta",
+            delta: role === "primary"
+              ? "installed-websocket-post-semantic-primary"
+              : "must-not-contact-websocket-secondary",
+          });
+          if (role === "primary") {
+            setImmediate(() => socket.destroy());
+          } else {
+            sendEvent({ type: "response.completed" });
+          }
+        },
+      });
+      const parser = createWebSocketFrameParser({
+        expectMasked: true,
+        onFrame(frame) {
+          assemble(frame);
+        },
+      });
+      socket.on("data", (chunk) => {
+        try {
+          parser.push(chunk);
+        } catch {
+          fixtureUpstreamFailure =
+            "installed router sent malformed synthetic WebSocket frames";
+          socket.destroy();
+        }
+      });
+      if (head.length > 0) {
+        try {
+          parser.push(head);
+        } catch {
+          fixtureUpstreamFailure =
+            "installed router sent a malformed synthetic WebSocket head";
+          socket.destroy();
+        }
+      }
     });
     const syntheticUpstreamOrigin = await listenLoopback(fixtureServer);
     const weeklyReadinessStatuses = [];
@@ -1160,6 +1449,173 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       in_flight_resume_tested: false,
     };
 
+    const websocketReadinessStatuses = [];
+    const downstreamUpgradeStatuses = [];
+    const websocketResponses = new Map();
+    for (const scenario of [
+      "websocket_pre_semantic_failover",
+      "websocket_post_semantic_failure",
+    ]) {
+      syntheticFixtureScenario = scenario;
+      const scenarioStateDirectory = path.join(
+        temporaryRoot,
+        `synthetic-${scenario}-state`,
+      );
+      await fs.mkdir(scenarioStateDirectory, { mode: 0o700 });
+      child = spawn(path.join(current, "bin/codex-account-router"), [], {
+        cwd: current,
+        env: {
+          ...scrubbedRuntimeEnvironment(homeDirectory),
+          CODEX_ROUTER_ACCOUNTS_FILE: syntheticAccountsFile,
+          CODEX_ROUTER_CREDENTIAL_ROOT: syntheticBindingRoot,
+          CODEX_ROUTER_ADMIN_TOKEN_FILE: syntheticAdminTokenFile,
+          CODEX_ROUTER_STATE_DIRECTORY: scenarioStateDirectory,
+          CODEX_ROUTER_UPSTREAM_ORIGIN: syntheticUpstreamOrigin,
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      const scenarioStarted = await waitForStart(child);
+      const adminOrigin =
+        `http://127.0.0.1:${scenarioStarted.record.bind_port}`;
+      const readyResponse = await fetch(`${adminOrigin}/readyz`, {
+        signal: AbortSignal.timeout(5_000),
+      });
+      const readiness = await readyResponse.json();
+      assert(
+        readyResponse.status === 200 &&
+          readiness.status === "ready" &&
+          readiness.usable_accounts === 2,
+        `installed router ${scenario} readiness was invalid`,
+      );
+      websocketReadinessStatuses.push(readyResponse.status);
+
+      websocketClient = await openSyntheticWebSocket({
+        port: scenarioStarted.record.model_bind_port,
+      });
+      downstreamUpgradeStatuses.push(websocketClient.status);
+      sendSyntheticWebSocketCreate(websocketClient.socket);
+      if (scenario === "websocket_pre_semantic_failover") {
+        await websocketClient.collector.waitFor(
+          (message) => message.type === "response.completed",
+        );
+      } else {
+        await websocketClient.collector.waitFor(
+          (message) => message.type === "error",
+        );
+      }
+      websocketResponses.set(
+        scenario,
+        [...websocketClient.collector.messages],
+      );
+      websocketClient.socket.destroy();
+      websocketClient = undefined;
+
+      child.kill("SIGTERM");
+      const [scenarioExitCode, scenarioExitSignal] = await waitForExit(child);
+      child = undefined;
+      assert(
+        scenarioExitCode === 0 && scenarioExitSignal === null,
+        `installed router ${scenario} process did not exit cleanly`,
+      );
+      assert(
+        scenarioStarted.getStderr() === "",
+        `installed router ${scenario} process wrote an error log`,
+      );
+    }
+
+    const preSemanticWebSocketMessages = websocketResponses.get(
+      "websocket_pre_semantic_failover",
+    );
+    assert(
+      preSemanticWebSocketMessages.filter(
+        (message) => message.type === "response.created",
+      ).length === 1 &&
+        preSemanticWebSocketMessages.some(
+          (message) =>
+            message.type === "response.output_text.delta" &&
+            message.delta ===
+              "installed-websocket-pre-semantic-secondary",
+        ) &&
+        preSemanticWebSocketMessages.some(
+          (message) => message.type === "response.completed",
+        ) &&
+        !preSemanticWebSocketMessages.some(
+          (message) => message.type === "error",
+        ),
+      "installed router did not recover the pre-semantic WebSocket request",
+    );
+    assert(
+      JSON.stringify(syntheticWebSocketRoleSequences.pre_semantic) ===
+        JSON.stringify(["primary", "secondary"]),
+      "installed router WebSocket retry was not bounded to primary then secondary",
+    );
+
+    const postSemanticWebSocketMessages = websocketResponses.get(
+      "websocket_post_semantic_failure",
+    );
+    const postSemanticWebSocketError = postSemanticWebSocketMessages.find(
+      (message) => message.type === "error",
+    );
+    assert(
+      postSemanticWebSocketMessages.some(
+        (message) =>
+          message.type === "response.output_text.delta" &&
+          message.delta === "installed-websocket-post-semantic-primary",
+      ) &&
+        postSemanticWebSocketError?.error?.type === "unsafe_to_replay" &&
+        postSemanticWebSocketError.error.semantic_output === true,
+      "installed router did not expose the post-semantic WebSocket error",
+    );
+    assert(
+      JSON.stringify(syntheticWebSocketRoleSequences.post_semantic) ===
+        JSON.stringify(["primary"]),
+      "installed router contacted a WebSocket secondary after semantic output",
+    );
+    assert(
+      fixtureUpstreamFailure === null,
+      fixtureUpstreamFailure ??
+        "installed router synthetic WebSocket verification failed",
+    );
+    const syntheticWebSocketSafetyBoundaries = {
+      scenarios: 2,
+      process_starts: 2,
+      readiness_statuses: websocketReadinessStatuses,
+      downstream_upgrade_statuses: downstreamUpgradeStatuses,
+      initial_requests: 2,
+      pre_semantic: {
+        failure_kind: "quota_exhausted",
+        upstream_role_sequence:
+          syntheticWebSocketRoleSequences.pre_semantic,
+        upstream_attempts:
+          syntheticWebSocketRoleSequences.pre_semantic.length,
+        primary_preflight_discarded: true,
+        secondary_semantic_marker_received: true,
+        completed: true,
+        retry_bound_observed: true,
+      },
+      post_semantic: {
+        upstream_role_sequence:
+          syntheticWebSocketRoleSequences.post_semantic,
+        upstream_attempts:
+          syntheticWebSocketRoleSequences.post_semantic.length,
+        primary_semantic_marker_received: true,
+        unsafe_to_replay_exposed: true,
+        semantic_output: true,
+        secondary_contacted: false,
+      },
+      local_fixture_upstream_only: true,
+      synthetic_credential_acquisition_tested: true,
+      synthetic_websocket_requests_sent: websocketResponses.size,
+      synthetic_upstream_attempts:
+        syntheticWebSocketRoleSequences.pre_semantic.length +
+        syntheticWebSocketRoleSequences.post_semantic.length,
+      manual_switch_tested: false,
+      real_credentials_present: false,
+      real_model_request_sent: false,
+      real_account_switch_tested: false,
+      in_flight_resume_tested: false,
+    };
+
     return {
       health_status: healthResponse.status,
       readiness_status: readinessResponse.status,
@@ -1179,11 +1635,19 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       synthetic_weekly_quota_restart: syntheticWeeklyQuotaRestart,
       synthetic_http_sse_safety_boundaries:
         syntheticHttpSseSafetyBoundaries,
+      synthetic_websocket_safety_boundaries:
+        syntheticWebSocketSafetyBoundaries,
     };
   } finally {
+    if (websocketClient?.socket) {
+      websocketClient.socket.destroy();
+    }
     if (child && child.exitCode === null && child.signalCode === null) {
       child.kill("SIGKILL");
       await once(child, "exit");
+    }
+    for (const socket of fixtureWebSocketSockets ?? []) {
+      socket.destroy();
     }
     if (fixtureServer?.listening) {
       await closeLoopback(fixtureServer);
