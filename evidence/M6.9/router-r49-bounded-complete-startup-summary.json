@@ -1,0 +1,219 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_bounded_complete_process_startup_and_release_candidate",
+  "generated_at": "2026-07-31T02:23:41+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "ef02e16636772dd2fb69df14f7d3e82f76e5d8da",
+  "output_revision": "69b2e896db201a0d97ca24137c8d17d189751636",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Give the production private-load, runtime-construction, admin-listener and model-listener sequence one outer total deadline while retaining independently bounded helpers that do not create fresh windows under the parent signal.",
+    "default_complete_runtime_startup_deadline_ms": 5000,
+    "maximum_complete_runtime_startup_deadline_ms": 60000,
+    "private_load_and_listener_start_share_signal": true,
+    "private_load_creates_fresh_deadline_with_parent_signal": false,
+    "listener_start_creates_fresh_deadline_with_parent_signal": false,
+    "runtime_stop_requested_on_start_failure": true,
+    "deadline_error": "runtime startup deadline exceeded",
+    "request_failover_policy_changed": false,
+    "restart_state_schema_changed": false,
+    "weekly_quota_policy_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "timeout 10s node --test --test-name-pattern='runtime creation and listener start' packages/account-router/test/runtime-bootstrap.test.mjs",
+    "before_implementation": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "observed_failure": "The complete runtime-start helper was undefined, confirming runtime creation and listener start had only consecutive independent deadlines.",
+      "node_command_duration_ms": 65.394,
+      "test_duration_ms": 0.909
+    },
+    "after_implementation": {
+      "tests": 4,
+      "passed": 4,
+      "failed": 0,
+      "node_command_duration_ms": 421.418,
+      "complete_startup_fixture_duration_ms": 121.742,
+      "parent_initial_load_fixture_duration_ms": 26.769,
+      "parent_listener_start_fixture_duration_ms": 27.338,
+      "invalid_boundary_fixture_duration_ms": 0.53,
+      "outer_fixture_deadline_ms": 120,
+      "loader_and_listener_signals_identical": true,
+      "shared_signal_aborted": true,
+      "runtime_stop_calls": 1,
+      "invalid_boundary_loader_calls": 0
+    }
+  },
+  "complete_startup_fixture": {
+    "synthetic_runtime_load_delay_ms": 60,
+    "stalled_stage": "runtime_listener_start",
+    "outer_deadline_ms": 120,
+    "total_elapsed_upper_assertion_ms": 250,
+    "parent_child_deadline_ms": 1,
+    "parent_no_fresh_window_observation_ms": 25,
+    "private_state_stage_called_after_parent_abort": false,
+    "model_listener_called_after_parent_abort": false,
+    "deadline_error_sanitized": true,
+    "real_cli_normal_start_and_sigterm_retained": true,
+    "synthetic_runtime_only": true
+  },
+  "verification": {
+    "affected_bootstrap_listener_runtime_http_ws_and_release": {
+      "tests": 81,
+      "passed": 81,
+      "failed": 0,
+      "skipped": 0
+    },
+    "real_cli_and_listener_lifecycle": {
+      "tests": 40,
+      "passed": 40,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "headless loopback start and router_started event",
+        "clean SIGTERM exit",
+        "active protected admin SSE shutdown",
+        "complete runtime startup fixture boundaries"
+      ]
+    },
+    "critical_failover_restart_and_lifecycle": {
+      "tests": 130,
+      "passed": 130,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "HTTP/SSE bounded pre-semantic failover and post-semantic no-replay",
+        "WebSocket bounded pre-semantic failover and post-semantic no-replay",
+        "weekly/circuit/route persistence and restart behavior",
+        "bounded durable manual switching and active-stream exclusion",
+        "bounded complete startup, request, persistence and shutdown lifecycles"
+      ]
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 316,
+      "passed": 291,
+      "failed": 0,
+      "skipped": 25,
+      "runner": "umask 0022; node --test",
+      "attempt_limit": 1,
+      "attempts_used": 1
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r49-strict-matrix-summary.json",
+      "tests": 316,
+      "passed": 316,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1,
+      "unit_passed": 157,
+      "integration_passed": 112,
+      "e2e_passed": 47,
+      "fixture_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf"
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r49-security-summary.json",
+      "qualified": true,
+      "files_scanned": 458,
+      "findings": 0,
+      "focused_tests": 101,
+      "focused_passed": 101,
+      "focused_skipped": 0,
+      "retained_strict_ui_passed": 492,
+      "attempt_limit": 2,
+      "attempts_used": 2,
+      "first_attempt": {
+        "result": "preliminary_passed",
+        "files_scanned": 453,
+        "focused_passed": 101
+      },
+      "final_attempt": {
+        "result": "final_evidence_tree_passed",
+        "files_scanned": 458,
+        "focused_passed": 101
+      }
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r49-linux-release-verify.json",
+      "release": "codex-account-router-0.2.28-linux-x64",
+      "sha256": "5f8b44a259cade5286b8a35ff6354e380760938b2c492e64b94bc2fefa560f5c",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "health_status": 200,
+      "no_account_readiness_status": 503,
+      "normal_sigterm_exit_code": 0,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r49.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure is unchanged and /opt/codex-account-router remains root-owned mode 0755 and non-writable by the service user.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.28-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "active_router_effective_unit_sha256": "230dba0a5f7e283f4db2291e4bc6ab7b078eebd63e89e9275a9028185531dddc",
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "exec_start_monotonic": 196497166049,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200,
+      "effective_unit_sha256": "543ddc71409cc088522e80651955a988cc9f2229e9da29dc8a9107c3def3ea1a"
+    },
+    "app_server": {
+      "pid": 508396,
+      "exec_start_monotonic": 194490256322,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running",
+      "effective_unit_sha256": "daaefec18fde144f1801e5b4e60a13cfe9e7c8abe98799192ee59a0f3b66db2f"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "web_exec_start_monotonic": 205386075197,
+    "web_effective_unit_sha256": "bcf691a9362a8f91c4a8d2680631b238bd6ba9ada7e18975bdc567ace4823ca2",
+    "app_server_pid": 495033,
+    "app_server_exec_start_monotonic": 188703455553,
+    "app_server_effective_unit_sha256": "5b44e7e28c57daebdf97eb9e5bbb1e5cd6655a7511a7117079988326fea1be2b",
+    "http_status": 200,
+    "tailnet_http_status": 200,
+    "router_readyz_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.28 is verified but is not active until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "The outer helper abandons a custom runtime loader or start implementation that ignores AbortSignal and requests stop after a runtime exists, but cannot force custom code to stop.",
+    "Production file operations and Node listeners observe the signal at their documented boundaries; already executing kernel calls are not hard real-time cancellation guarantees.",
+    "A startup failure does not replay, migrate, resume or restore an in-flight request or running computation.",
+    "The tests use synthetic runtime/services/accounts and do not qualify a real A-to-B switch.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}

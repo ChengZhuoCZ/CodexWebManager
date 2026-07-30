@@ -43,12 +43,13 @@
     "r46_continuation": "07552f565e4518ac4d220f10fdc377bbe022117a",
     "r47_continuation": "313ab3e8ffa06e883cfc1ffea9bc160756d3b4ec",
     "r48_continuation": "d0b5b52bfafc06305a611ab08fb2646d6fe7e4f4",
+    "r49_continuation": "ef02e16636772dd2fb69df14f7d3e82f76e5d8da",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "bffcdab57b340303ae82b8d1fc0cc9f3a8ff01e2",
+  "output_revision": "69b2e896db201a0d97ca24137c8d17d189751636",
   "workspace_branch": "codex/m6-9-8215-worker",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -1055,6 +1056,46 @@
     {
       "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
       "result": "R48 final evidence-tree security audit passed within its bounded three-attempt limit after two passing scope checkpoints; 97/97 focused security tests and retained 492/492 strict UI evidence passed, and 453 repository files were scanned with zero findings"
+    },
+    {
+      "command": "timeout 10s <bundled-node> --test --test-name-pattern='runtime creation and listener start' packages/account-router/test/runtime-bootstrap.test.mjs",
+      "result": "R49 minimal fixture failed before implementation as expected in 65.394 milliseconds because startRuntimeFromEnvironment was undefined, confirming complete private loading/runtime construction and listener start had only consecutive independent deadlines"
+    },
+    {
+      "command": "timeout 20s <bundled-node> --test --test-name-pattern='runtime creation and listener start|parent initial-load signal|invalid complete startup boundaries|parent runtime-start signal' <runtime bootstrap/composition test files>",
+      "result": "R49 complete-startup fixtures passed 4/4; a synthetic 60-millisecond runtime load followed by a stalled listener returned the fixed total deadline error at 121.742 milliseconds, requested runtime stop, shared one signal, and parent signals opened no fresh one-millisecond child windows"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test <CLI/listener lifecycle files>",
+      "result": "R49 real CLI and listener lifecycle suite passed 40/40, retaining loopback startup, router_started, clean SIGTERM and active protected admin SSE shutdown behavior"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test <direct bootstrap/listener/runtime/HTTP/SSE/WebSocket/release files>",
+      "result": "R49 directly affected bootstrap, listener, runtime, HTTP/SSE, WebSocket and release suite passed 81/81 with normal request paths retained"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test <HTTP/SSE/WebSocket/failover/weekly/restart/state/admin/service critical files>",
+      "result": "R49 critical suite passed 130/130, covering bounded HTTP/SSE and WebSocket pre-semantic failover, post-semantic no-replay, weekly/circuit/route persistence and restart behavior, active-stream exclusion plus complete startup/request/persistence/shutdown deadlines"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test",
+      "result": "R49 package-complete suite passed 291/316 with 0 failures and 25 expected pinned-public-fixture skips on its sole bounded attempt"
+    },
+    {
+      "command": "umask 0022; env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": "R49 strict matrix passed on its sole bounded attempt: 316/316 with no skips; unit 157, integration 112 and E2E 47, with no real account configured or account switch executed"
+    },
+    {
+      "command": "two SOURCE_DATE_EPOCH=0 deterministic 0.2.28 Linux x64 builds plus target-host no-credential release verification",
+      "result": "R49 byte-identical artifacts passed at SHA-256 5f8b44a2; 49-file payload, checksum, installation, loopback-only listeners, health, no-account fail-closed readiness and clean SIGTERM passed without reading or configuring a real account"
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r49.sh",
+      "result": "R49 router-only rollback deployment script syntax, pinned version and artifact hash passed; deployment was not attempted because the known host-privilege blocker and non-writable root-owned target are unchanged, so active release 0.2.6 and all production processes remained unchanged"
+    },
+    {
+      "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "R49 final evidence-tree security audit passed within its bounded two-attempt limit after one preliminary pass; 101/101 focused security tests and retained 492/492 strict UI evidence passed, and 458 repository files were scanned with zero findings"
     }
   ],
   "evidence": [
@@ -1190,9 +1231,69 @@
     "evidence/M6.9/router-r48-strict-matrix-summary.json",
     "evidence/M6.9/router-r48-security-summary.json",
     "evidence/M6.9/router-r48-linux-release-verify.json",
-    "evidence/M6.9/deploy-router-r48.sh"
+    "evidence/M6.9/deploy-router-r48.sh",
+    "evidence/M6.9/router-r49-bounded-complete-startup-summary.json",
+    "evidence/M6.9/router-r49-strict-matrix-summary.json",
+    "evidence/M6.9/router-r49-security-summary.json",
+    "evidence/M6.9/router-r49-linux-release-verify.json",
+    "evidence/M6.9/deploy-router-r49.sh"
   ],
   "observations": {
+    "continuation_r49_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8215-worker",
+      "commit": "ef02e16636772dd2fb69df14f7d3e82f76e5d8da",
+      "dependencies": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_result": "Use fixtures only to give the complete private-load, runtime-construction and admin/model listener-start sequence one bounded startup deadline without changing request routing or production services, while preserving 8215 PID 510876/508396 with ActiveEnter monotonic timestamps 196497166178/194490256399."
+    },
+    "continuation_r49_fixture_result": {
+      "implementation_revision": "69b2e896db201a0d97ca24137c8d17d189751636",
+      "default_complete_runtime_startup_deadline_ms": 5000,
+      "maximum_complete_runtime_startup_deadline_ms": 60000,
+      "private_load_runtime_creation_and_listener_start_share_deadline": true,
+      "production_private_loads_and_node_listeners_receive_same_signal": true,
+      "child_stage_creates_fresh_deadline_with_parent_signal": false,
+      "runtime_stop_requested_on_start_failure": true,
+      "deadline_error": "runtime startup deadline exceeded",
+      "request_failover_policy_changed": false,
+      "restart_state_schema_changed": false,
+      "focused_tests_passed": 81,
+      "critical_tests_passed": 130,
+      "strict_matrix_passed": 316,
+      "strict_matrix_attempt_limit": 1,
+      "strict_matrix_attempts_used": 1,
+      "security_tests_passed": 101,
+      "security_scan_files": 458,
+      "security_findings": 0,
+      "standalone_web_pid": 510876,
+      "standalone_web_active_enter_monotonic": 196497166178,
+      "standalone_app_pid": 508396,
+      "standalone_app_active_enter_monotonic": 194490256399,
+      "standalone_8215_changed": false,
+      "routed_8216_changed": false,
+      "real_account_configured_for_test": false,
+      "model_request_sent": false,
+      "real_account_switch_tested": false,
+      "seamless_account_continuity_claimed": false
+    },
+    "continuation_r49_release_candidate": {
+      "router_release": "codex-account-router-0.2.28-linux-x64",
+      "artifact_sha256": "5f8b44a259cade5286b8a35ff6354e380760938b2c492e64b94bc2fefa560f5c",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "linux_verification_passed": true,
+      "credentials_present_in_verification": false,
+      "account_switch_tested": false,
+      "deployment_status": "not_attempted_known_host_privilege_blocker",
+      "deployment_attempts": 0,
+      "active_router_release": "codex-account-router-0.2.6-linux-x64",
+      "active_router_pid": 548777,
+      "production_state_changed": false
+    },
     "continuation_r48_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-8215-worker",
@@ -2919,7 +3020,7 @@
     }
   },
   "blockers": [
-    "The verified 0.2.27 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and the root-owned mode-0755 /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r48.sh is required; no duplicate deployment attempt was made.",
+    "The verified 0.2.28 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and the root-owned mode-0755 /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r49.sh is required; no duplicate deployment attempt was made.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, two-binding restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -2965,6 +3066,8 @@
     "R47 can abandon its wait when a custom loader ignores AbortSignal, but it cannot cancel an already executing kernel filesystem call. A failed startup does not replay, migrate, resume or restore an in-flight request or running computation.",
     "R48 gives the production admin and model listener starts one default five-second total deadline, passes its signal into both Node listeners, and requests both service stops within the remaining budget if either start fails.",
     "R48 cannot force arbitrary custom listener or stop implementations to honor AbortSignal. Production Node listeners receive the signal directly, but custom fixture implementations that ignore cancellation may finish their own work late.",
+    "R49 gives the complete production private-load, runtime-construction and admin/model listener-start sequence one outer default five-second total deadline. Stage helpers retain independent deadlines for isolated callers but open no fresh window under the outer parent signal.",
+    "R49 abandons a custom loader or runtime start that ignores AbortSignal and requests stop after a runtime exists, but cannot force arbitrary custom code to stop. Production file operations and Node listeners observe cancellation only at their documented boundaries, and already executing kernel calls are not hard real-time guarantees.",
     "R32 deliberately keeps routing-state.json separate from circuit-state.json so rollback to 0.2.6 can ignore the new state instead of rejecting an unknown primary-state field.",
     "R34 serializes the short local route-selection/mutation boundary, including credential acquisition and changed-route private state writes. This is covered by fixtures but has not been measured on the deployed 8216 path, so no production latency claim is made.",
     "R31 persists only the last validated sanitized weekly observation. It remains provider-event-dependent, an observation without an explicit reset timestamp is not guessed or expired, and a generic 429 is intentionally not treated as proof of weekly exhaustion.",
@@ -2984,9 +3087,10 @@
     "R46 0.2.25 is a verified rollback-capable candidate but is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R47 0.2.26 is a verified rollback-capable candidate but is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R48 0.2.27 is a verified rollback-capable candidate but is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
+    "R49 0.2.28 is a verified rollback-capable candidate but is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R28 caps a weekly reset delay at the existing 24-hour circuit maximum, so a farther reset receives a bounded half-open recheck rather than sleeping until the full provider reset time.",
     "The existing local commits 3f8723f, 776f352 and 0b93593 have test evidence but their commit messages omit the test commands required by the current AGENTS.md; history was not rewritten and later commit messages include test commands.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-07-31T02:10:40+08:00"
+  "updated_at": "2026-07-31T02:23:41+08:00"
 }
