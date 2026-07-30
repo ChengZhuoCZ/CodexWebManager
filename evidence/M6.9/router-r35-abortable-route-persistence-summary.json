@@ -1,0 +1,152 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_abortable_automatic_route_persistence_and_release_candidate",
+  "generated_at": "2026-07-30T12:49:06+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "de53f3d0e310b08eb8e6714974149f82c9e57ba9",
+  "output_revision": "3e43fc0fb5f1d817e863472d22795ee0c507ca66",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Propagate the existing bounded failover selection signal into changed-route persistence so a stalled private save cannot retain the acquired SecretLease or keep the in-process routing mutation pending after the request deadline.",
+    "selection_deadline_applies_to_route_persistence_wait": true,
+    "client_cancellation_applies_to_route_persistence_wait": true,
+    "deadline_http_status": 503,
+    "deadline_error_type": "all_accounts_unavailable",
+    "deadline_reason": "total_deadline_exceeded",
+    "deadline_attempts": 0,
+    "deadline_semantic_output": false,
+    "deadline_upstream_contacts": 0,
+    "acquired_secret_lease_disposed": true,
+    "readiness_after_abort": 503,
+    "late_save_updates_running_current_route": false,
+    "routing_persistence_marked_unavailable": true,
+    "retry_policy_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "timeout 30s node --test --test-name-pattern='exceeds its deadline' packages/account-router/test/runtime-persistence.test.mjs",
+    "before_implementation": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "observed_failure": "The client received the bounded total-deadline response, but the SecretLease acquired by the still-pending selector remained undisposed.",
+      "bounded_cleanup": "The controlled fixture save gate was released during cleanup and the command exited normally in 109 milliseconds."
+    }
+  },
+  "verification": {
+    "focused_persistence_and_runtime": {
+      "tests": 33,
+      "passed": 33,
+      "failed": 0,
+      "skipped": 0,
+      "failure_injections": [
+        "a changed-route private save is held beyond a 25 millisecond failover deadline",
+        "the acquired SecretLease is disposed after the deadline",
+        "readiness fails closed and the running current route remains unchanged after the late save completes"
+      ]
+    },
+    "critical_failover_and_restart": {
+      "tests": 95,
+      "passed": 95,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "HTTP/SSE bounded pre-semantic failover and post-semantic no-replay",
+        "WebSocket bounded pre-semantic failover and post-semantic no-replay",
+        "weekly/circuit/route persistence and restart behavior",
+        "durable and abortable automatic routing plus durable manual routing",
+        "active semantic-stream manual-switch rejection",
+        "bounded retry and total-deadline policies"
+      ]
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 287,
+      "passed": 262,
+      "failed": 0,
+      "skipped": 25
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r35-strict-matrix-summary.json",
+      "tests": 287,
+      "passed": 287,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r35-security-summary.json",
+      "qualified": true,
+      "files_scanned": 388,
+      "findings": 0,
+      "focused_tests": 90,
+      "focused_passed": 90,
+      "retained_strict_ui_passed": 492
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r35-linux-release-verify.json",
+      "release": "codex-account-router-0.2.14-linux-x64",
+      "sha256": "5858e573d395049d78ea520e756b3571ddad4a89f9256e971f69e23263cfe40c",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r35.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure and non-writable /opt/codex-account-router boundary are unchanged.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.14-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200
+    },
+    "app_server": {
+      "pid": 508396,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "app_server_pid": 495033,
+    "http_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.14 is verified but is not active until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "Node filesystem promises cannot cancel an already-issued atomic save. The running router remains fail closed and ignores its late result, but a late successful file replacement may be observed after an operator restart.",
+    "Aborting a changed-route save makes routing persistence unavailable for the running process; an operator must inspect the private state boundary and restart rather than receiving an optimistic automatic recovery.",
+    "The tests use synthetic accounts only and do not qualify a real A-to-B switch.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
