@@ -213,4 +213,30 @@ test("installed release verifies stalled startup stop signals", async (context) 
     model_request_sent: false,
     account_switch_tested: false,
   });
+  assert.deepEqual(summary.runtime.synthetic_weekly_quota_restart, {
+    configured_bindings: 2,
+    process_starts: 2,
+    restart_count: 1,
+    readiness_statuses: [200, 200],
+    usable_accounts: [2, 1],
+    synthetic_model_response_statuses: [200, 200],
+    completed_sse_responses: 2,
+    synthetic_upstream_role_sequence: ["primary", "secondary"],
+    weekly_zero_persisted: true,
+    weekly_reset_persisted: true,
+    cooldown_persisted: true,
+    next_new_request_route_changed: true,
+    current_route_continuity: [
+      "new_backend_session",
+      "new_backend_session",
+    ],
+    synthetic_credential_acquisition_tested: true,
+    local_fixture_upstream_only: true,
+    synthetic_model_requests_sent: 2,
+    manual_switch_tested: false,
+    real_credentials_present: false,
+    real_model_request_sent: false,
+    real_account_switch_tested: false,
+    in_flight_resume_tested: false,
+  });
 });

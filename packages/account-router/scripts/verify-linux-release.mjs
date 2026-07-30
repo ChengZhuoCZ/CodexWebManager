@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 
 import { spawn, spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
+import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { once } from "node:events";
 import { promises as fs } from "node:fs";
+import http from "node:http";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
@@ -238,6 +239,88 @@ async function waitForExit(child, timeoutMs = 10_000) {
   return Promise.race([once(child, "close"), timeout]).finally(() => clearTimeout(timer));
 }
 
+async function listenLoopback(server, timeoutMs = 5_000) {
+  let timer;
+  try {
+    server.listen(0, "127.0.0.1");
+    await Promise.race([
+      once(server, "listening"),
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error("synthetic upstream start timed out")),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+  const address = server.address();
+  assert(
+    address !== null &&
+      typeof address === "object" &&
+      address.address === "127.0.0.1" &&
+      Number.isSafeInteger(address.port),
+    "synthetic upstream did not bind to loopback",
+  );
+  return `http://127.0.0.1:${address.port}`;
+}
+
+async function closeLoopback(server, timeoutMs = 5_000) {
+  if (!server.listening) return;
+  let timer;
+  const closed = new Promise((resolve, reject) => {
+    server.close((error) => {
+      if (error) reject(error);
+      else resolve();
+    });
+    server.closeAllConnections?.();
+  });
+  try {
+    await Promise.race([
+      closed,
+      new Promise((_, reject) => {
+        timer = setTimeout(
+          () => reject(new Error("synthetic upstream stop timed out")),
+          timeoutMs,
+        );
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+async function waitForSyntheticStatus({
+  adminOrigin,
+  adminToken,
+  predicate,
+  timeoutMs = 2_000,
+}) {
+  const deadline = Date.now() + timeoutMs;
+  let lastStatus = null;
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    const remainingMs = deadline - Date.now();
+    if (remainingMs <= 0) break;
+    const response = await fetch(`${adminOrigin}/v1/status`, {
+      headers: { authorization: `Bearer ${adminToken}` },
+      signal: AbortSignal.timeout(Math.max(1, Math.min(500, remainingMs))),
+    });
+    assert(response.status === 200, "synthetic admin status request failed");
+    lastStatus = await response.json();
+    if (predicate(lastStatus)) return lastStatus;
+    if (attempt < 39) {
+      await new Promise((resolve) =>
+        setTimeout(resolve, Math.min(25, Math.max(1, deadline - Date.now()))));
+    }
+  }
+  throw new Error(
+    lastStatus === null
+      ? "synthetic admin status was unavailable"
+      : "synthetic admin status condition timed out",
+  );
+}
+
 async function waitForFixtureEvent(child, {
   event,
   label,
@@ -319,6 +402,7 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
   const temporaryRoot = await fs.mkdtemp(path.join(os.tmpdir(), "router-linux-release-"));
   await fs.chmod(temporaryRoot, 0o700);
   let child;
+  let fixtureServer;
   try {
     const extractionDirectory = path.join(temporaryRoot, "extract");
     const prefix = path.join(temporaryRoot, "install");
@@ -509,7 +593,7 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
         id: "fixture-account-a",
         alias: "Fixture Account A",
         enabled: true,
-        priority: 1,
+        priority: 10,
         max_concurrency: 1,
         provider: "openai-codex",
         secret_provider: "codex-auth",
@@ -519,7 +603,7 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
         id: "fixture-account-b",
         alias: "Fixture Account B",
         enabled: true,
-        priority: 2,
+        priority: 0,
         max_concurrency: 1,
         provider: "openai-codex",
         secret_provider: "codex-auth",
@@ -605,6 +689,278 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       account_switch_tested: false,
     };
 
+    const syntheticAdminToken = randomBytes(32).toString("base64url");
+    const syntheticAdminTokenFile = path.join(
+      syntheticBindingRoot,
+      "synthetic-admin-token",
+    );
+    await fs.writeFile(syntheticAdminTokenFile, syntheticAdminToken, {
+      mode: 0o600,
+    });
+    const syntheticUpstreamAccounts = syntheticBindings.map((binding, index) => ({
+      binding,
+      role: index === 0 ? "primary" : "secondary",
+      upstreamAccountId: `fixture-upstream-${randomUUID()}`,
+      accessToken: randomBytes(32).toString("base64url"),
+    }));
+    for (const fixture of syntheticUpstreamAccounts) {
+      await fs.writeFile(
+        path.join(syntheticBindingRoot, fixture.binding.credential_ref),
+        `${JSON.stringify({
+          tokens: {
+            access_token: fixture.accessToken,
+            account_id: fixture.upstreamAccountId,
+          },
+        })}\n`,
+        { mode: 0o600 },
+      );
+    }
+
+    const expectedAuthorizationByAccount = new Map(
+      syntheticUpstreamAccounts.map(({ accessToken, upstreamAccountId }) => [
+        upstreamAccountId,
+        `Bearer ${accessToken}`,
+      ]),
+    );
+    const roleByUpstreamAccount = new Map(
+      syntheticUpstreamAccounts.map(({ role, upstreamAccountId }) => [
+        upstreamAccountId,
+        role,
+      ]),
+    );
+    const syntheticUpstreamRoleSequence = [];
+    const syntheticResetAtSeconds = Math.ceil(
+      (Date.now() + 60 * 60_000) / 1_000,
+    );
+    const syntheticResetAt = new Date(
+      syntheticResetAtSeconds * 1_000,
+    ).toISOString();
+    let fixtureUpstreamFailure = null;
+    fixtureServer = http.createServer((request, response) => {
+      request.resume();
+      const upstreamAccountId = request.headers["chatgpt-account-id"];
+      const role = roleByUpstreamAccount.get(upstreamAccountId);
+      const expectedAuthorization =
+        expectedAuthorizationByAccount.get(upstreamAccountId);
+      if (
+        request.method !== "POST" ||
+        request.url !== "/v1/responses" ||
+        role === undefined ||
+        request.headers.authorization !== expectedAuthorization
+      ) {
+        fixtureUpstreamFailure =
+          "installed router supplied an invalid synthetic upstream request";
+        response.writeHead(401, { "content-type": "application/json" });
+        response.end('{"error":{"type":"invalid_auth"}}');
+        return;
+      }
+      syntheticUpstreamRoleSequence.push(role);
+      response.writeHead(200, { "content-type": "text/event-stream" });
+      response.write(
+        `event: codex.rate_limits\ndata: ${JSON.stringify({
+          type: "codex.rate_limits",
+          rate_limits: {
+            secondary: {
+              used_percent: role === "primary" ? 100 : 25,
+              window_minutes: 10_080,
+              reset_at: syntheticResetAtSeconds,
+            },
+          },
+        })}\n\n`,
+      );
+      response.end(
+        "event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n",
+      );
+    });
+    const syntheticUpstreamOrigin = await listenLoopback(fixtureServer);
+    const weeklyReadinessStatuses = [];
+    const weeklyUsableAccounts = [];
+    const syntheticModelResponseStatuses = [];
+    const currentRouteContinuity = [];
+    let completedSseResponses = 0;
+    let firstCooldownUntil = null;
+    let weeklyZeroPersisted = false;
+    let weeklyResetPersisted = false;
+    let cooldownPersisted = false;
+
+    for (let processStart = 0; processStart < 2; processStart += 1) {
+      child = spawn(path.join(current, "bin/codex-account-router"), [], {
+        cwd: current,
+        env: {
+          ...scrubbedRuntimeEnvironment(homeDirectory),
+          CODEX_ROUTER_ACCOUNTS_FILE: syntheticAccountsFile,
+          CODEX_ROUTER_CREDENTIAL_ROOT: syntheticBindingRoot,
+          CODEX_ROUTER_ADMIN_TOKEN_FILE: syntheticAdminTokenFile,
+          CODEX_ROUTER_STATE_DIRECTORY: syntheticStateDirectory,
+          CODEX_ROUTER_UPSTREAM_ORIGIN: syntheticUpstreamOrigin,
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      const syntheticStarted = await waitForStart(child);
+      const adminOrigin =
+        `http://127.0.0.1:${syntheticStarted.record.bind_port}`;
+      const modelOrigin =
+        `http://127.0.0.1:${syntheticStarted.record.model_bind_port}`;
+      const readyResponse = await fetch(`${adminOrigin}/readyz`, {
+        signal: AbortSignal.timeout(5_000),
+      });
+      const readiness = await readyResponse.json();
+      const expectedUsableAccounts = processStart === 0 ? 2 : 1;
+      assert(
+        readyResponse.status === 200 &&
+          readiness.status === "ready" &&
+          readiness.usable_accounts === expectedUsableAccounts,
+        "installed router weekly restart readiness was invalid",
+      );
+      weeklyReadinessStatuses.push(readyResponse.status);
+      weeklyUsableAccounts.push(readiness.usable_accounts);
+
+      if (processStart === 1) {
+        const restartedStatus = await waitForSyntheticStatus({
+          adminOrigin,
+          adminToken: syntheticAdminToken,
+          predicate(status) {
+            const primary = status.accounts?.find(
+              ({ alias }) => alias === syntheticBindings[0].alias,
+            );
+            return (
+              primary?.state === "quota_exhausted" &&
+              primary.weekly_remaining_ratio === 0 &&
+              primary.cooldown_until === firstCooldownUntil &&
+              status.current_route?.account_alias ===
+                syntheticBindings[0].alias &&
+              status.current_route?.continuity === "new_backend_session"
+            );
+          },
+        });
+        const restartedPrimary = restartedStatus.accounts.find(
+          ({ alias }) => alias === syntheticBindings[0].alias,
+        );
+        cooldownPersisted =
+          firstCooldownUntil !== null &&
+          restartedPrimary.cooldown_until === firstCooldownUntil;
+      }
+
+      const modelResponse = await fetch(`${modelOrigin}/v1/responses`, {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: '{"input":"installed-release-local-fixture"}',
+        signal: AbortSignal.timeout(5_000),
+      });
+      const modelBody = await modelResponse.text();
+      assert(
+        modelResponse.status === 200 &&
+          modelBody.includes("event: response.completed"),
+        "installed router synthetic model response did not complete",
+      );
+      syntheticModelResponseStatuses.push(modelResponse.status);
+      completedSseResponses += 1;
+
+      const selectedBinding = syntheticBindings[processStart];
+      const selectedRatio = processStart === 0 ? 0 : 0.75;
+      const selectedStatus = await waitForSyntheticStatus({
+        adminOrigin,
+        adminToken: syntheticAdminToken,
+        predicate(status) {
+          const selected = status.accounts?.find(
+            ({ alias }) => alias === selectedBinding.alias,
+          );
+          return (
+            selected?.weekly_remaining_ratio === selectedRatio &&
+            status.current_route?.account_alias === selectedBinding.alias &&
+            status.current_route?.continuity === "new_backend_session"
+          );
+        },
+      });
+      currentRouteContinuity.push(selectedStatus.current_route.continuity);
+      if (processStart === 0) {
+        const primary = selectedStatus.accounts.find(
+          ({ alias }) => alias === syntheticBindings[0].alias,
+        );
+        assert(
+          primary.state === "quota_exhausted" &&
+            typeof primary.cooldown_until === "string",
+          "installed router did not mark synthetic weekly exhaustion",
+        );
+        firstCooldownUntil = primary.cooldown_until;
+      }
+
+      child.kill("SIGTERM");
+      const [weeklyExitCode, weeklyExitSignal] = await waitForExit(child);
+      child = undefined;
+      assert(
+        weeklyExitCode === 0 && weeklyExitSignal === null,
+        "installed router weekly restart process did not exit cleanly",
+      );
+      assert(
+        syntheticStarted.getStderr() === "",
+        "installed router weekly restart process wrote an error log",
+      );
+
+      if (processStart === 0) {
+        const checkpoint = JSON.parse(
+          await fs.readFile(
+            path.join(syntheticStateDirectory, "circuit-state.json"),
+            "utf8",
+          ),
+        );
+        const weeklyEntry = checkpoint.weekly_quota?.find(
+          ({ account_id: accountId }) =>
+            accountId === syntheticBindings[0].id,
+        );
+        const circuitEntry = checkpoint.accounts?.find(
+          ({ account_id: accountId }) =>
+            accountId === syntheticBindings[0].id,
+        );
+        weeklyZeroPersisted =
+          weeklyEntry?.remaining_ratio === 0 &&
+          circuitEntry?.last_failure_kind === "quota_exhausted";
+        weeklyResetPersisted = weeklyEntry?.resets_at === syntheticResetAt;
+        assert(
+          weeklyZeroPersisted && weeklyResetPersisted,
+          "installed router did not persist synthetic weekly state",
+        );
+      }
+    }
+
+    assert(
+      fixtureUpstreamFailure === null,
+      fixtureUpstreamFailure ??
+        "installed router synthetic upstream verification failed",
+    );
+    assert(
+      JSON.stringify(syntheticUpstreamRoleSequence) ===
+        JSON.stringify(["primary", "secondary"]),
+      "installed router did not route the next new request after restart",
+    );
+    assert(
+      cooldownPersisted,
+      "installed router did not retain the synthetic cooldown after restart",
+    );
+    const syntheticWeeklyQuotaRestart = {
+      configured_bindings: syntheticBindings.length,
+      process_starts: 2,
+      restart_count: 1,
+      readiness_statuses: weeklyReadinessStatuses,
+      usable_accounts: weeklyUsableAccounts,
+      synthetic_model_response_statuses: syntheticModelResponseStatuses,
+      completed_sse_responses: completedSseResponses,
+      synthetic_upstream_role_sequence: syntheticUpstreamRoleSequence,
+      weekly_zero_persisted: weeklyZeroPersisted,
+      weekly_reset_persisted: weeklyResetPersisted,
+      cooldown_persisted: cooldownPersisted,
+      next_new_request_route_changed: true,
+      current_route_continuity: currentRouteContinuity,
+      synthetic_credential_acquisition_tested: true,
+      local_fixture_upstream_only: true,
+      synthetic_model_requests_sent: syntheticModelResponseStatuses.length,
+      manual_switch_tested: false,
+      real_credentials_present: false,
+      real_model_request_sent: false,
+      real_account_switch_tested: false,
+      in_flight_resume_tested: false,
+    };
+
     return {
       health_status: healthResponse.status,
       readiness_status: readinessResponse.status,
@@ -621,11 +977,15 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       listener_start_interruption: listenerStartInterruptions[0],
       listener_start_interruptions: listenerStartInterruptions,
       synthetic_two_binding_restart: syntheticTwoBindingRestart,
+      synthetic_weekly_quota_restart: syntheticWeeklyQuotaRestart,
     };
   } finally {
     if (child && child.exitCode === null && child.signalCode === null) {
       child.kill("SIGKILL");
       await once(child, "exit");
+    }
+    if (fixtureServer?.listening) {
+      await closeLoopback(fixtureServer);
     }
     await fs.rm(temporaryRoot, { recursive: true, force: true });
   }
