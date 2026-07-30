@@ -494,6 +494,24 @@ test("validates runtime composition and stops both listeners together", async ()
     { accounts: [], secretRegistry: registry, upstreamOrigin: "https://example.invalid/path" },
     { accounts: [], secretRegistry: registry, upstreamOrigin: "http://user@example.invalid" },
     { accounts: [], secretRegistry: {}, upstreamOrigin: "https://example.invalid" },
+    {
+      accounts: [],
+      manualSwitchDeadlineMs: 0,
+      secretRegistry: registry,
+      upstreamOrigin: "https://example.invalid",
+    },
+    {
+      accounts: [],
+      manualSwitchDeadlineMs: 60_001,
+      secretRegistry: registry,
+      upstreamOrigin: "https://example.invalid",
+    },
+    {
+      accounts: [],
+      manualSwitchDeadlineMs: 1.5,
+      secretRegistry: registry,
+      upstreamOrigin: "https://example.invalid",
+    },
   ]) {
     assert.throws(() => createRuntimeComposition(options));
   }

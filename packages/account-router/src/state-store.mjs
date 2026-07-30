@@ -1,5 +1,11 @@
-import { constants } from "node:fs";
-import { chmod, lstat, mkdir, open, rename, unlink } from "node:fs/promises";
+import {
+  closeSync,
+  constants,
+  fsyncSync,
+  openSync,
+  renameSync,
+} from "node:fs";
+import { chmod, lstat, mkdir, open, unlink } from "node:fs/promises";
 import { isAbsolute, join } from "node:path";
 import { inspect } from "node:util";
 import { randomUUID } from "node:crypto";
@@ -19,6 +25,20 @@ function assertPrivate(metadata, label) {
   if ((metadata.mode & 0o077) !== 0) {
     throw new Error(`${label} must be private to the service user`);
   }
+}
+
+function abortReason(signal) {
+  return signal?.reason instanceof Error
+    ? signal.reason
+    : new Error("state operation aborted");
+}
+
+function throwIfAborted(signal) {
+  if (signal === null || signal === undefined) return;
+  if (!(signal instanceof AbortSignal)) {
+    throw new TypeError("state store abort signal is invalid");
+  }
+  if (signal.aborted) throw abortReason(signal);
 }
 
 async function ignoreMissingUnlink(path) {
@@ -152,22 +172,24 @@ function createStateStore({
     }
   }
 
-  async function syncDirectory() {
-    let handle;
+  function syncDirectoryForCommit() {
+    let descriptor;
     try {
-      handle = await open(directory, constants.O_RDONLY);
-      await handle.sync();
+      descriptor = openSync(directory, constants.O_RDONLY);
+      fsyncSync(descriptor);
     } catch (error) {
       if (!new Set(["EINVAL", "ENOTSUP", "EISDIR"]).has(error?.code)) {
         throw error;
       }
     } finally {
-      await handle?.close();
+      if (descriptor !== undefined) closeSync(descriptor);
     }
   }
 
-  async function writeDocument(document) {
+  async function writeDocument(document, { signal = null } = {}) {
+    throwIfAborted(signal);
     await ensureDirectory();
+    throwIfAborted(signal);
     const serialized = `${JSON.stringify(document)}\n`;
     if (Buffer.byteLength(serialized) > maxBytes) {
       throw new Error("circuit state document is too large");
@@ -182,12 +204,15 @@ function createStateStore({
         (constants.O_NOFOLLOW ?? 0);
       handle = await open(temporaryPath, flags, 0o600);
       await handle.writeFile(serialized, "utf8");
+      throwIfAborted(signal);
       await handle.sync();
+      throwIfAborted(signal);
       await handle.close();
       handle = null;
       await chmod(temporaryPath, 0o600);
-      await rename(temporaryPath, path);
-      await syncDirectory();
+      throwIfAborted(signal);
+      renameSync(temporaryPath, path);
+      syncDirectoryForCommit();
     } catch (error) {
       await handle?.close();
       await ignoreMissingUnlink(temporaryPath);
@@ -199,9 +224,10 @@ function createStateStore({
     async load() {
       return enqueue(readDocument);
     },
-    async save(document) {
+    async save(document, { signal = null } = {}) {
+      throwIfAborted(signal);
       const normalized = normalizeStoredDocument(document);
-      return enqueue(() => writeDocument(normalized));
+      return enqueue(() => writeDocument(normalized, { signal }));
     },
     toString() {
       return documentKind === "circuit" ? "[CircuitStateStore]" : "[RoutingStateStore]";

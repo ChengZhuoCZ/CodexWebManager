@@ -94,6 +94,7 @@ function runtimeOptions({
     maxBackoffMs: 1,
   },
   initialCircuitState,
+  manualSwitchDeadlineMs,
   routingStateStore,
   initialRoutingState,
   now = () => NOW,
@@ -107,6 +108,7 @@ function runtimeOptions({
     circuitStateStore,
     failoverOptions,
     initialCircuitState,
+    manualSwitchDeadlineMs,
     routingStateStore,
     initialRoutingState,
     modelPort: 0,
@@ -1124,6 +1126,223 @@ test("rejects a no-op switch without waiting for queued route persistence", asyn
   assert.equal(noOpSwitch.status, 409);
   assert.deepEqual(await noOpSwitch.json(), { error: "switch_rejected" });
   assert.equal(saveCalls, 2);
+});
+
+test("bounds an effective switch while its candidate route persistence is stalled", async (context) => {
+  let releaseCandidateSave;
+  let announceCandidateSave;
+  const candidateSaveStarted = new Promise((resolve) => {
+    announceCandidateSave = resolve;
+  });
+  let candidateSaveAborted = false;
+  let saveCalls = 0;
+  const savedRoutes = [];
+  const routingStateStore = {
+    async load() { return null; },
+    async save(document, { signal = null } = {}) {
+      saveCalls += 1;
+      if (saveCalls === 2) {
+        announceCandidateSave();
+        await new Promise((resolve, reject) => {
+          releaseCandidateSave = resolve;
+          signal?.addEventListener("abort", () => {
+            candidateSaveAborted = true;
+            reject(signal.reason);
+          }, { once: true });
+        });
+      }
+      savedRoutes.push(structuredClone(document.routing));
+    },
+  };
+  const upstreamAccounts = [];
+  const upstream = http.createServer((request, response) => {
+    upstreamAccounts.push(request.headers["chatgpt-account-id"]);
+    request.resume();
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end('{"models":[{"slug":"fixture-model"}]}');
+  });
+  context.after(() => close(upstream));
+  const upstreamOrigin = await listen(upstream);
+  const runtime = createRuntimeComposition(runtimeOptions({
+    accounts: [
+      account({ priority: 10 }),
+      account({
+        id: "fixture-account-b",
+        alias: "Fixture B",
+        priority: 0,
+        credentialRef: "fixture-b",
+      }),
+    ],
+    manualSwitchDeadlineMs: 100,
+    routingStateStore,
+    initialRoutingState: null,
+    upstreamOrigin,
+  }));
+  context.after(async () => {
+    releaseCandidateSave?.();
+    await runtime.stop().catch(() => undefined);
+  });
+  await runtime.start();
+
+  const initial = await fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/backend-api/codex/models`,
+  );
+  assert.equal(initial.status, 200);
+  await initial.arrayBuffer();
+  assert.deepEqual(savedRoutes, [{
+    current_account_id: "fixture-account-a",
+    preferred_account_id: null,
+  }]);
+
+  const switchPromise = fetch(
+    `http://127.0.0.1:${runtime.addresses.admin.port}/v1/switch`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${ADMIN_TOKEN}`,
+        "content-type": "application/json",
+      },
+      body: '{"account_alias":"Fixture B","reason":"manual"}',
+    },
+  );
+  await candidateSaveStarted;
+  const switchSettledWithinBound = await Promise.race([
+    switchPromise.then(() => true),
+    new Promise((resolve) => setTimeout(() => resolve(false), 250)),
+  ]);
+  assert.equal(switchSettledWithinBound, true);
+  const switched = await switchPromise;
+  assert.equal(switched.status, 503);
+  assert.deepEqual(await switched.json(), { error: "switch_request_failed" });
+  assert.equal(candidateSaveAborted, true);
+  assert.equal(saveCalls, 2);
+  assert.deepEqual(savedRoutes, [{
+    current_account_id: "fixture-account-a",
+    preferred_account_id: null,
+  }]);
+  assert.deepEqual((await adminStatus(runtime)).current_route, {
+    account_alias: "Fixture A",
+    continuity: "new_backend_session",
+  });
+  const ready = await fetch(`http://127.0.0.1:${runtime.addresses.admin.port}/readyz`);
+  assert.equal(ready.status, 200);
+
+  const afterTimeout = await fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/backend-api/codex/responses`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: '{"fixture":true}',
+    },
+  );
+  assert.equal(afterTimeout.status, 200);
+  await afterTimeout.arrayBuffer();
+  assert.deepEqual(upstreamAccounts, ["fixture-a", "fixture-a"]);
+  assert.equal(saveCalls, 2);
+});
+
+test("fails closed when a timed-out manual route save later rejects distinctly", async (context) => {
+  let rejectCandidateSave;
+  let announceCandidateSave;
+  const candidateSaveStarted = new Promise((resolve) => {
+    announceCandidateSave = resolve;
+  });
+  let saveCalls = 0;
+  const routingStateStore = {
+    async load() { return null; },
+    async save() {
+      saveCalls += 1;
+      if (saveCalls === 2) {
+        announceCandidateSave();
+        await new Promise((resolve, reject) => {
+          rejectCandidateSave = reject;
+        });
+      }
+    },
+  };
+  let upstreamCalls = 0;
+  const upstream = http.createServer((request, response) => {
+    upstreamCalls += 1;
+    request.resume();
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end('{"models":[{"slug":"fixture-model"}]}');
+  });
+  context.after(() => close(upstream));
+  const upstreamOrigin = await listen(upstream);
+  const runtime = createRuntimeComposition(runtimeOptions({
+    accounts: [
+      account({ priority: 10 }),
+      account({
+        id: "fixture-account-b",
+        alias: "Fixture B",
+        priority: 0,
+        credentialRef: "fixture-b",
+      }),
+    ],
+    manualSwitchDeadlineMs: 100,
+    routingStateStore,
+    initialRoutingState: null,
+    upstreamOrigin,
+  }));
+  context.after(async () => {
+    rejectCandidateSave?.(new Error("fixture cleanup rejection"));
+    await runtime.stop().catch(() => undefined);
+  });
+  await runtime.start();
+
+  const initial = await fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/backend-api/codex/models`,
+  );
+  assert.equal(initial.status, 200);
+  await initial.arrayBuffer();
+
+  const switchPromise = fetch(
+    `http://127.0.0.1:${runtime.addresses.admin.port}/v1/switch`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${ADMIN_TOKEN}`,
+        "content-type": "application/json",
+      },
+      body: '{"account_alias":"Fixture B","reason":"manual"}',
+    },
+  );
+  await candidateSaveStarted;
+  const switched = await switchPromise;
+  assert.equal(switched.status, 503);
+  assert.deepEqual(await switched.json(), { error: "switch_request_failed" });
+  assert.deepEqual((await adminStatus(runtime)).current_route, {
+    account_alias: "Fixture A",
+    continuity: "new_backend_session",
+  });
+
+  rejectCandidateSave(new Error("fixture distinct late storage failure"));
+  await new Promise((resolve) => setImmediate(resolve));
+  const ready = await fetch(`http://127.0.0.1:${runtime.addresses.admin.port}/readyz`);
+  assert.equal(ready.status, 503);
+
+  const afterLateFailure = await fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/backend-api/codex/responses`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: '{"fixture":true}',
+    },
+  );
+  assert.equal(afterLateFailure.status, 502);
+  assert.deepEqual(await afterLateFailure.json(), {
+    error: {
+      type: "protocol_error",
+      reason: "selector_failed",
+      attempts: 0,
+      semantic_output: false,
+    },
+  });
+  assert.equal(upstreamCalls, 1);
+  assert.deepEqual((await adminStatus(runtime)).current_route, {
+    account_alias: "Fixture A",
+    continuity: "new_backend_session",
+  });
 });
 
 test("does not acknowledge a manual preference when private route persistence fails", async (context) => {

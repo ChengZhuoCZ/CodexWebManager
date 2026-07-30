@@ -144,6 +144,36 @@ test("returns null for a missing state file and preserves the last valid file on
   assert.deepEqual(await routingStore.load(), validRouting);
 });
 
+test("prevents a pre-cancelled route save from replacing durable intent", async (context) => {
+  const directory = await privateDirectory(context);
+  const routingStore = createRoutingStateStore({ directory });
+  const initial = {
+    version: 1,
+    saved_at: "2026-07-16T08:00:00.000Z",
+    accounts: [],
+    routing: {
+      current_account_id: "account-a",
+      preferred_account_id: null,
+    },
+  };
+  await routingStore.save(initial);
+
+  const cancellation = new Error("fixture route save cancelled");
+  const controller = new AbortController();
+  controller.abort(cancellation);
+  await assert.rejects(
+    routingStore.save({
+      ...initial,
+      routing: {
+        current_account_id: "account-b",
+        preferred_account_id: "account-b",
+      },
+    }, { signal: controller.signal }),
+    /fixture route save cancelled/,
+  );
+  assert.deepEqual(await routingStore.load(), initial);
+});
+
 test("rejects permissive, symlinked, corrupt, and oversized state files without echoing content", async (context) => {
   const directory = await privateDirectory(context);
   const path = join(directory, "circuit-state.json");

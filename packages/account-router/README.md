@@ -86,6 +86,11 @@ selection and mutation are serialized through that short boundary; if a semantic
 before acknowledgement, the candidate state is rolled back and the switch is rejected. An
 unknown alias or a request for the already-current route is rejected inside the same serialized
 boundary before waiting for unrelated queued route persistence; no route state is written. An
+effective manual switch has a five-second total deadline by default. The private routing-state
+store observes that signal while writing its temporary file and checks cancellation immediately
+before a synchronous rename-plus-directory-fsync commit section, so a timed-out candidate cannot
+later replace durable route intent. A clean cancellation keeps the prior route usable; a distinct
+late storage error still makes readiness fail closed. An
 automatic route that changes the current backend is likewise persisted before the runtime opens
 the upstream attempt; a failed private write therefore fails closed without contacting that
 upstream. This wait observes the existing bounded failover selection signal. A deadline or client

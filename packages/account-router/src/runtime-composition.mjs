@@ -32,6 +32,8 @@ const FAILURE_ADMIN_STATES = Object.freeze({
   network_error: "cooling_down",
   upstream_5xx: "cooling_down",
 });
+const DEFAULT_MANUAL_SWITCH_DEADLINE_MS = 5_000;
+const MAX_MANUAL_SWITCH_DEADLINE_MS = 60_000;
 
 function validateOrigin(value) {
   let origin;
@@ -95,6 +97,7 @@ export function createRuntimeComposition({
   adminAuthenticator = null,
   circuitStateStore = null,
   initialCircuitState = null,
+  manualSwitchDeadlineMs = DEFAULT_MANUAL_SWITCH_DEADLINE_MS,
   routingStateStore = null,
   initialRoutingState = null,
   adminHost = defaults.adminHost,
@@ -106,6 +109,13 @@ export function createRuntimeComposition({
 } = {}) {
   if (!Array.isArray(accounts)) throw new TypeError("runtime accounts must be an array");
   if (typeof now !== "function") throw new TypeError("runtime clock must be a function");
+  if (
+    !Number.isSafeInteger(manualSwitchDeadlineMs) ||
+    manualSwitchDeadlineMs < 1 ||
+    manualSwitchDeadlineMs > MAX_MANUAL_SWITCH_DEADLINE_MS
+  ) {
+    throw new Error("manual switch deadline must be an integer from 1 through 60000");
+  }
   const registry = assertSecretRegistry(secretRegistry);
   const authenticator = assertAuthenticator(adminAuthenticator);
   const stateStore = assertCircuitStateStore(circuitStateStore);
@@ -261,17 +271,24 @@ export function createRuntimeComposition({
     });
   }
 
-  function withRoutingMutation(operation) {
-    const result = routingMutationTail.then(operation, operation);
+  function withRoutingMutation(operation, { signal = null } = {}) {
+    if (signal !== null && signal !== undefined && !(signal instanceof AbortSignal)) {
+      throw new TypeError("runtime abort signal is invalid");
+    }
+    const invoke = () => {
+      throwIfAborted(signal);
+      return operation();
+    };
+    const result = routingMutationTail.then(invoke, invoke);
     routingMutationTail = result.catch(() => undefined);
-    return result;
+    return awaitWithAbort(result, signal);
   }
 
   async function persistRuntimeState({ signal = null } = {}) {
     if (stateStore === null) return;
     if (persistenceFailure !== null) throw persistenceUnavailable();
     try {
-      await awaitWithAbort(stateStore.save(exportRuntimeState()), signal, {
+      await awaitWithAbort(stateStore.save(exportRuntimeState(), { signal }), signal, {
         onLateReject(error) {
           persistenceFailure = error;
         },
@@ -294,13 +311,21 @@ export function createRuntimeComposition({
 
   async function persistRoutingState(
     document = exportRoutingState(),
-    { signal = null } = {},
+    { signal = null, abortMakesUnavailable = true } = {},
   ) {
     if (routeStateStore === null) return;
     if (routingPersistenceFailure !== null) throw persistenceUnavailable();
     try {
-      await awaitWithAbort(routeStateStore.save(document), signal);
+      await awaitWithAbort(routeStateStore.save(document, { signal }), signal, {
+        onLateReject(error) {
+          if (signal?.aborted && error === abortReason(signal)) return;
+          routingPersistenceFailure = error;
+        },
+      });
     } catch (error) {
+      if (signal?.aborted && !abortMakesUnavailable) {
+        throw abortReason(signal);
+      }
       routingPersistenceFailure = error;
       throw persistenceUnavailable();
     }
@@ -534,7 +559,9 @@ export function createRuntimeComposition({
   }
 
   function onAttemptFailure(payload) {
-    return withRoutingMutation(() => recordAttemptFailure(payload));
+    return withRoutingMutation(() => recordAttemptFailure(payload), {
+      signal: payload.signal ?? null,
+    });
   }
 
   function releaseSelectionProbe(accountId, circuitLease) {
@@ -656,22 +683,27 @@ export function createRuntimeComposition({
 
   function resolveUpstream(route, selectionContext = {}) {
     return withRoutingMutation(() =>
-      resolveUpstreamWithRoutingLock(route, selectionContext));
+      resolveUpstreamWithRoutingLock(route, selectionContext), {
+        signal: selectionContext.signal ?? null,
+      });
   }
 
-  async function handleSwitchRequest({ accountAlias }) {
+  async function handleSwitchRequest({ accountAlias }, { signal = null } = {}) {
     if (activeSemanticStreams > 0) return Object.freeze({ accepted: false });
     const toAccountId = adminState.findAccountIdByAlias(accountAlias);
     if (toAccountId === null || toAccountId === currentAccountId) {
       return Object.freeze({ accepted: false });
     }
-    await pendingRoutingPersistence;
+    throwIfAborted(signal);
+    await awaitWithAbort(pendingRoutingPersistence, signal);
+    throwIfAborted(signal);
     if (routingPersistenceFailure !== null) throw persistenceUnavailable();
     if (activeSemanticStreams > 0) return Object.freeze({ accepted: false });
     const decision = await scheduledDecision(
       new Set(),
       toAccountId,
     );
+    throwIfAborted(signal);
     if (
       decision.status !== "selected" ||
       decision.selected_account_id !== toAccountId
@@ -683,7 +715,7 @@ export function createRuntimeComposition({
     await persistRoutingState(exportRoutingState({
       current: toAccountId,
       preferred: toAccountId,
-    }));
+    }), { signal, abortMakesUnavailable: false });
     if (activeSemanticStreams > 0) {
       await persistRoutingState();
       return Object.freeze({ accepted: false });
@@ -699,7 +731,15 @@ export function createRuntimeComposition({
   }
 
   function onSwitchRequest(payload) {
-    return withRoutingMutation(() => handleSwitchRequest(payload));
+    const controller = new AbortController();
+    const timer = setTimeout(() => {
+      controller.abort(new Error("manual switch deadline exceeded"));
+    }, manualSwitchDeadlineMs);
+    timer.unref?.();
+    return withRoutingMutation(
+      () => handleSwitchRequest(payload, { signal: controller.signal }),
+      { signal: controller.signal },
+    ).finally(() => clearTimeout(timer));
   }
 
   const failoverStateMachine = createFailoverStateMachine(failoverOptions);
