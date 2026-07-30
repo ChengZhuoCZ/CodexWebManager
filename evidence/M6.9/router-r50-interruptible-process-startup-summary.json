@@ -1,0 +1,242 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_interruptible_complete_process_startup_and_release_candidate",
+  "generated_at": "2026-07-31T02:47:34+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "388784a5cc1b3d08aab97cb6318fa97daefe69af",
+  "output_revision": "ed90496c762ff50f7e9529463353b7a2ca72899a",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Cancel the bounded complete process-start operation when the production entrypoint receives SIGINT or SIGTERM, while retaining the original total startup deadline and requesting cleanup if a runtime already exists.",
+    "default_complete_runtime_startup_deadline_ms": 5000,
+    "maximum_complete_runtime_startup_deadline_ms": 60000,
+    "parent_process_signal_observed": true,
+    "startup_deadline_retained_with_live_parent_signal": true,
+    "preaborted_parent_invokes_runtime_loader": false,
+    "listener_start_invoked_after_parent_abort": false,
+    "runtime_stop_requested_when_created": true,
+    "process_signal_handlers": [
+      "SIGINT",
+      "SIGTERM"
+    ],
+    "stalled_subprocess_signal_tested": "SIGTERM",
+    "stalled_subprocess_exit_code": 0,
+    "router_started_emitted_after_stalled_stop": false,
+    "router_start_failed_emitted_after_stalled_stop": false,
+    "request_failover_policy_changed": false,
+    "restart_state_schema_changed": false,
+    "weekly_quota_policy_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "timeout 10s node --test --test-name-pattern='parent process signal cancels complete runtime startup' packages/account-router/test/runtime-bootstrap.test.mjs",
+    "before_implementation": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "observed_failure": "The external process stop signal was ignored and the synthetic complete startup remained pending instead of rejecting before listener start.",
+      "node_command_duration_ms": 168.185,
+      "test_duration_ms": 103.724,
+      "outcome": "timed_out"
+    },
+    "after_implementation": {
+      "tests": 4,
+      "passed": 4,
+      "failed": 0,
+      "node_command_duration_ms": 214.092,
+      "parent_cancel_fixture_duration_ms": 1.553,
+      "retained_deadline_fixture_duration_ms": 50.85,
+      "preaborted_fixture_duration_ms": 0.645,
+      "invalid_boundary_fixture_duration_ms": 0.4,
+      "external_reason_preserved": true,
+      "listener_start_calls_after_abort": 0,
+      "preaborted_loader_calls": 0
+    }
+  },
+  "stalled_cli_fixture": {
+    "preload": "packages/account-router/fixtures/startup/stall-runtime-load.mjs",
+    "uses_synthetic_file_open_only": true,
+    "real_configuration_read": false,
+    "real_credentials_read": false,
+    "stop_timeout_ms": 1000,
+    "observed_stop_duration_ms": 48.868,
+    "exit_code": 0,
+    "exit_signal": null,
+    "router_stopping_emitted": true,
+    "router_started_emitted": false,
+    "router_start_failed_emitted": false,
+    "stderr_bytes": 0
+  },
+  "verification": {
+    "targeted_runtime_startup": {
+      "tests": 4,
+      "passed": 4,
+      "failed": 0,
+      "skipped": 0
+    },
+    "targeted_cli_lifecycle": {
+      "tests": 3,
+      "passed": 3,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "normal loopback startup and clean SIGTERM",
+        "SIGTERM during a synthetic stalled private load",
+        "active protected admin SSE shutdown"
+      ]
+    },
+    "affected_startup_lifecycle_release_and_security": {
+      "tests": 68,
+      "passed": 68,
+      "failed": 0,
+      "skipped": 0
+    },
+    "critical_failover_restart_and_lifecycle": {
+      "tests": 138,
+      "passed": 138,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "HTTP/SSE bounded pre-semantic failover and post-semantic no-replay",
+        "WebSocket bounded pre-semantic failover and post-semantic no-replay",
+        "weekly/circuit/route persistence and restart behavior",
+        "bounded durable manual switching and active-stream exclusion",
+        "bounded complete startup, request, persistence and shutdown lifecycles"
+      ]
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 320,
+      "passed": 295,
+      "failed": 0,
+      "skipped": 25,
+      "runner": "umask 0022; node --test",
+      "attempt_limit": 2,
+      "attempts_used": 2,
+      "first_attempt_note": "A preload placed under test/fixtures passed but was counted as an extra empty test file; it was moved to fixtures/startup before the final count.",
+      "final_attempt": "passed"
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r50-strict-matrix-summary.json",
+      "tests": 320,
+      "passed": 320,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1,
+      "unit_passed": 157,
+      "integration_passed": 116,
+      "e2e_passed": 47,
+      "fixture_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf"
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r50-security-summary.json",
+      "qualified": true,
+      "files_scanned": 464,
+      "findings": 0,
+      "focused_tests": 104,
+      "focused_passed": 104,
+      "focused_skipped": 0,
+      "retained_strict_ui_passed": 492,
+      "attempt_limit": 2,
+      "attempts_used": 2,
+      "first_attempt": {
+        "result": "preliminary_passed",
+        "files_scanned": 459,
+        "focused_passed": 104
+      },
+      "final_attempt": {
+        "result": "final_evidence_tree_passed",
+        "files_scanned": 464,
+        "focused_passed": 104
+      }
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r50-linux-release-verify.json",
+      "release": "codex-account-router-0.2.29-linux-x64",
+      "sha256": "471bbacf24c78fe41ae81cff3b30da4cf7666cbcf190b76c3dd8fec53a7ca615",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "health_status": 200,
+      "no_account_readiness_status": 503,
+      "normal_sigterm_exit_code": 0,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    },
+    "runner_diagnostic": {
+      "command": "npm run check",
+      "result": "not_executed_npm_unavailable",
+      "exit_code": 127,
+      "retry_attempted": false,
+      "replacement_checks": "Direct node --check for every changed JavaScript file and executable Node test suites passed."
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r50.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure is unchanged and /opt/codex-account-router remains root-owned mode 0755 and non-writable by the service user.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.29-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "active_router_effective_unit_sha256": "230dba0a5f7e283f4db2291e4bc6ab7b078eebd63e89e9275a9028185531dddc",
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "exec_start_monotonic": 196497166049,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200,
+      "effective_unit_sha256": "543ddc71409cc088522e80651955a988cc9f2229e9da29dc8a9107c3def3ea1a"
+    },
+    "app_server": {
+      "pid": 508396,
+      "exec_start_monotonic": 194490256322,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running",
+      "effective_unit_sha256": "daaefec18fde144f1801e5b4e60a13cfe9e7c8abe98799192ee59a0f3b66db2f"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "web_exec_start_monotonic": 205386075197,
+    "web_effective_unit_sha256": "bcf691a9362a8f91c4a8d2680631b238bd6ba9ada7e18975bdc567ace4823ca2",
+    "app_server_pid": 495033,
+    "app_server_exec_start_monotonic": 188703455553,
+    "app_server_effective_unit_sha256": "5b44e7e28c57daebdf97eb9e5bbb1e5cd6655a7511a7117079988326fea1be2b",
+    "http_status": 200,
+    "tailnet_http_status": 200,
+    "router_readyz_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.29 is verified but is not active until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "The entrypoint abandons a custom runtime loader that ignores AbortSignal and requests stop after a runtime exists, but cannot force custom code to stop.",
+    "Production file operations and Node listeners observe the signal at their documented boundaries; already executing kernel calls are not hard real-time cancellation guarantees.",
+    "The stalled subprocess exercised SIGTERM; SIGINT is wired to the same stop function but was not run as a second stalled subprocess fixture.",
+    "A process stop during startup does not replay, migrate, resume or restore an in-flight request or running computation.",
+    "The tests use synthetic runtime/services/accounts and do not qualify a real A-to-B switch.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
