@@ -86,7 +86,9 @@ selection and mutation are serialized through that short boundary; if a semantic
 before acknowledgement, the candidate state is rolled back and the switch is rejected. An
 automatic route that changes the current backend is likewise persisted before the runtime opens
 the upstream attempt; a failed private write therefore fails closed without contacting that
-upstream.
+upstream. This wait observes the existing bounded failover selection signal. A deadline or client
+cancel marks the route-persistence boundary unavailable, disposes the acquired secret lease, and
+does not apply a late result to the running router's current route.
 Tests use fixture accounts only; they do not access or switch any real account.
 
 ## Optional codex-web status bridge

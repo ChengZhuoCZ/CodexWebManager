@@ -172,6 +172,34 @@ export function createRuntimeComposition({
     return new Error("runtime state persistence is unavailable");
   }
 
+  function awaitWithAbort(operation, signal) {
+    if (signal === null || signal === undefined) return operation;
+    if (!(signal instanceof AbortSignal)) {
+      throw new TypeError("runtime persistence signal is invalid");
+    }
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (callback, value) => {
+        if (settled) return;
+        settled = true;
+        signal.removeEventListener("abort", onAbort);
+        callback(value);
+      };
+      const onAbort = () => {
+        const reason = signal.reason instanceof Error
+          ? signal.reason
+          : new Error("runtime persistence operation aborted");
+        finish(reject, reason);
+      };
+      signal.addEventListener("abort", onAbort, { once: true });
+      Promise.resolve(operation).then(
+        (value) => finish(resolve, value),
+        (error) => finish(reject, error),
+      );
+      if (signal.aborted) onAbort();
+    });
+  }
+
   function exportRuntimeState() {
     return Object.freeze({
       ...circuitBreaker.exportState(),
@@ -221,11 +249,14 @@ export function createRuntimeComposition({
     });
   }
 
-  async function persistRoutingState(document = exportRoutingState()) {
+  async function persistRoutingState(
+    document = exportRoutingState(),
+    { signal = null } = {},
+  ) {
     if (routeStateStore === null) return;
     if (routingPersistenceFailure !== null) throw persistenceUnavailable();
     try {
-      await routeStateStore.save(document);
+      await awaitWithAbort(routeStateStore.save(document), signal);
     } catch (error) {
       routingPersistenceFailure = error;
       throw persistenceUnavailable();
@@ -328,7 +359,7 @@ export function createRuntimeComposition({
     return lastUnavailableReason.get(currentAccountId) ?? "startup";
   }
 
-  async function recordSelectedRoute(accountId) {
+  async function recordSelectedRoute(accountId, { signal = null } = {}) {
     const reason = routeReasonFor(accountId);
     if (reason === null) {
       lastUnavailableReason.delete(accountId);
@@ -338,7 +369,7 @@ export function createRuntimeComposition({
     await persistRoutingState(exportRoutingState({
       current: accountId,
       preferred: preferredAccountId,
-    }));
+    }), { signal });
     adminState.recordSwitch({
       fromAccountId,
       toAccountId: accountId,
@@ -501,7 +532,9 @@ export function createRuntimeComposition({
       }
 
       try {
-        await recordSelectedRoute(accountId);
+        await recordSelectedRoute(accountId, {
+          signal: selectionContext.signal ?? null,
+        });
       } catch {
         secretLease.dispose();
         throw new Error("runtime route state is unavailable");

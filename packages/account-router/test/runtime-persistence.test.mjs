@@ -87,10 +87,17 @@ async function adminStatus(runtime) {
 function runtimeOptions({
   accounts = [account()],
   circuitStateStore,
+  failoverOptions = {
+    maxAttempts: 1,
+    totalDeadlineMs: 1_000,
+    baseBackoffMs: 1,
+    maxBackoffMs: 1,
+  },
   initialCircuitState,
   routingStateStore,
   initialRoutingState,
   now = () => NOW,
+  secretRegistry = registry(),
   upstreamOrigin,
 }) {
   return {
@@ -98,18 +105,13 @@ function runtimeOptions({
     adminAuthenticator: createAdminAuthenticator({ token: ADMIN_TOKEN }),
     adminPort: 0,
     circuitStateStore,
-    failoverOptions: {
-      maxAttempts: 1,
-      totalDeadlineMs: 1_000,
-      baseBackoffMs: 1,
-      maxBackoffMs: 1,
-    },
+    failoverOptions,
     initialCircuitState,
     routingStateStore,
     initialRoutingState,
     modelPort: 0,
     now,
-    secretRegistry: registry(),
+    secretRegistry,
     upstreamOrigin,
   };
 }
@@ -500,6 +502,74 @@ test("opens an automatic upstream attempt only after private route persistence c
     account_alias: "Fixture A",
     continuity: "new_backend_session",
   });
+});
+
+test("fails closed and disposes the lease when automatic route persistence exceeds its deadline", async (context) => {
+  let releaseSave;
+  const saveGate = new Promise((resolve) => { releaseSave = resolve; });
+  let fixtureLease;
+  const secretRegistry = new SecretProviderRegistry().register(defineSecretProvider({
+    name: "fixture-secret",
+    async acquire(reference) {
+      fixtureLease = SecretLease.fromUtf8(JSON.stringify({
+        version: 1,
+        authorization: "Bearer fixture-upstream-token",
+        account_id: reference,
+      }));
+      return fixtureLease;
+    },
+  }));
+  let upstreamCalls = 0;
+  const upstream = http.createServer((request, response) => {
+    upstreamCalls += 1;
+    request.resume();
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end('{"models":[{"slug":"fixture-model"}]}');
+  });
+  context.after(() => close(upstream));
+  const upstreamOrigin = await listen(upstream);
+  const runtime = createRuntimeComposition(runtimeOptions({
+    failoverOptions: {
+      maxAttempts: 1,
+      totalDeadlineMs: 25,
+      baseBackoffMs: 1,
+      maxBackoffMs: 1,
+    },
+    routingStateStore: {
+      async load() { return null; },
+      async save() { await saveGate; },
+    },
+    initialRoutingState: null,
+    secretRegistry,
+    upstreamOrigin,
+  }));
+  context.after(async () => {
+    releaseSave();
+    await runtime.stop().catch(() => undefined);
+  });
+  await runtime.start();
+
+  const response = await fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/backend-api/codex/models`,
+  );
+  assert.equal(response.status, 503);
+  assert.deepEqual(await response.json(), {
+    error: {
+      type: "all_accounts_unavailable",
+      reason: "total_deadline_exceeded",
+      attempts: 0,
+      semantic_output: false,
+    },
+  });
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(fixtureLease.disposed, true);
+  assert.equal(upstreamCalls, 0);
+
+  const ready = await fetch(`http://127.0.0.1:${runtime.addresses.admin.port}/readyz`);
+  assert.equal(ready.status, 503);
+  releaseSave();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal((await adminStatus(runtime)).current_route, null);
 });
 
 test("does not acknowledge a manual preference when private route persistence fails", async (context) => {
