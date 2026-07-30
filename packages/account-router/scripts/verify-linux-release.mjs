@@ -899,6 +899,8 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       safe_boundary: [],
       restart: [],
     };
+    const syntheticAllPoolUnavailableRoleSequence = [];
+    const syntheticAllPoolUnavailableFailureSequence = [];
     let syntheticFixtureScenario = "weekly_quota_restart";
     const syntheticResetAtSeconds = Math.ceil(
       (Date.now() + 60 * 60_000) / 1_000,
@@ -966,6 +968,26 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
         } else {
           response.end(
             "event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n",
+          );
+        }
+        return;
+      }
+      if (syntheticFixtureScenario === "all_pool_unavailable") {
+        syntheticAllPoolUnavailableRoleSequence.push(role);
+        if (role === "primary") {
+          syntheticAllPoolUnavailableFailureSequence.push("rate_limited");
+          response.writeHead(429, {
+            "content-type": "application/json",
+            "retry-after": "0",
+          });
+          response.end(
+            '{"error":{"type":"rate_limited","message":"installed-primary-upstream-body"}}',
+          );
+        } else {
+          syntheticAllPoolUnavailableFailureSequence.push("upstream_5xx");
+          response.writeHead(503, { "content-type": "application/json" });
+          response.end(
+            '{"error":{"type":"upstream_unavailable","message":"installed-secondary-upstream-body"}}',
           );
         }
         return;
@@ -2013,6 +2035,136 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       in_flight_resume_tested: false,
     };
 
+    const allPoolUnavailableStateDirectory = path.join(
+      temporaryRoot,
+      "synthetic-all-pool-unavailable-state",
+    );
+    await fs.mkdir(allPoolUnavailableStateDirectory, { mode: 0o700 });
+    syntheticFixtureScenario = "all_pool_unavailable";
+    child = spawn(path.join(current, "bin/codex-account-router"), [], {
+      cwd: current,
+      env: {
+        ...scrubbedRuntimeEnvironment(homeDirectory),
+        CODEX_ROUTER_ACCOUNTS_FILE: syntheticAccountsFile,
+        CODEX_ROUTER_CREDENTIAL_ROOT: syntheticBindingRoot,
+        CODEX_ROUTER_ADMIN_TOKEN_FILE: syntheticAdminTokenFile,
+        CODEX_ROUTER_STATE_DIRECTORY: allPoolUnavailableStateDirectory,
+        CODEX_ROUTER_UPSTREAM_ORIGIN: syntheticUpstreamOrigin,
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const allPoolUnavailableStarted = await waitForStart(child);
+    const allPoolUnavailableAdminOrigin =
+      `http://127.0.0.1:${allPoolUnavailableStarted.record.bind_port}`;
+    const allPoolUnavailableModelOrigin =
+      `http://127.0.0.1:${allPoolUnavailableStarted.record.model_bind_port}`;
+    const allPoolReadinessBeforeResponse = await fetch(
+      `${allPoolUnavailableAdminOrigin}/readyz`,
+      { signal: AbortSignal.timeout(5_000) },
+    );
+    const allPoolReadinessBefore =
+      await allPoolReadinessBeforeResponse.json();
+    assert(
+      allPoolReadinessBeforeResponse.status === 200 &&
+        allPoolReadinessBefore.status === "ready" &&
+        allPoolReadinessBefore.usable_accounts === 2,
+      "installed router all-pool fixture readiness was invalid",
+    );
+
+    const allPoolModelResponse = await fetch(
+      `${allPoolUnavailableModelOrigin}/v1/responses`,
+      {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: '{"input":"installed-all-pool-unavailable-fixture"}',
+        signal: AbortSignal.timeout(5_000),
+      },
+    );
+    const allPoolModelBodyText = await allPoolModelResponse.text();
+    const allPoolModelBody = JSON.parse(allPoolModelBodyText);
+    const expectedAllPoolError = {
+      error: {
+        type: "all_accounts_unavailable",
+        reason: "no_eligible_account",
+        attempts: 2,
+        semantic_output: false,
+      },
+    };
+    const sanitizedAllPoolErrorExact =
+      JSON.stringify(allPoolModelBody) ===
+        JSON.stringify(expectedAllPoolError);
+    assert(
+      allPoolModelResponse.status === 503 &&
+        allPoolModelResponse.headers.get("cache-control") === "no-store" &&
+        sanitizedAllPoolErrorExact,
+      "installed router did not return the exact sanitized all-pool error",
+    );
+    assert(
+      JSON.stringify(syntheticAllPoolUnavailableRoleSequence) ===
+        JSON.stringify(["primary", "secondary"]) &&
+        JSON.stringify(syntheticAllPoolUnavailableFailureSequence) ===
+          JSON.stringify(["rate_limited", "upstream_5xx"]),
+      "installed router all-pool retries exceeded the two synthetic accounts",
+    );
+
+    const allPoolReadinessAfterResponse = await fetch(
+      `${allPoolUnavailableAdminOrigin}/readyz`,
+      { signal: AbortSignal.timeout(5_000) },
+    );
+    const allPoolReadinessAfter =
+      await allPoolReadinessAfterResponse.json();
+    assert(
+      allPoolReadinessAfterResponse.status === 503 &&
+        allPoolReadinessAfter.status === "not_ready" &&
+        allPoolReadinessAfter.reason === "no_accounts" &&
+        allPoolReadinessAfter.usable_accounts === 0,
+      "installed router remained ready after every synthetic account failed",
+    );
+    child.kill("SIGTERM");
+    const [allPoolExitCode, allPoolExitSignal] = await waitForExit(child);
+    child = undefined;
+    assert(
+      allPoolExitCode === 0 && allPoolExitSignal === null,
+      "installed router all-pool fixture did not exit cleanly",
+    );
+    assert(
+      allPoolUnavailableStarted.getStderr() === "",
+      "installed router all-pool fixture wrote an error log",
+    );
+    assert(
+      fixtureUpstreamFailure === null,
+      fixtureUpstreamFailure ??
+        "installed router synthetic all-pool verification failed",
+    );
+    const syntheticAllPoolUnavailable = {
+      configured_bindings: syntheticBindings.length,
+      process_starts: 1,
+      readiness_before_status: allPoolReadinessBeforeResponse.status,
+      initial_requests: 1,
+      downstream_status: allPoolModelResponse.status,
+      downstream_error: allPoolModelBody.error,
+      upstream_role_sequence: syntheticAllPoolUnavailableRoleSequence,
+      upstream_failure_sequence:
+        syntheticAllPoolUnavailableFailureSequence,
+      retry_bound_observed:
+        syntheticAllPoolUnavailableRoleSequence.length === 2,
+      third_upstream_attempt_observed:
+        syntheticAllPoolUnavailableRoleSequence.length > 2,
+      readiness_after_status: allPoolReadinessAfterResponse.status,
+      usable_accounts_after: allPoolReadinessAfter.usable_accounts,
+      sanitized_error_exact: sanitizedAllPoolErrorExact,
+      local_fixture_upstream_only: true,
+      synthetic_credential_acquisition_tested: true,
+      synthetic_model_requests_sent: 1,
+      synthetic_upstream_attempts:
+        syntheticAllPoolUnavailableRoleSequence.length,
+      manual_switch_tested: false,
+      real_credentials_present: false,
+      real_model_request_sent: false,
+      real_account_switch_tested: false,
+      in_flight_resume_tested: false,
+    };
+
     return {
       health_status: healthResponse.status,
       readiness_status: readinessResponse.status,
@@ -2036,6 +2188,8 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
         syntheticWebSocketSafetyBoundaries,
       synthetic_manual_switch_safety_boundary:
         syntheticManualSwitchSafetyBoundary,
+      synthetic_all_pool_unavailable:
+        syntheticAllPoolUnavailable,
     };
   } finally {
     if (websocketClient?.socket) {
