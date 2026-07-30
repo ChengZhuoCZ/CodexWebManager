@@ -1,0 +1,203 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_installed_listener_start_interruption",
+  "generated_at": "2026-07-31T03:18:05+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "5f65e801054f718a57becbe5236ef221e74d21bd",
+  "output_revision": "bc614fc2cadfae26a1e54eb59d26b1ef3ff588b9",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Extend installed-release verification to interrupt a synthetic Node listener-start stall after runtime construction and prove clean SIGTERM behavior without a false started or startup-failed event.",
+    "release_payload_changed": false,
+    "release_version_changed": false,
+    "candidate_release": "codex-account-router-0.2.29-linux-x64",
+    "candidate_sha256": "471bbacf24c78fe41ae81cff3b30da4cf7666cbcf190b76c3dd8fec53a7ca615",
+    "synthetic_preload": "packages/account-router/fixtures/startup/stall-listener-start.mjs",
+    "empty_temporary_home_used": true,
+    "credential_directory_removed_from_child_environment": true,
+    "listener_marker_deadline_ms": 5000,
+    "runtime_created_before_listener_stall": true,
+    "request_failover_policy_changed": false,
+    "restart_state_schema_changed": false,
+    "weekly_quota_policy_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "timeout 20s node --test --test-name-pattern='installed release verifies stalled startup stop signals' packages/account-router/test/linux-release.test.mjs",
+    "before_implementation": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "observed_failure": "The installed-release verification summary had no listener_start_interruption result.",
+      "test_duration_ms": 264.591,
+      "node_command_duration_ms": 304.381
+    },
+    "implementation_attempt_limit": 2,
+    "implementation_attempts_used": 2,
+    "first_implementation_attempt": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "observed_failure": "An explicitly configured absent synthetic accounts file failed closed before listener creation, so the listener marker was never reached.",
+      "production_behavior_changed": false,
+      "test_duration_ms": 313.792,
+      "node_command_duration_ms": 353.666
+    },
+    "final_implementation_attempt": {
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "correction": "Reuse the verifier's empty temporary HOME and scrubbed runtime environment, adding only the synthetic listener-stall switch.",
+      "test_duration_ms": 316.402,
+      "node_command_duration_ms": 357.014
+    }
+  },
+  "installed_listener_start_interruption": {
+    "summary": "evidence/M6.9/router-r53-linux-release-verify.json",
+    "signal": "SIGTERM",
+    "stalled_during_listener_start": true,
+    "runtime_created_before_stall": true,
+    "exit_code": 0,
+    "exit_signal": null,
+    "router_stopping_emitted": true,
+    "router_started_emitted": false,
+    "router_start_failed_emitted": false,
+    "stderr_bytes": 0,
+    "real_configuration_read": false,
+    "real_credentials_read": false
+  },
+  "verification": {
+    "related_release_lifecycle_and_security": {
+      "tests": 29,
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 321,
+      "passed": 296,
+      "failed": 0,
+      "skipped": 25,
+      "runner": "umask 0022; node --test",
+      "attempt_limit": 1,
+      "attempts_used": 1
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r53-strict-matrix-summary.json",
+      "tests": 321,
+      "passed": 321,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1,
+      "unit_passed": 157,
+      "integration_passed": 116,
+      "e2e_passed": 48,
+      "fixture_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf"
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r53-security-summary.json",
+      "qualified": true,
+      "files_scanned": 480,
+      "findings": 0,
+      "focused_tests": 104,
+      "focused_passed": 104,
+      "focused_skipped": 0,
+      "retained_strict_ui_passed": 492,
+      "attempt_limit": 2,
+      "attempts_used": 2,
+      "first_attempt": {
+        "result": "preliminary_passed",
+        "files_scanned": 475,
+        "focused_passed": 104
+      },
+      "second_attempt": {
+        "result": "final_evidence_tree_passed",
+        "files_scanned": 480,
+        "focused_passed": 104
+      }
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r53-linux-release-verify.json",
+      "release": "codex-account-router-0.2.29-linux-x64",
+      "sha256": "471bbacf24c78fe41ae81cff3b30da4cf7666cbcf190b76c3dd8fec53a7ca615",
+      "rebuilt_candidate_matched_existing_archive_byte_for_byte": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "health_status": 200,
+      "no_account_readiness_status": 503,
+      "normal_sigterm_exit_code": 0,
+      "private_load_sigterm_exit_code": 0,
+      "private_load_sigint_exit_code": 0,
+      "listener_start_sigterm_exit_code": 0,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r53.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure is unchanged and /opt/codex-account-router remains root-owned mode 0755 and non-writable by the service user.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.29-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "active_router_effective_unit_sha256": "230dba0a5f7e283f4db2291e4bc6ab7b078eebd63e89e9275a9028185531dddc",
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "exec_start_monotonic": 196497166049,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200,
+      "effective_unit_sha256": "543ddc71409cc088522e80651955a988cc9f2229e9da29dc8a9107c3def3ea1a"
+    },
+    "app_server": {
+      "pid": 508396,
+      "exec_start_monotonic": 194490256322,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running",
+      "effective_unit_sha256": "daaefec18fde144f1801e5b4e60a13cfe9e7c8abe98799192ee59a0f3b66db2f"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "web_exec_start_monotonic": 205386075197,
+    "web_effective_unit_sha256": "bcf691a9362a8f91c4a8d2680631b238bd6ba9ada7e18975bdc567ace4823ca2",
+    "app_server_pid": 495033,
+    "app_server_exec_start_monotonic": 188703455553,
+    "app_server_effective_unit_sha256": "5b44e7e28c57daebdf97eb9e5bbb1e5cd6655a7511a7117079988326fea1be2b",
+    "http_status": 200,
+    "tailnet_http_status": 200,
+    "router_readyz_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.29 remains a verified but inactive candidate until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "The listener-start fixture patches only a synthetic verifier child and exercises SIGTERM. It does not prove every possible listener implementation or hard cancellation of kernel operations.",
+    "A process stop during startup does not replay, migrate, resume or restore an in-flight request or running computation.",
+    "The tests use synthetic runtime/services/accounts and do not qualify a real A-to-B switch.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
