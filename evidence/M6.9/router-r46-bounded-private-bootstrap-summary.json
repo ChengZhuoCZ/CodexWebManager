@@ -1,0 +1,206 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_bounded_private_bootstrap_loading_and_release_candidate",
+  "generated_at": "2026-07-31T01:33:49+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "07552f565e4518ac4d220f10fdc377bbe022117a",
+  "output_revision": "b04623d6799a6522313bd32c7183e4ef63c24df4",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Give initial public account metadata and optional admin-authenticator loading one total startup deadline, pass its signal through production private file and secret-provider boundaries and abandon loaders that ignore cancellation so the router fails before state or listener creation.",
+    "default_startup_private_load_deadline_ms": 5000,
+    "maximum_startup_private_load_deadline_ms": 60000,
+    "accounts_and_admin_loads_share_deadline": true,
+    "production_loaders_receive_signal": true,
+    "production_loaders_check_async_private_boundaries": true,
+    "signal_ignoring_loader_wait_abandoned": true,
+    "deadline_error": "runtime private bootstrap load deadline exceeded",
+    "state_loaded_before_private_bootstrap_completed": false,
+    "listeners_started_before_private_bootstrap_completed": false,
+    "restart_state_schema_changed": false,
+    "request_failover_policy_changed": false,
+    "weekly_quota_policy_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "timeout 10s node --test --test-name-pattern='bounds private account and admin bootstrap loads' packages/account-router/test/runtime-bootstrap.test.mjs",
+    "before_implementation": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "observed_failure": "The private bootstrap deadline helper was undefined, so account metadata and optional admin-authenticator loading had no shared bounded startup operation.",
+      "node_command_duration_ms": 64.072,
+      "test_duration_ms": 1.12
+    },
+    "after_implementation": {
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "node_command_duration_ms": 313.883,
+      "test_duration_ms": 100.329,
+      "fixture_deadline_ms": 100,
+      "accounts_and_admin_signal_identical": true,
+      "admin_signal_aborted": true,
+      "late_result_applied": false
+    }
+  },
+  "private_bootstrap_fixture": {
+    "tests": 2,
+    "passed": 2,
+    "failed": 0,
+    "stalled_stage": "admin_authenticator_load",
+    "fixture_deadline_ms": 100,
+    "deadline_error_sanitized": true,
+    "invalid_deadline_or_loader_calls": 0,
+    "production_account_document_normal_path_retained": true,
+    "production_admin_authenticator_normal_path_retained": true,
+    "synthetic_private_files_only": true
+  },
+  "verification": {
+    "affected_private_bootstrap_secret_runtime_and_release": {
+      "tests": 33,
+      "passed": 33,
+      "failed": 0,
+      "skipped": 0
+    },
+    "critical_failover_restart_and_lifecycle": {
+      "tests": 120,
+      "passed": 120,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "HTTP/SSE bounded pre-semantic failover and post-semantic no-replay",
+        "WebSocket bounded pre-semantic failover and post-semantic no-replay",
+        "weekly/circuit/route persistence and restart behavior",
+        "bounded durable manual switching and active-stream exclusion",
+        "bounded startup, request, persistence and shutdown lifecycles"
+      ]
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 306,
+      "passed": 281,
+      "failed": 0,
+      "skipped": 25,
+      "runner": "node --test",
+      "npm_runner_available": false
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r46-strict-matrix-summary.json",
+      "tests": 306,
+      "passed": 306,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 2,
+      "attempts_used": 2,
+      "first_attempt": {
+        "result": "fixture_configuration_failed",
+        "unit_passed": 157,
+        "integration_passed": 102,
+        "e2e_passed": 22,
+        "e2e_failed": 25,
+        "reason": "A Git-only temporary fixture omitted ignored TypeScript and scratch/asar build dependencies required by the pinned public E2E fixture."
+      },
+      "final_attempt": {
+        "result": "passed",
+        "unit_passed": 157,
+        "integration_passed": 102,
+        "e2e_passed": 47
+      }
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r46-security-summary.json",
+      "qualified": true,
+      "files_scanned": 443,
+      "findings": 0,
+      "focused_tests": 94,
+      "focused_passed": 94,
+      "retained_strict_ui_passed": 492,
+      "attempt_limit": 2,
+      "attempts_used": 2,
+      "first_attempt_files_scanned": 442,
+      "final_attempt_files_scanned": 443
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r46-linux-release-verify.json",
+      "release": "codex-account-router-0.2.25-linux-x64",
+      "sha256": "4f3f567d1f691bf49b1b4ab77d16c22edf35070f29770666d05577c7052ac178",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "health_status": 200,
+      "no_account_readiness_status": 503,
+      "normal_sigterm_exit_code": 0,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r46.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure is unchanged and /opt/codex-account-router remains root-owned mode 0755 and non-writable by the service user.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.25-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "active_router_effective_unit_sha256": "230dba0a5f7e283f4db2291e4bc6ab7b078eebd63e89e9275a9028185531dddc",
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "exec_start_monotonic": 196497166049,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200,
+      "effective_unit_sha256": "543ddc71409cc088522e80651955a988cc9f2229e9da29dc8a9107c3def3ea1a"
+    },
+    "app_server": {
+      "pid": 508396,
+      "exec_start_monotonic": 194490256322,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running",
+      "effective_unit_sha256": "daaefec18fde144f1801e5b4e60a13cfe9e7c8abe98799192ee59a0f3b66db2f"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "web_exec_start_monotonic": 205386075197,
+    "web_effective_unit_sha256": "bcf691a9362a8f91c4a8d2680631b238bd6ba9ada7e18975bdc567ace4823ca2",
+    "app_server_pid": 495033,
+    "app_server_exec_start_monotonic": 188703455553,
+    "app_server_effective_unit_sha256": "5b44e7e28c57daebdf97eb9e5bbb1e5cd6655a7511a7117079988326fea1be2b",
+    "http_status": 200,
+    "tailnet_http_status": 200,
+    "router_readyz_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.25 is verified but is not active until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "Private account/admin bootstrap and private state bootstrap currently have separate five-second deadlines, so the complete pre-listener path can approach ten seconds.",
+    "A custom loader that ignores AbortSignal can continue its own work after bootstrap abandons the result; it cannot publish the abandoned result into the returned runtime configuration.",
+    "Production file and secret-provider loaders check cancellation between asynchronous operations, but cannot cancel every kernel filesystem call already executing; no hard real-time filesystem guarantee is claimed.",
+    "A failed startup does not replay, migrate, resume or restore an in-flight request or running computation.",
+    "The first strict-matrix attempt exposed a missing-build-dependency fixture configuration and the bounded second attempt passed with the complete pinned public fixture.",
+    "The tests use synthetic accounts and private files only and do not qualify a real A-to-B switch.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}

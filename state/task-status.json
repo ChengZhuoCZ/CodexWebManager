@@ -40,12 +40,13 @@
     "r43_continuation": "6c2642364cb9c060be6c89d6e4ddaf85f7449e85",
     "r44_continuation": "6dcb7950696df086789011ad5c60ff519a205000",
     "r45_continuation": "6b4c1418f410c53d74632ec5e08d482199cdacb9",
+    "r46_continuation": "07552f565e4518ac4d220f10fdc377bbe022117a",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "ef6e0e8ae5bd983dd18ae5dee35ec6293383241b",
+  "output_revision": "b04623d6799a6522313bd32c7183e4ef63c24df4",
   "workspace_branch": "codex/m6-9-8215-worker",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -936,6 +937,50 @@
     {
       "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
       "result": "R45 final evidence-tree security audit qualified after the rollback script, milestone summary and security summary were present; 92/92 focused security tests and retained 492/492 strict UI evidence passed; 438 repository files were scanned with zero findings"
+    },
+    {
+      "command": "timeout 10s <bundled-node> --test --test-name-pattern='bounds private account and admin bootstrap loads' packages/account-router/test/runtime-bootstrap.test.mjs",
+      "result": "R46 minimal fixture failed before implementation as expected in 64.072 milliseconds: the shared private-bootstrap deadline helper was undefined, confirming the account metadata and optional admin-authenticator stages had no common bounded operation"
+    },
+    {
+      "command": "timeout 10s <bundled-node> --test --test-name-pattern='bounds private account and admin bootstrap loads' packages/account-router/test/runtime-bootstrap.test.mjs",
+      "result": "R46 fixture passed 1/1 after implementation; a stalled synthetic admin loader returned the fixed deadline error at 100.329 milliseconds and both private loaders observed the same aborted signal"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/runtime-bootstrap.test.mjs packages/account-router/test/secrets.test.mjs packages/account-router/test/codex-credentials.test.mjs packages/account-router/test/runtime-composition.test.mjs packages/account-router/test/linux-release.test.mjs packages/account-router/test/release-docs-contract.test.mjs",
+      "result": "R46 directly affected private-bootstrap, secret-provider, runtime and release suite passed 33/33; existing normal account metadata and temporary synthetic admin-authenticator paths remained valid without retaining plaintext"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test <HTTP/SSE/WebSocket/failover/weekly/restart/state/admin/service critical files>",
+      "result": "R46 critical suite passed 120/120, covering bounded HTTP/SSE and WebSocket pre-semantic failover, post-semantic no-replay, weekly/circuit/route persistence and restart behavior, active-stream exclusion plus startup/request/shutdown deadlines"
+    },
+    {
+      "command": "umask 0022; npm test",
+      "result": "R46 package runner was unavailable because npm was not present in the execution PATH and returned 127; no code or service changed, and the package script's exact node --test command was used once as the bounded fallback"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test",
+      "result": "R46 package-complete suite passed 281/306 with 0 failures and 25 expected pinned-public-fixture skips"
+    },
+    {
+      "command": "umask 0022; env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<git-only-fixture> M4_2_CODEX_WEB_ROOT=<git-only-fixture> M4_3_CODEX_WEB_ROOT=<git-only-fixture> M6_3_CODEX_WEB_ROOT=<git-only-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": "R46 strict-matrix attempt 1 of 2 stopped after unit 157/157 and integration 102/102 passed but E2E passed 22/47 and failed 25/47 because the Git-only temporary fixture omitted ignored TypeScript and scratch/asar build dependencies"
+    },
+    {
+      "command": "umask 0022; env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": "R46 strict-matrix final bounded attempt 2 of 2 passed 306/306 with no skips; unit 157, integration 102 and E2E 47, with no real account configured or account switch executed"
+    },
+    {
+      "command": "two SOURCE_DATE_EPOCH=0 deterministic 0.2.25 Linux x64 builds plus target-host no-credential release verification",
+      "result": "R46 byte-identical artifacts passed at SHA-256 4f3f567d; 49-file payload, checksum, installation, loopback-only listeners, health, no-account fail-closed readiness and clean SIGTERM passed without reading or configuring a real account"
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r46.sh",
+      "result": "R46 router-only rollback deployment script syntax, pinned version and artifact hash passed; deployment was not attempted because the known host-privilege blocker and non-writable root-owned target are unchanged, so active release 0.2.6 and all production processes remained unchanged"
+    },
+    {
+      "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "R46 final evidence-tree security audit passed on bounded attempt 2 of 2 after its own summary existed; 94/94 focused security tests and retained 492/492 strict UI evidence passed, and 443 repository files were scanned with zero findings"
     }
   ],
   "evidence": [
@@ -1056,9 +1101,72 @@
     "evidence/M6.9/router-r45-strict-matrix-summary.json",
     "evidence/M6.9/router-r45-security-summary.json",
     "evidence/M6.9/router-r45-linux-release-verify.json",
-    "evidence/M6.9/deploy-router-r45.sh"
+    "evidence/M6.9/deploy-router-r45.sh",
+    "evidence/M6.9/router-r46-bounded-private-bootstrap-summary.json",
+    "evidence/M6.9/router-r46-strict-matrix-summary.json",
+    "evidence/M6.9/router-r46-security-summary.json",
+    "evidence/M6.9/router-r46-linux-release-verify.json",
+    "evidence/M6.9/deploy-router-r46.sh"
   ],
   "observations": {
+    "continuation_r46_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8215-worker",
+      "commit": "07552f565e4518ac4d220f10fdc377bbe022117a",
+      "dependencies": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_result": "Use fixtures only to give initial public account metadata and optional admin-authenticator loading one bounded startup deadline so a stalled private loader cannot leave the router waiting before state or listeners exist, while preserving 8215 PID 510876/508396 with ActiveEnter monotonic timestamps 196497166178/194490256399."
+    },
+    "continuation_r46_fixture_result": {
+      "implementation_revision": "b04623d6799a6522313bd32c7183e4ef63c24df4",
+      "default_startup_private_load_deadline_ms": 5000,
+      "maximum_startup_private_load_deadline_ms": 60000,
+      "accounts_and_admin_loads_share_deadline": true,
+      "production_account_load_receives_signal": true,
+      "production_admin_load_receives_signal": true,
+      "production_loaders_check_private_boundaries": true,
+      "signal_ignoring_loader_wait_abandoned": true,
+      "deadline_error": "runtime private bootstrap load deadline exceeded",
+      "listeners_started_before_private_bootstrap_completed": false,
+      "invalid_boundary_loader_calls": 0,
+      "request_failover_policy_changed": false,
+      "restart_state_schema_changed": false,
+      "focused_tests_passed": 33,
+      "critical_tests_passed": 120,
+      "strict_matrix_passed": 306,
+      "strict_matrix_attempt_limit": 2,
+      "strict_matrix_attempts_used": 2,
+      "security_tests_passed": 94,
+      "security_scan_files": 443,
+      "security_findings": 0,
+      "standalone_web_pid": 510876,
+      "standalone_web_active_enter_monotonic": 196497166178,
+      "standalone_app_pid": 508396,
+      "standalone_app_active_enter_monotonic": 194490256399,
+      "standalone_8215_changed": false,
+      "routed_8216_changed": false,
+      "real_account_configured_for_test": false,
+      "model_request_sent": false,
+      "real_account_switch_tested": false,
+      "seamless_account_continuity_claimed": false
+    },
+    "continuation_r46_release_candidate": {
+      "router_release": "codex-account-router-0.2.25-linux-x64",
+      "artifact_sha256": "4f3f567d1f691bf49b1b4ab77d16c22edf35070f29770666d05577c7052ac178",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "linux_verification_passed": true,
+      "credentials_present_in_verification": false,
+      "account_switch_tested": false,
+      "deployment_status": "not_attempted_known_host_privilege_blocker",
+      "deployment_attempts": 0,
+      "active_router_release": "codex-account-router-0.2.6-linux-x64",
+      "active_router_pid": 548777,
+      "production_state_changed": false
+    },
     "continuation_r45_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-8215-worker",
@@ -2614,7 +2722,7 @@
     }
   },
   "blockers": [
-    "The verified 0.2.24 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and the root-owned mode-0755 /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r45.sh is required; no duplicate deployment attempt was made.",
+    "The verified 0.2.25 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and the root-owned mode-0755 /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r46.sh is required; no duplicate deployment attempt was made.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, two-binding restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -2654,6 +2762,8 @@
     "R44 process-exit coverage uses a no-account CLI and a temporary private synthetic admin token. It proves the local SIGTERM/SSE lifecycle only; it does not exercise or qualify a real account, account switch, backend session migration or in-flight model recovery.",
     "R45 gives initial circuit and routing private-state reads one default five-second total deadline and fails startup on expiry before opening listeners. The most recent successfully committed state remains authoritative; no missing or late state is guessed, repaired or described as in-flight recovery.",
     "R45 can abandon its wait when a custom state store ignores AbortSignal, but it cannot cancel a kernel filesystem call already executing. Production stores check cancellation between asynchronous filesystem boundaries; underlying kernel latency is not a hard real-time guarantee.",
+    "R46 gives initial public account metadata and optional admin-authenticator loading one default five-second total deadline and fails startup before state or listeners when it expires. This does not replay, migrate, resume or restore an in-flight request or running computation.",
+    "R46 private bootstrap and R45 state bootstrap use separate five-second windows, so the complete pre-listener sequence can approach ten seconds. A custom loader that ignores AbortSignal may finish its own work late, and an already executing kernel filesystem call is not a hard real-time cancellation boundary.",
     "R32 deliberately keeps routing-state.json separate from circuit-state.json so rollback to 0.2.6 can ignore the new state instead of rejecting an unknown primary-state field.",
     "R34 serializes the short local route-selection/mutation boundary, including credential acquisition and changed-route private state writes. This is covered by fixtures but has not been measured on the deployed 8216 path, so no production latency claim is made.",
     "R31 persists only the last validated sanitized weekly observation. It remains provider-event-dependent, an observation without an explicit reset timestamp is not guessed or expired, and a generic 429 is intentionally not treated as proof of weekly exhaustion.",
@@ -2670,9 +2780,10 @@
     "R43 0.2.22 is a verified rollback-capable candidate but is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R44 0.2.23 is a verified rollback-capable candidate but is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R45 0.2.24 is a verified rollback-capable candidate but is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
+    "R46 0.2.25 is a verified rollback-capable candidate but is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R28 caps a weekly reset delay at the existing 24-hour circuit maximum, so a farther reset receives a bounded half-open recheck rather than sleeping until the full provider reset time.",
     "The existing local commits 3f8723f, 776f352 and 0b93593 have test evidence but their commit messages omit the test commands required by the current AGENTS.md; history was not rewritten and later commit messages include test commands.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-07-31T01:19:15+08:00"
+  "updated_at": "2026-07-31T01:36:29+08:00"
 }
