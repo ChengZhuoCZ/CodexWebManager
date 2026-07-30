@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_installed_release_startup_interruption_verification",
+  "generated_at": "2026-07-31T03:01:14+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "b681e66b2e902ed2d9c1fba6ee770f2207e2154b",
+  "output_revision": "657221ba54c1a4df822e7a471f8ac00d5e739c45",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Extend the Linux release verifier to prove that the installed candidate accepts SIGTERM while synthetic private loading is stalled, exits cleanly, and does not emit misleading started or start-failed events.",
+    "release_payload_changed": false,
+    "release_version_changed": false,
+    "candidate_release": "codex-account-router-0.2.29-linux-x64",
+    "candidate_sha256": "471bbacf24c78fe41ae81cff3b30da4cf7666cbcf190b76c3dd8fec53a7ca615",
+    "credential_directory_removed_from_verifier_child_environment": true,
+    "stalled_fixture_uses_synthetic_absent_accounts_path": true,
+    "stalled_fixture_uses_synthetic_absent_credential_root": true,
+    "startup_marker_deadline_ms": 5000,
+    "process_close_waits_for_stdio_drain": true,
+    "request_failover_policy_changed": false,
+    "restart_state_schema_changed": false,
+    "weekly_quota_policy_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "timeout 20s node --test --test-name-pattern='installed release verifies stalled startup SIGTERM' packages/account-router/test/linux-release.test.mjs",
+    "before_implementation": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "observed_failure": "The installed-release verification summary had no runtime.startup_interruption result.",
+      "test_duration_ms": 171.894,
+      "node_command_duration_ms": 212.696
+    },
+    "after_implementation": {
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "test_duration_ms": 217.774,
+      "node_command_duration_ms": 257.369
+    }
+  },
+  "installed_startup_interruption": {
+    "summary": "evidence/M6.9/router-r51-linux-release-verify.json",
+    "signal": "SIGTERM",
+    "stalled_before_runtime_creation": true,
+    "exit_code": 0,
+    "exit_signal": null,
+    "router_stopping_emitted": true,
+    "router_started_emitted": false,
+    "router_start_failed_emitted": false,
+    "stderr_bytes": 0,
+    "real_configuration_read": false,
+    "real_credentials_read": false
+  },
+  "verification": {
+    "related_release_lifecycle_and_security": {
+      "tests": 29,
+      "passed": 29,
+      "failed": 0,
+      "skipped": 0
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 321,
+      "passed": 296,
+      "failed": 0,
+      "skipped": 25,
+      "runner": "umask 0022; node --test",
+      "attempt_limit": 1,
+      "attempts_used": 1
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r51-strict-matrix-summary.json",
+      "tests": 321,
+      "passed": 321,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1,
+      "unit_passed": 157,
+      "integration_passed": 116,
+      "e2e_passed": 48,
+      "fixture_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf"
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r51-security-summary.json",
+      "qualified": true,
+      "files_scanned": 469,
+      "findings": 0,
+      "focused_tests": 104,
+      "focused_passed": 104,
+      "focused_skipped": 0,
+      "retained_strict_ui_passed": 492,
+      "attempt_limit": 3,
+      "attempts_used": 3,
+      "first_attempt": {
+        "result": "invalid_harness_environment",
+        "exit_code": 2,
+        "summary_written": false,
+        "reason": "The clean public fixture roots were omitted; no account material was accessed."
+      },
+      "second_attempt": {
+        "result": "preliminary_passed",
+        "files_scanned": 464,
+        "focused_passed": 104
+      },
+      "third_attempt": {
+        "result": "final_evidence_tree_passed",
+        "files_scanned": 469,
+        "focused_passed": 104
+      }
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r51-linux-release-verify.json",
+      "release": "codex-account-router-0.2.29-linux-x64",
+      "sha256": "471bbacf24c78fe41ae81cff3b30da4cf7666cbcf190b76c3dd8fec53a7ca615",
+      "rebuilt_candidate_matched_existing_archive_byte_for_byte": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "health_status": 200,
+      "no_account_readiness_status": 503,
+      "normal_sigterm_exit_code": 0,
+      "stalled_startup_sigterm_exit_code": 0,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r51.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure is unchanged and /opt/codex-account-router remains root-owned mode 0755 and non-writable by the service user.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.29-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "active_router_effective_unit_sha256": "230dba0a5f7e283f4db2291e4bc6ab7b078eebd63e89e9275a9028185531dddc",
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "exec_start_monotonic": 196497166049,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200,
+      "effective_unit_sha256": "543ddc71409cc088522e80651955a988cc9f2229e9da29dc8a9107c3def3ea1a"
+    },
+    "app_server": {
+      "pid": 508396,
+      "exec_start_monotonic": 194490256322,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running",
+      "effective_unit_sha256": "daaefec18fde144f1801e5b4e60a13cfe9e7c8abe98799192ee59a0f3b66db2f"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "web_exec_start_monotonic": 205386075197,
+    "web_effective_unit_sha256": "bcf691a9362a8f91c4a8d2680631b238bd6ba9ada7e18975bdc567ace4823ca2",
+    "app_server_pid": 495033,
+    "app_server_exec_start_monotonic": 188703455553,
+    "app_server_effective_unit_sha256": "5b44e7e28c57daebdf97eb9e5bbb1e5cd6655a7511a7117079988326fea1be2b",
+    "http_status": 200,
+    "tailnet_http_status": 200,
+    "router_readyz_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.29 remains a verified but inactive candidate until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "The verifier uses a synthetic preload and proves the packaged entrypoint behavior at that controlled stall boundary; it does not prove hard cancellation of arbitrary kernel or third-party operations.",
+    "A process stop during startup does not replay, migrate, resume or restore an in-flight request or running computation.",
+    "The tests use synthetic runtime/services/accounts and do not qualify a real A-to-B switch.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
