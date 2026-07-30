@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "task": "M6.3",
+  "generated_at": "2026-07-30T18:15:10.776Z",
+  "input_revision": "bffcdab57b340303ae82b8d1fc0cc9f3a8ff01e2",
+  "branch": "codex/m6-9-8215-worker",
+  "implementation_mode": "clean-room",
+  "qualified": true,
+  "secret_scan": {
+    "files_scanned": 453,
+    "findings": []
+  },
+  "focused_security_tests": {
+    "test_files": 15,
+    "tests": 97,
+    "passed": 97,
+    "failed": 0,
+    "skipped": 0
+  },
+  "strict_ui_evidence": {
+    "evidence_file": "evidence/M6.1/github-actions-summary.json",
+    "head_sha": "e2467b73c80b31a53e5009117343b267ddb71f0f",
+    "jobs": 2,
+    "tests": 492,
+    "passed": 492,
+    "failed": 0,
+    "skipped": 0,
+    "protected_paths_unchanged": true
+  },
+  "controls": {
+    "logs": {
+      "qualified": true,
+      "test_files": [
+        "test/redaction.test.mjs",
+        "test/systemd-units.test.mjs"
+      ]
+    },
+    "crash_dumps": {
+      "qualified": true,
+      "test_files": [
+        "test/security-audit-contract.test.mjs",
+        "test/systemd-units.test.mjs"
+      ]
+    },
+    "api_responses": {
+      "qualified": true,
+      "test_files": [
+        "test/admin-contracts.test.mjs",
+        "test/admin-handler.test.mjs"
+      ]
+    },
+    "ui": {
+      "qualified": true,
+      "test_files": [
+        "test/codex-web-account-ui.test.mjs",
+        "test/codex-web-browser-auth.test.mjs",
+        "test/codex-web-browser-ipc-router.test.mjs",
+        "test/codex-web-browser-policy.test.mjs",
+        "test/codex-web-status-bridge.test.mjs"
+      ]
+    },
+    "admin_authorization": {
+      "qualified": true,
+      "test_files": [
+        "test/admin-auth.test.mjs",
+        "test/admin-handler.test.mjs"
+      ]
+    },
+    "path_and_open_proxy": {
+      "qualified": true,
+      "test_files": [
+        "test/proxy-handler.test.mjs",
+        "test/proxy-routes.test.mjs",
+        "test/websocket-tunnel.test.mjs"
+      ]
+    },
+    "ssrf_boundary": {
+      "qualified": true,
+      "test_files": [
+        "test/proxy-handler.test.mjs",
+        "test/proxy-routes.test.mjs",
+        "test/runtime-bootstrap.test.mjs",
+        "test/runtime-composition.test.mjs"
+      ]
+    }
+  },
+  "real_account_configured": false,
+  "account_switch_tested": false,
+  "seamless_account_continuity_claimed": false
+}
