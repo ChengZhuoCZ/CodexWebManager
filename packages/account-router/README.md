@@ -88,9 +88,12 @@ unknown alias or a request for the already-current route is rejected inside the 
 boundary before waiting for unrelated queued route persistence; no route state is written. An
 effective manual switch has a five-second total deadline by default. The private routing-state
 store observes that signal while writing its temporary file and checks cancellation immediately
-before a synchronous rename-plus-directory-fsync commit section, so a timed-out candidate cannot
-later replace durable route intent. A clean cancellation keeps the prior route usable; a distinct
-late storage error still makes readiness fail closed. An
+before a synchronous rename-plus-directory-fsync commit section. The same commit boundary runs a
+synchronous active-semantic-stream guard: if a stream wins the persistence race, the temporary
+candidate is deleted before rename, the old durable route remains current, and no compensating
+write is required. A timed-out candidate therefore cannot later replace durable route intent. A
+clean cancellation keeps the prior route usable; a distinct late storage error still makes
+readiness fail closed. An
 automatic route that changes the current backend is likewise persisted before the runtime opens
 the upstream attempt; a failed private write therefore fails closed without contacting that
 upstream. This wait observes the existing bounded failover selection signal. A deadline or client

@@ -174,6 +174,55 @@ test("prevents a pre-cancelled route save from replacing durable intent", async 
   assert.deepEqual(await routingStore.load(), initial);
 });
 
+test("runs a synchronous commit guard before replacing durable route intent", async (context) => {
+  const directory = await privateDirectory(context);
+  const routingStore = createRoutingStateStore({ directory });
+  const initial = {
+    version: 1,
+    saved_at: "2026-07-16T08:00:00.000Z",
+    accounts: [],
+    routing: {
+      current_account_id: "account-a",
+      preferred_account_id: null,
+    },
+  };
+  const candidate = {
+    ...initial,
+    routing: {
+      current_account_id: "account-b",
+      preferred_account_id: "account-b",
+    },
+  };
+  await routingStore.save(initial);
+
+  const streamRace = new Error("fixture semantic stream race");
+  let guardCalls = 0;
+  await assert.rejects(
+    routingStore.save(candidate, {
+      beforeCommit() {
+        guardCalls += 1;
+        throw streamRace;
+      },
+    }),
+    (error) => error === streamRace,
+  );
+  assert.equal(guardCalls, 1);
+  assert.deepEqual(await routingStore.load(), initial);
+
+  await assert.rejects(
+    routingStore.save(candidate, {
+      async beforeCommit() {},
+    }),
+    /beforeCommit hook must be synchronous/,
+  );
+  assert.deepEqual(await routingStore.load(), initial);
+  await assert.rejects(
+    routingStore.save(candidate, { beforeCommit: {} }),
+    /beforeCommit hook is invalid/,
+  );
+  assert.deepEqual(await routingStore.load(), initial);
+});
+
 test("rejects permissive, symlinked, corrupt, and oversized state files without echoing content", async (context) => {
   const directory = await privateDirectory(context);
   const path = join(directory, "circuit-state.json");

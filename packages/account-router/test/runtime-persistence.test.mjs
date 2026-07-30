@@ -1565,6 +1565,149 @@ test("rolls back a persisted manual candidate if a semantic stream starts before
   while (!(await reader.read()).done) {}
 });
 
+test("rejects a manual candidate before commit when a semantic stream wins the persistence race", async (context) => {
+  let announceUpstreamRequest;
+  let triggerSemantic;
+  let finishStream;
+  const upstreamRequestStarted = new Promise((resolve) => {
+    announceUpstreamRequest = resolve;
+  });
+  const upstream = http.createServer((request, response) => {
+    request.resume();
+    triggerSemantic = () => {
+      response.writeHead(200, { "content-type": "text/event-stream" });
+      response.write("event: response.created\ndata: {\"type\":\"response.created\"}\n\n");
+      response.write(
+        "event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"fixture\"}\n\n",
+      );
+    };
+    finishStream = () => {
+      response.end("event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n");
+    };
+    announceUpstreamRequest();
+  });
+  context.after(() => close(upstream));
+  const upstreamOrigin = await listen(upstream);
+
+  let announceCandidateSave;
+  let releaseCandidateSave;
+  const candidateSaveStarted = new Promise((resolve) => {
+    announceCandidateSave = resolve;
+  });
+  const candidateSaveGate = new Promise((resolve) => {
+    releaseCandidateSave = resolve;
+  });
+  let announceRollbackSave;
+  let releaseRollbackSave;
+  const rollbackSaveStarted = new Promise((resolve) => {
+    announceRollbackSave = resolve;
+  });
+  const rollbackSaveGate = new Promise((resolve) => {
+    releaseRollbackSave = resolve;
+  });
+  let candidateRejectedBeforeCommit = false;
+  const committedRoutes = [];
+  let saveCalls = 0;
+  const runtime = createRuntimeComposition(runtimeOptions({
+    accounts: [
+      account({ priority: 10 }),
+      account({
+        id: "fixture-account-b",
+        alias: "Fixture B",
+        priority: 0,
+        credentialRef: "fixture-b",
+      }),
+    ],
+    manualSwitchDeadlineMs: 100,
+    routingStateStore: {
+      async load() { return null; },
+      async save(document, { beforeCommit = null } = {}) {
+        saveCalls += 1;
+        if (saveCalls === 2) {
+          announceCandidateSave();
+          await candidateSaveGate;
+        } else if (saveCalls === 3) {
+          announceRollbackSave();
+          await rollbackSaveGate;
+        }
+        try {
+          beforeCommit?.();
+        } catch (error) {
+          candidateRejectedBeforeCommit = true;
+          throw error;
+        }
+        committedRoutes.push(structuredClone(document.routing));
+      },
+    },
+    initialRoutingState: null,
+    upstreamOrigin,
+  }));
+  context.after(async () => {
+    releaseCandidateSave();
+    releaseRollbackSave();
+    finishStream?.();
+    await runtime.stop().catch(() => undefined);
+  });
+  await runtime.start();
+
+  const modelResponsePromise = fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/v1/responses`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: '{"input":"fixture"}',
+    },
+  );
+  await upstreamRequestStarted;
+  const switchResponsePromise = fetch(
+    `http://127.0.0.1:${runtime.addresses.admin.port}/v1/switch`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${ADMIN_TOKEN}`,
+        "content-type": "application/json",
+      },
+      body: '{"account_alias":"Fixture B","reason":"manual"}',
+    },
+  );
+  await candidateSaveStarted;
+  triggerSemantic();
+  const modelResponse = await modelResponsePromise;
+  assert.equal(modelResponse.status, 200);
+  const reader = modelResponse.body.getReader();
+  const firstChunk = await reader.read();
+  assert.equal(firstChunk.done, false);
+  assert.equal((await adminStatus(runtime)).active_streams, 1);
+
+  releaseCandidateSave();
+  const switchSettledWithinBound = await Promise.race([
+    switchResponsePromise.then(() => true),
+    rollbackSaveStarted.then(() => false),
+    new Promise((resolve) => setTimeout(() => resolve(false), 250)),
+  ]);
+  assert.equal(switchSettledWithinBound, true);
+  const switchResponse = await switchResponsePromise;
+  assert.equal(switchResponse.status, 409);
+  assert.deepEqual(await switchResponse.json(), { error: "switch_rejected" });
+  assert.equal(candidateRejectedBeforeCommit, true);
+  assert.equal(saveCalls, 2);
+  assert.deepEqual(committedRoutes, [{
+    current_account_id: "fixture-account-a",
+    preferred_account_id: null,
+  }]);
+  assert.equal(
+    (await fetch(`http://127.0.0.1:${runtime.addresses.admin.port}/readyz`)).status,
+    200,
+  );
+  assert.deepEqual((await adminStatus(runtime)).current_route, {
+    account_alias: "Fixture A",
+    continuity: "new_backend_session",
+  });
+
+  finishStream();
+  while (!(await reader.read()).done) {}
+});
+
 test("a persistence failure makes readiness and later selection fail closed", async () => {
   const failingRegistry = new SecretProviderRegistry().register(defineSecretProvider({
     name: "fixture-secret",

@@ -41,6 +41,22 @@ function throwIfAborted(signal) {
   if (signal.aborted) throw abortReason(signal);
 }
 
+function assertBeforeCommit(beforeCommit) {
+  if (beforeCommit !== null && beforeCommit !== undefined && typeof beforeCommit !== "function") {
+    throw new TypeError("state store beforeCommit hook is invalid");
+  }
+  return beforeCommit ?? null;
+}
+
+function runBeforeCommit(beforeCommit) {
+  if (beforeCommit === null) return;
+  const result = beforeCommit();
+  if (result !== undefined) {
+    Promise.resolve(result).catch(() => undefined);
+    throw new TypeError("state store beforeCommit hook must be synchronous");
+  }
+}
+
 async function ignoreMissingUnlink(path) {
   try {
     await unlink(path);
@@ -186,7 +202,10 @@ function createStateStore({
     }
   }
 
-  async function writeDocument(document, { signal = null } = {}) {
+  async function writeDocument(
+    document,
+    { signal = null, beforeCommit = null } = {},
+  ) {
     throwIfAborted(signal);
     await ensureDirectory();
     throwIfAborted(signal);
@@ -211,6 +230,8 @@ function createStateStore({
       handle = null;
       await chmod(temporaryPath, 0o600);
       throwIfAborted(signal);
+      runBeforeCommit(beforeCommit);
+      throwIfAborted(signal);
       renameSync(temporaryPath, path);
       syncDirectoryForCommit();
     } catch (error) {
@@ -224,10 +245,14 @@ function createStateStore({
     async load() {
       return enqueue(readDocument);
     },
-    async save(document, { signal = null } = {}) {
+    async save(document, { signal = null, beforeCommit = null } = {}) {
       throwIfAborted(signal);
+      const commitHook = assertBeforeCommit(beforeCommit);
       const normalized = normalizeStoredDocument(document);
-      return enqueue(() => writeDocument(normalized, { signal }));
+      return enqueue(() => writeDocument(normalized, {
+        signal,
+        beforeCommit: commitHook,
+      }));
     },
     toString() {
       return documentKind === "circuit" ? "[CircuitStateStore]" : "[RoutingStateStore]";

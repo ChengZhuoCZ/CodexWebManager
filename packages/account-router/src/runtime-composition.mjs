@@ -311,18 +311,28 @@ export function createRuntimeComposition({
 
   async function persistRoutingState(
     document = exportRoutingState(),
-    { signal = null, abortMakesUnavailable = true } = {},
+    {
+      signal = null,
+      abortMakesUnavailable = true,
+      beforeCommit = null,
+      expectedFailure = null,
+    } = {},
   ) {
     if (routeStateStore === null) return;
     if (routingPersistenceFailure !== null) throw persistenceUnavailable();
     try {
-      await awaitWithAbort(routeStateStore.save(document, { signal }), signal, {
+      await awaitWithAbort(routeStateStore.save(document, {
+        signal,
+        beforeCommit,
+      }), signal, {
         onLateReject(error) {
+          if (expectedFailure !== null && error === expectedFailure) return;
           if (signal?.aborted && error === abortReason(signal)) return;
           routingPersistenceFailure = error;
         },
       });
     } catch (error) {
+      if (expectedFailure !== null && error === expectedFailure) throw error;
       if (signal?.aborted && !abortMakesUnavailable) {
         throw abortReason(signal);
       }
@@ -712,12 +722,27 @@ export function createRuntimeComposition({
     }
     if (activeSemanticStreams > 0) return Object.freeze({ accepted: false });
     const fromAccountId = currentAccountId;
-    await persistRoutingState(exportRoutingState({
-      current: toAccountId,
-      preferred: toAccountId,
-    }), { signal, abortMakesUnavailable: false });
+    const semanticStreamRace = new Error("manual switch semantic stream race");
+    try {
+      await persistRoutingState(exportRoutingState({
+        current: toAccountId,
+        preferred: toAccountId,
+      }), {
+        signal,
+        abortMakesUnavailable: false,
+        beforeCommit() {
+          if (activeSemanticStreams > 0) throw semanticStreamRace;
+        },
+        expectedFailure: semanticStreamRace,
+      });
+    } catch (error) {
+      if (error === semanticStreamRace) {
+        return Object.freeze({ accepted: false });
+      }
+      throw error;
+    }
     if (activeSemanticStreams > 0) {
-      await persistRoutingState();
+      await persistRoutingState(undefined, { signal });
       return Object.freeze({ accepted: false });
     }
     preferredAccountId = toAccountId;
