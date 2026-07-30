@@ -1,0 +1,192 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_active_admin_stream_shutdown_and_release_candidate",
+  "generated_at": "2026-07-31T01:04:34+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "6dcb7950696df086789011ad5c60ff519a205000",
+  "output_revision": "c233b9e11ae04f03df4c89aea8e323379cf010b9",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Track admin listener sockets and close active protected SSE streams plus remaining connections during graceful stop so SIGTERM can finish without waiting for the external systemd kill window.",
+    "admin_connections_tracked": true,
+    "active_admin_sse_closed_on_stop": true,
+    "idle_admin_connections_closed_on_stop": true,
+    "remaining_admin_sockets_destroyed_on_stop": true,
+    "admin_authentication_policy_changed": false,
+    "admin_response_schema_changed": false,
+    "request_failover_policy_changed": false,
+    "weekly_quota_policy_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "timeout 10s node --test --test-name-pattern='stops an active admin event stream' packages/account-router/test/service.test.mjs",
+    "before_implementation": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "observed_failure": "Admin service stop did not settle inside the fixture's 100 millisecond observation window while a synthetic SSE response remained active.",
+      "node_command_duration_ms": 166.488,
+      "test_duration_ms": 112.386,
+      "bounded_cleanup": "The fixture after-hook destroyed the synthetic client connection and awaited the original stop promise so the externally bounded command exited normally."
+    },
+    "first_after_implementation": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "product_stop_duration_ms": 11.514,
+      "observed_failure": "The client-side once(close) helper rejected on the expected ECONNRESET emitted when the active SSE socket was destroyed.",
+      "product_change_after_failure": false,
+      "fixture_correction": "Accept close, aborted or error as explicit client stream termination."
+    },
+    "corrected_after_implementation": {
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "node_command_duration_ms": 162.16,
+      "test_duration_ms": 11.377,
+      "service_stop_settled": true,
+      "client_stream_terminated": true,
+      "service_state": "stopped"
+    }
+  },
+  "process_fixture": {
+    "command": "timeout 20s node --test --test-name-pattern='active admin event stream|active protected admin event stream' packages/account-router/test/service.test.mjs",
+    "tests": 2,
+    "passed": 2,
+    "failed": 0,
+    "service_test_duration_ms": 11.84,
+    "cli_test_duration_ms": 72.26,
+    "cli_account_configuration_present": false,
+    "cli_admin_token_kind": "temporary_private_synthetic_fixture",
+    "protected_events_status": 200,
+    "sigterm_exit_code": 0,
+    "sigterm_exit_signal": null,
+    "external_sigkill_required": false,
+    "client_stream_terminated": true,
+    "token_present_in_stdout_or_stderr": false,
+    "model_request_sent": false
+  },
+  "verification": {
+    "affected_service_admin_event_runtime": {
+      "tests": 47,
+      "passed": 47,
+      "failed": 0,
+      "skipped": 0
+    },
+    "critical_failover_restart_and_shutdown": {
+      "tests": 115,
+      "passed": 115,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "HTTP/SSE bounded pre-semantic failover and post-semantic no-replay",
+        "WebSocket bounded pre-semantic failover and post-semantic no-replay",
+        "weekly/circuit/route persistence and restart behavior",
+        "bounded durable manual switching and active-stream exclusion",
+        "bounded request, persistence and process shutdown lifecycles"
+      ]
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 301,
+      "passed": 276,
+      "failed": 0,
+      "skipped": 25
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r44-strict-matrix-summary.json",
+      "tests": 301,
+      "passed": 301,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r44-security-summary.json",
+      "qualified": true,
+      "files_scanned": 433,
+      "findings": 0,
+      "focused_tests": 90,
+      "focused_passed": 90,
+      "retained_strict_ui_passed": 492
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r44-linux-release-verify.json",
+      "release": "codex-account-router-0.2.23-linux-x64",
+      "sha256": "5541978fe685459dcaf6fef4ea3d7bb9d95697ce38cb69a4dae22c5a4148d177",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "normal_sigterm_exit_code": 0,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r44.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure is unchanged and /opt/codex-account-router remains root-owned mode 0755 and non-writable by the service user.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.23-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "active_router_effective_unit_sha256": "230dba0a5f7e283f4db2291e4bc6ab7b078eebd63e89e9275a9028185531dddc",
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "exec_start_monotonic": 196497166049,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200,
+      "effective_unit_sha256": "543ddc71409cc088522e80651955a988cc9f2229e9da29dc8a9107c3def3ea1a"
+    },
+    "app_server": {
+      "pid": 508396,
+      "exec_start_monotonic": 194490256322,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running",
+      "effective_unit_sha256": "daaefec18fde144f1801e5b4e60a13cfe9e7c8abe98799192ee59a0f3b66db2f"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "web_exec_start_monotonic": 205386075197,
+    "web_effective_unit_sha256": "bcf691a9362a8f91c4a8d2680631b238bd6ba9ada7e18975bdc567ace4823ca2",
+    "app_server_pid": 495033,
+    "app_server_exec_start_monotonic": 188703455553,
+    "app_server_effective_unit_sha256": "5b44e7e28c57daebdf97eb9e5bbb1e5cd6655a7511a7117079988326fea1be2b",
+    "http_status": 200,
+    "tailnet_http_status": 200,
+    "router_readyz_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.23 is verified but is not active until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "Connected admin SSE clients are intentionally terminated during graceful stop and must reconnect after the restarted service becomes ready.",
+    "The real-process fixture uses no account and a temporary private synthetic admin token; it does not qualify account routing or a real switch.",
+    "Closing an admin SSE connection does not replay, migrate, resume or restore an in-flight model request or running computation.",
+    "The tests use synthetic accounts only and do not qualify a real A-to-B switch.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
