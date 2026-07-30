@@ -447,53 +447,57 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       startupInterruptions.push(startupInterruption);
     }
 
-    child = spawn(
-      process.execPath,
-      [
-        "--import",
-        pathToFileURL(
-          path.join(PACKAGE_ROOT, "fixtures/startup/stall-listener-start.mjs"),
-        ).href,
-        path.join(installedRoot, "lib/account-router/src/main.mjs"),
-      ],
-      {
-        cwd: current,
-        env: {
-          ...scrubbedRuntimeEnvironment(homeDirectory),
-          CODEX_ROUTER_TEST_STALL_LISTENER_START: "1",
+    const listenerStartInterruptions = [];
+    for (const stopSignal of ["SIGTERM", "SIGINT"]) {
+      child = spawn(
+        process.execPath,
+        [
+          "--import",
+          pathToFileURL(
+            path.join(PACKAGE_ROOT, "fixtures/startup/stall-listener-start.mjs"),
+          ).href,
+          path.join(installedRoot, "lib/account-router/src/main.mjs"),
+        ],
+        {
+          cwd: current,
+          env: {
+            ...scrubbedRuntimeEnvironment(homeDirectory),
+            CODEX_ROUTER_TEST_STALL_LISTENER_START: "1",
+          },
+          stdio: ["ignore", "pipe", "pipe"],
         },
-        stdio: ["ignore", "pipe", "pipe"],
-      },
-    );
-    const listenerStalled = await waitForFixtureEvent(child, {
-      event: "fixture_listener_start_stalled",
-      label: "listener-start stall fixture",
-    });
-    child.kill("SIGTERM");
-    const [listenerExitCode, listenerExitSignal] = await waitForExit(child);
-    child = undefined;
-    const listenerStdout = listenerStalled.getStdout();
-    const listenerStderr = listenerStalled.getStderr();
-    const listenerStartInterruption = {
-      signal: "SIGTERM",
-      stalled_during_listener_start: true,
-      runtime_created_before_stall: true,
-      exit_code: listenerExitCode,
-      exit_signal: listenerExitSignal,
-      router_stopping_emitted: listenerStdout.includes('"event":"router_stopping"'),
-      router_started_emitted: listenerStdout.includes('"event":"router_started"'),
-      router_start_failed_emitted: listenerStderr.includes('"event":"router_start_failed"'),
-      stderr_bytes: Buffer.byteLength(listenerStderr),
-    };
-    assert(
-      listenerStartInterruption.exit_code === 0 &&
-        listenerStartInterruption.exit_signal === null &&
-        listenerStartInterruption.router_stopping_emitted === true &&
-        listenerStartInterruption.router_started_emitted === false &&
-        listenerStartInterruption.router_start_failed_emitted === false &&
-        listenerStartInterruption.stderr_bytes === 0,
-      "installed router did not stop cleanly during stalled listener start",
-    );
+      );
+      const listenerStalled = await waitForFixtureEvent(child, {
+        event: "fixture_listener_start_stalled",
+        label: "listener-start stall fixture",
+      });
+      child.kill(stopSignal);
+      const [listenerExitCode, listenerExitSignal] = await waitForExit(child);
+      child = undefined;
+      const listenerStdout = listenerStalled.getStdout();
+      const listenerStderr = listenerStalled.getStderr();
+      const listenerStartInterruption = {
+        signal: stopSignal,
+        stalled_during_listener_start: true,
+        runtime_created_before_stall: true,
+        exit_code: listenerExitCode,
+        exit_signal: listenerExitSignal,
+        router_stopping_emitted: listenerStdout.includes('"event":"router_stopping"'),
+        router_started_emitted: listenerStdout.includes('"event":"router_started"'),
+        router_start_failed_emitted: listenerStderr.includes('"event":"router_start_failed"'),
+        stderr_bytes: Buffer.byteLength(listenerStderr),
+      };
+      assert(
+        listenerStartInterruption.exit_code === 0 &&
+          listenerStartInterruption.exit_signal === null &&
+          listenerStartInterruption.router_stopping_emitted === true &&
+          listenerStartInterruption.router_started_emitted === false &&
+          listenerStartInterruption.router_start_failed_emitted === false &&
+          listenerStartInterruption.stderr_bytes === 0,
+        `installed router did not stop cleanly during stalled listener start on ${stopSignal}`,
+      );
+      listenerStartInterruptions.push(listenerStartInterruption);
+    }
 
     return {
       health_status: healthResponse.status,
@@ -508,7 +512,8 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       architecture,
       startup_interruption: startupInterruptions[0],
       startup_interruptions: startupInterruptions,
-      listener_start_interruption: listenerStartInterruption,
+      listener_start_interruption: listenerStartInterruptions[0],
+      listener_start_interruptions: listenerStartInterruptions,
     };
   } finally {
     if (child && child.exitCode === null && child.signalCode === null) {
