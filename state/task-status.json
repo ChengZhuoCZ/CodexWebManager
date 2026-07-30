@@ -30,12 +30,13 @@
     "r33_continuation": "8eabfab928a148caf279443e4054f299ba7cf178",
     "r34_continuation": "2d5a672bf7f11d6f8c0e05241a2e8087a4b8cb3f",
     "r35_continuation": "de53f3d0e310b08eb8e6714974149f82c9e57ba9",
+    "r36_continuation": "2dd997a2ad0cda782fc07b40b628c935c18736c3",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "3e43fc0fb5f1d817e863472d22795ee0c507ca66",
+  "output_revision": "12c753eadedf587c73bb9fe6109528b938d6a536",
   "workspace_branch": "codex/m6-9-8215-worker",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -502,6 +503,42 @@
     {
       "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
       "result": "R35 final-tree security audit qualified; 90/90 focused security tests and retained 492/492 strict UI evidence passed; 388 repository files were scanned with zero findings"
+    },
+    {
+      "command": "timeout 30s <bundled-node> --test --test-name-pattern='late credential lease' packages/account-router/test/runtime-persistence.test.mjs",
+      "result": "R36 minimal fixture-only experiment failed before implementation as expected: the first request returned its bounded total-deadline response, but the stalled credential acquisition retained the routing lock so a second new request returned HTTP 503 instead of HTTP 200; the synthetic provider gate was released during cleanup and the command exited normally in 290.285 milliseconds"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test packages/account-router/test/runtime-persistence.test.mjs packages/account-router/test/state-store.test.mjs packages/account-router/test/runtime-bootstrap.test.mjs packages/account-router/test/admin-state.test.mjs packages/account-router/test/runtime-composition.test.mjs",
+      "result": "R36 focused persistence/runtime suite passed 34/34; total-deadline cancellation released the serialized routing lock and an unconsumed half-open probe, a later new request retried the recovered synthetic provider successfully, and the late first SecretLease was disposed"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test <HTTP/SSE/WebSocket/failover/weekly/restart/state/admin critical files>",
+      "result": "R36 critical suite passed 96/96, covering bounded HTTP/SSE and WebSocket pre-semantic failover, post-semantic no-replay, weekly/circuit/route persistence, durable and abortable routing, abortable credential acquisition, active-stream rejection, retry bounds and total deadlines"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test",
+      "result": "R36 package-complete suite passed 263/288 with 0 failures and 25 expected pinned-public-fixture skips"
+    },
+    {
+      "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": "R36 clean strict matrix passed on its sole bounded attempt: 288/288 with no skips; unit 154, integration 87 and E2E 47"
+    },
+    {
+      "command": "two SOURCE_DATE_EPOCH=0 deterministic 0.2.15 Linux x64 builds plus target-host no-credential release verification",
+      "result": "byte-identical artifacts at SHA-256 186837d7; 49-file payload, checksum, installation, loopback-only listeners, health, no-account fail-closed readiness and clean SIGTERM passed without reading or configuring a real account"
+    },
+    {
+      "command": "env -u CREDENTIALS_DIRECTORY <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "R36 first audit invocation exited 2 before producing a summary because the required clean Codex Web fixture roots were omitted; it was not used as passing evidence and no product or production state changed"
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r36.sh",
+      "result": "R36 router-only rollback deployment script syntax and pinned artifact hash passed; deployment was not attempted because the known host-privilege blocker is unchanged, so active release 0.2.6 and all production processes remained unchanged"
+    },
+    {
+      "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<clean-fixture> M4_2_CODEX_WEB_ROOT=<clean-fixture> M4_3_CODEX_WEB_ROOT=<clean-fixture> M6_3_CODEX_WEB_ROOT=<clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "R36 final-tree security audit qualified; 90/90 focused security tests and retained 492/492 strict UI evidence passed; 393 repository files were scanned with zero findings"
     }
   ],
   "evidence": [
@@ -572,9 +609,72 @@
     "evidence/M6.9/router-r35-strict-matrix-summary.json",
     "evidence/M6.9/router-r35-security-summary.json",
     "evidence/M6.9/router-r35-linux-release-verify.json",
-    "evidence/M6.9/deploy-router-r35.sh"
+    "evidence/M6.9/deploy-router-r35.sh",
+    "evidence/M6.9/router-r36-abortable-credential-acquisition-summary.json",
+    "evidence/M6.9/router-r36-strict-matrix-summary.json",
+    "evidence/M6.9/router-r36-security-summary.json",
+    "evidence/M6.9/router-r36-linux-release-verify.json",
+    "evidence/M6.9/deploy-router-r36.sh"
   ],
   "observations": {
+    "continuation_r36_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8215-worker",
+      "commit": "2dd997a2ad0cda782fc07b40b628c935c18736c3",
+      "dependencies": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_result": "Use fixtures only to make credential-provider acquisition observe the existing failover selection deadline, release the serialized routing lock and an unconsumed half-open probe, dispose a late SecretLease, and let only a subsequent new request retry a recovered provider while preserving 8215 PID 510876/508396 plus ActiveEnter monotonic timestamps 196497166178/194490256399."
+    },
+    "continuation_r36_fixture_result": {
+      "implementation_revision": "12c753eadedf587c73bb9fe6109528b938d6a536",
+      "selection_deadline_applies_to_credential_acquisition": true,
+      "client_cancellation_applies_to_credential_acquisition": true,
+      "deadline_http_status": 503,
+      "deadline_error_type": "all_accounts_unavailable",
+      "deadline_reason": "total_deadline_exceeded",
+      "deadline_attempts": 0,
+      "deadline_semantic_output": false,
+      "deadline_upstream_contacts": 0,
+      "routing_lock_released": true,
+      "unconsumed_half_open_probe_released": true,
+      "late_secret_lease_disposed": true,
+      "cancellation_misclassified_as_auth_expired": false,
+      "subsequent_new_request_can_retry_recovered_provider": true,
+      "timed_out_request_replayed_or_resumed": false,
+      "retry_policy_changed": false,
+      "focused_tests_passed": 34,
+      "critical_tests_passed": 96,
+      "strict_matrix_passed": 288,
+      "security_tests_passed": 90,
+      "security_scan_files": 393,
+      "security_findings": 0,
+      "standalone_web_pid": 510876,
+      "standalone_web_active_enter_monotonic": 196497166178,
+      "standalone_app_pid": 508396,
+      "standalone_app_active_enter_monotonic": 194490256399,
+      "standalone_8215_changed": false,
+      "real_account_configured_for_test": false,
+      "model_request_sent": false,
+      "real_account_switch_tested": false,
+      "seamless_account_continuity_claimed": false
+    },
+    "continuation_r36_release_candidate": {
+      "router_release": "codex-account-router-0.2.15-linux-x64",
+      "artifact_sha256": "186837d746095e94790b66491ad8014ff8b51ce3d5b648e3bb0a4bcef369a79e",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "linux_verification_passed": true,
+      "credentials_present_in_verification": false,
+      "account_switch_tested": false,
+      "deployment_status": "not_attempted_known_host_privilege_blocker",
+      "deployment_attempts": 0,
+      "active_router_release": "codex-account-router-0.2.6-linux-x64",
+      "active_router_pid": 548777,
+      "production_state_changed": false
+    },
     "continuation_r35_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-8215-worker",
@@ -1550,7 +1650,7 @@
     }
   },
   "blockers": [
-    "The verified 0.2.14 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r35.sh is required; no duplicate deployment attempt was made.",
+    "The verified 0.2.15 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r36.sh is required; no duplicate deployment attempt was made.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, two-binding restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -1572,6 +1672,8 @@
     "R33 acknowledges a manual next-request route only after the private atomic write succeeds; persistence failure returns a sanitized 503 and a semantic stream starting before acknowledgement rolls the candidate back and returns 409.",
     "R34 persists a changed automatic route before opening the upstream attempt; a private route write failure returns a sanitized selector error with zero upstream contacts.",
     "R35 aborts the running selector wait at the existing failover deadline, disposes its SecretLease, fails readiness closed and does not apply a late save result to the running current route.",
+    "R36 applies the existing selection deadline to credential-provider acquisition, releases the serialized routing lock and an unconsumed half-open probe on cancellation, does not misclassify cancellation as authentication expiry, and disposes a SecretLease that resolves after abandonment.",
+    "R36 does not cancel provider-internal work already in progress. Provider implementations remain responsible for bounding underlying operations, and only a later new request may retry after recovery; the timed-out request is neither replayed nor resumed.",
     "Node filesystem promises cannot cancel an already-issued atomic save. After an R35 abort the process remains fail closed, but a late successful file replacement may be observed after an operator restart and must be treated as next-request route intent rather than recovery of the timed-out request.",
     "R32 deliberately keeps routing-state.json separate from circuit-state.json so rollback to 0.2.6 can ignore the new state instead of rejecting an unknown primary-state field.",
     "R34 serializes the short local route-selection/mutation boundary, including credential acquisition and changed-route private state writes. This is covered by fixtures but has not been measured on the deployed 8216 path, so no production latency claim is made.",
@@ -1579,9 +1681,10 @@
     "R31 live expiry is triggered lazily by a protected status or accounts read; no background timer is introduced. The scheduler and exported state still hide expired observations immediately when read.",
     "R31 deliberately leaves an independent open circuit and its bounded cooldown unchanged when the Weekly display snapshot expires.",
     "R35 0.2.14 is a verified rollback-capable candidate but is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
+    "R36 0.2.15 is a verified rollback-capable candidate but is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R28 caps a weekly reset delay at the existing 24-hour circuit maximum, so a farther reset receives a bounded half-open recheck rather than sleeping until the full provider reset time.",
     "The existing local commits 3f8723f, 776f352 and 0b93593 have test evidence but their commit messages omit the test commands required by the current AGENTS.md; history was not rewritten and later commit messages include test commands.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-07-30T12:52:39+08:00"
+  "updated_at": "2026-07-30T13:06:07+08:00"
 }
