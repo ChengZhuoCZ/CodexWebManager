@@ -52,12 +52,13 @@
     "r55_continuation": "3189f7f7e2d720f8519aa793a3d18d3f50d462f1",
     "r56_continuation": "f48209491d9614edd3e6840ff3def9a64bae30f5",
     "r57_continuation": "eaa42f984177e996981d446d35009c279ef0161e",
+    "r58_continuation": "c0ee62984aa8745693707a3868f9e9bfbc66f6df",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "35f9a682cd8ba8dcac627de78ceeba95c8980d1c",
+  "output_revision": "df55e0a716e95b01cbd0f6ff473c6f5c3e94c2de",
   "workspace_branch": "codex/m6-9-8215-worker",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -1376,6 +1377,38 @@
     {
       "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
       "result": "R57 final state-and-evidence-tree security audit passed within its bounded three-pass limit after preliminary and pre-state evidence passes; 104/104 focused security tests and retained 492/492 strict UI evidence passed, and 500 repository files were scanned with zero findings"
+    },
+    {
+      "command": "<bundled-node> --test --test-name-pattern='installed release verifies stalled startup stop signals' packages/account-router/test/linux-release.test.mjs",
+      "result": "R58 minimal fixture failed before implementation as expected because synthetic_websocket_safety_boundaries was absent, then passed 1/1 after the installed candidate discarded primary preflight, retried an explicit pre-semantic quota error exactly once on secondary, and refused a secondary after primary semantic output"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test packages/account-router/test/websocket-failover.test.mjs packages/account-router/test/websocket-tunnel.test.mjs packages/account-router/test/linux-release.test.mjs",
+      "result": "R58 related WebSocket failover, WebSocket tunnel and installed Linux release suite passed 11/11; direct syntax checks for the modified verifier and test also passed"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test",
+      "result": "R58 package-complete suite passed 296/321 with 0 failures and 25 expected pinned-public-fixture skips on its sole bounded attempt"
+    },
+    {
+      "command": "umask 0022; env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": "R58 strict matrix passed on its sole bounded attempt: 321/321 with no skips; unit 157, integration 116 and E2E 48, with no real account configured or real account switch executed"
+    },
+    {
+      "command": "SOURCE_DATE_EPOCH=0 deterministic 0.2.29 Linux x64 rebuild, byte comparison and target-host installed local-fixture WebSocket verification",
+      "result": "R58 rebuilt archive matched the existing 49-file candidate byte for byte at SHA-256 471bbacf; installed pre-semantic quota error used exactly primary then secondary and discarded primary preflight, while installed post-semantic connection failure contacted only primary and exposed semantic_output true with unsafe_to_replay"
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r58.sh",
+      "result": "R58 router-only rollback deployment script syntax, pinned version and artifact hash passed; deployment was not attempted because the known host-privilege blocker and non-writable root-owned target are unchanged, so active release 0.2.6 and all production processes remained unchanged"
+    },
+    {
+      "command": "read-only systemd PID/start/unit-hash plus 8215/8216 HTTP and router readyz probes",
+      "result": "R58 production invariants passed: 8215 PID 510876/508396 and ActiveEnter 196497166178/194490256399 plus unit hashes remained fixed; 8215 HTTP, 8216 loopback/Tailnet HTTP and router readyz were 200; router PID 548777 and active 0.2.6 release remained unchanged"
+    },
+    {
+      "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "R58 final state-and-evidence-tree security audit passed within its bounded three-pass limit after preliminary and pre-state evidence passes; 104/104 focused security tests and retained 492/492 strict UI evidence passed, and 505 repository files were scanned with zero findings"
     }
   ],
   "evidence": [
@@ -1556,9 +1589,97 @@
     "evidence/M6.9/router-r57-strict-matrix-summary.json",
     "evidence/M6.9/router-r57-security-summary.json",
     "evidence/M6.9/router-r57-linux-release-verify.json",
-    "evidence/M6.9/deploy-router-r57.sh"
+    "evidence/M6.9/deploy-router-r57.sh",
+    "evidence/M6.9/router-r58-installed-websocket-safety-summary.json",
+    "evidence/M6.9/router-r58-strict-matrix-summary.json",
+    "evidence/M6.9/router-r58-security-summary.json",
+    "evidence/M6.9/router-r58-linux-release-verify.json",
+    "evidence/M6.9/deploy-router-r58.sh"
   ],
   "observations": {
+    "continuation_r58_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8215-worker",
+      "commit": "c0ee62984aa8745693707a3868f9e9bfbc66f6df",
+      "dependencies": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_result": "Use the installed candidate and a loopback-only fixture upstream to prove one bounded primary-to-secondary WebSocket retry for an initial request after an explicit pre-semantic quota error, plus no secondary contact and explicit unsafe_to_replay after semantic output, without reading real credentials, sending a real model request or changing 8215 PID 510876/508396 with ActiveEnter monotonic timestamps 196497166178/194490256399."
+    },
+    "continuation_r58_fixture_result": {
+      "implementation_revision": "df55e0a716e95b01cbd0f6ff473c6f5c3e94c2de",
+      "release_payload_changed": false,
+      "synthetic_binding_definitions": 2,
+      "installed_process_starts": 2,
+      "fresh_private_state_directories": 2,
+      "loopback_fixture_upstream_only": true,
+      "runtime_generated_synthetic_credentials": true,
+      "synthetic_credential_values_emitted": false,
+      "readiness_statuses": [
+        200,
+        200
+      ],
+      "downstream_upgrade_statuses": [
+        101,
+        101
+      ],
+      "initial_requests": 2,
+      "pre_semantic_failure_kind": "quota_exhausted",
+      "pre_semantic_upstream_role_sequence": [
+        "primary",
+        "secondary"
+      ],
+      "pre_semantic_upstream_attempts": 2,
+      "pre_semantic_primary_preflight_discarded": true,
+      "post_semantic_upstream_role_sequence": [
+        "primary"
+      ],
+      "post_semantic_upstream_attempts": 1,
+      "post_semantic_secondary_contacted": false,
+      "post_semantic_unsafe_to_replay_exposed": true,
+      "post_semantic_semantic_output": true,
+      "package_tests_passed": 296,
+      "package_fixture_skips": 25,
+      "strict_matrix_passed": 321,
+      "strict_matrix_attempt_limit": 1,
+      "strict_matrix_attempts_used": 1,
+      "security_tests_passed": 104,
+      "security_scan_files": 505,
+      "security_findings": 0,
+      "standalone_web_pid": 510876,
+      "standalone_web_active_enter_monotonic": 196497166178,
+      "standalone_app_pid": 508396,
+      "standalone_app_active_enter_monotonic": 194490256399,
+      "standalone_8215_changed": false,
+      "routed_8216_changed": false,
+      "synthetic_credential_acquisition_tested": true,
+      "synthetic_websocket_requests_sent": 2,
+      "real_account_configured_for_test": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "in_flight_resume_tested": false,
+      "seamless_account_continuity_claimed": false
+    },
+    "continuation_r58_release_candidate": {
+      "router_release": "codex-account-router-0.2.29-linux-x64",
+      "artifact_sha256": "471bbacf24c78fe41ae81cff3b30da4cf7666cbcf190b76c3dd8fec53a7ca615",
+      "rebuilt_archive_matched_existing_candidate": true,
+      "payload_file_count": 49,
+      "linux_verification_passed": true,
+      "installed_websocket_safety_boundaries_verified": true,
+      "synthetic_credential_acquisition_tested": true,
+      "synthetic_websocket_requests_sent": 2,
+      "real_credentials_present": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "deployment_status": "not_attempted_known_host_privilege_blocker",
+      "deployment_attempts": 0,
+      "active_router_release": "codex-account-router-0.2.6-linux-x64",
+      "active_router_pid": 548777,
+      "production_state_changed": false
+    },
     "continuation_r57_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-8215-worker",
@@ -3877,7 +3998,7 @@
     }
   },
   "blockers": [
-    "The verified 0.2.29 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and the root-owned mode-0755 /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r57.sh is required; no duplicate deployment attempt was made.",
+    "The verified 0.2.29 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and the root-owned mode-0755 /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r58.sh is required; no duplicate deployment attempt was made.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, real two-binding credential acquisition/restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -3941,6 +4062,8 @@
     "R56 does not exercise same-request pre-semantic failover or post-semantic no-replay at the installed-package boundary. Its two synthetic SSE requests are separate and the restart occurs only after the first response has completed; it does not replay, migrate, resume or restore an in-flight request or running computation.",
     "R57 verifies the installed 0.2.29 candidate uses exactly primary then secondary for one initial HTTP/SSE request after an explicit pre-semantic quota failure, and after a primary semantic SSE event exposes unsafe_to_replay with semantic_output true while never contacting the secondary.",
     "R57 covers the installed-package HTTP/SSE boundary with synthetic credentials and a loopback fixture upstream only. The equivalent installed-package WebSocket pre-semantic failover and post-semantic no-replay boundary remains unverified, and no real provider A-to-B switch is qualified.",
+    "R58 verifies the installed 0.2.29 candidate discards a primary WebSocket preflight, uses exactly primary then secondary after an explicit pre-semantic quota error, and after a primary semantic WebSocket event exposes unsafe_to_replay with semantic_output true while never contacting the secondary.",
+    "R58 covers the installed-package WebSocket boundary with synthetic credentials and a loopback fixture upstream only. Installed manual next-request route rejection during an active semantic stream and safe-boundary new_backend_session acknowledgement remain indirect, and no real provider A-to-B switch is qualified.",
     "R32 deliberately keeps routing-state.json separate from circuit-state.json so rollback to 0.2.6 can ignore the new state instead of rejecting an unknown primary-state field.",
     "R34 serializes the short local route-selection/mutation boundary, including credential acquisition and changed-route private state writes. This is covered by fixtures but has not been measured on the deployed 8216 path, so no production latency claim is made.",
     "R31 persists only the last validated sanitized weekly observation. It remains provider-event-dependent, an observation without an explicit reset timestamp is not guessed or expired, and a generic 429 is intentionally not treated as proof of weekly exhaustion.",
@@ -3969,9 +4092,10 @@
     "R55 re-verifies the unchanged 0.2.29 candidate with an installed two-synthetic-binding process restart, but it is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R56 re-verifies the unchanged 0.2.29 candidate with installed synthetic Weekly quota persistence and next-new-request route change after restart, but it is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R57 re-verifies the unchanged 0.2.29 candidate with installed synthetic HTTP/SSE pre-semantic failover and post-semantic no-replay boundaries, but it is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
+    "R58 re-verifies the unchanged 0.2.29 candidate with installed synthetic WebSocket pre-semantic failover and post-semantic no-replay boundaries, but it is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R28 caps a weekly reset delay at the existing 24-hour circuit maximum, so a farther reset receives a bounded half-open recheck rather than sleeping until the full provider reset time.",
     "The existing local commits 3f8723f, 776f352 and 0b93593 have test evidence but their commit messages omit the test commands required by the current AGENTS.md; history was not rewritten and later commit messages include test commands.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-07-31T04:06:27+08:00"
+  "updated_at": "2026-07-31T04:20:15+08:00"
 }
