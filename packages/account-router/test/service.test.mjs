@@ -1,13 +1,17 @@
 import assert from "node:assert/strict";
 import http from "node:http";
-import { once } from "node:events";
+import { EventEmitter, once } from "node:events";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { spawn } from "node:child_process";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
-import { createRouterService, SERVICE_STATES } from "../src/service.mjs";
+import {
+  createRouterService,
+  listenWithDeadline,
+  SERVICE_STATES,
+} from "../src/service.mjs";
 
 const packageDirectory = path.dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
 
@@ -90,6 +94,76 @@ test("fails readiness closed when the account provider throws", async (context) 
 
   const health = await fetch(`http://127.0.0.1:${address.port}/healthz`);
   assert.equal(health.status, 200);
+});
+
+test("rejects a pre-aborted listener start before binding", async () => {
+  const service = createRouterService({ adminPort: 0 });
+  const controller = new AbortController();
+  const reason = new Error("fixture listener start cancelled");
+  controller.abort(reason);
+
+  await assert.rejects(
+    service.start({ signal: controller.signal }),
+    (error) => error === reason,
+  );
+  assert.equal(service.state, SERVICE_STATES.STOPPED);
+  assert.equal(service.address, null);
+});
+
+test("bounds a standalone listener start and removes its event hooks", async () => {
+  const server = new EventEmitter();
+  let listenOptions = null;
+  server.listen = (options) => {
+    listenOptions = options;
+  };
+
+  const outcome = await Promise.race([
+    listenWithDeadline(server, {
+      port: 0,
+      host: "127.0.0.1",
+      deadlineMs: 50,
+    }).then(
+      () => "resolved",
+      (error) => error?.message,
+    ),
+    new Promise((resolve) => setTimeout(() => resolve("timed_out"), 150)),
+  ]);
+
+  assert.equal(outcome, "listener start deadline exceeded");
+  assert.equal(listenOptions?.signal?.aborted, true);
+  assert.equal(server.listenerCount("error"), 0);
+  assert.equal(server.listenerCount("listening"), 0);
+});
+
+test("uses a parent listener signal without opening a fresh deadline", async () => {
+  const server = new EventEmitter();
+  let listenOptions = null;
+  server.listen = (options) => {
+    listenOptions = options;
+  };
+  const controller = new AbortController();
+  const parentReason = new Error("fixture parent listener deadline");
+  const operation = listenWithDeadline(server, {
+    port: 0,
+    host: "127.0.0.1",
+    signal: controller.signal,
+    deadlineMs: 1,
+  });
+
+  const earlyOutcome = await Promise.race([
+    operation.then(
+      () => "resolved",
+      () => "rejected",
+    ),
+    new Promise((resolve) => setTimeout(() => resolve("pending"), 25)),
+  ]);
+  assert.equal(earlyOutcome, "pending");
+  assert.equal(listenOptions?.signal, controller.signal);
+
+  controller.abort(parentReason);
+  await assert.rejects(operation, (error) => error === parentReason);
+  assert.equal(server.listenerCount("error"), 0);
+  assert.equal(server.listenerCount("listening"), 0);
 });
 
 test("fails closed for unsupported methods, paths, and query variants", async (context) => {

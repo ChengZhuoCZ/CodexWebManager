@@ -15,7 +15,11 @@ import {
   normalizeRuntimeStateDocument,
 } from "./runtime-state.mjs";
 import { createDeterministicScheduler } from "./scheduler.mjs";
-import { createRouterService } from "./service.mjs";
+import {
+  assertListenerStartDeadline,
+  createRouterService,
+  DEFAULT_LISTENER_START_DEADLINE_MS,
+} from "./service.mjs";
 import { createWeeklyQuotaTracker } from "./weekly-quota-tracker.mjs";
 
 const RUNTIME_STATES = Object.freeze({
@@ -92,6 +96,76 @@ function publicAddresses(admin, model) {
   return Object.freeze({ admin, model });
 }
 
+function assertListenerService(value, label) {
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    typeof value.start !== "function" ||
+    typeof value.stop !== "function"
+  ) {
+    throw new TypeError(`${label} listener service is invalid`);
+  }
+  return value;
+}
+
+function startupAbortReason(signal) {
+  return signal?.reason instanceof Error
+    ? signal.reason
+    : new Error("runtime listener start aborted");
+}
+
+function awaitStartupOperation(operation, signal) {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    const finish = (callback, value) => {
+      if (settled) return;
+      settled = true;
+      signal.removeEventListener("abort", onAbort);
+      callback(value);
+    };
+    const onAbort = () => finish(reject, startupAbortReason(signal));
+    signal.addEventListener("abort", onAbort, { once: true });
+    Promise.resolve(operation).then(
+      (value) => finish(resolve, value),
+      (error) => finish(reject, error),
+    );
+    if (signal.aborted) onAbort();
+  });
+}
+
+export async function startRuntimeListeners({
+  adminService,
+  modelService,
+  deadlineMs = DEFAULT_LISTENER_START_DEADLINE_MS,
+} = {}) {
+  const admin = assertListenerService(adminService, "admin");
+  const model = assertListenerService(modelService, "model");
+  assertListenerStartDeadline(deadlineMs);
+  const controller = new AbortController();
+  const signal = controller.signal;
+  const deadlineError = new Error("runtime listener start deadline exceeded");
+  const timer = setTimeout(() => controller.abort(deadlineError), deadlineMs);
+  try {
+    const adminAddress = await awaitStartupOperation(admin.start({ signal }), signal);
+    const modelAddress = await awaitStartupOperation(model.start({ signal }), signal);
+    return publicAddresses(adminAddress, modelAddress);
+  } catch (error) {
+    const cleanup = Promise.allSettled([
+      Promise.resolve().then(() => model.stop()),
+      Promise.resolve().then(() => admin.stop()),
+    ]);
+    try {
+      await awaitStartupOperation(cleanup, signal);
+    } catch {
+      // Listener cleanup shares the same total startup deadline.
+    }
+    if (signal.aborted) throw startupAbortReason(signal);
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export function createRuntimeComposition({
   accounts,
   secretRegistry,
@@ -100,6 +174,7 @@ export function createRuntimeComposition({
   circuitStateStore = null,
   initialCircuitState = null,
   manualSwitchDeadlineMs = DEFAULT_MANUAL_SWITCH_DEADLINE_MS,
+  listenerStartDeadlineMs = DEFAULT_LISTENER_START_DEADLINE_MS,
   shutdownDeadlineMs = DEFAULT_SHUTDOWN_DEADLINE_MS,
   routingStateStore = null,
   initialRoutingState = null,
@@ -119,6 +194,8 @@ export function createRuntimeComposition({
   ) {
     throw new Error("manual switch deadline must be an integer from 1 through 60000");
   }
+  const runtimeListenerStartDeadlineMs =
+    assertListenerStartDeadline(listenerStartDeadlineMs);
   if (
     !Number.isSafeInteger(shutdownDeadlineMs) ||
     shutdownDeadlineMs < 1 ||
@@ -861,15 +938,11 @@ export function createRuntimeComposition({
       }
       state = RUNTIME_STATES.STARTING;
       try {
-        const admin = await adminService.start();
-        let model;
-        try {
-          model = await modelService.start();
-        } catch (error) {
-          await adminService.stop();
-          throw error;
-        }
-        addresses = publicAddresses(admin, model);
+        addresses = await startRuntimeListeners({
+          adminService,
+          modelService,
+          deadlineMs: runtimeListenerStartDeadlineMs,
+        });
         state = RUNTIME_STATES.RUNNING;
         return addresses;
       } catch (error) {

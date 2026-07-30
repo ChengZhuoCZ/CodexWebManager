@@ -1,22 +1,11 @@
 import http from "node:http";
 import { assertLoopbackHost, defaults, parsePort } from "./config.mjs";
-import { SERVICE_STATES } from "./service.mjs";
-
-function listen(server, port, host) {
-  return new Promise((resolve, reject) => {
-    const onError = (error) => {
-      server.off("listening", onListening);
-      reject(error);
-    };
-    const onListening = () => {
-      server.off("error", onError);
-      resolve();
-    };
-    server.once("error", onError);
-    server.once("listening", onListening);
-    server.listen(port, host);
-  });
-}
+import {
+  assertListenerStartDeadline,
+  DEFAULT_LISTENER_START_DEADLINE_MS,
+  listenWithDeadline,
+  SERVICE_STATES,
+} from "./service.mjs";
 
 function close(server) {
   return new Promise((resolve, reject) => {
@@ -33,10 +22,12 @@ function close(server) {
 export function createModelProxyService({
   modelHost = defaults.modelHost ?? "127.0.0.1",
   modelPort = defaults.modelPort ?? 18_317,
+  startDeadlineMs = DEFAULT_LISTENER_START_DEADLINE_MS,
   proxyHandler,
 } = {}) {
   const host = assertLoopbackHost(modelHost);
   const port = parsePort(modelPort, "model port");
+  const listenerStartDeadlineMs = assertListenerStartDeadline(startDeadlineMs);
   if (
     proxyHandler === null ||
     typeof proxyHandler !== "object" ||
@@ -70,13 +61,18 @@ export function createModelProxyService({
       if (!address || typeof address === "string") return null;
       return Object.freeze({ address: address.address, family: address.family, port: address.port });
     },
-    async start() {
+    async start({ signal = null } = {}) {
       if (state !== SERVICE_STATES.CREATED) {
         throw new Error(`cannot start model service from ${state} state`);
       }
       state = SERVICE_STATES.STARTING;
       try {
-        await listen(server, port, host);
+        await listenWithDeadline(server, {
+          port,
+          host,
+          signal,
+          deadlineMs: listenerStartDeadlineMs,
+        });
         state = SERVICE_STATES.RUNNING;
         return this.address;
       } catch (error) {

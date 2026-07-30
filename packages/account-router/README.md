@@ -213,6 +213,11 @@ and routing state stages also share one outer five-second total deadline. The st
 deadlines remain available for isolated callers and tests, but they do not create fresh windows when
 the outer production signal is present. The complete pre-listener private load sequence therefore
 has one bounded budget rather than two consecutive five-second budgets.
+The subsequent admin and model listener starts share a separate five-second total deadline and the
+same cancellation signal. Each listener also keeps this bound when used alone, while a listener
+started by the production runtime does not create a fresh window. Expiry cancels a pending Node
+listener, stops both listener services within the remaining startup budget, and reports a fixed
+startup error instead of leaving a partially listening router.
 Graceful shutdown has one five-second total deadline by default, below the packaged systemd
 20-second stop window. Listener shutdown, queued routing mutations, queued private writes, and both
 final state checkpoints share that deadline. Private writes receive its cancellation signal and

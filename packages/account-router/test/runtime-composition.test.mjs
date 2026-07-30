@@ -4,6 +4,7 @@ import http from "node:http";
 import test from "node:test";
 import { createAdminAuthenticator } from "../src/admin-auth.mjs";
 import { createRuntimeComposition } from "../src/runtime-composition.mjs";
+import * as runtimeCompositionModule from "../src/runtime-composition.mjs";
 import {
   defineSecretProvider,
   SecretLease,
@@ -84,6 +85,67 @@ async function adminJson(origin, path) {
   });
   return { response, value: await response.json() };
 }
+
+test("bounds the complete listener start sequence with one total deadline", async (context) => {
+  let releaseModelStart;
+  let announceModelStart;
+  const modelStartGate = new Promise((resolve) => {
+    releaseModelStart = resolve;
+  });
+  const modelStartStarted = new Promise((resolve) => {
+    announceModelStart = resolve;
+  });
+  const signals = [];
+  const stops = [];
+  const adminService = {
+    async start({ signal = null } = {}) {
+      signals.push(signal);
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      return Object.freeze({ address: "127.0.0.1", family: "IPv4", port: 18_318 });
+    },
+    async stop() {
+      stops.push("admin");
+    },
+  };
+  const modelService = {
+    async start({ signal = null } = {}) {
+      signals.push(signal);
+      announceModelStart();
+      await modelStartGate;
+      return Object.freeze({ address: "127.0.0.1", family: "IPv4", port: 18_317 });
+    },
+    async stop() {
+      stops.push("model");
+    },
+  };
+  const startedAt = performance.now();
+  const operation = runtimeCompositionModule.startRuntimeListeners({
+    adminService,
+    modelService,
+    deadlineMs: 120,
+  });
+  context.after(async () => {
+    releaseModelStart?.();
+    await operation.catch(() => undefined);
+  });
+  await modelStartStarted;
+
+  const outcome = await Promise.race([
+    operation.then(
+      () => "resolved",
+      (error) => error?.message,
+    ),
+    new Promise((resolve) => setTimeout(() => resolve("timed_out"), 300)),
+  ]);
+  const elapsedMs = performance.now() - startedAt;
+
+  assert.equal(outcome, "runtime listener start deadline exceeded");
+  assert.equal(signals.length, 2);
+  assert.equal(signals[0], signals[1]);
+  assert.equal(signals[1]?.aborted, true);
+  assert.deepEqual(stops.sort(), ["admin", "model"]);
+  assert.ok(elapsedMs < 250);
+});
 
 test("starts loopback admin and model services and routes one account through a secret lease", async (context) => {
   let observed;
@@ -509,6 +571,24 @@ test("validates runtime composition and stops both listeners together", async ()
     {
       accounts: [],
       manualSwitchDeadlineMs: 1.5,
+      secretRegistry: registry,
+      upstreamOrigin: "https://example.invalid",
+    },
+    {
+      accounts: [],
+      listenerStartDeadlineMs: 0,
+      secretRegistry: registry,
+      upstreamOrigin: "https://example.invalid",
+    },
+    {
+      accounts: [],
+      listenerStartDeadlineMs: 60_001,
+      secretRegistry: registry,
+      upstreamOrigin: "https://example.invalid",
+    },
+    {
+      accounts: [],
+      listenerStartDeadlineMs: 1.5,
       secretRegistry: registry,
       upstreamOrigin: "https://example.invalid",
     },
