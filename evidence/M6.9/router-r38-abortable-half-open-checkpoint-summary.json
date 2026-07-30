@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_abortable_half_open_checkpoint_and_release_candidate",
+  "generated_at": "2026-07-30T13:29:34+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "8093fe58fc5c9addfbb4c436d6991349841eb431",
+  "output_revision": "8459ddbe3f192d98314ebbf89ab17bc59519e5ab",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Propagate the existing bounded selection signal into the half-open circuit checkpoint so a stalled private save cannot retain the serialized selector or consume the probe after the request deadline.",
+    "selection_deadline_applies_to_half_open_checkpoint": true,
+    "client_cancellation_applies_to_half_open_checkpoint": true,
+    "deadline_http_status": 503,
+    "deadline_error_type": "all_accounts_unavailable",
+    "deadline_reason": "total_deadline_exceeded",
+    "deadline_attempts": 0,
+    "deadline_semantic_output": false,
+    "deadline_credential_acquisitions": 0,
+    "deadline_upstream_contacts": 0,
+    "routing_lock_released": true,
+    "unconsumed_half_open_probe_released": true,
+    "manual_next_request_route_accepted_while_old_save_pending": true,
+    "manual_switch_marks_new_backend_session": true,
+    "different_eligible_account_serves_only_later_new_request": true,
+    "later_new_probe_retry_after_old_save_completion": true,
+    "timed_out_request_replayed_or_resumed": false,
+    "retry_policy_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "timeout --signal=TERM --kill-after=5s 30s node --test --test-name-pattern='half-open probe when its persistence checkpoint' packages/account-router/test/runtime-persistence.test.mjs",
+    "before_implementation": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "observed_failure": "The first selection returned its bounded total-deadline response, but the stalled half-open circuit checkpoint retained the serialized routing lock so the manual next-request route did not settle within 100 milliseconds.",
+      "external_command_duration_ms": 3442.570,
+      "test_duration_ms": 3377.690,
+      "bounded_cleanup": "The synthetic state-store gate was settled during fixture cleanup and the command exited normally."
+    },
+    "after_implementation": {
+      "tests": 1,
+      "passed": 1,
+      "failed": 0,
+      "external_command_duration_ms": 432.684,
+      "test_duration_ms": 293.238
+    }
+  },
+  "verification": {
+    "runtime_persistence": {
+      "tests": 15,
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0
+    },
+    "focused_persistence_and_runtime": {
+      "tests": 36,
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0,
+      "failure_injections": [
+        "a synthetic half-open account stalls its first circuit-state checkpoint beyond the 250 millisecond total deadline",
+        "the old selection releases both the serialized routing lock and the unconsumed half-open probe",
+        "a fixture manual next-request route to another eligible account is accepted while the old save remains pending",
+        "a later separate new request uses that account and succeeds",
+        "after the old save completes, another manual next-request route lets a later separate new request obtain a fresh half-open probe"
+      ]
+    },
+    "critical_failover_and_restart": {
+      "tests": 98,
+      "passed": 98,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "HTTP/SSE bounded pre-semantic failover and post-semantic no-replay",
+        "WebSocket bounded pre-semantic failover and post-semantic no-replay",
+        "weekly/circuit/route persistence and restart behavior",
+        "durable and abortable automatic routing plus durable manual routing",
+        "abortable credential, auth-failure and half-open checkpoint boundaries",
+        "active semantic-stream manual-switch rejection",
+        "bounded retry and total-deadline policies"
+      ]
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 290,
+      "passed": 265,
+      "failed": 0,
+      "skipped": 25
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r38-strict-matrix-summary.json",
+      "tests": 290,
+      "passed": 290,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r38-security-summary.json",
+      "qualified": true,
+      "files_scanned": 403,
+      "findings": 0,
+      "focused_tests": 90,
+      "focused_passed": 90,
+      "retained_strict_ui_passed": 492
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r38-linux-release-verify.json",
+      "release": "codex-account-router-0.2.17-linux-x64",
+      "sha256": "859a3d89ef2acb95cbeb693c4af036f17fdacd463841d63b8803199c018ab84f",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r38.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure and non-writable /opt/codex-account-router boundary are unchanged.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.17-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200
+    },
+    "app_server": {
+      "pid": 508396,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "app_server_pid": 495033,
+    "http_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.17 is verified but is not active until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "AbortSignal abandonment does not cancel an already-issued atomic state save. Later operations are separate new requests, not continuation of the timed-out request.",
+    "A manual next-request route acceptance does not migrate an existing backend session or recover in-flight work.",
+    "The timed-out request is not replayed or resumed. Only a later new request can use another eligible account or retry a half-open probe.",
+    "The tests use synthetic accounts only and do not qualify a real A-to-B switch.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
