@@ -16,6 +16,7 @@ import {
 } from "./state-store.mjs";
 
 const DEFAULT_UPSTREAM_ORIGIN = "https://chatgpt.com";
+const DEFAULT_INITIAL_LOAD_DEADLINE_MS = 5_000;
 const DEFAULT_STARTUP_PRIVATE_LOAD_DEADLINE_MS = 5_000;
 const DEFAULT_STARTUP_STATE_LOAD_DEADLINE_MS = 5_000;
 const MAX_STARTUP_LOAD_DEADLINE_MS = 60_000;
@@ -178,6 +179,53 @@ function assertStartupLoadDeadline(deadlineMs, label) {
   return deadlineMs;
 }
 
+function assertAbortSignal(signal) {
+  if (
+    signal !== null &&
+    (
+      typeof signal !== "object" ||
+      typeof signal.aborted !== "boolean" ||
+      typeof signal.addEventListener !== "function" ||
+      typeof signal.removeEventListener !== "function"
+    )
+  ) {
+    throw new TypeError("startup load signal is invalid");
+  }
+  return signal;
+}
+
+async function runStartupLoad({
+  signal = null,
+  deadlineMs,
+  deadlineLabel,
+  deadlineErrorMessage,
+}, operation) {
+  const parentSignal = assertAbortSignal(signal);
+  assertStartupLoadDeadline(deadlineMs, deadlineLabel);
+  if (typeof operation !== "function") {
+    throw new TypeError("startup load operation is invalid");
+  }
+
+  const controller = parentSignal === null ? new AbortController() : null;
+  const activeSignal = parentSignal ?? controller.signal;
+  const deadlineError = new Error(deadlineErrorMessage);
+  const timer = controller === null
+    ? null
+    : setTimeout(() => controller.abort(deadlineError), deadlineMs);
+  const operationPromise = Promise.resolve().then(() => {
+    throwIfAborted(activeSignal, deadlineErrorMessage);
+    return operation(activeSignal);
+  });
+  try {
+    return await awaitWithAbort(operationPromise, activeSignal);
+  } catch (error) {
+    if (activeSignal.aborted) throw abortReason(activeSignal);
+    throw error;
+  } finally {
+    if (timer !== null) clearTimeout(timer);
+  }
+}
+
 export async function loadInitialPrivateConfiguration({
   accountsFile,
   credentialRoot,
@@ -186,6 +234,7 @@ export async function loadInitialPrivateConfiguration({
   accountsLoader = readAccountsDocument,
   adminAuthenticatorLoader = loadAdminAuthenticator,
   deadlineMs = DEFAULT_STARTUP_PRIVATE_LOAD_DEADLINE_MS,
+  signal = null,
 } = {}) {
   if ((accountsFile === undefined) !== (credentialRoot === undefined)) {
     throw new Error("accounts configuration file and credential root must be configured together");
@@ -196,15 +245,15 @@ export async function loadInitialPrivateConfiguration({
   if (typeof adminAuthenticatorLoader !== "function") {
     throw new TypeError("admin authenticator loader is invalid");
   }
-  assertStartupLoadDeadline(deadlineMs, "startup private bootstrap load deadline");
 
-  const controller = new AbortController();
-  const deadlineError = new Error("runtime private bootstrap load deadline exceeded");
-  const timer = setTimeout(() => controller.abort(deadlineError), deadlineMs);
-  const signal = controller.signal;
-  const secretRegistry = new SecretProviderRegistry();
-  let accounts = Object.freeze([]);
-  try {
+  return runStartupLoad({
+    signal,
+    deadlineMs,
+    deadlineLabel: "startup private bootstrap load deadline",
+    deadlineErrorMessage: "runtime private bootstrap load deadline exceeded",
+  }, async (activeSignal) => {
+    const secretRegistry = new SecretProviderRegistry();
+    let accounts = Object.freeze([]);
     if (accountsFile !== undefined) {
       const rootDirectory = assertAbsolutePath(credentialRoot, "credential root");
       const systemdCredentialsDirectory = systemdCredentialsFor(
@@ -212,8 +261,8 @@ export async function loadInitialPrivateConfiguration({
         credentialsDirectory,
       );
       accounts = await awaitWithAbort(
-        accountsLoader(accountsFile, { signal }),
-        signal,
+        accountsLoader(accountsFile, { signal: activeSignal }),
+        activeSignal,
       );
       if (!Array.isArray(accounts)) {
         throw new Error("accounts configuration loader returned invalid metadata");
@@ -231,72 +280,109 @@ export async function loadInitialPrivateConfiguration({
       adminAuthenticatorLoader(
         adminTokenFile,
         credentialsDirectory,
-        { signal },
+        { signal: activeSignal },
       ),
-      signal,
+      activeSignal,
     );
     return Object.freeze({
       accounts,
       secretRegistry,
       adminAuthenticator,
     });
-  } catch (error) {
-    if (signal.aborted) throw abortReason(signal);
-    throw error;
-  } finally {
-    clearTimeout(timer);
-  }
+  });
 }
 
 export async function loadInitialRuntimeState({
   circuitStateStore = null,
   routingStateStore = null,
   deadlineMs = DEFAULT_STARTUP_STATE_LOAD_DEADLINE_MS,
+  signal = null,
 } = {}) {
   const circuitStore = assertStateStore(circuitStateStore, "circuit");
   const routingStore = assertStateStore(routingStateStore, "routing");
-  assertStartupLoadDeadline(deadlineMs, "startup state load deadline");
-  const controller = new AbortController();
-  const deadlineError = new Error("runtime state load deadline exceeded");
-  const timer = setTimeout(() => controller.abort(deadlineError), deadlineMs);
-  const signal = controller.signal;
-  try {
+  return runStartupLoad({
+    signal,
+    deadlineMs,
+    deadlineLabel: "startup state load deadline",
+    deadlineErrorMessage: "runtime state load deadline exceeded",
+  }, async (activeSignal) => {
     const initialCircuitState = circuitStore === null
       ? null
-      : await awaitWithAbort(circuitStore.load({ signal }), signal);
+      : await awaitWithAbort(
+        circuitStore.load({ signal: activeSignal }),
+        activeSignal,
+      );
     const initialRoutingState = routingStore === null
       ? null
-      : await awaitWithAbort(routingStore.load({ signal }), signal);
+      : await awaitWithAbort(
+        routingStore.load({ signal: activeSignal }),
+        activeSignal,
+      );
     return Object.freeze({ initialCircuitState, initialRoutingState });
-  } catch (error) {
-    if (signal.aborted) throw abortReason(signal);
-    throw error;
-  } finally {
-    clearTimeout(timer);
+  });
+}
+
+export async function loadInitialRuntimeData({
+  privateConfigurationLoader,
+  runtimeStateLoader,
+  deadlineMs = DEFAULT_INITIAL_LOAD_DEADLINE_MS,
+} = {}) {
+  if (typeof privateConfigurationLoader !== "function") {
+    throw new TypeError("private configuration stage loader is invalid");
   }
+  if (typeof runtimeStateLoader !== "function") {
+    throw new TypeError("runtime state stage loader is invalid");
+  }
+  return runStartupLoad({
+    deadlineMs,
+    deadlineLabel: "initial runtime load deadline",
+    deadlineErrorMessage: "runtime initial load deadline exceeded",
+  }, async (signal) => {
+    const privateConfiguration = await awaitWithAbort(
+      privateConfigurationLoader({ signal }),
+      signal,
+    );
+    const runtimeState = await awaitWithAbort(
+      runtimeStateLoader({ signal }),
+      signal,
+    );
+    return Object.freeze({ privateConfiguration, runtimeState });
+  });
 }
 
 export async function loadRuntimeBootstrap(environment = process.env) {
   const listenerConfig = loadRuntimeConfig(environment);
-  const { accounts, secretRegistry, adminAuthenticator } =
-    await loadInitialPrivateConfiguration({
-      accountsFile: environment.CODEX_ROUTER_ACCOUNTS_FILE,
-      credentialRoot: environment.CODEX_ROUTER_CREDENTIAL_ROOT,
-      adminTokenFile: environment.CODEX_ROUTER_ADMIN_TOKEN_FILE,
-      credentialsDirectory: environment.CREDENTIALS_DIRECTORY,
-    });
-  const stateDirectory = environment.CODEX_ROUTER_STATE_DIRECTORY;
-  const absoluteStateDirectory = stateDirectory === undefined
-    ? null
-    : assertAbsolutePath(stateDirectory, "circuit state directory");
-  const circuitStateStore = absoluteStateDirectory === null
-    ? null
-    : createCircuitStateStore({ directory: absoluteStateDirectory });
-  const routingStateStore = absoluteStateDirectory === null
-    ? null
-    : createRoutingStateStore({ directory: absoluteStateDirectory });
-  const { initialCircuitState, initialRoutingState } =
-    await loadInitialRuntimeState({ circuitStateStore, routingStateStore });
+  let circuitStateStore = null;
+  let routingStateStore = null;
+  const { privateConfiguration, runtimeState } = await loadInitialRuntimeData({
+    privateConfigurationLoader: ({ signal }) =>
+      loadInitialPrivateConfiguration({
+        accountsFile: environment.CODEX_ROUTER_ACCOUNTS_FILE,
+        credentialRoot: environment.CODEX_ROUTER_CREDENTIAL_ROOT,
+        adminTokenFile: environment.CODEX_ROUTER_ADMIN_TOKEN_FILE,
+        credentialsDirectory: environment.CREDENTIALS_DIRECTORY,
+        signal,
+      }),
+    runtimeStateLoader: ({ signal }) => {
+      const stateDirectory = environment.CODEX_ROUTER_STATE_DIRECTORY;
+      const absoluteStateDirectory = stateDirectory === undefined
+        ? null
+        : assertAbsolutePath(stateDirectory, "circuit state directory");
+      circuitStateStore = absoluteStateDirectory === null
+        ? null
+        : createCircuitStateStore({ directory: absoluteStateDirectory });
+      routingStateStore = absoluteStateDirectory === null
+        ? null
+        : createRoutingStateStore({ directory: absoluteStateDirectory });
+      return loadInitialRuntimeState({
+        circuitStateStore,
+        routingStateStore,
+        signal,
+      });
+    },
+  });
+  const { accounts, secretRegistry, adminAuthenticator } = privateConfiguration;
+  const { initialCircuitState, initialRoutingState } = runtimeState;
 
   return Object.freeze({
     ...listenerConfig,

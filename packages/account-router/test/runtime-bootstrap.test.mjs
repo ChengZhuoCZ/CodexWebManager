@@ -6,6 +6,7 @@ import test from "node:test";
 import { createCircuitBreaker } from "../src/circuit-breaker.mjs";
 import {
   loadInitialPrivateConfiguration,
+  loadInitialRuntimeData,
   loadInitialRuntimeState,
   loadRuntimeBootstrap,
 } from "../src/runtime-bootstrap.mjs";
@@ -222,6 +223,118 @@ test("bounds private account and admin bootstrap loads with one total deadline",
   assert.equal(outcome, "runtime private bootstrap load deadline exceeded");
   assert.equal(accountsSignal, adminSignal);
   assert.equal(adminSignal?.aborted, true);
+});
+
+test("bounds the complete pre-listener load sequence with one total deadline", async (context) => {
+  let releaseStateLoad;
+  let announceStateLoad;
+  const stateLoadGate = new Promise((resolve) => {
+    releaseStateLoad = resolve;
+  });
+  const stateLoadStarted = new Promise((resolve) => {
+    announceStateLoad = resolve;
+  });
+  let accountsSignal = null;
+  let adminSignal = null;
+  let circuitSignal = null;
+  let routingSignal = null;
+  const startedAt = performance.now();
+  const operation = loadInitialRuntimeData({
+    privateConfigurationLoader: ({ signal = null } = {}) =>
+      loadInitialPrivateConfiguration({
+        accountsFile: "/fixture/accounts.json",
+        credentialRoot: "/fixture/credentials",
+        accountsLoader: async (_filePath, { signal: loaderSignal = null } = {}) => {
+          accountsSignal = loaderSignal;
+          await new Promise((resolve) => setTimeout(resolve, 60));
+          return Object.freeze([]);
+        },
+        adminAuthenticatorLoader: async (
+          _filePath,
+          _credentialsDirectory,
+          { signal: loaderSignal = null } = {},
+        ) => {
+          adminSignal = loaderSignal;
+          return null;
+        },
+        deadlineMs: 1_000,
+        signal,
+      }),
+    runtimeStateLoader: ({ signal = null } = {}) =>
+      loadInitialRuntimeState({
+        circuitStateStore: {
+          async load({ signal: loaderSignal = null } = {}) {
+            circuitSignal = loaderSignal;
+            return null;
+          },
+        },
+        routingStateStore: {
+          async load({ signal: loaderSignal = null } = {}) {
+            routingSignal = loaderSignal;
+            announceStateLoad();
+            await stateLoadGate;
+            return null;
+          },
+        },
+        deadlineMs: 1_000,
+        signal,
+      }),
+    deadlineMs: 120,
+  });
+  context.after(async () => {
+    releaseStateLoad?.();
+    await operation.catch(() => undefined);
+  });
+  await stateLoadStarted;
+
+  const outcome = await Promise.race([
+    operation.then(
+      () => "resolved",
+      (error) => error?.message,
+    ),
+    new Promise((resolve) => setTimeout(() => resolve("timed_out"), 300)),
+  ]);
+  const elapsedMs = performance.now() - startedAt;
+
+  assert.equal(outcome, "runtime initial load deadline exceeded");
+  assert.equal(accountsSignal, adminSignal);
+  assert.equal(adminSignal, circuitSignal);
+  assert.equal(circuitSignal, routingSignal);
+  assert.equal(routingSignal?.aborted, true);
+  assert.ok(elapsedMs < 250);
+});
+
+test("rejects invalid complete initial load boundaries before invoking a stage", async () => {
+  let stageCalls = 0;
+  const stageLoader = async () => {
+    stageCalls += 1;
+    return null;
+  };
+  for (const deadlineMs of [0, 60_001, 1.5]) {
+    await assert.rejects(
+      loadInitialRuntimeData({
+        privateConfigurationLoader: stageLoader,
+        runtimeStateLoader: stageLoader,
+        deadlineMs,
+      }),
+      /initial runtime load deadline must be an integer from 1 through 60000/,
+    );
+  }
+  await assert.rejects(
+    loadInitialRuntimeData({
+      privateConfigurationLoader: {},
+      runtimeStateLoader: stageLoader,
+    }),
+    /private configuration stage loader is invalid/,
+  );
+  await assert.rejects(
+    loadInitialRuntimeData({
+      privateConfigurationLoader: stageLoader,
+      runtimeStateLoader: {},
+    }),
+    /runtime state stage loader is invalid/,
+  );
+  assert.equal(stageCalls, 0);
 });
 
 test("rejects invalid private bootstrap boundaries before invoking a loader", async () => {
