@@ -57,12 +57,13 @@
     "r60_continuation": "0fe60034c7ff493c3d02a79952a1d06e0a799f02",
     "r61_continuation": "b6feca53305449513f36a5f2e2134e9b50d95076",
     "r62_continuation": "77de7f19a108b2efdd13786707e2fb7b05bf531c",
+    "r63_continuation": "631cc15f4b683f597b0d771a6c4d4c96e5dcaa2e",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "72557968c7d8f0c8b8cccd2e4c3df07df0731c41",
+  "output_revision": "29b2080c69b81341e6f292cb463b2189106691f9",
   "workspace_branch": "codex/m6-9-8215-worker",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -1541,6 +1542,38 @@
     {
       "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
       "result": "R62 final state-and-evidence-tree security audit passed within its bounded three-pass limit after preliminary and pre-state evidence passes; 104/104 focused security tests and retained 492/492 strict UI evidence passed, and 525 repository files were scanned with zero findings"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/linux-release.test.mjs",
+      "result": "R63 minimal fixture failed on its sole pre-implementation attempt because synthetic_websocket_all_pool_unavailable was absent, then passed 3/3 after the installed candidate tried only primary then secondary, emitted the exact sanitized all_accounts_unavailable error plus close code 1013, made no third upstream contact and reported zero usable accounts"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test packages/account-router/test/websocket-failover.test.mjs packages/account-router/test/websocket-tunnel.test.mjs packages/account-router/test/failover-state-machine.test.mjs packages/account-router/test/runtime-composition.test.mjs packages/account-router/test/linux-release.test.mjs; direct node --check for both modified files; git diff --check",
+      "result": "R63 related WebSocket failover/tunnel, state-machine, runtime and installed release tests passed 33/33; both modified files passed direct syntax checks and the diff passed whitespace validation"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test",
+      "result": "R63 package-complete suite passed 296/321 with 0 failures and 25 expected pinned-public-fixture skips on its sole bounded attempt"
+    },
+    {
+      "command": "umask 0022; env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": "R63 strict matrix passed on its sole bounded attempt: 321/321 with no skips; unit 157, integration 116 and E2E 48, with no real account configured or real account switch executed"
+    },
+    {
+      "command": "deterministic 0.2.29 Linux x64 rebuild, byte comparison and target-host installed local-fixture WebSocket all-pool-unavailable verification",
+      "result": "R63 rebuilt archive matched the existing 49-file candidate byte for byte at SHA-256 471bbacf; installed primary upgrade 429 and secondary upgrade 503 produced exactly two attempts, no third upstream contact, one exact all_accounts_unavailable/no_eligible_account error with semantic_output false, close code 1013, and readyz 503 with zero usable accounts"
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r63.sh",
+      "result": "R63 router-only rollback deployment script syntax, pinned version and artifact hash passed; deployment was not attempted because the known host-privilege blocker and non-writable root-owned target are unchanged, so active release 0.2.6 and all production processes remained unchanged"
+    },
+    {
+      "command": "read-only systemd PID/start/unit-hash plus 8215/8216 loopback/Tailnet HTTP and router readyz probes",
+      "result": "R63 production invariants passed: 8215 PID 510876/508396 and ActiveEnter 196497166178/194490256399 plus unit hashes remained fixed; 8215 and 8216 loopback/Tailnet HTTP plus router readyz were 200; router PID 548777 and active 0.2.6 release remained unchanged"
+    },
+    {
+      "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "R63 final state-and-evidence-tree security audit passed within its bounded three-pass limit after preliminary and pre-state evidence passes; 104/104 focused security tests and retained 492/492 strict UI evidence passed, and 530 repository files were scanned with zero findings"
     }
   ],
   "evidence": [
@@ -1746,9 +1779,96 @@
     "evidence/M6.9/router-r62-strict-matrix-summary.json",
     "evidence/M6.9/router-r62-security-summary.json",
     "evidence/M6.9/router-r62-linux-release-verify.json",
-    "evidence/M6.9/deploy-router-r62.sh"
+    "evidence/M6.9/deploy-router-r62.sh",
+    "evidence/M6.9/router-r63-installed-websocket-all-pool-unavailable-summary.json",
+    "evidence/M6.9/router-r63-strict-matrix-summary.json",
+    "evidence/M6.9/router-r63-security-summary.json",
+    "evidence/M6.9/router-r63-linux-release-verify.json",
+    "evidence/M6.9/deploy-router-r63.sh"
   ],
   "observations": {
+    "continuation_r63_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8215-worker",
+      "commit": "631cc15f4b683f597b0d771a6c4d4c96e5dcaa2e",
+      "dependencies": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_result": "Use the installed candidate, two synthetic bindings and a loopback-only fixture upstream to prove that the whole synthetic WebSocket pool becoming unavailable before semantic output stops after exactly primary then secondary, emits one exact sanitized all_accounts_unavailable error and the documented close frame with no third upstream attempt, and marks readiness unavailable, without reading real credentials, sending a real model request or changing 8215 PID 510876/508396 with ActiveEnter monotonic timestamps 196497166178/194490256399."
+    },
+    "continuation_r63_fixture_result": {
+      "implementation_revision": "29b2080c69b81341e6f292cb463b2189106691f9",
+      "release_payload_changed": false,
+      "synthetic_binding_definitions": 2,
+      "installed_process_starts": 1,
+      "fresh_private_state_directories": 1,
+      "loopback_fixture_upstream_only": true,
+      "runtime_generated_synthetic_credentials": true,
+      "synthetic_credential_values_emitted": false,
+      "readiness_before_status": 200,
+      "downstream_upgrade_status": 101,
+      "initial_requests": 1,
+      "downstream_error_type": "all_accounts_unavailable",
+      "downstream_error_reason": "no_eligible_account",
+      "downstream_error_attempts": 2,
+      "downstream_error_semantic_output": false,
+      "downstream_close_code": 1013,
+      "downstream_close_reason": "all_accounts_unavailable",
+      "downstream_text_message_count": 1,
+      "upstream_role_sequence": [
+        "primary",
+        "secondary"
+      ],
+      "upstream_failure_sequence": [
+        "rate_limited",
+        "upstream_5xx"
+      ],
+      "third_upstream_attempt_observed": false,
+      "readiness_after_status": 503,
+      "usable_accounts_after": 0,
+      "sanitized_error_exact": true,
+      "package_tests_passed": 296,
+      "package_fixture_skips": 25,
+      "strict_matrix_passed": 321,
+      "strict_matrix_attempt_limit": 1,
+      "strict_matrix_attempts_used": 1,
+      "security_tests_passed": 104,
+      "security_scan_files": 530,
+      "security_findings": 0,
+      "standalone_web_pid": 510876,
+      "standalone_web_active_enter_monotonic": 196497166178,
+      "standalone_app_pid": 508396,
+      "standalone_app_active_enter_monotonic": 194490256399,
+      "standalone_8215_changed": false,
+      "routed_8216_changed": false,
+      "synthetic_credential_acquisition_tested": true,
+      "synthetic_websocket_requests_sent": 1,
+      "real_account_configured_for_test": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "in_flight_resume_tested": false,
+      "seamless_account_continuity_claimed": false
+    },
+    "continuation_r63_release_candidate": {
+      "router_release": "codex-account-router-0.2.29-linux-x64",
+      "artifact_sha256": "471bbacf24c78fe41ae81cff3b30da4cf7666cbcf190b76c3dd8fec53a7ca615",
+      "rebuilt_archive_matched_existing_candidate": true,
+      "payload_file_count": 49,
+      "linux_verification_passed": true,
+      "installed_websocket_all_pool_unavailable_verified": true,
+      "synthetic_credential_acquisition_tested": true,
+      "synthetic_websocket_requests_sent": 1,
+      "real_credentials_present": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "deployment_status": "not_attempted_known_host_privilege_blocker",
+      "deployment_attempts": 0,
+      "active_router_release": "codex-account-router-0.2.6-linux-x64",
+      "active_router_pid": 548777,
+      "production_state_changed": false
+    },
     "continuation_r62_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-8215-worker",
@@ -4496,7 +4616,7 @@
     }
   },
   "blockers": [
-    "The verified 0.2.29 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and the root-owned mode-0755 /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r62.sh is required; no duplicate deployment attempt was made.",
+    "The verified 0.2.29 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and the root-owned mode-0755 /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r63.sh is required; no duplicate deployment attempt was made.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, real two-binding credential acquisition/restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -4570,6 +4690,8 @@
     "R61 covers the installed-package HTTP/SSE boundary with runtime-generated synthetic credentials, independent private state and loopback fixture upstreams only. It does not qualify a real provider A-to-B switch or claim that the failed request, backend session, in-flight work or running computation is resumed; installed WebSocket classification parity beyond quota remains follow-up work.",
     "R62 verifies the installed 0.2.29 candidate handles four separate initial WebSocket pre-semantic failure classifications: upgrade 429, upgrade 401, connection close before upgrade headers and upgrade 503 each produce exactly primary then secondary, complete on secondary, expose no intermediate downstream error and make no third upstream attempt.",
     "R62 covers the installed-package WebSocket boundary with runtime-generated synthetic credentials, independent private state and loopback fixture upstreams only. It does not qualify a real provider A-to-B switch or claim that the failed request, backend session, in-flight work or running computation is resumed; an exact installed WebSocket whole-pool terminal error remains follow-up work.",
+    "R63 verifies the installed 0.2.29 candidate handles a whole synthetic WebSocket pool becoming unavailable before semantic output: primary upgrade 429 and secondary upgrade 503 produce exactly two attempts, no third upstream contact, one exact all_accounts_unavailable/no_eligible_account error with semantic_output false, close code 1013, and readyz 503 with zero usable accounts.",
+    "R63 covers an installed-package WebSocket pool-exhaustion path with runtime-generated synthetic credentials and a loopback fixture upstream only. It does not qualify real provider availability or recovery and does not resume the failed request, backend session, in-flight work or running computation; installed non-zero Retry-After and total-deadline timing remain follow-up evidence.",
     "R32 deliberately keeps routing-state.json separate from circuit-state.json so rollback to 0.2.6 can ignore the new state instead of rejecting an unknown primary-state field.",
     "R34 serializes the short local route-selection/mutation boundary, including credential acquisition and changed-route private state writes. This is covered by fixtures but has not been measured on the deployed 8216 path, so no production latency claim is made.",
     "R31 persists only the last validated sanitized weekly observation. It remains provider-event-dependent, an observation without an explicit reset timestamp is not guessed or expired, and a generic 429 is intentionally not treated as proof of weekly exhaustion.",
@@ -4603,9 +4725,10 @@
     "R60 re-verifies the unchanged 0.2.29 candidate with installed synthetic all-pool-unavailable bounds and an exact sanitized terminal error, but it is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R61 re-verifies the unchanged 0.2.29 candidate with four installed synthetic HTTP/SSE pre-semantic failure classifications, each bounded to primary then secondary with no third upstream attempt, but it is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R62 re-verifies the unchanged 0.2.29 candidate with four installed synthetic WebSocket pre-semantic failure classifications, each bounded to primary then secondary with no third upstream attempt, but it is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
+    "R63 re-verifies the unchanged 0.2.29 candidate with installed synthetic WebSocket all-pool-unavailable bounds, an exact sanitized terminal error and close frame, but it is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R28 caps a weekly reset delay at the existing 24-hour circuit maximum, so a farther reset receives a bounded half-open recheck rather than sleeping until the full provider reset time.",
     "The existing local commits 3f8723f, 776f352 and 0b93593 have test evidence but their commit messages omit the test commands required by the current AGENTS.md; history was not rewritten and later commit messages include test commands.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-07-31T05:06:22+08:00"
+  "updated_at": "2026-07-31T05:16:36+08:00"
 }

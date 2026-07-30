@@ -1,0 +1,250 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_installed_websocket_all_pool_unavailable",
+  "generated_at": "2026-07-31T05:16:36+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "631cc15f4b683f597b0d771a6c4d4c96e5dcaa2e",
+  "output_revision": "29b2080c69b81341e6f292cb463b2189106691f9",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Verify the installed candidate stops after both synthetic WebSocket accounts fail before semantic output, makes no third upstream attempt, emits one exact sanitized all_accounts_unavailable error plus the documented 1013 close, and changes readiness to zero usable accounts.",
+    "release_payload_changed": false,
+    "release_version_changed": false,
+    "candidate_release": "codex-account-router-0.2.29-linux-x64",
+    "candidate_sha256": "471bbacf24c78fe41ae81cff3b30da4cf7666cbcf190b76c3dd8fec53a7ca615",
+    "synthetic_binding_definitions": 2,
+    "installed_process_starts": 1,
+    "fresh_private_state_directories": 1,
+    "loopback_fixture_upstream_only": true,
+    "runtime_generated_synthetic_credentials": true,
+    "synthetic_credential_values_emitted": false,
+    "startup_deadline_ms": 15000,
+    "readiness_deadline_ms": 5000,
+    "websocket_message_deadline_ms": 5000,
+    "shutdown_deadline_ms": 10000,
+    "observed_upstream_attempts": 2,
+    "third_upstream_attempt_observed": false,
+    "request_failover_policy_changed": false,
+    "production_release_payload_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "node --test packages/account-router/test/linux-release.test.mjs",
+    "before_implementation": {
+      "tests": 3,
+      "passed": 2,
+      "failed": 1,
+      "observed_failure": "The installed-release verification summary had no synthetic_websocket_all_pool_unavailable result.",
+      "test_duration_ms": 4159.245927,
+      "node_command_duration_ms": 4240.911656,
+      "attempt_limit": 1,
+      "attempts_used": 1
+    },
+    "after_implementation": {
+      "tests": 3,
+      "passed": 3,
+      "failed": 0,
+      "test_duration_ms": 4622.309537,
+      "node_command_duration_ms": 4705.767112,
+      "attempt_limit": 1,
+      "attempts_used": 1
+    }
+  },
+  "installed_websocket_all_pool_unavailable": {
+    "summary": "evidence/M6.9/router-r63-linux-release-verify.json",
+    "configured_bindings": 2,
+    "process_starts": 1,
+    "readiness_before_status": 200,
+    "downstream_upgrade_status": 101,
+    "initial_requests": 1,
+    "downstream_error": {
+      "type": "all_accounts_unavailable",
+      "reason": "no_eligible_account",
+      "attempts": 2,
+      "semantic_output": false
+    },
+    "downstream_close": {
+      "code": 1013,
+      "reason": "all_accounts_unavailable"
+    },
+    "downstream_text_message_count": 1,
+    "upstream_role_sequence": [
+      "primary",
+      "secondary"
+    ],
+    "upstream_failure_sequence": [
+      "rate_limited",
+      "upstream_5xx"
+    ],
+    "retry_bound_observed": true,
+    "third_upstream_attempt_observed": false,
+    "readiness_after_status": 503,
+    "usable_accounts_after": 0,
+    "sanitized_error_exact": true,
+    "local_fixture_upstream_only": true,
+    "synthetic_credential_acquisition_tested": true,
+    "synthetic_websocket_requests_sent": 1,
+    "synthetic_upstream_attempts": 2,
+    "manual_switch_tested": false,
+    "real_configuration_read": false,
+    "real_credentials_read": false,
+    "real_model_request_sent": false,
+    "real_account_switch_tested": false,
+    "in_flight_resume_tested": false
+  },
+  "verification": {
+    "related_websocket_runtime_and_release": {
+      "tests": 33,
+      "passed": 33,
+      "failed": 0,
+      "skipped": 0,
+      "duration_ms": 4715.306667
+    },
+    "changed_file_syntax": {
+      "command": "node --check packages/account-router/scripts/verify-linux-release.mjs && node --check packages/account-router/test/linux-release.test.mjs && git diff --check",
+      "passed": true
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 321,
+      "passed": 296,
+      "failed": 0,
+      "skipped": 25,
+      "runner": "umask 0022; node --test",
+      "attempt_limit": 1,
+      "attempts_used": 1,
+      "duration_ms": 10302.895346
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r63-strict-matrix-summary.json",
+      "tests": 321,
+      "passed": 321,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1,
+      "unit_passed": 157,
+      "integration_passed": 116,
+      "e2e_passed": 48,
+      "fixture_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf"
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r63-security-summary.json",
+      "qualified": true,
+      "files_scanned": 530,
+      "findings": 0,
+      "focused_tests": 104,
+      "focused_passed": 104,
+      "focused_skipped": 0,
+      "retained_strict_ui_passed": 492,
+      "attempt_limit": 3,
+      "attempts_used": 3,
+      "first_attempt": {
+        "result": "preliminary_passed",
+        "files_scanned": 525,
+        "focused_passed": 104
+      },
+      "second_attempt": {
+        "result": "evidence_tree_pre_state_passed",
+        "files_scanned": 530,
+        "focused_passed": 104
+      },
+      "third_attempt": {
+        "result": "final_state_and_evidence_tree_passed",
+        "files_scanned": 530,
+        "focused_passed": 104
+      }
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r63-linux-release-verify.json",
+      "release": "codex-account-router-0.2.29-linux-x64",
+      "sha256": "471bbacf24c78fe41ae81cff3b30da4cf7666cbcf190b76c3dd8fec53a7ca615",
+      "rebuilt_candidate_matched_existing_archive_byte_for_byte": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "health_status": 200,
+      "no_account_readiness_status": 503,
+      "normal_sigterm_exit_code": 0,
+      "synthetic_websocket_pool_readiness_before_status": 200,
+      "synthetic_websocket_pool_downstream_upgrade_status": 101,
+      "synthetic_websocket_pool_upstream_attempts": 2,
+      "synthetic_websocket_pool_third_attempt": false,
+      "synthetic_websocket_pool_close_code": 1013,
+      "synthetic_websocket_pool_readiness_after_status": 503,
+      "synthetic_websocket_pool_usable_accounts_after": 0,
+      "synthetic_websocket_pool_sanitized_error_exact": true,
+      "synthetic_credential_acquisition_tested": true,
+      "synthetic_websocket_requests_sent": 1,
+      "real_account_configured": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r63.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure is unchanged and /opt/codex-account-router remains root-owned mode 0755 and non-writable by the service user.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.29-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "active_router_effective_unit_sha256": "230dba0a5f7e283f4db2291e4bc6ab7b078eebd63e89e9275a9028185531dddc",
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "exec_start_monotonic": 196497166049,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200,
+      "effective_unit_sha256": "543ddc71409cc088522e80651955a988cc9f2229e9da29dc8a9107c3def3ea1a"
+    },
+    "app_server": {
+      "pid": 508396,
+      "exec_start_monotonic": 194490256322,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running",
+      "effective_unit_sha256": "daaefec18fde144f1801e5b4e60a13cfe9e7c8abe98799192ee59a0f3b66db2f"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "web_exec_start_monotonic": 205386075197,
+    "web_effective_unit_sha256": "bcf691a9362a8f91c4a8d2680631b238bd6ba9ada7e18975bdc567ace4823ca2",
+    "app_server_pid": 495033,
+    "app_server_exec_start_monotonic": 188703455553,
+    "app_server_effective_unit_sha256": "5b44e7e28c57daebdf97eb9e5bbb1e5cd6655a7511a7117079988326fea1be2b",
+    "loopback_http_status": 200,
+    "tailnet_http_status": 200,
+    "router_readyz_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.29 remains a verified but inactive candidate until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "The two credential documents and account headers are runtime-generated synthetic values confined to a private temporary directory and are never emitted in the evidence summary.",
+    "This installed-package scenario proves one initial WebSocket request terminates safely after the synthetic pool becomes unavailable before semantic output; it does not prove an in-flight request or backend session can be resumed.",
+    "Installed total-deadline and non-zero Retry-After timing remain direct source-level fixture evidence rather than a separate installed-package timing drill.",
+    "The tests use synthetic runtime/services/accounts and do not qualify a real A-to-B switch.",
+    "No test claims migration, resume or restoration of an in-flight request, backend session or running computation.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
