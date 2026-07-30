@@ -661,13 +661,13 @@ export function createRuntimeComposition({
 
   async function handleSwitchRequest({ accountAlias }) {
     if (activeSemanticStreams > 0) return Object.freeze({ accepted: false });
-    await pendingRoutingPersistence;
-    if (routingPersistenceFailure !== null) throw persistenceUnavailable();
-    if (activeSemanticStreams > 0) return Object.freeze({ accepted: false });
     const toAccountId = adminState.findAccountIdByAlias(accountAlias);
     if (toAccountId === null || toAccountId === currentAccountId) {
       return Object.freeze({ accepted: false });
     }
+    await pendingRoutingPersistence;
+    if (routingPersistenceFailure !== null) throw persistenceUnavailable();
+    if (activeSemanticStreams > 0) return Object.freeze({ accepted: false });
     const decision = await scheduledDecision(
       new Set(),
       toAccountId,

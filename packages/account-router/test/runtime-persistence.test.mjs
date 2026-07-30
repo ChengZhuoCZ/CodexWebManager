@@ -1055,6 +1055,77 @@ test("releases the routing lock when attempt-failure persistence outlives the de
   });
 });
 
+test("rejects a no-op switch without waiting for queued route persistence", async (context) => {
+  let releaseSave;
+  let announceSave;
+  const saveGate = new Promise((resolve) => { releaseSave = resolve; });
+  const saveStarted = new Promise((resolve) => { announceSave = resolve; });
+  let saveCalls = 0;
+  const routingStateStore = {
+    async load() { return null; },
+    async save() {
+      saveCalls += 1;
+      if (saveCalls !== 2) return;
+      announceSave();
+      await saveGate;
+    },
+  };
+  const upstream = http.createServer((request, response) => {
+    request.resume();
+    quotaSse(response, 25);
+  });
+  context.after(() => close(upstream));
+  const upstreamOrigin = await listen(upstream);
+  const runtime = createRuntimeComposition(runtimeOptions({
+    routingStateStore,
+    initialRoutingState: null,
+    upstreamOrigin,
+  }));
+  context.after(async () => {
+    releaseSave();
+    await runtime.stop().catch(() => undefined);
+  });
+  await runtime.start();
+
+  const first = await fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/v1/responses`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: '{"input":"fixture"}',
+    },
+  );
+  assert.equal(first.status, 200);
+  await first.text();
+  await saveStarted;
+  assert.equal(saveCalls, 2);
+  assert.deepEqual((await adminStatus(runtime)).current_route, {
+    account_alias: "Fixture A",
+    continuity: "new_backend_session",
+  });
+
+  const noOpSwitchPromise = fetch(
+    `http://127.0.0.1:${runtime.addresses.admin.port}/v1/switch`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${ADMIN_TOKEN}`,
+        "content-type": "application/json",
+      },
+      body: '{"account_alias":"Fixture A","reason":"manual"}',
+    },
+  );
+  const switchSettledBeforeSave = await Promise.race([
+    noOpSwitchPromise.then(() => true),
+    new Promise((resolve) => setTimeout(() => resolve(false), 100)),
+  ]);
+  assert.equal(switchSettledBeforeSave, true);
+  const noOpSwitch = await noOpSwitchPromise;
+  assert.equal(noOpSwitch.status, 409);
+  assert.deepEqual(await noOpSwitch.json(), { error: "switch_rejected" });
+  assert.equal(saveCalls, 2);
+});
+
 test("does not acknowledge a manual preference when private route persistence fails", async (context) => {
   const runtime = createRuntimeComposition(runtimeOptions({
     accounts: [

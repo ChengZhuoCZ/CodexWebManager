@@ -84,6 +84,8 @@ selection publish only sanitized route aliases, reasons, and `new_backend_sessio
 manual selection is acknowledged only after its private route intent is atomically persisted. Route
 selection and mutation are serialized through that short boundary; if a semantic stream starts
 before acknowledgement, the candidate state is rolled back and the switch is rejected. An
+unknown alias or a request for the already-current route is rejected inside the same serialized
+boundary before waiting for unrelated queued route persistence; no route state is written. An
 automatic route that changes the current backend is likewise persisted before the runtime opens
 the upstream attempt; a failed private write therefore fails closed without contacting that
 upstream. This wait observes the existing bounded failover selection signal. A deadline or client
