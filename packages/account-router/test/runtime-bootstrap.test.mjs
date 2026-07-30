@@ -5,6 +5,7 @@ import path from "node:path";
 import test from "node:test";
 import { createCircuitBreaker } from "../src/circuit-breaker.mjs";
 import {
+  loadInitialPrivateConfiguration,
   loadInitialRuntimeState,
   loadRuntimeBootstrap,
 } from "../src/runtime-bootstrap.mjs";
@@ -171,6 +172,90 @@ test("bounds both startup state loads with one total deadline", async (context) 
   assert.equal(outcome, "runtime state load deadline exceeded");
   assert.equal(circuitSignal, routingSignal);
   assert.equal(routingSignal?.aborted, true);
+});
+
+test("bounds private account and admin bootstrap loads with one total deadline", async (context) => {
+  let releaseAdminLoad;
+  let announceAdminLoad;
+  const adminLoadGate = new Promise((resolve) => {
+    releaseAdminLoad = resolve;
+  });
+  const adminLoadStarted = new Promise((resolve) => {
+    announceAdminLoad = resolve;
+  });
+  let accountsSignal = null;
+  let adminSignal = null;
+  const operation = loadInitialPrivateConfiguration({
+    accountsFile: "/fixture/accounts.json",
+    credentialRoot: "/fixture/credentials",
+    adminTokenFile: "/fixture/admin-token",
+    accountsLoader: async (_filePath, { signal = null } = {}) => {
+      accountsSignal = signal;
+      return Object.freeze([]);
+    },
+    adminAuthenticatorLoader: async (
+      _filePath,
+      _credentialsDirectory,
+      { signal = null } = {},
+    ) => {
+      adminSignal = signal;
+      announceAdminLoad();
+      await adminLoadGate;
+      return null;
+    },
+    deadlineMs: 100,
+  });
+  context.after(async () => {
+    releaseAdminLoad?.();
+    await operation.catch(() => undefined);
+  });
+  await adminLoadStarted;
+
+  const outcome = await Promise.race([
+    operation.then(
+      () => "resolved",
+      (error) => error?.message,
+    ),
+    new Promise((resolve) => setTimeout(() => resolve("timed_out"), 250)),
+  ]);
+
+  assert.equal(outcome, "runtime private bootstrap load deadline exceeded");
+  assert.equal(accountsSignal, adminSignal);
+  assert.equal(adminSignal?.aborted, true);
+});
+
+test("rejects invalid private bootstrap boundaries before invoking a loader", async () => {
+  let loadCalls = 0;
+  const accountsLoader = async () => {
+    loadCalls += 1;
+    return Object.freeze([]);
+  };
+  for (const deadlineMs of [0, 60_001, 1.5]) {
+    await assert.rejects(
+      loadInitialPrivateConfiguration({
+        accountsFile: "/fixture/accounts.json",
+        credentialRoot: "/fixture/credentials",
+        accountsLoader,
+        deadlineMs,
+      }),
+      /startup private bootstrap load deadline must be an integer from 1 through 60000/,
+    );
+  }
+  await assert.rejects(
+    loadInitialPrivateConfiguration({
+      accountsFile: "/fixture/accounts.json",
+      credentialRoot: "/fixture/credentials",
+      accountsLoader: {},
+    }),
+    /accounts configuration loader is invalid/,
+  );
+  await assert.rejects(
+    loadInitialPrivateConfiguration({
+      adminAuthenticatorLoader: {},
+    }),
+    /admin authenticator loader is invalid/,
+  );
+  assert.equal(loadCalls, 0);
 });
 
 test("rejects invalid startup state load boundaries before reading a store", async () => {

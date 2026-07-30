@@ -16,8 +16,9 @@ import {
 } from "./state-store.mjs";
 
 const DEFAULT_UPSTREAM_ORIGIN = "https://chatgpt.com";
+const DEFAULT_STARTUP_PRIVATE_LOAD_DEADLINE_MS = 5_000;
 const DEFAULT_STARTUP_STATE_LOAD_DEADLINE_MS = 5_000;
-const MAX_STARTUP_STATE_LOAD_DEADLINE_MS = 60_000;
+const MAX_STARTUP_LOAD_DEADLINE_MS = 60_000;
 const MAX_CONFIG_BYTES = 1024 * 1024;
 const CONFIG_FIELDS = new Set(["version", "accounts"]);
 
@@ -34,7 +35,20 @@ function assertOwnedByCurrentUser(stat) {
   }
 }
 
-async function readAccountsDocument(filePath) {
+function abortReason(signal, fallbackMessage = "runtime bootstrap load aborted") {
+  return signal?.reason instanceof Error
+    ? signal.reason
+    : new Error(fallbackMessage);
+}
+
+function throwIfAborted(signal, fallbackMessage) {
+  if (signal?.aborted) {
+    throw abortReason(signal, fallbackMessage);
+  }
+}
+
+async function readAccountsDocument(filePath, { signal = null } = {}) {
+  throwIfAborted(signal, "runtime private bootstrap load aborted");
   const absolutePath = assertAbsolutePath(filePath, "accounts configuration file");
   let handle;
   try {
@@ -46,7 +60,9 @@ async function readAccountsDocument(filePath) {
     throw new Error("accounts configuration must be a regular configuration file");
   }
   try {
+    throwIfAborted(signal, "runtime private bootstrap load aborted");
     const stat = await handle.stat();
+    throwIfAborted(signal, "runtime private bootstrap load aborted");
     if (!stat.isFile() || stat.size < 1 || stat.size > MAX_CONFIG_BYTES) {
       throw new Error("accounts configuration must be a bounded regular configuration file");
     }
@@ -54,7 +70,11 @@ async function readAccountsDocument(filePath) {
     if ((stat.mode & 0o022) !== 0) {
       throw new Error("accounts configuration permissions must deny group and other writes");
     }
-    const text = await handle.readFile("utf8");
+    const text = await handle.readFile({
+      encoding: "utf8",
+      ...(signal === null ? {} : { signal }),
+    });
+    throwIfAborted(signal, "runtime private bootstrap load aborted");
     let document;
     try {
       document = JSON.parse(text);
@@ -85,7 +105,12 @@ function systemdCredentialsFor(rootDirectory, credentialsDirectory) {
     : undefined;
 }
 
-async function loadAdminAuthenticator(filePath, credentialsDirectory) {
+async function loadAdminAuthenticator(
+  filePath,
+  credentialsDirectory,
+  { signal = null } = {},
+) {
+  throwIfAborted(signal, "runtime private bootstrap load aborted");
   if (filePath === undefined) return null;
   const absolutePath = assertAbsolutePath(filePath, "admin token file");
   const rootDirectory = path.dirname(absolutePath);
@@ -106,6 +131,7 @@ async function loadAdminAuthenticator(filePath, credentialsDirectory) {
   });
   const lease = await provider.acquire(path.basename(absolutePath));
   try {
+    throwIfAborted(signal, "runtime private bootstrap load aborted");
     return lease.use((token) => createAdminAuthenticator({ token }));
   } finally {
     lease.dispose();
@@ -120,12 +146,6 @@ function assertStateStore(value, label) {
     throw new TypeError(`${label} state store is invalid`);
   }
   return value;
-}
-
-function abortReason(signal) {
-  return signal?.reason instanceof Error
-    ? signal.reason
-    : new Error("runtime state load aborted");
 }
 
 function awaitWithAbort(operation, signal) {
@@ -147,6 +167,87 @@ function awaitWithAbort(operation, signal) {
   });
 }
 
+function assertStartupLoadDeadline(deadlineMs, label) {
+  if (
+    !Number.isSafeInteger(deadlineMs) ||
+    deadlineMs < 1 ||
+    deadlineMs > MAX_STARTUP_LOAD_DEADLINE_MS
+  ) {
+    throw new Error(`${label} must be an integer from 1 through 60000`);
+  }
+  return deadlineMs;
+}
+
+export async function loadInitialPrivateConfiguration({
+  accountsFile,
+  credentialRoot,
+  adminTokenFile,
+  credentialsDirectory,
+  accountsLoader = readAccountsDocument,
+  adminAuthenticatorLoader = loadAdminAuthenticator,
+  deadlineMs = DEFAULT_STARTUP_PRIVATE_LOAD_DEADLINE_MS,
+} = {}) {
+  if ((accountsFile === undefined) !== (credentialRoot === undefined)) {
+    throw new Error("accounts configuration file and credential root must be configured together");
+  }
+  if (typeof accountsLoader !== "function") {
+    throw new TypeError("accounts configuration loader is invalid");
+  }
+  if (typeof adminAuthenticatorLoader !== "function") {
+    throw new TypeError("admin authenticator loader is invalid");
+  }
+  assertStartupLoadDeadline(deadlineMs, "startup private bootstrap load deadline");
+
+  const controller = new AbortController();
+  const deadlineError = new Error("runtime private bootstrap load deadline exceeded");
+  const timer = setTimeout(() => controller.abort(deadlineError), deadlineMs);
+  const signal = controller.signal;
+  const secretRegistry = new SecretProviderRegistry();
+  let accounts = Object.freeze([]);
+  try {
+    if (accountsFile !== undefined) {
+      const rootDirectory = assertAbsolutePath(credentialRoot, "credential root");
+      const systemdCredentialsDirectory = systemdCredentialsFor(
+        rootDirectory,
+        credentialsDirectory,
+      );
+      accounts = await awaitWithAbort(
+        accountsLoader(accountsFile, { signal }),
+        signal,
+      );
+      if (!Array.isArray(accounts)) {
+        throw new Error("accounts configuration loader returned invalid metadata");
+      }
+      secretRegistry.register(
+        createCodexAuthSecretProvider({
+          rootDirectory,
+          ...(systemdCredentialsDirectory === undefined
+            ? {}
+            : { credentialsDirectory: systemdCredentialsDirectory }),
+        }),
+      );
+    }
+    const adminAuthenticator = await awaitWithAbort(
+      adminAuthenticatorLoader(
+        adminTokenFile,
+        credentialsDirectory,
+        { signal },
+      ),
+      signal,
+    );
+    return Object.freeze({
+      accounts,
+      secretRegistry,
+      adminAuthenticator,
+    });
+  } catch (error) {
+    if (signal.aborted) throw abortReason(signal);
+    throw error;
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function loadInitialRuntimeState({
   circuitStateStore = null,
   routingStateStore = null,
@@ -154,13 +255,7 @@ export async function loadInitialRuntimeState({
 } = {}) {
   const circuitStore = assertStateStore(circuitStateStore, "circuit");
   const routingStore = assertStateStore(routingStateStore, "routing");
-  if (
-    !Number.isSafeInteger(deadlineMs) ||
-    deadlineMs < 1 ||
-    deadlineMs > MAX_STARTUP_STATE_LOAD_DEADLINE_MS
-  ) {
-    throw new Error("startup state load deadline must be an integer from 1 through 60000");
-  }
+  assertStartupLoadDeadline(deadlineMs, "startup state load deadline");
   const controller = new AbortController();
   const deadlineError = new Error("runtime state load deadline exceeded");
   const timer = setTimeout(() => controller.abort(deadlineError), deadlineMs);
@@ -183,32 +278,13 @@ export async function loadInitialRuntimeState({
 
 export async function loadRuntimeBootstrap(environment = process.env) {
   const listenerConfig = loadRuntimeConfig(environment);
-  const accountsFile = environment.CODEX_ROUTER_ACCOUNTS_FILE;
-  const credentialRoot = environment.CODEX_ROUTER_CREDENTIAL_ROOT;
-  if ((accountsFile === undefined) !== (credentialRoot === undefined)) {
-    throw new Error("accounts configuration file and credential root must be configured together");
-  }
-
-  const secretRegistry = new SecretProviderRegistry();
-  let accounts = Object.freeze([]);
-  if (accountsFile !== undefined) {
-    const rootDirectory = assertAbsolutePath(credentialRoot, "credential root");
-    const credentialsDirectory = systemdCredentialsFor(
-      rootDirectory,
-      environment.CREDENTIALS_DIRECTORY,
-    );
-    accounts = await readAccountsDocument(accountsFile);
-    secretRegistry.register(
-      createCodexAuthSecretProvider({
-        rootDirectory,
-        ...(credentialsDirectory === undefined ? {} : { credentialsDirectory }),
-      }),
-    );
-  }
-  const adminAuthenticator = await loadAdminAuthenticator(
-    environment.CODEX_ROUTER_ADMIN_TOKEN_FILE,
-    environment.CREDENTIALS_DIRECTORY,
-  );
+  const { accounts, secretRegistry, adminAuthenticator } =
+    await loadInitialPrivateConfiguration({
+      accountsFile: environment.CODEX_ROUTER_ACCOUNTS_FILE,
+      credentialRoot: environment.CODEX_ROUTER_CREDENTIAL_ROOT,
+      adminTokenFile: environment.CODEX_ROUTER_ADMIN_TOKEN_FILE,
+      credentialsDirectory: environment.CREDENTIALS_DIRECTORY,
+    });
   const stateDirectory = environment.CODEX_ROUTER_STATE_DIRECTORY;
   const absoluteStateDirectory = stateDirectory === undefined
     ? null

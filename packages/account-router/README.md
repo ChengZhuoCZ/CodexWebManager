@@ -194,6 +194,12 @@ permissive, corrupt, empty, and oversized files, and validates every field befor
 Probe tokens are runtime-only and never persisted; a restored half-open account starts with zero
 in-flight probes. M2.3 tests use a virtual clock and private temporary directories only.
 
+Initial public account metadata and optional admin-authenticator loading share one five-second total
+startup deadline. Both production loaders receive the same cancellation signal and check it before
+and between their asynchronous file/secret-provider boundaries; bootstrap also abandons a loader
+that ignores cancellation. Expiry fails startup with a fixed sanitized error before state loading
+or listener creation.
+
 When `CODEX_ROUTER_STATE_DIRECTORY` is configured, the runtime loads this state before starting
 listeners, persists bounded failure/cooldown mutations plus the validated sanitized weekly
 observation and accepted next-request route preference, and flushes pending writes during shutdown.
