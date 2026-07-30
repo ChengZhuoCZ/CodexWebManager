@@ -238,7 +238,11 @@ async function waitForExit(child, timeoutMs = 10_000) {
   return Promise.race([once(child, "close"), timeout]).finally(() => clearTimeout(timer));
 }
 
-async function waitForStalledStartup(child, timeoutMs = 5_000) {
+async function waitForFixtureEvent(child, {
+  event,
+  label,
+  timeoutMs = 5_000,
+}) {
   let pending = "";
   let stdout = "";
   let stderr = "";
@@ -252,13 +256,13 @@ async function waitForStalledStartup(child, timeoutMs = 5_000) {
   const stalled = new Promise((resolve, reject) => {
     const timer = setTimeout(() => {
       cleanup();
-      reject(new Error("installed router stalled-start fixture timed out"));
+      reject(new Error(`installed router ${label} timed out`));
     }, timeoutMs);
     const onExit = (code, signal) => {
       cleanup();
       reject(
         new Error(
-          `installed router exited before the stalled-start fixture (code=${code}, signal=${signal})`,
+          `installed router exited before the ${label} (code=${code}, signal=${signal})`,
         ),
       );
     };
@@ -276,7 +280,7 @@ async function waitForStalledStartup(child, timeoutMs = 5_000) {
         } catch {
           continue;
         }
-        if (record.event === "fixture_runtime_load_stalled") {
+        if (record.event === event) {
           settled = true;
           cleanup();
           resolve();
@@ -412,7 +416,10 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
           stdio: ["ignore", "pipe", "pipe"],
         },
       );
-      const stalled = await waitForStalledStartup(child);
+      const stalled = await waitForFixtureEvent(child, {
+        event: "fixture_runtime_load_stalled",
+        label: "runtime-load stall fixture",
+      });
       child.kill(stopSignal);
       const [startupExitCode, startupExitSignal] = await waitForExit(child);
       child = undefined;
@@ -440,6 +447,54 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       startupInterruptions.push(startupInterruption);
     }
 
+    child = spawn(
+      process.execPath,
+      [
+        "--import",
+        pathToFileURL(
+          path.join(PACKAGE_ROOT, "fixtures/startup/stall-listener-start.mjs"),
+        ).href,
+        path.join(installedRoot, "lib/account-router/src/main.mjs"),
+      ],
+      {
+        cwd: current,
+        env: {
+          ...scrubbedRuntimeEnvironment(homeDirectory),
+          CODEX_ROUTER_TEST_STALL_LISTENER_START: "1",
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      },
+    );
+    const listenerStalled = await waitForFixtureEvent(child, {
+      event: "fixture_listener_start_stalled",
+      label: "listener-start stall fixture",
+    });
+    child.kill("SIGTERM");
+    const [listenerExitCode, listenerExitSignal] = await waitForExit(child);
+    child = undefined;
+    const listenerStdout = listenerStalled.getStdout();
+    const listenerStderr = listenerStalled.getStderr();
+    const listenerStartInterruption = {
+      signal: "SIGTERM",
+      stalled_during_listener_start: true,
+      runtime_created_before_stall: true,
+      exit_code: listenerExitCode,
+      exit_signal: listenerExitSignal,
+      router_stopping_emitted: listenerStdout.includes('"event":"router_stopping"'),
+      router_started_emitted: listenerStdout.includes('"event":"router_started"'),
+      router_start_failed_emitted: listenerStderr.includes('"event":"router_start_failed"'),
+      stderr_bytes: Buffer.byteLength(listenerStderr),
+    };
+    assert(
+      listenerStartInterruption.exit_code === 0 &&
+        listenerStartInterruption.exit_signal === null &&
+        listenerStartInterruption.router_stopping_emitted === true &&
+        listenerStartInterruption.router_started_emitted === false &&
+        listenerStartInterruption.router_start_failed_emitted === false &&
+        listenerStartInterruption.stderr_bytes === 0,
+      "installed router did not stop cleanly during stalled listener start",
+    );
+
     return {
       health_status: healthResponse.status,
       readiness_status: readinessResponse.status,
@@ -453,6 +508,7 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       architecture,
       startup_interruption: startupInterruptions[0],
       startup_interruptions: startupInterruptions,
+      listener_start_interruption: listenerStartInterruption,
     };
   } finally {
     if (child && child.exitCode === null && child.signalCode === null) {

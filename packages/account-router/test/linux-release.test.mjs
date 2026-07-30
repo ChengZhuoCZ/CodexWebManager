@@ -175,4 +175,15 @@ test("installed release verifies stalled startup stop signals", async (context) 
       stderr_bytes: 0,
     })),
   );
+  assert.deepEqual(summary.runtime.listener_start_interruption, {
+    signal: "SIGTERM",
+    stalled_during_listener_start: true,
+    runtime_created_before_stall: true,
+    exit_code: 0,
+    exit_signal: null,
+    router_stopping_emitted: true,
+    router_started_emitted: false,
+    router_start_failed_emitted: false,
+    stderr_bytes: 0,
+  });
 });
