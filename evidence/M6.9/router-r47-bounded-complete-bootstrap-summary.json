@@ -1,0 +1,230 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "stage": "fixture_only_bounded_complete_pre_listener_loading_and_release_candidate",
+  "generated_at": "2026-07-31T01:52:20+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "313ab3e8ffa06e883cfc1ffea9bc160756d3b4ec",
+  "output_revision": "0871caa08039bdc7a9a7c0b42747c42a00272fe4",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "change": {
+    "summary": "Give the complete production pre-listener account metadata, optional admin-authenticator, circuit-state and routing-state load sequence one total startup deadline while preserving the two stage helpers as independently bounded fixture interfaces.",
+    "default_complete_initial_load_deadline_ms": 5000,
+    "maximum_complete_initial_load_deadline_ms": 60000,
+    "all_four_production_loaders_share_signal": true,
+    "stage_helpers_create_fresh_deadline_with_parent_signal": false,
+    "signal_ignoring_loader_wait_abandoned": true,
+    "deadline_error": "runtime initial load deadline exceeded",
+    "listeners_started_before_complete_initial_load": false,
+    "restart_state_schema_changed": false,
+    "request_failover_policy_changed": false,
+    "weekly_quota_policy_changed": false,
+    "real_credentials_used": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false
+  },
+  "test_first": {
+    "command": "timeout 10s node --test --test-name-pattern='complete pre-listener load sequence' packages/account-router/test/runtime-bootstrap.test.mjs",
+    "before_implementation": {
+      "tests": 1,
+      "passed": 0,
+      "failed": 1,
+      "observed_failure": "The complete initial-load helper was undefined, confirming the private-configuration and state stages had only consecutive independent deadlines.",
+      "node_command_duration_ms": 64.944,
+      "test_duration_ms": 1.194
+    },
+    "after_implementation": {
+      "tests": 2,
+      "passed": 2,
+      "failed": 0,
+      "node_command_duration_ms": 425.291,
+      "deadline_fixture_duration_ms": 121.566,
+      "invalid_boundary_fixture_duration_ms": 0.472,
+      "fixture_deadline_ms": 120,
+      "all_four_loader_signals_identical": true,
+      "shared_signal_aborted": true,
+      "late_result_applied": false
+    }
+  },
+  "complete_bootstrap_fixture": {
+    "stalled_stage": "routing_state_load",
+    "synthetic_account_load_delay_ms": 60,
+    "stage_helper_deadline_ms": 1000,
+    "outer_deadline_ms": 120,
+    "total_elapsed_upper_assertion_ms": 250,
+    "deadline_error_sanitized": true,
+    "invalid_deadline_or_stage_calls": 0,
+    "production_stage_helpers_retained": true,
+    "synthetic_private_files_only": true
+  },
+  "verification": {
+    "affected_bootstrap_secret_runtime_and_release": {
+      "tests": 35,
+      "passed": 35,
+      "failed": 0,
+      "skipped": 0
+    },
+    "critical_failover_restart_and_lifecycle": {
+      "tests": 122,
+      "passed": 122,
+      "failed": 0,
+      "skipped": 0,
+      "covers": [
+        "HTTP/SSE bounded pre-semantic failover and post-semantic no-replay",
+        "WebSocket bounded pre-semantic failover and post-semantic no-replay",
+        "weekly/circuit/route persistence and restart behavior",
+        "bounded durable manual switching and active-stream exclusion",
+        "bounded startup, request, persistence and shutdown lifecycles"
+      ]
+    },
+    "package_complete_without_external_fixture": {
+      "tests": 308,
+      "passed": 283,
+      "failed": 0,
+      "skipped": 25,
+      "runner": "umask 0022; node --test",
+      "attempt_limit": 3,
+      "attempts_used": 3,
+      "first_attempt": {
+        "umask": "0077",
+        "passed": 275,
+        "failed": 8,
+        "skipped": 25,
+        "reason": "The inherited restrictive umask reduced requested fixture modes and invalidated existing permission and release-integrity assertions."
+      },
+      "second_attempt": {
+        "umask": "0027",
+        "passed": 280,
+        "failed": 3,
+        "skipped": 25,
+        "reason": "The group-restrictive umask reduced a requested fixture executable from 0755 to 0750."
+      },
+      "final_attempt": {
+        "umask": "0022",
+        "passed": 283,
+        "failed": 0,
+        "skipped": 25
+      }
+    },
+    "strict_matrix": {
+      "summary": "evidence/M6.9/router-r47-strict-matrix-summary.json",
+      "tests": 308,
+      "passed": 308,
+      "failed": 0,
+      "skipped": 0,
+      "attempt_limit": 1,
+      "attempts_used": 1,
+      "unit_passed": 157,
+      "integration_passed": 104,
+      "e2e_passed": 47,
+      "fixture_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf"
+    },
+    "security_audit": {
+      "summary": "evidence/M6.9/router-r47-security-summary.json",
+      "qualified": true,
+      "files_scanned": 448,
+      "findings": 0,
+      "focused_tests": 96,
+      "focused_passed": 96,
+      "focused_skipped": 0,
+      "retained_strict_ui_passed": 492,
+      "attempt_limit": 3,
+      "attempts_used": 3,
+      "first_attempt": {
+        "result": "failed_closed_on_skips",
+        "focused_passed": 81,
+        "focused_failed": 0,
+        "focused_skipped": 15,
+        "reason": "The public codex-web fixture roots were not supplied."
+      },
+      "second_attempt": {
+        "result": "preliminary_passed",
+        "files_scanned": 443,
+        "focused_passed": 96
+      },
+      "final_attempt": {
+        "result": "final_evidence_tree_passed",
+        "files_scanned": 448,
+        "focused_passed": 96
+      }
+    },
+    "linux_release": {
+      "summary": "evidence/M6.9/router-r47-linux-release-verify.json",
+      "release": "codex-account-router-0.2.26-linux-x64",
+      "sha256": "f778414fcfd784d13e8dfde172b09e7c15f0a1f013e4a58a8204c7ece374280e",
+      "deterministic_builds_matched": true,
+      "payload_file_count": 49,
+      "loopback_only": true,
+      "health_status": 200,
+      "no_account_readiness_status": 503,
+      "normal_sigterm_exit_code": 0,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    }
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r47.sh",
+    "status": "not_attempted_known_host_privilege_blocker",
+    "attempt_limit": 1,
+    "attempts_used": 0,
+    "reason": "The previously proven sudo root-GID transition failure is unchanged and /opt/codex-account-router remains root-owned mode 0755 and non-writable by the service user.",
+    "candidate_archive": "/tmp/codex-account-router-0.2.26-linux-x64.tar.gz",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_pid": 548777,
+    "active_router_start_monotonic": 209169242080,
+    "active_router_effective_unit_sha256": "230dba0a5f7e283f4db2291e4bc6ab7b078eebd63e89e9275a9028185531dddc",
+    "production_state_changed": false
+  },
+  "standalone_8215_invariant": {
+    "web": {
+      "pid": 510876,
+      "exec_start_monotonic": 196497166049,
+      "active_enter_monotonic": 196497166178,
+      "state": "active/running",
+      "http_status": 200,
+      "effective_unit_sha256": "543ddc71409cc088522e80651955a988cc9f2229e9da29dc8a9107c3def3ea1a"
+    },
+    "app_server": {
+      "pid": 508396,
+      "exec_start_monotonic": 194490256322,
+      "active_enter_monotonic": 194490256399,
+      "state": "active/running",
+      "effective_unit_sha256": "daaefec18fde144f1801e5b4e60a13cfe9e7c8abe98799192ee59a0f3b66db2f"
+    },
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "routed_8216_invariant": {
+    "web_pid": 538278,
+    "web_exec_start_monotonic": 205386075197,
+    "web_effective_unit_sha256": "bcf691a9362a8f91c4a8d2680631b238bd6ba9ada7e18975bdc567ace4823ca2",
+    "app_server_pid": 495033,
+    "app_server_exec_start_monotonic": 188703455553,
+    "app_server_effective_unit_sha256": "5b44e7e28c57daebdf97eb9e5bbb1e5cd6655a7511a7117079988326fea1be2b",
+    "http_status": 200,
+    "tailnet_http_status": 200,
+    "router_readyz_status": 200,
+    "modified": false,
+    "restarted": false,
+    "stopped": false,
+    "reconfigured": false
+  },
+  "remaining_limits": [
+    "0.2.26 is verified but is not active until a host-privileged operator runs the rollback-capable router-only deployment script.",
+    "A custom loader that ignores AbortSignal can continue its own work after bootstrap abandons the result; it cannot publish the abandoned result into the returned runtime configuration.",
+    "Production file and secret-provider loaders check cancellation between asynchronous operations, but cannot cancel every kernel filesystem call already executing; no hard real-time filesystem guarantee is claimed.",
+    "A failed startup does not replay, migrate, resume or restore an in-flight request or running computation.",
+    "The package test runner requires an explicit standard umask of 0022 for its existing mode fixtures; restrictive inherited umasks fail fixture setup rather than production logic.",
+    "The tests use synthetic accounts and private files only and do not qualify a real A-to-B switch.",
+    "Real two-account verification remains blocked until explicit enrollment authorization."
+  ],
+  "continuity_claimed": false,
+  "in_flight_computation_resume_claimed": false
+}
