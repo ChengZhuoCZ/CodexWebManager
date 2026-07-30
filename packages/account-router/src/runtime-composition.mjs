@@ -172,28 +172,51 @@ export function createRuntimeComposition({
     return new Error("runtime state persistence is unavailable");
   }
 
-  function awaitWithAbort(operation, signal) {
+  function abortReason(signal) {
+    return signal?.reason instanceof Error
+      ? signal.reason
+      : new Error("runtime operation aborted");
+  }
+
+  function throwIfAborted(signal) {
+    if (signal === null || signal === undefined) return;
+    if (!(signal instanceof AbortSignal)) {
+      throw new TypeError("runtime abort signal is invalid");
+    }
+    if (signal.aborted) throw abortReason(signal);
+  }
+
+  function awaitWithAbort(operation, signal, { onLateResolve = null } = {}) {
     if (signal === null || signal === undefined) return operation;
     if (!(signal instanceof AbortSignal)) {
-      throw new TypeError("runtime persistence signal is invalid");
+      throw new TypeError("runtime abort signal is invalid");
+    }
+    if (onLateResolve !== null && typeof onLateResolve !== "function") {
+      throw new TypeError("runtime late-resolution handler is invalid");
     }
     return new Promise((resolve, reject) => {
       let settled = false;
       const finish = (callback, value) => {
-        if (settled) return;
+        if (settled) return false;
         settled = true;
         signal.removeEventListener("abort", onAbort);
         callback(value);
+        return true;
       };
       const onAbort = () => {
-        const reason = signal.reason instanceof Error
-          ? signal.reason
-          : new Error("runtime persistence operation aborted");
-        finish(reject, reason);
+        finish(reject, abortReason(signal));
       };
       signal.addEventListener("abort", onAbort, { once: true });
       Promise.resolve(operation).then(
-        (value) => finish(resolve, value),
+        (value) => {
+          if (!finish(resolve, value) && onLateResolve !== null) {
+            try {
+              onLateResolve(value);
+            } catch {
+              // Late cleanup is best-effort after the caller's bounded operation ended.
+            }
+          }
+        },
         (error) => finish(reject, error),
       );
       if (signal.aborted) onAbort();
@@ -490,7 +513,20 @@ export function createRuntimeComposition({
     return withRoutingMutation(() => recordAttemptFailure(payload));
   }
 
+  function releaseSelectionProbe(accountId, circuitLease) {
+    if (!circuitLease.probe) return;
+    if (probeTokens.get(accountId) !== circuitLease.probe_token) return;
+    try {
+      circuitBreaker.releaseProbe(accountId, circuitLease.probe_token);
+    } finally {
+      probeTokens.delete(accountId);
+      refreshAvailableStatus(accountId);
+    }
+  }
+
   async function resolveUpstreamWithRoutingLock(_route, selectionContext = {}) {
+    const selectionSignal = selectionContext.signal ?? null;
+    throwIfAborted(selectionSignal);
     await pendingRoutingPersistence;
     if (routingPersistenceFailure !== null) throw persistenceUnavailable();
     const excluded = new Set(selectionContext.excludeAccountIds ?? []);
@@ -513,10 +549,24 @@ export function createRuntimeComposition({
       let secretLease;
       let credential;
       try {
-        secretLease = await registry.acquire(binding.secretProvider, binding.credentialRef);
+        throwIfAborted(selectionSignal);
+        secretLease = await awaitWithAbort(
+          registry.acquire(binding.secretProvider, binding.credentialRef),
+          selectionSignal,
+          {
+            onLateResolve(lease) {
+              lease.dispose();
+            },
+          },
+        );
+        throwIfAborted(selectionSignal);
         credential = secretLease.use((value) => parseCodexCredentialBundle(value));
-      } catch {
+      } catch (error) {
         secretLease?.dispose();
+        if (selectionSignal?.aborted) {
+          releaseSelectionProbe(accountId, circuitLease);
+          throw abortReason(selectionSignal);
+        }
         circuitBreaker.recordFailure(accountId, {
           kind: "auth_expired",
           ...(circuitLease.probe ? { probeToken: circuitLease.probe_token } : {}),
@@ -532,11 +582,15 @@ export function createRuntimeComposition({
       }
 
       try {
+        throwIfAborted(selectionSignal);
         await recordSelectedRoute(accountId, {
-          signal: selectionContext.signal ?? null,
+          signal: selectionSignal,
         });
+        throwIfAborted(selectionSignal);
       } catch {
         secretLease.dispose();
+        releaseSelectionProbe(accountId, circuitLease);
+        if (selectionSignal?.aborted) throw abortReason(selectionSignal);
         throw new Error("runtime route state is unavailable");
       }
       activeRequests.set(accountId, activeRequests.get(accountId) + 1);

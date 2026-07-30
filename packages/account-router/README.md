@@ -88,7 +88,11 @@ automatic route that changes the current backend is likewise persisted before th
 the upstream attempt; a failed private write therefore fails closed without contacting that
 upstream. This wait observes the existing bounded failover selection signal. A deadline or client
 cancel marks the route-persistence boundary unavailable, disposes the acquired secret lease, and
-does not apply a late result to the running router's current route.
+does not apply a late result to the running router's current route. Credential acquisition observes
+the same signal without misclassifying cancellation as an authentication failure. It releases the
+serialized selector and any unconsumed half-open probe at the boundary, and disposes any
+SecretLease that resolves after abandonment, so a later new request can retry a recovered
+credential provider.
 Tests use fixture accounts only; they do not access or switch any real account.
 
 ## Optional codex-web status bridge

@@ -572,6 +572,106 @@ test("fails closed and disposes the lease when automatic route persistence excee
   assert.equal((await adminStatus(runtime)).current_route, null);
 });
 
+test("releases the routing lock, half-open probe, and late credential lease after the deadline", async (context) => {
+  let resolveFirstAcquire;
+  const firstAcquireGate = new Promise((resolve) => { resolveFirstAcquire = resolve; });
+  let firstLease = null;
+  let acquireCalls = 0;
+  const secretRegistry = new SecretProviderRegistry().register(defineSecretProvider({
+    name: "fixture-secret",
+    async acquire(reference) {
+      acquireCalls += 1;
+      if (acquireCalls === 1) return firstAcquireGate;
+      return SecretLease.fromUtf8(JSON.stringify({
+        version: 1,
+        authorization: "Bearer fixture-upstream-token",
+        account_id: reference,
+      }));
+    },
+  }));
+  const releaseFirstAcquire = () => {
+    if (firstLease !== null) return;
+    firstLease = SecretLease.fromUtf8(JSON.stringify({
+      version: 1,
+      authorization: "Bearer fixture-upstream-token",
+      account_id: "fixture-a",
+    }));
+    resolveFirstAcquire(firstLease);
+  };
+  let upstreamCalls = 0;
+  const upstream = http.createServer((request, response) => {
+    upstreamCalls += 1;
+    request.resume();
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end('{"models":[{"slug":"fixture-model"}]}');
+  });
+  context.after(() => close(upstream));
+  const upstreamOrigin = await listen(upstream);
+  const runtime = createRuntimeComposition(runtimeOptions({
+    failoverOptions: {
+      maxAttempts: 1,
+      totalDeadlineMs: 100,
+      baseBackoffMs: 1,
+      maxBackoffMs: 1,
+    },
+    initialCircuitState: {
+      version: 1,
+      saved_at: new Date(NOW).toISOString(),
+      accounts: [{
+        account_id: "fixture-account-a",
+        phase: "half_open",
+        last_failure_kind: "network_error",
+        opened_at: new Date(NOW - 1_000).toISOString(),
+        cooldown_until: new Date(NOW).toISOString(),
+        consecutive_failures: 1,
+        last_failure_at: new Date(NOW - 1_000).toISOString(),
+        last_success_at: null,
+        generation: 1,
+      }],
+    },
+    routingStateStore: {
+      async load() { return null; },
+      async save() {},
+    },
+    initialRoutingState: null,
+    secretRegistry,
+    upstreamOrigin,
+  }));
+  context.after(async () => {
+    releaseFirstAcquire();
+    await runtime.stop().catch(() => undefined);
+  });
+  await runtime.start();
+
+  const timedOut = await fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/backend-api/codex/models`,
+  );
+  assert.equal(timedOut.status, 503);
+  assert.deepEqual(await timedOut.json(), {
+    error: {
+      type: "all_accounts_unavailable",
+      reason: "total_deadline_exceeded",
+      attempts: 0,
+      semantic_output: false,
+    },
+  });
+  assert.equal(upstreamCalls, 0);
+  assert.equal(acquireCalls, 1);
+
+  const recovered = await fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/backend-api/codex/models`,
+  );
+  assert.equal(recovered.status, 200);
+  await recovered.arrayBuffer();
+  assert.equal(acquireCalls, 2);
+  assert.equal(upstreamCalls, 1);
+  assert.equal((await adminStatus(runtime)).accounts[0].state, "healthy");
+
+  releaseFirstAcquire();
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(firstLease.disposed, true);
+});
+
 test("does not acknowledge a manual preference when private route persistence fails", async (context) => {
   const runtime = createRuntimeComposition(runtimeOptions({
     accounts: [
