@@ -75,7 +75,11 @@ function freezeStatus(status) {
   });
 }
 
-export function createAdminState({ accountCatalog, eventBroker = createEventBroker() } = {}) {
+export function createAdminState({
+  accountCatalog,
+  eventBroker = createEventBroker(),
+  initialCurrentAccountId = null,
+} = {}) {
   assertAccountCatalog(accountCatalog);
   if (eventBroker === null || typeof eventBroker.publish !== "function") {
     throw new TypeError("eventBroker is invalid");
@@ -99,7 +103,19 @@ export function createAdminState({ accountCatalog, eventBroker = createEventBrok
     });
   }
   let activeStreams = 0;
-  let currentRoute = null;
+  let currentRoute;
+  if (initialCurrentAccountId === null) {
+    currentRoute = null;
+  } else {
+    const initialAccount = accountCatalog.getPublic(initialCurrentAccountId);
+    if (!initialAccount?.enabled) {
+      throw new Error("initial current account is unknown or disabled");
+    }
+    currentRoute = Object.freeze({
+      account_alias: initialAccount.alias,
+      continuity: "new_backend_session",
+    });
+  }
 
   function requireAccount(accountId) {
     const account = accountCatalog.getPublic(accountId);

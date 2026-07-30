@@ -166,11 +166,18 @@ in-flight probes. M2.3 tests use a virtual clock and private temporary directori
 
 When `CODEX_ROUTER_STATE_DIRECTORY` is configured, the runtime loads this state before starting
 listeners, persists bounded failure/cooldown mutations plus the validated sanitized weekly
-observation, and flushes pending writes during shutdown. The optional weekly state contains only the
-internal public-config key, observed time, remaining ratio, and reset time; old schema-1 files without
-that field remain valid. A restored weekly entry is discarded when its explicit reset timestamp is
-at or before the startup clock, and the next atomic save removes that historical entry. Restored
-open/half-open health and unexpired Weekly quota are reflected in sanitized admin status.
+observation and accepted next-request route preference, and flushes pending writes during shutdown.
+The optional weekly state contains only the internal public-config key, observed time, remaining
+ratio, and reset time. Route intent uses a separate private, atomically replaced
+`routing-state.json` so an older release can ignore it during rollback without encountering a new
+field in `circuit-state.json`. It contains only current and preferred internal public-config keys;
+no alias, provider identifier, credential binding, or upstream account identifier is stored there.
+Old schema-1 files without either optional field remain valid. A restored weekly
+entry is discarded when its explicit reset timestamp is at or before the startup clock, and the next
+atomic save removes that historical entry. A restored route is accepted only when the referenced
+account remains enabled in the current public configuration, and the admin projection exposes only
+its sanitized alias with `new_backend_session`. Restored open/half-open health and unexpired Weekly
+quota are reflected in sanitized admin status.
 Protected status reads also prune an observation once a running process reaches that explicit reset
 boundary, refresh the sanitized panel, and queue the private state update without changing an
 independent circuit cooldown. Persistence failure makes readiness and later selection fail closed.

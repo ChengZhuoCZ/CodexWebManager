@@ -45,6 +45,19 @@ test("returns sanitized account status and explicit LIMITED_MODE state", () => {
   assert.doesNotMatch(serialized, /fixture-credential|credential_ref|secret_provider|email|token/i);
 });
 
+test("restores only the sanitized current-route projection without publishing a switch", () => {
+  const state = createAdminState({
+    accountCatalog: fixtureCatalog(),
+    initialCurrentAccountId: "account-a",
+  });
+  assert.deepEqual(state.snapshot().current_route, {
+    account_alias: "Fixture A",
+    continuity: "new_backend_session",
+  });
+  assert.equal(state.snapshot().accounts[0].last_switch_reason, null);
+  assert.doesNotMatch(JSON.stringify(state.snapshot()), /account-a|credential|secret/i);
+});
+
 test("updates bounded runtime fields without exposing account IDs or credential bindings", () => {
   const state = createAdminState({ accountCatalog: fixtureCatalog() });
   state.updateAccountStatus("account-a", {
@@ -89,6 +102,20 @@ test("records sanitized switch events as explicit new backend sessions", () => {
 
 test("rejects unsafe account state, stream counts, routes, and switch reasons", () => {
   const state = createAdminState({ accountCatalog: fixtureCatalog() });
+  assert.throws(
+    () => createAdminState({
+      accountCatalog: fixtureCatalog(),
+      initialCurrentAccountId: "missing",
+    }),
+    /initial current account/,
+  );
+  assert.throws(
+    () => createAdminState({
+      accountCatalog: fixtureCatalog(),
+      initialCurrentAccountId: "account-b",
+    }),
+    /initial current account/,
+  );
   assert.throws(() => state.setActiveStreams(-1), /active stream/);
   assert.throws(() => state.updateAccountStatus("missing", { state: "healthy" }), /unknown account/);
   assert.throws(() => state.updateAccountStatus("account-a", { state: "invented" }), /account state/);

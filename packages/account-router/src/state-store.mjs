@@ -7,6 +7,7 @@ import { normalizeRuntimeStateDocument } from "./runtime-state.mjs";
 
 const FILE_NAME_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._-]{0,119}\.json$/;
 const DEFAULT_FILE_NAME = "circuit-state.json";
+const ROUTING_FILE_NAME = "routing-state.json";
 
 function assertOwned(metadata, label) {
   if (typeof process.getuid === "function" && metadata.uid !== process.getuid()) {
@@ -30,10 +31,11 @@ async function ignoreMissingUnlink(path) {
   }
 }
 
-export function createCircuitStateStore({
+function createStateStore({
   directory,
   filename = DEFAULT_FILE_NAME,
   maxBytes = 1024 * 1024,
+  documentKind,
 } = {}) {
   if (typeof directory !== "string" || !isAbsolute(directory)) {
     throw new Error("circuit state directory must be absolute");
@@ -47,6 +49,25 @@ export function createCircuitStateStore({
 
   const path = join(directory, filename);
   let operationQueue = Promise.resolve();
+
+  function normalizeStoredDocument(document) {
+    const normalized = normalizeRuntimeStateDocument(document);
+    if (documentKind === "circuit") {
+      if (Object.hasOwn(normalized, "routing")) {
+        throw new Error("circuit state document must not contain routing state");
+      }
+      return normalized;
+    }
+    if (
+      documentKind !== "routing" ||
+      !Object.hasOwn(normalized, "routing") ||
+      normalized.accounts.length !== 0 ||
+      Object.hasOwn(normalized, "weekly_quota")
+    ) {
+      throw new Error("routing state document is invalid");
+    }
+    return normalized;
+  }
 
   function enqueue(operation) {
     const result = operationQueue.then(operation, operation);
@@ -122,7 +143,7 @@ export function createCircuitStateStore({
         throw new Error("circuit state file is too large");
       }
       try {
-        return normalizeRuntimeStateDocument(JSON.parse(buffer.subarray(0, length).toString("utf8")));
+        return normalizeStoredDocument(JSON.parse(buffer.subarray(0, length).toString("utf8")));
       } catch {
         throw new Error("invalid state file");
       }
@@ -179,18 +200,31 @@ export function createCircuitStateStore({
       return enqueue(readDocument);
     },
     async save(document) {
-      const normalized = normalizeRuntimeStateDocument(document);
+      const normalized = normalizeStoredDocument(document);
       return enqueue(() => writeDocument(normalized));
     },
     toString() {
-      return "[CircuitStateStore]";
+      return documentKind === "circuit" ? "[CircuitStateStore]" : "[RoutingStateStore]";
     },
     toJSON() {
-      return "[CircuitStateStore]";
+      return documentKind === "circuit" ? "[CircuitStateStore]" : "[RoutingStateStore]";
     },
     [inspect.custom]() {
-      return "[CircuitStateStore]";
+      return documentKind === "circuit" ? "[CircuitStateStore]" : "[RoutingStateStore]";
     },
   };
   return Object.freeze(store);
+}
+
+export function createCircuitStateStore(options = {}) {
+  return createStateStore({ ...options, documentKind: "circuit" });
+}
+
+export function createRoutingStateStore({ directory, maxBytes = 1024 * 1024 } = {}) {
+  return createStateStore({
+    directory,
+    filename: ROUTING_FILE_NAME,
+    maxBytes,
+    documentKind: "routing",
+  });
 }

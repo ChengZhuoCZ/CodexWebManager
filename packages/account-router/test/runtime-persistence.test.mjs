@@ -9,7 +9,10 @@ import { createAdminAuthenticator } from "../src/admin-auth.mjs";
 import { createCircuitBreaker } from "../src/circuit-breaker.mjs";
 import { createRuntimeComposition } from "../src/runtime-composition.mjs";
 import { defineSecretProvider, SecretLease, SecretProviderRegistry } from "../src/secrets.mjs";
-import { createCircuitStateStore } from "../src/state-store.mjs";
+import {
+  createCircuitStateStore,
+  createRoutingStateStore,
+} from "../src/state-store.mjs";
 
 const ADMIN_TOKEN = "fixture-admin-token-0123456789";
 const NOW = Date.parse("2026-07-27T08:00:00.000Z");
@@ -66,6 +69,13 @@ async function privateStateStore(context) {
   return createCircuitStateStore({ directory });
 }
 
+async function privateRoutingStateStore(context) {
+  const directory = await mkdtemp(path.join(os.tmpdir(), "codex-routing-persistence-"));
+  await chmod(directory, 0o700);
+  context.after(() => rm(directory, { recursive: true, force: true }));
+  return createRoutingStateStore({ directory });
+}
+
 async function adminStatus(runtime) {
   const response = await fetch(`http://127.0.0.1:${runtime.addresses.admin.port}/v1/status`, {
     headers: { authorization: `Bearer ${ADMIN_TOKEN}` },
@@ -78,6 +88,8 @@ function runtimeOptions({
   accounts = [account()],
   circuitStateStore,
   initialCircuitState,
+  routingStateStore,
+  initialRoutingState,
   now = () => NOW,
   upstreamOrigin,
 }) {
@@ -93,6 +105,8 @@ function runtimeOptions({
       maxBackoffMs: 1,
     },
     initialCircuitState,
+    routingStateStore,
+    initialRoutingState,
     modelPort: 0,
     now,
     secretRegistry: registry(),
@@ -322,6 +336,83 @@ test("a running router clears persisted Weekly display at the explicit reset bou
   );
   await runtime.stop();
   assert.deepEqual((await circuitStateStore.load()).weekly_quota, []);
+});
+
+test("an accepted manual next-request preference survives a simulated process restart", async (context) => {
+  const upstreamAccounts = [];
+  const upstream = http.createServer((request, response) => {
+    request.resume();
+    upstreamAccounts.push(request.headers["chatgpt-account-id"]);
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end('{"models":[{"slug":"fixture-model"}]}');
+  });
+  context.after(() => close(upstream));
+  const upstreamOrigin = await listen(upstream);
+  const circuitStateStore = await privateStateStore(context);
+  const routingStateStore = await privateRoutingStateStore(context);
+  const accounts = [
+    account({ priority: 10 }),
+    account({
+      id: "fixture-account-b",
+      alias: "Fixture B",
+      priority: 0,
+      credentialRef: "fixture-b",
+    }),
+  ];
+
+  const first = createRuntimeComposition(runtimeOptions({
+    accounts,
+    circuitStateStore,
+    initialCircuitState: await circuitStateStore.load(),
+    routingStateStore,
+    initialRoutingState: await routingStateStore.load(),
+    upstreamOrigin,
+  }));
+  await first.start();
+  const switched = await fetch(
+    `http://127.0.0.1:${first.addresses.admin.port}/v1/switch`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${ADMIN_TOKEN}`,
+        "content-type": "application/json",
+      },
+      body: '{"account_alias":"Fixture B","reason":"manual"}',
+    },
+  );
+  assert.equal(switched.status, 200);
+  await switched.arrayBuffer();
+  await first.stop();
+
+  const savedCircuit = await circuitStateStore.load();
+  assert.equal(savedCircuit.routing, undefined);
+  const saved = await routingStateStore.load();
+  assert.deepEqual(saved.routing, {
+    current_account_id: "fixture-account-b",
+    preferred_account_id: "fixture-account-b",
+  });
+
+  const second = createRuntimeComposition(runtimeOptions({
+    accounts,
+    circuitStateStore,
+    initialCircuitState: savedCircuit,
+    routingStateStore,
+    initialRoutingState: saved,
+    upstreamOrigin,
+  }));
+  context.after(() => second.stop());
+  await second.start();
+  assert.deepEqual((await adminStatus(second)).current_route, {
+    account_alias: "Fixture B",
+    continuity: "new_backend_session",
+  });
+
+  const response = await fetch(
+    `http://127.0.0.1:${second.addresses.model.port}/backend-api/codex/models`,
+  );
+  assert.equal(response.status, 200);
+  await response.arrayBuffer();
+  assert.deepEqual(upstreamAccounts, ["fixture-b"]);
 });
 
 test("a persistence failure makes readiness and later selection fail closed", async () => {

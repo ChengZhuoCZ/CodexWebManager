@@ -5,7 +5,10 @@ import path from "node:path";
 import test from "node:test";
 import { createCircuitBreaker } from "../src/circuit-breaker.mjs";
 import { loadRuntimeBootstrap } from "../src/runtime-bootstrap.mjs";
-import { createCircuitStateStore } from "../src/state-store.mjs";
+import {
+  createCircuitStateStore,
+  createRoutingStateStore,
+} from "../src/state-store.mjs";
 
 async function privateTemporaryDirectory(context) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "router-bootstrap-test-"));
@@ -80,6 +83,7 @@ test("loads an optional private admin token file without retaining plaintext", a
 test("loads the private circuit state selected by the runtime state directory", async (context) => {
   const directory = await privateTemporaryDirectory(context);
   const store = createCircuitStateStore({ directory });
+  const routingStore = createRoutingStateStore({ directory });
   const breaker = createCircuitBreaker({
     now: () => Date.parse("2026-07-27T08:00:00.000Z"),
   });
@@ -93,6 +97,15 @@ test("loads the private circuit state selected by the runtime state directory", 
       resets_at: "2026-07-28T00:00:00.000Z",
     }],
   });
+  await routingStore.save({
+    version: 1,
+    saved_at: "2026-07-27T08:00:00.000Z",
+    accounts: [],
+    routing: {
+      current_account_id: "account-a",
+      preferred_account_id: "account-a",
+    },
+  });
 
   const options = await loadRuntimeBootstrap({
     CODEX_ROUTER_STATE_DIRECTORY: directory,
@@ -100,7 +113,13 @@ test("loads the private circuit state selected by the runtime state directory", 
   assert.equal(options.initialCircuitState.accounts[0].account_id, "account-a");
   assert.equal(options.initialCircuitState.accounts[0].last_failure_kind, "network_error");
   assert.equal(options.initialCircuitState.weekly_quota[0].remaining_ratio, 0.25);
+  assert.equal(options.initialCircuitState.routing, undefined);
+  assert.deepEqual(options.initialRoutingState.routing, {
+    current_account_id: "account-a",
+    preferred_account_id: "account-a",
+  });
   assert.equal(options.circuitStateStore.toString(), "[CircuitStateStore]");
+  assert.equal(options.routingStateStore.toString(), "[RoutingStateStore]");
 });
 
 test("rejects incomplete, permissive, symlinked, and credential-bearing account configuration", async (context) => {

@@ -5,7 +5,10 @@ import { join } from "node:path";
 import test from "node:test";
 import { createCircuitBreaker } from "../src/circuit-breaker.mjs";
 import { circuitStateFromRuntimeState } from "../src/runtime-state.mjs";
-import { createCircuitStateStore } from "../src/state-store.mjs";
+import {
+  createCircuitStateStore,
+  createRoutingStateStore,
+} from "../src/state-store.mjs";
 
 const NOW = Date.parse("2026-07-16T08:00:00.000Z");
 
@@ -23,6 +26,7 @@ function breaker(initialState = undefined) {
 test("atomically persists and restores circuit state across a simulated restart", async (context) => {
   const directory = await privateDirectory(context);
   const store = createCircuitStateStore({ directory });
+  const routingStore = createRoutingStateStore({ directory });
   const before = breaker();
   before.recordFailure("account-a", { kind: "quota_exhausted" });
   await store.save({
@@ -34,29 +38,63 @@ test("atomically persists and restores circuit state across a simulated restart"
       resets_at: "2026-07-17T08:00:00.000Z",
     }],
   });
+  await routingStore.save({
+    version: 1,
+    saved_at: "2026-07-16T08:00:00.000Z",
+    accounts: [],
+    routing: {
+      current_account_id: "account-a",
+      preferred_account_id: "account-a",
+    },
+  });
 
   const path = join(directory, "circuit-state.json");
   const metadata = await lstat(path);
   assert.equal(metadata.isFile(), true);
   assert.equal(metadata.mode & 0o077, 0);
   assert.equal((await readFile(path, "utf8")).endsWith("\n"), true);
+  assert.doesNotMatch(await readFile(path, "utf8"), /"routing"/);
+  const routingMetadata = await lstat(join(directory, "routing-state.json"));
+  assert.equal(routingMetadata.isFile(), true);
+  assert.equal(routingMetadata.mode & 0o077, 0);
 
   const loaded = await store.load();
   const after = breaker(circuitStateFromRuntimeState(loaded));
   assert.deepEqual(after.snapshot("account-a"), before.snapshot("account-a"));
   assert.equal(loaded.weekly_quota[0].remaining_ratio, 0);
-  assert.doesNotMatch(JSON.stringify(loaded), /credential|secret|authorization|token|email/i);
+  assert.equal(loaded.routing, undefined);
+  const loadedRouting = await routingStore.load();
+  assert.deepEqual(loadedRouting.routing, {
+    current_account_id: "account-a",
+    preferred_account_id: "account-a",
+  });
+  assert.doesNotMatch(
+    JSON.stringify({ circuit: loaded, routing: loadedRouting }),
+    /credential|secret|authorization|token|email/i,
+  );
 });
 
 test("returns null for a missing state file and preserves the last valid file on rejected save", async (context) => {
   const directory = await privateDirectory(context);
   const store = createCircuitStateStore({ directory });
+  const routingStore = createRoutingStateStore({ directory });
   assert.equal(await store.load(), null);
+  assert.equal(await routingStore.load(), null);
 
   const source = breaker();
   source.recordFailure("account-a", { kind: "network_error" });
   const valid = source.exportState();
   await store.save(valid);
+  const validRouting = {
+    version: 1,
+    saved_at: "2026-07-16T08:00:00.000Z",
+    accounts: [],
+    routing: {
+      current_account_id: "account-a",
+      preferred_account_id: "account-a",
+    },
+  };
+  await routingStore.save(validRouting);
   await assert.rejects(
     store.save({ ...valid, credential_ref: "fixture-private-reference" }),
     /state document/,
@@ -74,7 +112,36 @@ test("returns null for a missing state file and preserves the last valid file on
     }),
     /state document/,
   );
+  await assert.rejects(
+    store.save({
+      ...valid,
+      routing: validRouting.routing,
+    }),
+    /must not contain routing/,
+  );
+  await assert.rejects(
+    routingStore.save({
+      ...validRouting,
+      routing: {
+        current_account_id: "account-a",
+        preferred_account_id: "account-a",
+        credential_ref: "fixture-private-reference",
+      },
+    }),
+    /state document/,
+  );
+  await assert.rejects(
+    routingStore.save({
+      ...validRouting,
+      routing: {
+        current_account_id: "bad account id",
+        preferred_account_id: null,
+      },
+    }),
+    /state document/,
+  );
   assert.deepEqual(await store.load(), valid);
+  assert.deepEqual(await routingStore.load(), validRouting);
 });
 
 test("rejects permissive, symlinked, corrupt, and oversized state files without echoing content", async (context) => {

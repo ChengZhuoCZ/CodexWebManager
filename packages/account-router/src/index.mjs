@@ -70,7 +70,10 @@ export {
   sanitizeRouterSwitchEvent,
   StatusBridgeError,
 } from "./status-bridge.mjs";
-export { createCircuitStateStore } from "./state-store.mjs";
+export {
+  createCircuitStateStore,
+  createRoutingStateStore,
+} from "./state-store.mjs";
 export {
   circuitStateFromRuntimeState,
   normalizeRuntimeStateDocument,

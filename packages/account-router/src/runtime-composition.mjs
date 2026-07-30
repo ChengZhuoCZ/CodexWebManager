@@ -95,6 +95,8 @@ export function createRuntimeComposition({
   adminAuthenticator = null,
   circuitStateStore = null,
   initialCircuitState = null,
+  routingStateStore = null,
+  initialRoutingState = null,
   adminHost = defaults.adminHost,
   adminPort = defaults.adminPort,
   modelHost = defaults.modelHost,
@@ -107,6 +109,7 @@ export function createRuntimeComposition({
   const registry = assertSecretRegistry(secretRegistry);
   const authenticator = assertAuthenticator(adminAuthenticator);
   const stateStore = assertCircuitStateStore(circuitStateStore);
+  const routeStateStore = assertCircuitStateStore(routingStateStore);
   const origin = validateOrigin(upstreamOrigin);
   const accountCatalog = createAccountCatalog(accounts);
   for (const account of accountCatalog.listPublic()) {
@@ -119,6 +122,9 @@ export function createRuntimeComposition({
   const initialRuntimeState = initialCircuitState === null
     ? null
     : normalizeRuntimeStateDocument(initialCircuitState);
+  const initialRouteRuntimeState = initialRoutingState === null
+    ? null
+    : normalizeRuntimeStateDocument(initialRoutingState);
   const scheduler = createDeterministicScheduler({ now });
   const circuitBreaker = createCircuitBreaker({
     now,
@@ -135,17 +141,31 @@ export function createRuntimeComposition({
     observe: async ({ accountId } = {}) => quotaTracker.read(accountId),
   });
   const eventBroker = createEventBroker({ now: () => new Date(now()).toISOString() });
-  const adminState = createAdminState({ accountCatalog, eventBroker });
   const publicAccounts = accountCatalog.listPublic();
   const accountIds = Object.freeze(publicAccounts.map(({ id }) => id));
+  function restoredRoutableAccountId(accountId) {
+    if (accountId === null || accountId === undefined) return null;
+    return accountCatalog.getPublic(accountId)?.enabled === true ? accountId : null;
+  }
+  let preferredAccountId = restoredRoutableAccountId(
+    initialRouteRuntimeState?.routing?.preferred_account_id,
+  );
+  let currentAccountId = restoredRoutableAccountId(
+    initialRouteRuntimeState?.routing?.current_account_id,
+  );
+  const adminState = createAdminState({
+    accountCatalog,
+    eventBroker,
+    initialCurrentAccountId: currentAccountId,
+  });
   const activeRequests = new Map(publicAccounts.map(({ id }) => [id, 0]));
   const lastUnavailableReason = new Map();
   const probeTokens = new Map();
-  let preferredAccountId = null;
-  let currentAccountId = null;
   let activeSemanticStreams = 0;
   let pendingPersistence = Promise.resolve();
   let persistenceFailure = null;
+  let pendingRoutingPersistence = Promise.resolve();
+  let routingPersistenceFailure = null;
 
   function persistenceUnavailable() {
     return new Error("runtime state persistence is unavailable");
@@ -155,6 +175,19 @@ export function createRuntimeComposition({
     return Object.freeze({
       ...circuitBreaker.exportState(),
       weekly_quota: quotaTracker.exportState(),
+    });
+  }
+
+  function exportRoutingState() {
+    const circuitState = circuitBreaker.exportState();
+    return Object.freeze({
+      version: circuitState.version,
+      saved_at: circuitState.saved_at,
+      accounts: Object.freeze([]),
+      routing: Object.freeze({
+        current_account_id: currentAccountId,
+        preferred_account_id: preferredAccountId,
+      }),
     });
   }
 
@@ -175,6 +208,26 @@ export function createRuntimeComposition({
       stateStore.save(exportRuntimeState()));
     pendingPersistence = operation.catch((error) => {
       persistenceFailure = error;
+    });
+  }
+
+  async function persistRoutingState() {
+    if (routeStateStore === null) return;
+    if (routingPersistenceFailure !== null) throw persistenceUnavailable();
+    try {
+      await routeStateStore.save(exportRoutingState());
+    } catch (error) {
+      routingPersistenceFailure = error;
+      throw persistenceUnavailable();
+    }
+  }
+
+  function queueRoutingStatePersistence() {
+    if (routeStateStore === null) return;
+    const operation = pendingRoutingPersistence.then(() =>
+      routeStateStore.save(exportRoutingState()));
+    pendingRoutingPersistence = operation.catch((error) => {
+      routingPersistenceFailure = error;
     });
   }
 
@@ -226,7 +279,7 @@ export function createRuntimeComposition({
   }
 
   function usableAccountCount() {
-    if (persistenceFailure !== null) return 0;
+    if (persistenceFailure !== null || routingPersistenceFailure !== null) return 0;
     return accountCatalog.listPublic().filter(circuitAllowsReadiness).length;
   }
 
@@ -279,6 +332,7 @@ export function createRuntimeComposition({
     });
     currentAccountId = accountId;
     lastUnavailableReason.delete(accountId);
+    queueRoutingStatePersistence();
   }
 
   function onSemanticStreamStart() {
@@ -360,12 +414,16 @@ export function createRuntimeComposition({
       if (preferredAccountId === accountId) preferredAccountId = null;
     }
     queueRuntimeStatePersistence();
+    queueRoutingStatePersistence();
     refreshAvailableStatus(accountId);
   }
 
   async function onAttemptFailure({ accountId, kind, retryAfterMs }) {
     await pendingPersistence;
-    if (persistenceFailure !== null) throw persistenceUnavailable();
+    await pendingRoutingPersistence;
+    if (persistenceFailure !== null || routingPersistenceFailure !== null) {
+      throw persistenceUnavailable();
+    }
     const probeToken = probeTokens.get(accountId) ?? null;
     circuitBreaker.recordFailure(accountId, {
       kind,
@@ -377,9 +435,12 @@ export function createRuntimeComposition({
     if (preferredAccountId === accountId) preferredAccountId = null;
     updateFailureStatus(accountId, kind);
     await persistRuntimeState();
+    await persistRoutingState();
   }
 
   async function resolveUpstream(_route, selectionContext = {}) {
+    await pendingRoutingPersistence;
+    if (routingPersistenceFailure !== null) throw persistenceUnavailable();
     const excluded = new Set(selectionContext.excludeAccountIds ?? []);
     for (;;) {
       const decision = await scheduledDecision(excluded);
@@ -413,6 +474,7 @@ export function createRuntimeComposition({
         if (preferredAccountId === accountId) preferredAccountId = null;
         updateFailureStatus(accountId, "auth_expired");
         await persistRuntimeState();
+        await persistRoutingState();
         excluded.add(accountId);
         continue;
       }
@@ -453,6 +515,9 @@ export function createRuntimeComposition({
 
   async function onSwitchRequest({ accountAlias }) {
     if (activeSemanticStreams > 0) return Object.freeze({ accepted: false });
+    await pendingRoutingPersistence;
+    if (routingPersistenceFailure !== null) throw persistenceUnavailable();
+    if (activeSemanticStreams > 0) return Object.freeze({ accepted: false });
     const toAccountId = adminState.findAccountIdByAlias(accountAlias);
     if (toAccountId === null || toAccountId === currentAccountId) {
       return Object.freeze({ accepted: false });
@@ -471,6 +536,7 @@ export function createRuntimeComposition({
     const fromAccountId = currentAccountId;
     preferredAccountId = toAccountId;
     currentAccountId = toAccountId;
+    queueRoutingStatePersistence();
     return Object.freeze({
       accepted: true,
       fromAccountId,
@@ -545,7 +611,9 @@ export function createRuntimeComposition({
       state = RUNTIME_STATES.STOPPING;
       await Promise.allSettled([modelService.stop(), adminService.stop()]);
       await pendingPersistence;
+      await pendingRoutingPersistence;
       await persistRuntimeState();
+      await persistRoutingState();
       state = RUNTIME_STATES.STOPPED;
     },
     toString() {

@@ -10,7 +10,10 @@ import {
   createSystemdCredentialSecretProvider,
   SecretProviderRegistry,
 } from "./secrets.mjs";
-import { createCircuitStateStore } from "./state-store.mjs";
+import {
+  createCircuitStateStore,
+  createRoutingStateStore,
+} from "./state-store.mjs";
 
 const DEFAULT_UPSTREAM_ORIGIN = "https://chatgpt.com";
 const MAX_CONFIG_BYTES = 1024 * 1024;
@@ -136,14 +139,21 @@ export async function loadRuntimeBootstrap(environment = process.env) {
     environment.CREDENTIALS_DIRECTORY,
   );
   const stateDirectory = environment.CODEX_ROUTER_STATE_DIRECTORY;
-  const circuitStateStore = stateDirectory === undefined
+  const absoluteStateDirectory = stateDirectory === undefined
     ? null
-    : createCircuitStateStore({
-        directory: assertAbsolutePath(stateDirectory, "circuit state directory"),
-      });
+    : assertAbsolutePath(stateDirectory, "circuit state directory");
+  const circuitStateStore = absoluteStateDirectory === null
+    ? null
+    : createCircuitStateStore({ directory: absoluteStateDirectory });
+  const routingStateStore = absoluteStateDirectory === null
+    ? null
+    : createRoutingStateStore({ directory: absoluteStateDirectory });
   const initialCircuitState = circuitStateStore === null
     ? null
     : await circuitStateStore.load();
+  const initialRoutingState = routingStateStore === null
+    ? null
+    : await routingStateStore.load();
 
   return Object.freeze({
     ...listenerConfig,
@@ -152,6 +162,8 @@ export async function loadRuntimeBootstrap(environment = process.env) {
     adminAuthenticator,
     circuitStateStore,
     initialCircuitState,
+    routingStateStore,
+    initialRoutingState,
     upstreamOrigin: environment.CODEX_ROUTER_UPSTREAM_ORIGIN ?? DEFAULT_UPSTREAM_ORIGIN,
   });
 }
