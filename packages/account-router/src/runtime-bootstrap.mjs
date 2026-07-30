@@ -17,6 +17,7 @@ import {
 
 const DEFAULT_UPSTREAM_ORIGIN = "https://chatgpt.com";
 const DEFAULT_INITIAL_LOAD_DEADLINE_MS = 5_000;
+const DEFAULT_RUNTIME_STARTUP_DEADLINE_MS = 5_000;
 const DEFAULT_STARTUP_PRIVATE_LOAD_DEADLINE_MS = 5_000;
 const DEFAULT_STARTUP_STATE_LOAD_DEADLINE_MS = 5_000;
 const MAX_STARTUP_LOAD_DEADLINE_MS = 60_000;
@@ -326,6 +327,7 @@ export async function loadInitialRuntimeData({
   privateConfigurationLoader,
   runtimeStateLoader,
   deadlineMs = DEFAULT_INITIAL_LOAD_DEADLINE_MS,
+  signal = null,
 } = {}) {
   if (typeof privateConfigurationLoader !== "function") {
     throw new TypeError("private configuration stage loader is invalid");
@@ -334,6 +336,7 @@ export async function loadInitialRuntimeData({
     throw new TypeError("runtime state stage loader is invalid");
   }
   return runStartupLoad({
+    signal,
     deadlineMs,
     deadlineLabel: "initial runtime load deadline",
     deadlineErrorMessage: "runtime initial load deadline exceeded",
@@ -350,11 +353,15 @@ export async function loadInitialRuntimeData({
   });
 }
 
-export async function loadRuntimeBootstrap(environment = process.env) {
+export async function loadRuntimeBootstrap(
+  environment = process.env,
+  { signal = null } = {},
+) {
   const listenerConfig = loadRuntimeConfig(environment);
   let circuitStateStore = null;
   let routingStateStore = null;
   const { privateConfiguration, runtimeState } = await loadInitialRuntimeData({
+    signal,
     privateConfigurationLoader: ({ signal }) =>
       loadInitialPrivateConfiguration({
         accountsFile: environment.CODEX_ROUTER_ACCOUNTS_FILE,
@@ -397,8 +404,70 @@ export async function loadRuntimeBootstrap(environment = process.env) {
   });
 }
 
-export async function createRuntimeFromEnvironment(environment = process.env) {
-  return createRuntimeComposition(await loadRuntimeBootstrap(environment));
+export async function createRuntimeFromEnvironment(
+  environment = process.env,
+  { signal = null } = {},
+) {
+  return createRuntimeComposition(
+    await loadRuntimeBootstrap(environment, { signal }),
+  );
+}
+
+function assertRuntime(value) {
+  if (
+    value === null ||
+    typeof value !== "object" ||
+    typeof value.start !== "function" ||
+    typeof value.stop !== "function"
+  ) {
+    throw new TypeError("runtime loader returned an invalid runtime");
+  }
+  return value;
+}
+
+export async function startRuntimeFromEnvironment({
+  environment = process.env,
+  runtimeLoader = createRuntimeFromEnvironment,
+  onRuntimeCreated = () => {},
+  deadlineMs = DEFAULT_RUNTIME_STARTUP_DEADLINE_MS,
+} = {}) {
+  if (environment === null || typeof environment !== "object") {
+    throw new TypeError("runtime environment is invalid");
+  }
+  if (typeof runtimeLoader !== "function") {
+    throw new TypeError("runtime loader is invalid");
+  }
+  if (typeof onRuntimeCreated !== "function") {
+    throw new TypeError("runtime creation callback is invalid");
+  }
+
+  return runStartupLoad({
+    deadlineMs,
+    deadlineLabel: "runtime startup deadline",
+    deadlineErrorMessage: "runtime startup deadline exceeded",
+  }, async (signal) => {
+    let runtime = null;
+    try {
+      runtime = assertRuntime(await awaitWithAbort(
+        runtimeLoader(environment, { signal }),
+        signal,
+      ));
+      throwIfAborted(signal, "runtime startup deadline exceeded");
+      onRuntimeCreated(runtime);
+      const addresses = await awaitWithAbort(runtime.start({ signal }), signal);
+      return Object.freeze({ runtime, addresses });
+    } catch (error) {
+      if (runtime !== null) {
+        const cleanup = Promise.resolve().then(() => runtime.stop());
+        try {
+          await awaitWithAbort(cleanup, signal);
+        } catch {
+          // Runtime cleanup shares the same total startup deadline.
+        }
+      }
+      throw error;
+    }
+  });
 }
 
 export { DEFAULT_UPSTREAM_ORIGIN };

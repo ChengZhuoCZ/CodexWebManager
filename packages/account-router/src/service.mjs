@@ -23,7 +23,7 @@ export function assertListenerStartDeadline(deadlineMs) {
   return deadlineMs;
 }
 
-function assertAbortSignal(signal) {
+export function assertListenerStartSignal(signal) {
   if (
     signal !== null &&
     (
@@ -59,7 +59,7 @@ export function listenWithDeadline(server, {
   ) {
     throw new TypeError("listener server is invalid");
   }
-  const parentSignal = assertAbortSignal(signal);
+  const parentSignal = assertListenerStartSignal(signal);
   assertListenerStartDeadline(deadlineMs);
   const controller = parentSignal === null ? new AbortController() : null;
   const activeSignal = parentSignal ?? controller.signal;

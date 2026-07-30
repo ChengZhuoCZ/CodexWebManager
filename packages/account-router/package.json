@@ -1,6 +1,6 @@
 {
   "name": "@codex-web-manager/account-router",
-  "version": "0.2.27",
+  "version": "0.2.28",
   "private": true,
   "type": "module",
   "description": "Headless loopback-only account router foundation",

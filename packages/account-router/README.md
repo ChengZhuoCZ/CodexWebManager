@@ -218,6 +218,11 @@ same cancellation signal. Each listener also keeps this bound when used alone, w
 started by the production runtime does not create a fresh window. Expiry cancels a pending Node
 listener, stops both listener services within the remaining startup budget, and reports a fixed
 startup error instead of leaving a partially listening router.
+The production entrypoint wraps private loading, runtime construction, both listener starts, and
+partial-start cleanup in one outer five-second total deadline. The private-load and listener helpers
+retain their standalone bounds, but use the entrypoint signal without creating new windows. Startup
+expiry therefore reports one fixed error and never describes the failed start as request replay,
+session migration, or in-flight recovery.
 Graceful shutdown has one five-second total deadline by default, below the packaged systemd
 20-second stop window. Listener shutdown, queued routing mutations, queued private writes, and both
 final state checkpoints share that deadline. Private writes receive its cancellation signal and

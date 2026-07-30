@@ -17,6 +17,7 @@ import {
 import { createDeterministicScheduler } from "./scheduler.mjs";
 import {
   assertListenerStartDeadline,
+  assertListenerStartSignal,
   createRouterService,
   DEFAULT_LISTENER_START_DEADLINE_MS,
 } from "./service.mjs";
@@ -137,17 +138,28 @@ export async function startRuntimeListeners({
   adminService,
   modelService,
   deadlineMs = DEFAULT_LISTENER_START_DEADLINE_MS,
+  signal = null,
 } = {}) {
   const admin = assertListenerService(adminService, "admin");
   const model = assertListenerService(modelService, "model");
   assertListenerStartDeadline(deadlineMs);
-  const controller = new AbortController();
-  const signal = controller.signal;
+  const parentSignal = assertListenerStartSignal(signal);
+  const controller = parentSignal === null ? new AbortController() : null;
+  const activeSignal = parentSignal ?? controller.signal;
   const deadlineError = new Error("runtime listener start deadline exceeded");
-  const timer = setTimeout(() => controller.abort(deadlineError), deadlineMs);
+  const timer = controller === null
+    ? null
+    : setTimeout(() => controller.abort(deadlineError), deadlineMs);
   try {
-    const adminAddress = await awaitStartupOperation(admin.start({ signal }), signal);
-    const modelAddress = await awaitStartupOperation(model.start({ signal }), signal);
+    if (activeSignal.aborted) throw startupAbortReason(activeSignal);
+    const adminAddress = await awaitStartupOperation(
+      admin.start({ signal: activeSignal }),
+      activeSignal,
+    );
+    const modelAddress = await awaitStartupOperation(
+      model.start({ signal: activeSignal }),
+      activeSignal,
+    );
     return publicAddresses(adminAddress, modelAddress);
   } catch (error) {
     const cleanup = Promise.allSettled([
@@ -155,14 +167,14 @@ export async function startRuntimeListeners({
       Promise.resolve().then(() => admin.stop()),
     ]);
     try {
-      await awaitStartupOperation(cleanup, signal);
+      await awaitStartupOperation(cleanup, activeSignal);
     } catch {
       // Listener cleanup shares the same total startup deadline.
     }
-    if (signal.aborted) throw startupAbortReason(signal);
+    if (activeSignal.aborted) throw startupAbortReason(activeSignal);
     throw error;
   } finally {
-    clearTimeout(timer);
+    if (timer !== null) clearTimeout(timer);
   }
 }
 
@@ -932,7 +944,7 @@ export function createRuntimeComposition({
     get addresses() {
       return addresses;
     },
-    async start() {
+    async start({ signal = null } = {}) {
       if (state !== RUNTIME_STATES.CREATED) {
         throw new Error(`cannot start runtime from ${state} state`);
       }
@@ -942,6 +954,7 @@ export function createRuntimeComposition({
           adminService,
           modelService,
           deadlineMs: runtimeListenerStartDeadlineMs,
+          signal,
         });
         state = RUNTIME_STATES.RUNNING;
         return addresses;

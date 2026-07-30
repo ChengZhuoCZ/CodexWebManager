@@ -10,6 +10,7 @@ import {
   loadInitialRuntimeState,
   loadRuntimeBootstrap,
 } from "../src/runtime-bootstrap.mjs";
+import * as runtimeBootstrapModule from "../src/runtime-bootstrap.mjs";
 import {
   createCircuitStateStore,
   createRoutingStateStore,
@@ -302,6 +303,145 @@ test("bounds the complete pre-listener load sequence with one total deadline", a
   assert.equal(circuitSignal, routingSignal);
   assert.equal(routingSignal?.aborted, true);
   assert.ok(elapsedMs < 250);
+});
+
+test("bounds runtime creation and listener start with one total deadline", async (context) => {
+  let releaseListenerStart;
+  let announceListenerStart;
+  const listenerStartGate = new Promise((resolve) => {
+    releaseListenerStart = resolve;
+  });
+  const listenerStartStarted = new Promise((resolve) => {
+    announceListenerStart = resolve;
+  });
+  let loaderSignal = null;
+  let listenerSignal = null;
+  let stopCalls = 0;
+  const runtime = {
+    async start({ signal = null } = {}) {
+      listenerSignal = signal;
+      announceListenerStart();
+      await listenerStartGate;
+      return Object.freeze({});
+    },
+    async stop() {
+      stopCalls += 1;
+    },
+  };
+  const startedAt = performance.now();
+  const operation = runtimeBootstrapModule.startRuntimeFromEnvironment({
+    environment: Object.freeze({}),
+    runtimeLoader: async (_environment, { signal = null } = {}) => {
+      loaderSignal = signal;
+      await new Promise((resolve) => setTimeout(resolve, 60));
+      return runtime;
+    },
+    deadlineMs: 120,
+  });
+  context.after(async () => {
+    releaseListenerStart?.();
+    await operation.catch(() => undefined);
+  });
+  await listenerStartStarted;
+
+  const outcome = await Promise.race([
+    operation.then(
+      () => "resolved",
+      (error) => error?.message,
+    ),
+    new Promise((resolve) => setTimeout(() => resolve("timed_out"), 300)),
+  ]);
+  const elapsedMs = performance.now() - startedAt;
+
+  assert.equal(outcome, "runtime startup deadline exceeded");
+  assert.equal(loaderSignal, listenerSignal);
+  assert.equal(listenerSignal?.aborted, true);
+  assert.equal(stopCalls, 1);
+  assert.ok(elapsedMs < 250);
+});
+
+test("uses a parent initial-load signal without opening a fresh deadline", async (context) => {
+  let releasePrivateLoad;
+  const privateLoadGate = new Promise((resolve) => {
+    releasePrivateLoad = resolve;
+  });
+  const controller = new AbortController();
+  const parentReason = new Error("fixture complete startup deadline");
+  let loaderSignal = null;
+  let stateCalls = 0;
+  const operation = loadInitialRuntimeData({
+    privateConfigurationLoader: async ({ signal = null } = {}) => {
+      loaderSignal = signal;
+      await privateLoadGate;
+      return Object.freeze({});
+    },
+    runtimeStateLoader: async () => {
+      stateCalls += 1;
+      return Object.freeze({});
+    },
+    deadlineMs: 1,
+    signal: controller.signal,
+  });
+  context.after(async () => {
+    releasePrivateLoad?.();
+    await operation.catch(() => undefined);
+  });
+
+  const earlyOutcome = await Promise.race([
+    operation.then(
+      () => "resolved",
+      () => "rejected",
+    ),
+    new Promise((resolve) => setTimeout(() => resolve("pending"), 25)),
+  ]);
+  assert.equal(earlyOutcome, "pending");
+  assert.equal(loaderSignal, controller.signal);
+  assert.equal(stateCalls, 0);
+
+  controller.abort(parentReason);
+  await assert.rejects(operation, (error) => error === parentReason);
+  assert.equal(stateCalls, 0);
+});
+
+test("rejects invalid complete runtime startup boundaries before loading", async () => {
+  let loadCalls = 0;
+  const runtimeLoader = async () => {
+    loadCalls += 1;
+    return null;
+  };
+  for (const deadlineMs of [0, 60_001, 1.5]) {
+    await assert.rejects(
+      runtimeBootstrapModule.startRuntimeFromEnvironment({
+        environment: Object.freeze({}),
+        runtimeLoader,
+        deadlineMs,
+      }),
+      /runtime startup deadline must be an integer from 1 through 60000/,
+    );
+  }
+  await assert.rejects(
+    runtimeBootstrapModule.startRuntimeFromEnvironment({
+      environment: null,
+      runtimeLoader,
+    }),
+    /runtime environment is invalid/,
+  );
+  await assert.rejects(
+    runtimeBootstrapModule.startRuntimeFromEnvironment({
+      environment: Object.freeze({}),
+      runtimeLoader: {},
+    }),
+    /runtime loader is invalid/,
+  );
+  await assert.rejects(
+    runtimeBootstrapModule.startRuntimeFromEnvironment({
+      environment: Object.freeze({}),
+      runtimeLoader,
+      onRuntimeCreated: {},
+    }),
+    /runtime creation callback is invalid/,
+  );
+  assert.equal(loadCalls, 0);
 });
 
 test("rejects invalid complete initial load boundaries before invoking a stage", async () => {

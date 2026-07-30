@@ -1,5 +1,5 @@
 import { stringifyLogRecord } from "./redaction.mjs";
-import { createRuntimeFromEnvironment } from "./runtime-bootstrap.mjs";
+import { startRuntimeFromEnvironment } from "./runtime-bootstrap.mjs";
 
 let runtime;
 let stopping = false;
@@ -27,8 +27,11 @@ process.once("SIGINT", () => void stop("SIGINT"));
 process.once("SIGTERM", () => void stop("SIGTERM"));
 
 try {
-  runtime = await createRuntimeFromEnvironment();
-  const addresses = await runtime.start();
+  const { addresses } = await startRuntimeFromEnvironment({
+    onRuntimeCreated(createdRuntime) {
+      runtime = createdRuntime;
+    },
+  });
   writeLog(process.stdout, {
     event: "router_started",
     bind_address: addresses.admin.address,

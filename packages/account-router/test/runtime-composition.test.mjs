@@ -147,6 +147,61 @@ test("bounds the complete listener start sequence with one total deadline", asyn
   assert.ok(elapsedMs < 250);
 });
 
+test("uses a parent runtime-start signal without opening a fresh listener deadline", async (context) => {
+  let releaseAdminStart;
+  const adminStartGate = new Promise((resolve) => {
+    releaseAdminStart = resolve;
+  });
+  const controller = new AbortController();
+  const parentReason = new Error("fixture complete runtime startup deadline");
+  let listenerSignal = null;
+  let modelStartCalls = 0;
+  const stops = [];
+  const operation = runtimeCompositionModule.startRuntimeListeners({
+    adminService: {
+      async start({ signal = null } = {}) {
+        listenerSignal = signal;
+        await adminStartGate;
+        return Object.freeze({});
+      },
+      async stop() {
+        stops.push("admin");
+      },
+    },
+    modelService: {
+      async start() {
+        modelStartCalls += 1;
+        return Object.freeze({});
+      },
+      async stop() {
+        stops.push("model");
+      },
+    },
+    deadlineMs: 1,
+    signal: controller.signal,
+  });
+  context.after(async () => {
+    releaseAdminStart?.();
+    await operation.catch(() => undefined);
+  });
+
+  const earlyOutcome = await Promise.race([
+    operation.then(
+      () => "resolved",
+      () => "rejected",
+    ),
+    new Promise((resolve) => setTimeout(() => resolve("pending"), 25)),
+  ]);
+  assert.equal(earlyOutcome, "pending");
+  assert.equal(listenerSignal, controller.signal);
+  assert.equal(modelStartCalls, 0);
+
+  controller.abort(parentReason);
+  await assert.rejects(operation, (error) => error === parentReason);
+  assert.equal(modelStartCalls, 0);
+  assert.deepEqual(stops.sort(), ["admin", "model"]);
+});
+
 test("starts loopback admin and model services and routes one account through a secret lease", async (context) => {
   let observed;
   const upstream = http.createServer(async (request, response) => {
