@@ -223,6 +223,11 @@ partial-start cleanup in one outer five-second total deadline. The private-load 
 retain their standalone bounds, but use the entrypoint signal without creating new windows. Startup
 expiry therefore reports one fixed error and never describes the failed start as request replay,
 session migration, or in-flight recovery.
+SIGINT or SIGTERM during this complete startup sequence cancels the entrypoint wait through that
+same outer operation, suppresses both the started event and a misleading startup-failure event, and
+requests runtime cleanup if construction already completed. The original five-second startup
+deadline remains active while the process signal is live. Custom loaders and already executing
+kernel calls still cannot be forced to stop at a hard real-time boundary.
 Graceful shutdown has one five-second total deadline by default, below the packaged systemd
 20-second stop window. Listener shutdown, queued routing mutations, queued private writes, and both
 final state checkpoints share that deadline. Private writes receive its cancellation signal and

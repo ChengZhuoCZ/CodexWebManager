@@ -360,6 +360,126 @@ test("bounds runtime creation and listener start with one total deadline", async
   assert.ok(elapsedMs < 250);
 });
 
+test("parent process signal cancels complete runtime startup", async (context) => {
+  let releaseRuntimeLoad;
+  let announceRuntimeLoad;
+  const runtimeLoadGate = new Promise((resolve) => {
+    releaseRuntimeLoad = resolve;
+  });
+  const runtimeLoadStarted = new Promise((resolve) => {
+    announceRuntimeLoad = resolve;
+  });
+  const controller = new AbortController();
+  const stopReason = new Error("fixture process stop");
+  let loaderSignal = null;
+  let runtimeStartCalls = 0;
+  const operation = runtimeBootstrapModule.startRuntimeFromEnvironment({
+    environment: Object.freeze({}),
+    signal: controller.signal,
+    runtimeLoader: async (_environment, { signal = null } = {}) => {
+      loaderSignal = signal;
+      announceRuntimeLoad();
+      await runtimeLoadGate;
+      return {
+        async start() {
+          runtimeStartCalls += 1;
+          return Object.freeze({});
+        },
+        async stop() {},
+      };
+    },
+    deadlineMs: 1_000,
+  });
+  context.after(async () => {
+    releaseRuntimeLoad?.();
+    await operation.catch(() => undefined);
+  });
+  await runtimeLoadStarted;
+
+  controller.abort(stopReason);
+  const outcome = await Promise.race([
+    operation.then(
+      () => "resolved",
+      (error) => error,
+    ),
+    new Promise((resolve) => setTimeout(() => resolve("timed_out"), 100)),
+  ]);
+
+  assert.equal(outcome, stopReason);
+  assert.equal(loaderSignal?.aborted, true);
+  assert.equal(loaderSignal?.reason, stopReason);
+  assert.equal(runtimeStartCalls, 0);
+});
+
+test("retains the complete startup deadline with a live parent process signal", async (context) => {
+  let releaseRuntimeLoad;
+  let announceRuntimeLoad;
+  const runtimeLoadGate = new Promise((resolve) => {
+    releaseRuntimeLoad = resolve;
+  });
+  const runtimeLoadStarted = new Promise((resolve) => {
+    announceRuntimeLoad = resolve;
+  });
+  const controller = new AbortController();
+  let loaderSignal = null;
+  let runtimeStartCalls = 0;
+  const operation = runtimeBootstrapModule.startRuntimeFromEnvironment({
+    environment: Object.freeze({}),
+    signal: controller.signal,
+    runtimeLoader: async (_environment, { signal = null } = {}) => {
+      loaderSignal = signal;
+      announceRuntimeLoad();
+      await runtimeLoadGate;
+      return {
+        async start() {
+          runtimeStartCalls += 1;
+          return Object.freeze({});
+        },
+        async stop() {},
+      };
+    },
+    deadlineMs: 50,
+  });
+  context.after(async () => {
+    releaseRuntimeLoad?.();
+    await operation.catch(() => undefined);
+  });
+  await runtimeLoadStarted;
+
+  const outcome = await Promise.race([
+    operation.then(
+      () => "resolved",
+      (error) => error?.message,
+    ),
+    new Promise((resolve) => setTimeout(() => resolve("timed_out"), 150)),
+  ]);
+
+  assert.equal(outcome, "runtime startup deadline exceeded");
+  assert.equal(controller.signal.aborted, false);
+  assert.equal(loaderSignal?.aborted, true);
+  assert.equal(runtimeStartCalls, 0);
+});
+
+test("rejects a pre-aborted parent process signal before runtime loading", async () => {
+  const controller = new AbortController();
+  const stopReason = new Error("fixture pre-start process stop");
+  controller.abort(stopReason);
+  let loadCalls = 0;
+
+  await assert.rejects(
+    runtimeBootstrapModule.startRuntimeFromEnvironment({
+      environment: Object.freeze({}),
+      signal: controller.signal,
+      runtimeLoader: async () => {
+        loadCalls += 1;
+        return null;
+      },
+    }),
+    (error) => error === stopReason,
+  );
+  assert.equal(loadCalls, 0);
+});
+
 test("uses a parent initial-load signal without opening a fresh deadline", async (context) => {
   let releasePrivateLoad;
   const privateLoadGate = new Promise((resolve) => {
@@ -440,6 +560,14 @@ test("rejects invalid complete runtime startup boundaries before loading", async
       onRuntimeCreated: {},
     }),
     /runtime creation callback is invalid/,
+  );
+  await assert.rejects(
+    runtimeBootstrapModule.startRuntimeFromEnvironment({
+      environment: Object.freeze({}),
+      runtimeLoader,
+      signal: {},
+    }),
+    /startup load signal is invalid/,
   );
   assert.equal(loadCalls, 0);
 });

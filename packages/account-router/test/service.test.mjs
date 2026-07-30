@@ -14,6 +14,10 @@ import {
 } from "../src/service.mjs";
 
 const packageDirectory = path.dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
+const stalledRuntimeLoadPreload = new URL(
+  "../fixtures/startup/stall-runtime-load.mjs",
+  import.meta.url,
+).href;
 
 async function readJson(response) {
   const body = await response.text();
@@ -317,6 +321,65 @@ test("CLI starts headlessly on loopback and exits cleanly on SIGTERM", async (co
   assert.equal(signal, null);
   assert.equal(stderr, "");
   assert.match(stdout, /"event":"router_stopping"/);
+});
+
+test("CLI treats SIGTERM during a stalled startup as a normal stop", async (context) => {
+  const stalledAccountsPath = "/fixture/stalled-accounts.json";
+  const childEnvironment = { ...process.env };
+  for (const name of Object.keys(childEnvironment)) {
+    if (name.startsWith("CODEX_ROUTER_")) delete childEnvironment[name];
+  }
+  for (const name of [
+    "CREDENTIALS_DIRECTORY",
+    "DISPLAY",
+    "WAYLAND_DISPLAY",
+    "XAUTHORITY",
+  ]) {
+    delete childEnvironment[name];
+  }
+  Object.assign(childEnvironment, {
+    CODEX_ROUTER_ACCOUNTS_FILE: stalledAccountsPath,
+    CODEX_ROUTER_CREDENTIAL_ROOT: "/fixture/credentials",
+    CODEX_ROUTER_TEST_STALLED_ACCOUNTS_FILE: stalledAccountsPath,
+  });
+  const child = spawn(
+    process.execPath,
+    ["--import", stalledRuntimeLoadPreload, "src/main.mjs"],
+    {
+      cwd: packageDirectory,
+      env: childEnvironment,
+      stdio: ["ignore", "pipe", "pipe"],
+    },
+  );
+  const childExit = once(child, "exit");
+  context.after(async () => {
+    if (child.exitCode === null && child.signalCode === null) {
+      child.kill("SIGKILL");
+    }
+    await childExit;
+  });
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+  let stdout = "";
+  let stderr = "";
+  child.stdout.on("data", (chunk) => {
+    stdout += chunk;
+  });
+  child.stderr.on("data", (chunk) => {
+    stderr += chunk;
+  });
+
+  await withTimeout(once(child.stdout, "data"), "stalled CLI startup", 1_000);
+  assert.match(stdout, /"event":"fixture_runtime_load_stalled"/);
+  child.kill("SIGTERM");
+  const [code, signal] = await withTimeout(childExit, "stalled CLI stop", 1_000);
+
+  assert.equal(code, 0);
+  assert.equal(signal, null);
+  assert.equal(stderr, "");
+  assert.match(stdout, /"event":"router_stopping","signal":"SIGTERM"/);
+  assert.doesNotMatch(stdout, /"event":"router_started"/);
+  assert.doesNotMatch(stderr, /"event":"router_start_failed"/);
 });
 
 test("CLI closes an active protected admin event stream on SIGTERM", async (context) => {

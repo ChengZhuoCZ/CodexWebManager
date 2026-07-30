@@ -430,6 +430,7 @@ export async function startRuntimeFromEnvironment({
   runtimeLoader = createRuntimeFromEnvironment,
   onRuntimeCreated = () => {},
   deadlineMs = DEFAULT_RUNTIME_STARTUP_DEADLINE_MS,
+  signal = null,
 } = {}) {
   if (environment === null || typeof environment !== "object") {
     throw new TypeError("runtime environment is invalid");
@@ -441,33 +442,60 @@ export async function startRuntimeFromEnvironment({
     throw new TypeError("runtime creation callback is invalid");
   }
 
-  return runStartupLoad({
+  const parentSignal = assertAbortSignal(signal);
+  const completeStartupDeadlineMs = assertStartupLoadDeadline(
     deadlineMs,
-    deadlineLabel: "runtime startup deadline",
-    deadlineErrorMessage: "runtime startup deadline exceeded",
-  }, async (signal) => {
-    let runtime = null;
-    try {
-      runtime = assertRuntime(await awaitWithAbort(
-        runtimeLoader(environment, { signal }),
-        signal,
-      ));
-      throwIfAborted(signal, "runtime startup deadline exceeded");
-      onRuntimeCreated(runtime);
-      const addresses = await awaitWithAbort(runtime.start({ signal }), signal);
-      return Object.freeze({ runtime, addresses });
-    } catch (error) {
-      if (runtime !== null) {
-        const cleanup = Promise.resolve().then(() => runtime.stop());
-        try {
-          await awaitWithAbort(cleanup, signal);
-        } catch {
-          // Runtime cleanup shares the same total startup deadline.
+    "runtime startup deadline",
+  );
+  const startupController = new AbortController();
+  const deadlineError = new Error("runtime startup deadline exceeded");
+  const onParentAbort = () => {
+    startupController.abort(abortReason(parentSignal, "runtime startup interrupted"));
+  };
+  if (parentSignal !== null) {
+    parentSignal.addEventListener("abort", onParentAbort, { once: true });
+    if (parentSignal.aborted) onParentAbort();
+  }
+  const timer = setTimeout(
+    () => startupController.abort(deadlineError),
+    completeStartupDeadlineMs,
+  );
+  try {
+    return await runStartupLoad({
+      signal: startupController.signal,
+      deadlineMs: completeStartupDeadlineMs,
+      deadlineLabel: "runtime startup deadline",
+      deadlineErrorMessage: "runtime startup deadline exceeded",
+    }, async (activeSignal) => {
+      let runtime = null;
+      try {
+        runtime = assertRuntime(await awaitWithAbort(
+          runtimeLoader(environment, { signal: activeSignal }),
+          activeSignal,
+        ));
+        throwIfAborted(activeSignal, "runtime startup deadline exceeded");
+        onRuntimeCreated(runtime);
+        const addresses = await awaitWithAbort(
+          runtime.start({ signal: activeSignal }),
+          activeSignal,
+        );
+        return Object.freeze({ runtime, addresses });
+      } catch (error) {
+        if (runtime !== null) {
+          const cleanup = Promise.resolve().then(() => runtime.stop());
+          try {
+            await awaitWithAbort(cleanup, activeSignal);
+          } catch {
+            // Runtime cleanup shares the same total startup deadline.
+          }
         }
+        throw error;
       }
-      throw error;
-    }
-  });
+    });
+  } finally {
+    clearTimeout(timer);
+    parentSignal?.removeEventListener("abort", onParentAbort);
+  }
 }
 
 export { DEFAULT_UPSTREAM_ORIGIN };
