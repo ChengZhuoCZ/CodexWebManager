@@ -95,7 +95,10 @@ SecretLease that resolves after abandonment, so a later new request can retry a 
 credential provider. Persisting an authentication-failure classification observes that same
 selection boundary. A timed-out save cannot retain the serialized selector; its late storage error
 marks both readiness and later selection unavailable, while a different eligible account may serve
-only a later new request while the prior classification write remains pending.
+only a later new request while the prior classification write remains pending. The private
+half-open checkpoint also observes the selection boundary and releases an unconsumed probe on
+deadline or cancellation; a later manual route and a later probe retry remain separate new
+requests.
 Tests use fixture accounts only; they do not access or switch any real account.
 
 ## Optional codex-web status bridge

@@ -564,7 +564,14 @@ export function createRuntimeComposition({
       }
       if (circuitLease.probe) {
         probeTokens.set(accountId, circuitLease.probe_token);
-        await persistRuntimeState();
+        try {
+          await persistRuntimeState({ signal: selectionSignal });
+          throwIfAborted(selectionSignal);
+        } catch {
+          releaseSelectionProbe(accountId, circuitLease);
+          if (selectionSignal?.aborted) throw abortReason(selectionSignal);
+          throw new Error("runtime circuit state is unavailable");
+        }
       }
 
       const binding = accountCatalog.getCredentialBinding(accountId);

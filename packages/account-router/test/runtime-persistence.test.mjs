@@ -789,6 +789,158 @@ test("releases the routing lock when auth-failure persistence outlives the deadl
   assert.equal(upstreamCalls, 1);
 });
 
+test("releases a half-open probe when its persistence checkpoint outlives the deadline", async (context) => {
+  let acquireCalls = 0;
+  const secretRegistry = new SecretProviderRegistry().register(defineSecretProvider({
+    name: "fixture-secret",
+    async acquire(reference) {
+      acquireCalls += 1;
+      return SecretLease.fromUtf8(JSON.stringify({
+        version: 1,
+        authorization: "Bearer fixture-upstream-token",
+        account_id: reference,
+      }));
+    },
+  }));
+  let releaseSave;
+  let announceSave;
+  const saveGate = new Promise((resolve) => { releaseSave = resolve; });
+  const saveStarted = new Promise((resolve) => { announceSave = resolve; });
+  let saveCalls = 0;
+  const circuitStateStore = {
+    async load() { return null; },
+    async save() {
+      saveCalls += 1;
+      if (saveCalls !== 1) return;
+      announceSave();
+      await saveGate;
+    },
+  };
+  const selectedUpstreamAccounts = [];
+  const upstream = http.createServer((request, response) => {
+    selectedUpstreamAccounts.push(request.headers["chatgpt-account-id"]);
+    request.resume();
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end('{"models":[{"slug":"fixture-model"}]}');
+  });
+  context.after(() => close(upstream));
+  const upstreamOrigin = await listen(upstream);
+  const runtime = createRuntimeComposition(runtimeOptions({
+    accounts: [
+      account({ priority: 10 }),
+      account({
+        id: "fixture-account-b",
+        alias: "Fixture B",
+        priority: 0,
+        credentialRef: "fixture-b",
+      }),
+    ],
+    circuitStateStore,
+    initialCircuitState: {
+      version: 1,
+      saved_at: new Date(NOW).toISOString(),
+      accounts: [{
+        account_id: "fixture-account-a",
+        phase: "half_open",
+        last_failure_kind: "network_error",
+        opened_at: new Date(NOW - 1_000).toISOString(),
+        cooldown_until: new Date(NOW).toISOString(),
+        consecutive_failures: 1,
+        last_failure_at: new Date(NOW - 1_000).toISOString(),
+        last_success_at: null,
+        generation: 1,
+      }],
+    },
+    failoverOptions: {
+      maxAttempts: 1,
+      totalDeadlineMs: 250,
+      baseBackoffMs: 1,
+      maxBackoffMs: 1,
+    },
+    routingStateStore: {
+      async load() { return null; },
+      async save() {},
+    },
+    initialRoutingState: null,
+    secretRegistry,
+    upstreamOrigin,
+  }));
+  context.after(async () => {
+    releaseSave();
+    await runtime.stop().catch(() => undefined);
+  });
+  await runtime.start();
+
+  const timedOutPromise = fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/backend-api/codex/models`,
+  );
+  await saveStarted;
+  const timedOut = await timedOutPromise;
+  assert.equal(timedOut.status, 503);
+  assert.deepEqual(await timedOut.json(), {
+    error: {
+      type: "all_accounts_unavailable",
+      reason: "total_deadline_exceeded",
+      attempts: 0,
+      semantic_output: false,
+    },
+  });
+  assert.equal(acquireCalls, 0);
+  assert.deepEqual(selectedUpstreamAccounts, []);
+
+  const switchToBPromise = fetch(
+    `http://127.0.0.1:${runtime.addresses.admin.port}/v1/switch`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${ADMIN_TOKEN}`,
+        "content-type": "application/json",
+      },
+      body: '{"account_alias":"Fixture B","reason":"manual"}',
+    },
+  );
+  const switchSettledBeforeSave = await Promise.race([
+    switchToBPromise.then(() => true),
+    new Promise((resolve) => setTimeout(() => resolve(false), 100)),
+  ]);
+  assert.equal(switchSettledBeforeSave, true);
+  const switchedToB = await switchToBPromise;
+  assert.equal(switchedToB.status, 200);
+  await switchedToB.arrayBuffer();
+
+  const routedToB = await fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/backend-api/codex/models`,
+  );
+  assert.equal(routedToB.status, 200);
+  await routedToB.arrayBuffer();
+  assert.deepEqual(selectedUpstreamAccounts, ["fixture-b"]);
+
+  releaseSave();
+  await new Promise((resolve) => setImmediate(resolve));
+  const switchedToA = await fetch(
+    `http://127.0.0.1:${runtime.addresses.admin.port}/v1/switch`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${ADMIN_TOKEN}`,
+        "content-type": "application/json",
+      },
+      body: '{"account_alias":"Fixture A","reason":"manual"}',
+    },
+  );
+  assert.equal(switchedToA.status, 200);
+  await switchedToA.arrayBuffer();
+
+  const retriedProbe = await fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/backend-api/codex/models`,
+  );
+  assert.equal(retriedProbe.status, 200);
+  await retriedProbe.arrayBuffer();
+  assert.deepEqual(selectedUpstreamAccounts, ["fixture-b", "fixture-a"]);
+  assert.equal(acquireCalls, 2);
+  assert.equal((await adminStatus(runtime)).accounts[0].state, "healthy");
+});
+
 test("does not acknowledge a manual preference when private route persistence fails", async (context) => {
   const runtime = createRuntimeComposition(runtimeOptions({
     accounts: [
