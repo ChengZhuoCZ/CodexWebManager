@@ -907,9 +907,21 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       network_error: "connection_closed_before_headers",
       upstream_5xx: "http_503",
     });
+    const websocketPreSemanticFailureInjections = Object.freeze({
+      rate_limited: "upgrade_http_429",
+      auth_expired: "upgrade_http_401",
+      network_error: "connection_closed_before_upgrade_headers",
+      upstream_5xx: "upgrade_http_503",
+    });
     const syntheticPreSemanticClassificationRoleSequences =
       Object.fromEntries(
         Object.keys(preSemanticFailureInjections).map((kind) => [kind, []]),
+      );
+    const syntheticWebSocketPreSemanticClassificationRoleSequences =
+      Object.fromEntries(
+        Object.keys(websocketPreSemanticFailureInjections).map(
+          (kind) => [kind, []],
+        ),
       );
     let syntheticFixtureScenario = "weekly_quota_restart";
     const syntheticResetAtSeconds = Math.ceil(
@@ -1108,11 +1120,28 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       const role = roleByUpstreamAccount.get(upstreamAccountId);
       const expectedAuthorization =
         expectedAuthorizationByAccount.get(upstreamAccountId);
+      const websocketPreSemanticClassificationPrefix =
+        "websocket_pre_semantic_classification_";
+      const websocketPreSemanticClassification =
+        syntheticFixtureScenario.startsWith(
+          websocketPreSemanticClassificationPrefix,
+        )
+          ? syntheticFixtureScenario.slice(
+            websocketPreSemanticClassificationPrefix.length,
+          )
+          : null;
       const websocketScenario = new Set([
         "websocket_pre_semantic_failover",
         "websocket_post_semantic_failure",
         "manual_switch_active_stream",
-      ]).has(syntheticFixtureScenario);
+      ]).has(syntheticFixtureScenario) ||
+        (
+          websocketPreSemanticClassification !== null &&
+          Object.hasOwn(
+            syntheticWebSocketPreSemanticClassificationRoleSequences,
+            websocketPreSemanticClassification,
+          )
+        );
       const key = request.headers["sec-websocket-key"];
       if (
         !websocketScenario ||
@@ -1130,6 +1159,35 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
           "Content-Length: 0\r\n\r\n",
         );
         return;
+      }
+      if (websocketPreSemanticClassification !== null) {
+        syntheticWebSocketPreSemanticClassificationRoleSequences[
+          websocketPreSemanticClassification
+        ].push(role);
+        if (role === "primary") {
+          if (websocketPreSemanticClassification === "network_error") {
+            socket.destroy();
+          } else {
+            const status = websocketPreSemanticClassification === "rate_limited"
+              ? 429
+              : websocketPreSemanticClassification === "auth_expired"
+                ? 401
+                : 503;
+            const reason = status === 429
+              ? "Too Many Requests"
+              : status === 401
+                ? "Unauthorized"
+                : "Service Unavailable";
+            const retryAfter = status === 429 ? "Retry-After: 0\r\n" : "";
+            socket.end(
+              `HTTP/1.1 ${status} ${reason}\r\n` +
+              "Connection: close\r\n" +
+              retryAfter +
+              "Content-Length: 0\r\n\r\n",
+            );
+          }
+          return;
+        }
       }
       socket.write(
         "HTTP/1.1 101 Switching Protocols\r\n" +
@@ -1166,6 +1224,16 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
             fixtureUpstreamFailure =
               "installed router sent an unexpected synthetic WebSocket message";
             socket.destroy();
+            return;
+          }
+          if (websocketPreSemanticClassification !== null) {
+            sendEvent({ type: "response.created" });
+            sendEvent({
+              type: "response.output_text.delta",
+              delta:
+                `installed-websocket-${websocketPreSemanticClassification}-secondary`,
+            });
+            sendEvent({ type: "response.completed" });
             return;
           }
           if (
@@ -1746,6 +1814,168 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       synthetic_upstream_attempts:
         syntheticWebSocketRoleSequences.pre_semantic.length +
         syntheticWebSocketRoleSequences.post_semantic.length,
+      manual_switch_tested: false,
+      real_credentials_present: false,
+      real_model_request_sent: false,
+      real_account_switch_tested: false,
+      in_flight_resume_tested: false,
+    };
+
+    const websocketPreSemanticClassificationReadinessStatuses = [];
+    const websocketPreSemanticClassificationDownstreamUpgradeStatuses = [];
+    const websocketPreSemanticClassificationResults = {};
+    for (
+      const classification of
+        Object.keys(websocketPreSemanticFailureInjections)
+    ) {
+      syntheticFixtureScenario =
+        `websocket_pre_semantic_classification_${classification}`;
+      const classificationStateDirectory = path.join(
+        temporaryRoot,
+        `synthetic-${syntheticFixtureScenario}-state`,
+      );
+      await fs.mkdir(classificationStateDirectory, { mode: 0o700 });
+      child = spawn(path.join(current, "bin/codex-account-router"), [], {
+        cwd: current,
+        env: {
+          ...scrubbedRuntimeEnvironment(homeDirectory),
+          CODEX_ROUTER_ACCOUNTS_FILE: syntheticAccountsFile,
+          CODEX_ROUTER_CREDENTIAL_ROOT: syntheticBindingRoot,
+          CODEX_ROUTER_ADMIN_TOKEN_FILE: syntheticAdminTokenFile,
+          CODEX_ROUTER_STATE_DIRECTORY: classificationStateDirectory,
+          CODEX_ROUTER_UPSTREAM_ORIGIN: syntheticUpstreamOrigin,
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      const classificationStarted = await waitForStart(child);
+      const classificationAdminOrigin =
+        `http://127.0.0.1:${classificationStarted.record.bind_port}`;
+      const readyResponse = await fetch(
+        `${classificationAdminOrigin}/readyz`,
+        { signal: AbortSignal.timeout(5_000) },
+      );
+      const readiness = await readyResponse.json();
+      assert(
+        readyResponse.status === 200 &&
+          readiness.status === "ready" &&
+          readiness.usable_accounts === 2,
+        `installed router WebSocket ${classification} readiness was invalid`,
+      );
+      websocketPreSemanticClassificationReadinessStatuses.push(
+        readyResponse.status,
+      );
+
+      websocketClient = await openSyntheticWebSocket({
+        port: classificationStarted.record.model_bind_port,
+      });
+      websocketPreSemanticClassificationDownstreamUpgradeStatuses.push(
+        websocketClient.status,
+      );
+      sendSyntheticWebSocketCreate(websocketClient.socket);
+      await websocketClient.collector.waitFor(
+        (message) => message.type === "response.completed",
+      );
+      const messages = [...websocketClient.collector.messages];
+      websocketClient.socket.destroy();
+      websocketClient = undefined;
+
+      child.kill("SIGTERM");
+      const [classificationExitCode, classificationExitSignal] =
+        await waitForExit(child);
+      child = undefined;
+      assert(
+        classificationExitCode === 0 &&
+          classificationExitSignal === null,
+        `installed router WebSocket ${classification} process did not exit cleanly`,
+      );
+      assert(
+        classificationStarted.getStderr() === "",
+        `installed router WebSocket ${classification} process wrote an error log`,
+      );
+
+      const roleSequence =
+        syntheticWebSocketPreSemanticClassificationRoleSequences[
+          classification
+        ];
+      const secondaryMarker =
+        `installed-websocket-${classification}-secondary`;
+      const completed = messages.some(
+        (message) => message.type === "response.completed",
+      );
+      const secondarySemanticMarkerReceived = messages.some(
+        (message) =>
+          message.type === "response.output_text.delta" &&
+          message.delta === secondaryMarker,
+      );
+      const downstreamErrorExposed = messages.some(
+        (message) => message.type === "error",
+      );
+      assert(
+        messages.filter(
+          (message) => message.type === "response.created",
+        ).length === 1 &&
+          secondarySemanticMarkerReceived &&
+          completed &&
+          !downstreamErrorExposed,
+        `installed router did not recover WebSocket ${classification} before semantic output`,
+      );
+      assert(
+        JSON.stringify(roleSequence) ===
+          JSON.stringify(["primary", "secondary"]),
+        `installed router WebSocket ${classification} retry was not bounded to primary then secondary`,
+      );
+      websocketPreSemanticClassificationResults[classification] = {
+        primary_failure_injection:
+          websocketPreSemanticFailureInjections[classification],
+        upstream_role_sequence: roleSequence,
+        upstream_attempts: roleSequence.length,
+        secondary_semantic_marker_received:
+          secondarySemanticMarkerReceived,
+        completed,
+        downstream_error_exposed: downstreamErrorExposed,
+        third_upstream_attempt_observed: roleSequence.length > 2,
+      };
+    }
+    assert(
+      fixtureUpstreamFailure === null,
+      fixtureUpstreamFailure ??
+        "installed router synthetic WebSocket classification verification failed",
+    );
+    const websocketClassificationAttemptCounts = Object.values(
+      syntheticWebSocketPreSemanticClassificationRoleSequences,
+    ).map((sequence) => sequence.length);
+    const syntheticWebSocketPreSemanticFailureClassifications = {
+      configured_bindings: syntheticBindings.length,
+      scenarios: Object.keys(
+        websocketPreSemanticFailureInjections,
+      ).length,
+      process_starts: Object.keys(
+        websocketPreSemanticFailureInjections,
+      ).length,
+      readiness_statuses:
+        websocketPreSemanticClassificationReadinessStatuses,
+      downstream_upgrade_statuses:
+        websocketPreSemanticClassificationDownstreamUpgradeStatuses,
+      initial_requests: Object.keys(
+        websocketPreSemanticFailureInjections,
+      ).length,
+      classifications: websocketPreSemanticClassificationResults,
+      max_upstream_attempts_per_request:
+        Math.max(...websocketClassificationAttemptCounts),
+      third_upstream_attempts_observed:
+        websocketClassificationAttemptCounts.filter(
+          (count) => count > 2,
+        ).length,
+      local_fixture_upstream_only: true,
+      synthetic_credential_acquisition_tested: true,
+      synthetic_websocket_requests_sent: Object.keys(
+        websocketPreSemanticFailureInjections,
+      ).length,
+      synthetic_upstream_attempts:
+        websocketClassificationAttemptCounts.reduce(
+          (total, count) => total + count,
+          0,
+        ),
       manual_switch_tested: false,
       real_credentials_present: false,
       real_model_request_sent: false,
@@ -2385,6 +2615,8 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
         syntheticHttpSseSafetyBoundaries,
       synthetic_websocket_safety_boundaries:
         syntheticWebSocketSafetyBoundaries,
+      synthetic_websocket_pre_semantic_failure_classifications:
+        syntheticWebSocketPreSemanticFailureClassifications,
       synthetic_manual_switch_safety_boundary:
         syntheticManualSwitchSafetyBoundary,
       synthetic_all_pool_unavailable:
