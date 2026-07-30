@@ -166,6 +166,7 @@ export function createRuntimeComposition({
   let persistenceFailure = null;
   let pendingRoutingPersistence = Promise.resolve();
   let routingPersistenceFailure = null;
+  let routingMutationTail = Promise.resolve();
 
   function persistenceUnavailable() {
     return new Error("runtime state persistence is unavailable");
@@ -178,17 +179,26 @@ export function createRuntimeComposition({
     });
   }
 
-  function exportRoutingState() {
+  function exportRoutingState({
+    current = currentAccountId,
+    preferred = preferredAccountId,
+  } = {}) {
     const circuitState = circuitBreaker.exportState();
     return Object.freeze({
       version: circuitState.version,
       saved_at: circuitState.saved_at,
       accounts: Object.freeze([]),
       routing: Object.freeze({
-        current_account_id: currentAccountId,
-        preferred_account_id: preferredAccountId,
+        current_account_id: current,
+        preferred_account_id: preferred,
       }),
     });
+  }
+
+  function withRoutingMutation(operation) {
+    const result = routingMutationTail.then(operation, operation);
+    routingMutationTail = result.catch(() => undefined);
+    return result;
   }
 
   async function persistRuntimeState() {
@@ -211,11 +221,11 @@ export function createRuntimeComposition({
     });
   }
 
-  async function persistRoutingState() {
+  async function persistRoutingState(document = exportRoutingState()) {
     if (routeStateStore === null) return;
     if (routingPersistenceFailure !== null) throw persistenceUnavailable();
     try {
-      await routeStateStore.save(exportRoutingState());
+      await routeStateStore.save(document);
     } catch (error) {
       routingPersistenceFailure = error;
       throw persistenceUnavailable();
@@ -394,7 +404,7 @@ export function createRuntimeComposition({
     queueRuntimeStatePersistence();
   }
 
-  function onWeeklyQuotaObservation({ accountId, observation }) {
+  function recordWeeklyQuotaObservation({ accountId, observation }) {
     quotaTracker.record(accountId, observation);
     if (
       observation.weekly.status === "available" &&
@@ -418,7 +428,11 @@ export function createRuntimeComposition({
     refreshAvailableStatus(accountId);
   }
 
-  async function onAttemptFailure({ accountId, kind, retryAfterMs }) {
+  function onWeeklyQuotaObservation(payload) {
+    return withRoutingMutation(() => recordWeeklyQuotaObservation(payload));
+  }
+
+  async function recordAttemptFailure({ accountId, kind, retryAfterMs }) {
     await pendingPersistence;
     await pendingRoutingPersistence;
     if (persistenceFailure !== null || routingPersistenceFailure !== null) {
@@ -438,7 +452,11 @@ export function createRuntimeComposition({
     await persistRoutingState();
   }
 
-  async function resolveUpstream(_route, selectionContext = {}) {
+  function onAttemptFailure(payload) {
+    return withRoutingMutation(() => recordAttemptFailure(payload));
+  }
+
+  async function resolveUpstreamWithRoutingLock(_route, selectionContext = {}) {
     await pendingRoutingPersistence;
     if (routingPersistenceFailure !== null) throw persistenceUnavailable();
     const excluded = new Set(selectionContext.excludeAccountIds ?? []);
@@ -513,7 +531,12 @@ export function createRuntimeComposition({
     }
   }
 
-  async function onSwitchRequest({ accountAlias }) {
+  function resolveUpstream(route, selectionContext = {}) {
+    return withRoutingMutation(() =>
+      resolveUpstreamWithRoutingLock(route, selectionContext));
+  }
+
+  async function handleSwitchRequest({ accountAlias }) {
     if (activeSemanticStreams > 0) return Object.freeze({ accepted: false });
     await pendingRoutingPersistence;
     if (routingPersistenceFailure !== null) throw persistenceUnavailable();
@@ -534,15 +557,26 @@ export function createRuntimeComposition({
     }
     if (activeSemanticStreams > 0) return Object.freeze({ accepted: false });
     const fromAccountId = currentAccountId;
+    await persistRoutingState(exportRoutingState({
+      current: toAccountId,
+      preferred: toAccountId,
+    }));
+    if (activeSemanticStreams > 0) {
+      await persistRoutingState();
+      return Object.freeze({ accepted: false });
+    }
     preferredAccountId = toAccountId;
     currentAccountId = toAccountId;
-    queueRoutingStatePersistence();
     return Object.freeze({
       accepted: true,
       fromAccountId,
       toAccountId,
       reason: "manual",
     });
+  }
+
+  function onSwitchRequest(payload) {
+    return withRoutingMutation(() => handleSwitchRequest(payload));
   }
 
   const failoverStateMachine = createFailoverStateMachine(failoverOptions);
@@ -610,6 +644,7 @@ export function createRuntimeComposition({
       if (state === RUNTIME_STATES.STOPPING) return;
       state = RUNTIME_STATES.STOPPING;
       await Promise.allSettled([modelService.stop(), adminService.stop()]);
+      await routingMutationTail;
       await pendingPersistence;
       await pendingRoutingPersistence;
       await persistRuntimeState();

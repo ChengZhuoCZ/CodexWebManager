@@ -80,7 +80,10 @@ All four routes require a dedicated admin bearer token. Proxy-like headers are r
 are bounded, unknown fields fail closed, and manual switch requests are rejected while a semantic
 stream is active. The runtime starts that guard only after the first semantic HTTP SSE or WebSocket
 event and releases it on every terminal or failure path. Automatic pre-semantic failover and manual
-selection publish only sanitized route aliases, reasons, and `new_backend_session` continuity.
+selection publish only sanitized route aliases, reasons, and `new_backend_session` continuity. A
+manual selection is acknowledged only after its private route intent is atomically persisted. Route
+selection and mutation are serialized through that short boundary; if a semantic stream starts
+before acknowledgement, the candidate state is rolled back and the switch is rejected.
 Tests use fixture accounts only; they do not access or switch any real account.
 
 ## Optional codex-web status bridge

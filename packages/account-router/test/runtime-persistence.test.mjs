@@ -415,6 +415,226 @@ test("an accepted manual next-request preference survives a simulated process re
   assert.deepEqual(upstreamAccounts, ["fixture-b"]);
 });
 
+test("does not acknowledge a manual preference when private route persistence fails", async (context) => {
+  const runtime = createRuntimeComposition(runtimeOptions({
+    accounts: [
+      account({ priority: 10 }),
+      account({
+        id: "fixture-account-b",
+        alias: "Fixture B",
+        priority: 0,
+        credentialRef: "fixture-b",
+      }),
+    ],
+    routingStateStore: {
+      async load() { return null; },
+      async save() { throw new Error("fixture route state unavailable"); },
+    },
+    initialRoutingState: null,
+    upstreamOrigin: "http://127.0.0.1:1",
+  }));
+  context.after(async () => {
+    await runtime.stop().catch(() => undefined);
+  });
+  await runtime.start();
+
+  const switched = await fetch(
+    `http://127.0.0.1:${runtime.addresses.admin.port}/v1/switch`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${ADMIN_TOKEN}`,
+        "content-type": "application/json",
+      },
+      body: '{"account_alias":"Fixture B","reason":"manual"}',
+    },
+  );
+  assert.equal(switched.status, 503);
+  assert.deepEqual(await switched.json(), { error: "switch_request_failed" });
+  assert.equal((await adminStatus(runtime)).current_route, null);
+});
+
+test("acknowledges a manual preference only after private route persistence completes", async (context) => {
+  let announceSave;
+  let releaseSave;
+  const saveStarted = new Promise((resolve) => { announceSave = resolve; });
+  const saveGate = new Promise((resolve) => { releaseSave = resolve; });
+  let saveCalls = 0;
+  let savedDocument;
+  const runtime = createRuntimeComposition(runtimeOptions({
+    accounts: [
+      account({ priority: 10 }),
+      account({
+        id: "fixture-account-b",
+        alias: "Fixture B",
+        priority: 0,
+        credentialRef: "fixture-b",
+      }),
+    ],
+    routingStateStore: {
+      async load() { return null; },
+      async save(document) {
+        saveCalls += 1;
+        savedDocument = document;
+        if (saveCalls === 1) {
+          announceSave();
+          await saveGate;
+        }
+      },
+    },
+    initialRoutingState: null,
+    upstreamOrigin: "http://127.0.0.1:1",
+  }));
+  context.after(async () => {
+    releaseSave();
+    await runtime.stop().catch(() => undefined);
+  });
+  await runtime.start();
+
+  const switchResponse = fetch(
+    `http://127.0.0.1:${runtime.addresses.admin.port}/v1/switch`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${ADMIN_TOKEN}`,
+        "content-type": "application/json",
+      },
+      body: '{"account_alias":"Fixture B","reason":"manual"}',
+    },
+  );
+  await saveStarted;
+  const responseSettledBeforeSave = await Promise.race([
+    switchResponse.then(() => true),
+    new Promise((resolve) => setImmediate(() => resolve(false))),
+  ]);
+  assert.equal(responseSettledBeforeSave, false);
+  assert.deepEqual(savedDocument.routing, {
+    current_account_id: "fixture-account-b",
+    preferred_account_id: "fixture-account-b",
+  });
+
+  releaseSave();
+  const switched = await switchResponse;
+  assert.equal(switched.status, 200);
+  await switched.arrayBuffer();
+  assert.deepEqual((await adminStatus(runtime)).current_route, {
+    account_alias: "Fixture B",
+    continuity: "new_backend_session",
+  });
+});
+
+test("rolls back a persisted manual candidate if a semantic stream starts before acknowledgement", async (context) => {
+  let announceUpstreamRequest;
+  let triggerSemantic;
+  let finishStream;
+  const upstreamRequestStarted = new Promise((resolve) => {
+    announceUpstreamRequest = resolve;
+  });
+  const upstream = http.createServer((request, response) => {
+    request.resume();
+    triggerSemantic = () => {
+      response.writeHead(200, { "content-type": "text/event-stream" });
+      response.write("event: response.created\ndata: {\"type\":\"response.created\"}\n\n");
+      response.write(
+        "event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"fixture\"}\n\n",
+      );
+    };
+    finishStream = () => {
+      response.end("event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n");
+    };
+    announceUpstreamRequest();
+  });
+  context.after(() => close(upstream));
+  const upstreamOrigin = await listen(upstream);
+
+  let announceCandidateSave;
+  let releaseCandidateSave;
+  const candidateSaveStarted = new Promise((resolve) => {
+    announceCandidateSave = resolve;
+  });
+  const candidateSaveGate = new Promise((resolve) => {
+    releaseCandidateSave = resolve;
+  });
+  const savedRoutes = [];
+  let saveCalls = 0;
+  const runtime = createRuntimeComposition(runtimeOptions({
+    accounts: [
+      account({ priority: 10 }),
+      account({
+        id: "fixture-account-b",
+        alias: "Fixture B",
+        priority: 0,
+        credentialRef: "fixture-b",
+      }),
+    ],
+    routingStateStore: {
+      async load() { return null; },
+      async save(document) {
+        saveCalls += 1;
+        savedRoutes.push(structuredClone(document.routing));
+        if (saveCalls === 2) {
+          announceCandidateSave();
+          await candidateSaveGate;
+        }
+      },
+    },
+    initialRoutingState: null,
+    upstreamOrigin,
+  }));
+  context.after(async () => {
+    releaseCandidateSave();
+    finishStream?.();
+    await runtime.stop().catch(() => undefined);
+  });
+  await runtime.start();
+
+  const modelResponsePromise = fetch(
+    `http://127.0.0.1:${runtime.addresses.model.port}/v1/responses`,
+    {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: '{"input":"fixture"}',
+    },
+  );
+  await upstreamRequestStarted;
+
+  const switchResponsePromise = fetch(
+    `http://127.0.0.1:${runtime.addresses.admin.port}/v1/switch`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${ADMIN_TOKEN}`,
+        "content-type": "application/json",
+      },
+      body: '{"account_alias":"Fixture B","reason":"manual"}',
+    },
+  );
+  await candidateSaveStarted;
+  triggerSemantic();
+  const modelResponse = await modelResponsePromise;
+  assert.equal(modelResponse.status, 200);
+  const reader = modelResponse.body.getReader();
+  const firstChunk = await reader.read();
+  assert.equal(firstChunk.done, false);
+  assert.equal((await adminStatus(runtime)).active_streams, 1);
+
+  releaseCandidateSave();
+  const switchResponse = await switchResponsePromise;
+  assert.equal(switchResponse.status, 409);
+  assert.deepEqual(await switchResponse.json(), { error: "switch_rejected" });
+  assert.deepEqual(savedRoutes.at(-1), {
+    current_account_id: "fixture-account-a",
+    preferred_account_id: null,
+  });
+  assert.deepEqual((await adminStatus(runtime)).current_route, {
+    account_alias: "Fixture A",
+    continuity: "new_backend_session",
+  });
+
+  finishStream();
+  while (!(await reader.read()).done) {}
+});
+
 test("a persistence failure makes readiness and later selection fail closed", async () => {
   const failingRegistry = new SecretProviderRegistry().register(defineSecretProvider({
     name: "fixture-secret",
