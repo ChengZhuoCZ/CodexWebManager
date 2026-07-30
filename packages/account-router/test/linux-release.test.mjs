@@ -365,6 +365,42 @@ test("installed release verifies stalled startup stop signals", async (context) 
       in_flight_resume_tested: false,
     },
   );
+  assert.deepEqual(
+    summary.runtime.synthetic_websocket_all_pool_unavailable,
+    {
+      configured_bindings: 2,
+      process_starts: 1,
+      readiness_before_status: 200,
+      downstream_upgrade_status: 101,
+      initial_requests: 1,
+      downstream_error: {
+        type: "all_accounts_unavailable",
+        reason: "no_eligible_account",
+        attempts: 2,
+        semantic_output: false,
+      },
+      downstream_close: {
+        code: 1013,
+        reason: "all_accounts_unavailable",
+      },
+      upstream_role_sequence: ["primary", "secondary"],
+      upstream_failure_sequence: ["rate_limited", "upstream_5xx"],
+      retry_bound_observed: true,
+      third_upstream_attempt_observed: false,
+      readiness_after_status: 503,
+      usable_accounts_after: 0,
+      sanitized_error_exact: true,
+      local_fixture_upstream_only: true,
+      synthetic_credential_acquisition_tested: true,
+      synthetic_websocket_requests_sent: 1,
+      synthetic_upstream_attempts: 2,
+      manual_switch_tested: false,
+      real_credentials_present: false,
+      real_model_request_sent: false,
+      real_account_switch_tested: false,
+      in_flight_resume_tested: false,
+    },
+  );
   assert.deepEqual(summary.runtime.synthetic_manual_switch_safety_boundary, {
     configured_bindings: 2,
     process_starts: 2,

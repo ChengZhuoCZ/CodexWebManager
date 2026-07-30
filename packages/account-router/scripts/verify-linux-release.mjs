@@ -346,6 +346,7 @@ function readUntilSocket(socket, marker, timeoutMs = 5_000) {
 
 function collectWebSocketMessages(socket, initial = Buffer.alloc(0)) {
   const messages = [];
+  const closeFrames = [];
   const events = new EventEmitter();
   const assemble = createTextMessageAssembler({
     onMessage(payload) {
@@ -357,6 +358,19 @@ function collectWebSocketMessages(socket, initial = Buffer.alloc(0)) {
   const parser = createWebSocketFrameParser({
     expectMasked: false,
     onFrame(frame) {
+      if (frame.opcode === 0x8) {
+        if (frame.payload.length < 2) {
+          events.emit("failure");
+          return;
+        }
+        const closeFrame = Object.freeze({
+          code: frame.payload.readUInt16BE(0),
+          reason: frame.payload.subarray(2).toString("utf8"),
+        });
+        closeFrames.push(closeFrame);
+        events.emit("close-frame", closeFrame);
+        return;
+      }
       assemble(frame);
     },
   });
@@ -369,6 +383,7 @@ function collectWebSocketMessages(socket, initial = Buffer.alloc(0)) {
   });
   if (initial.length > 0) parser.push(initial);
   return {
+    closeFrames,
     messages,
     waitFor(predicate, timeoutMs = 5_000) {
       const existing = messages.find(predicate);
@@ -393,6 +408,32 @@ function collectWebSocketMessages(socket, initial = Buffer.alloc(0)) {
           reject(new Error("synthetic WebSocket response timed out"));
         }, timeoutMs);
         events.on("message", onMessage);
+        events.on("failure", onFailure);
+      });
+    },
+    waitForCloseFrame(timeoutMs = 5_000) {
+      if (closeFrames.length > 0) {
+        return Promise.resolve(closeFrames[0]);
+      }
+      return new Promise((resolve, reject) => {
+        const cleanup = () => {
+          clearTimeout(timer);
+          events.off("close-frame", onCloseFrame);
+          events.off("failure", onFailure);
+        };
+        const onCloseFrame = (closeFrame) => {
+          cleanup();
+          resolve(closeFrame);
+        };
+        const onFailure = () => {
+          cleanup();
+          reject(new Error("synthetic WebSocket response was malformed"));
+        };
+        const timer = setTimeout(() => {
+          cleanup();
+          reject(new Error("synthetic WebSocket close frame timed out"));
+        }, timeoutMs);
+        events.on("close-frame", onCloseFrame);
         events.on("failure", onFailure);
       });
     },
@@ -901,6 +942,8 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
     };
     const syntheticAllPoolUnavailableRoleSequence = [];
     const syntheticAllPoolUnavailableFailureSequence = [];
+    const syntheticWebSocketAllPoolUnavailableRoleSequence = [];
+    const syntheticWebSocketAllPoolUnavailableFailureSequence = [];
     const preSemanticFailureInjections = Object.freeze({
       rate_limited: "http_429",
       auth_expired: "http_401",
@@ -1133,6 +1176,7 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       const websocketScenario = new Set([
         "websocket_pre_semantic_failover",
         "websocket_post_semantic_failure",
+        "websocket_all_pool_unavailable",
         "manual_switch_active_stream",
       ]).has(syntheticFixtureScenario) ||
         (
@@ -1156,6 +1200,23 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
         socket.end(
           "HTTP/1.1 401 Unauthorized\r\n" +
           "Connection: close\r\n" +
+          "Content-Length: 0\r\n\r\n",
+        );
+        return;
+      }
+      if (syntheticFixtureScenario === "websocket_all_pool_unavailable") {
+        syntheticWebSocketAllPoolUnavailableRoleSequence.push(role);
+        const status = role === "primary" ? 429 : 503;
+        const reason = role === "primary"
+          ? "Too Many Requests"
+          : "Service Unavailable";
+        syntheticWebSocketAllPoolUnavailableFailureSequence.push(
+          role === "primary" ? "rate_limited" : "upstream_5xx",
+        );
+        socket.end(
+          `HTTP/1.1 ${status} ${reason}\r\n` +
+          "Connection: close\r\n" +
+          (status === 429 ? "Retry-After: 0\r\n" : "") +
           "Content-Length: 0\r\n\r\n",
         );
         return;
@@ -1983,6 +2044,151 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       in_flight_resume_tested: false,
     };
 
+    const websocketAllPoolStateDirectory = path.join(
+      temporaryRoot,
+      "synthetic-websocket-all-pool-unavailable-state",
+    );
+    await fs.mkdir(websocketAllPoolStateDirectory, { mode: 0o700 });
+    syntheticFixtureScenario = "websocket_all_pool_unavailable";
+    child = spawn(path.join(current, "bin/codex-account-router"), [], {
+      cwd: current,
+      env: {
+        ...scrubbedRuntimeEnvironment(homeDirectory),
+        CODEX_ROUTER_ACCOUNTS_FILE: syntheticAccountsFile,
+        CODEX_ROUTER_CREDENTIAL_ROOT: syntheticBindingRoot,
+        CODEX_ROUTER_ADMIN_TOKEN_FILE: syntheticAdminTokenFile,
+        CODEX_ROUTER_STATE_DIRECTORY: websocketAllPoolStateDirectory,
+        CODEX_ROUTER_UPSTREAM_ORIGIN: syntheticUpstreamOrigin,
+      },
+      stdio: ["ignore", "pipe", "pipe"],
+    });
+    const websocketAllPoolStarted = await waitForStart(child);
+    const websocketAllPoolAdminOrigin =
+      `http://127.0.0.1:${websocketAllPoolStarted.record.bind_port}`;
+    const websocketAllPoolReadinessBeforeResponse = await fetch(
+      `${websocketAllPoolAdminOrigin}/readyz`,
+      { signal: AbortSignal.timeout(5_000) },
+    );
+    const websocketAllPoolReadinessBefore =
+      await websocketAllPoolReadinessBeforeResponse.json();
+    assert(
+      websocketAllPoolReadinessBeforeResponse.status === 200 &&
+        websocketAllPoolReadinessBefore.status === "ready" &&
+        websocketAllPoolReadinessBefore.usable_accounts === 2,
+      "installed router WebSocket all-pool fixture readiness was invalid",
+    );
+
+    websocketClient = await openSyntheticWebSocket({
+      port: websocketAllPoolStarted.record.model_bind_port,
+    });
+    const websocketAllPoolDownstreamUpgradeStatus = websocketClient.status;
+    sendSyntheticWebSocketCreate(websocketClient.socket);
+    await websocketClient.collector.waitFor(
+      (message) => message.type === "error",
+    );
+    const websocketAllPoolCloseFrame =
+      await websocketClient.collector.waitForCloseFrame();
+    const websocketAllPoolMessages = [
+      ...websocketClient.collector.messages,
+    ];
+    const expectedWebSocketAllPoolMessage = {
+      type: "error",
+      error: {
+        type: "all_accounts_unavailable",
+        reason: "no_eligible_account",
+        attempts: 2,
+        semantic_output: false,
+      },
+    };
+    const sanitizedWebSocketAllPoolErrorExact =
+      websocketAllPoolMessages.length === 1 &&
+      JSON.stringify(websocketAllPoolMessages[0]) ===
+        JSON.stringify(expectedWebSocketAllPoolMessage);
+    assert(
+      sanitizedWebSocketAllPoolErrorExact &&
+        websocketAllPoolCloseFrame.code === 1013 &&
+        websocketAllPoolCloseFrame.reason ===
+          "all_accounts_unavailable",
+      "installed router did not return the exact sanitized WebSocket all-pool error",
+    );
+    websocketClient.socket.destroy();
+    websocketClient = undefined;
+
+    assert(
+      JSON.stringify(syntheticWebSocketAllPoolUnavailableRoleSequence) ===
+        JSON.stringify(["primary", "secondary"]) &&
+        JSON.stringify(
+          syntheticWebSocketAllPoolUnavailableFailureSequence,
+        ) === JSON.stringify(["rate_limited", "upstream_5xx"]),
+      "installed router WebSocket all-pool retries exceeded the two synthetic accounts",
+    );
+    const websocketAllPoolReadinessAfterResponse = await fetch(
+      `${websocketAllPoolAdminOrigin}/readyz`,
+      { signal: AbortSignal.timeout(5_000) },
+    );
+    const websocketAllPoolReadinessAfter =
+      await websocketAllPoolReadinessAfterResponse.json();
+    assert(
+      websocketAllPoolReadinessAfterResponse.status === 503 &&
+        websocketAllPoolReadinessAfter.status === "not_ready" &&
+        websocketAllPoolReadinessAfter.reason === "no_accounts" &&
+        websocketAllPoolReadinessAfter.usable_accounts === 0,
+      "installed router remained ready after every synthetic WebSocket account failed",
+    );
+
+    child.kill("SIGTERM");
+    const [websocketAllPoolExitCode, websocketAllPoolExitSignal] =
+      await waitForExit(child);
+    child = undefined;
+    assert(
+      websocketAllPoolExitCode === 0 &&
+        websocketAllPoolExitSignal === null,
+      "installed router WebSocket all-pool fixture did not exit cleanly",
+    );
+    assert(
+      websocketAllPoolStarted.getStderr() === "",
+      "installed router WebSocket all-pool fixture wrote an error log",
+    );
+    assert(
+      fixtureUpstreamFailure === null,
+      fixtureUpstreamFailure ??
+        "installed router synthetic WebSocket all-pool verification failed",
+    );
+    const syntheticWebSocketAllPoolUnavailable = {
+      configured_bindings: syntheticBindings.length,
+      process_starts: 1,
+      readiness_before_status:
+        websocketAllPoolReadinessBeforeResponse.status,
+      downstream_upgrade_status:
+        websocketAllPoolDownstreamUpgradeStatus,
+      initial_requests: 1,
+      downstream_error: expectedWebSocketAllPoolMessage.error,
+      downstream_close: websocketAllPoolCloseFrame,
+      upstream_role_sequence:
+        syntheticWebSocketAllPoolUnavailableRoleSequence,
+      upstream_failure_sequence:
+        syntheticWebSocketAllPoolUnavailableFailureSequence,
+      retry_bound_observed:
+        syntheticWebSocketAllPoolUnavailableRoleSequence.length === 2,
+      third_upstream_attempt_observed:
+        syntheticWebSocketAllPoolUnavailableRoleSequence.length > 2,
+      readiness_after_status:
+        websocketAllPoolReadinessAfterResponse.status,
+      usable_accounts_after:
+        websocketAllPoolReadinessAfter.usable_accounts,
+      sanitized_error_exact: sanitizedWebSocketAllPoolErrorExact,
+      local_fixture_upstream_only: true,
+      synthetic_credential_acquisition_tested: true,
+      synthetic_websocket_requests_sent: 1,
+      synthetic_upstream_attempts:
+        syntheticWebSocketAllPoolUnavailableRoleSequence.length,
+      manual_switch_tested: false,
+      real_credentials_present: false,
+      real_model_request_sent: false,
+      real_account_switch_tested: false,
+      in_flight_resume_tested: false,
+    };
+
     const manualSwitchStateDirectory = path.join(
       temporaryRoot,
       "synthetic-manual-switch-state",
@@ -2617,6 +2823,8 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
         syntheticWebSocketSafetyBoundaries,
       synthetic_websocket_pre_semantic_failure_classifications:
         syntheticWebSocketPreSemanticFailureClassifications,
+      synthetic_websocket_all_pool_unavailable:
+        syntheticWebSocketAllPoolUnavailable,
       synthetic_manual_switch_safety_boundary:
         syntheticManualSwitchSafetyBoundary,
       synthetic_all_pool_unavailable:
