@@ -290,6 +290,36 @@ test("routed upstream codex-web uses separate state, socket, and port without to
       "CODEX_CLI_PATH=/opt/0xcaff-codex-web-router/bin/codex-remote-proxy-fast.mjs",
     ),
   );
+  assert.deepEqual(new Set(web.get("Service.Environment")), new Set([
+    "NODE_ENV=production",
+    "HOME=/var/lib/codex-web-router",
+    "CODEX_HOME=/var/lib/codex-web-router",
+    "CODEX_CLI_PATH=/opt/0xcaff-codex-web-router/bin/codex-remote-proxy-fast.mjs",
+    "CODEX_REAL_CLI_PATH=/usr/local/bin/codex",
+    "CODEX_UNIX_SOCKET=/run/codex-web-router-app-server/app-server.sock",
+    "CODEX_ROUTER_ADMIN_ORIGIN=http://127.0.0.1:18318",
+    "CODEX_ROUTER_ADMIN_TOKEN_FILE=%d/router-admin-token",
+    "CODEX_WEB_PUBLIC_ORIGIN=http://100.95.50.98:8216",
+    "CODEX_WEB_TRUSTED_TAILNET_ACCESS=1",
+    "CODEX_WEB_CODEX_HOME=/var/lib/codex-web-router-app-server",
+    "CODEX_WEB_WORKSPACE_ROOTS=/srv/codex-workspaces",
+    "CODEX_WEB_UPLOAD_ROOT=/run/codex-web-router-browser-uploads",
+  ]));
+  assert.deepEqual(web.get("Service.LoadCredential"), [
+    "router-admin-token:/etc/codex-account-router/credentials/admin-token",
+  ]);
+  assert.equal(
+    only(web, "Service.RuntimeDirectory"),
+    "codex-web-router codex-web-router-browser-uploads",
+  );
+  assert.equal(
+    only(web, "Service.ReadWritePaths"),
+    "/srv/codex-workspaces /var/lib/codex-web-router /run/codex-web-router-browser-uploads",
+  );
+  assert.equal(
+    only(app, "Service.ReadOnlyPaths"),
+    "/run/codex-web-router-browser-uploads",
+  );
   assert.doesNotMatch(
     `${appContent}\n${webContent}`,
     /(?:\/run|\/var\/lib)\/codex-web-upstream(?:-app-server)?|--port 8215/,
@@ -360,6 +390,7 @@ test("provisioning files create only a locked service identity and private direc
     "d /etc/codex-web 0750 root codex -",
     "d /etc/codex-web/credentials 0700 root root -",
     "d /run/codex-browser-uploads 0700 codex codex -",
+    "d /run/codex-web-router-browser-uploads 0700 codex codex -",
     "d /srv/codex-workspaces 0750 codex codex -",
     "",
   ].join("\n"));

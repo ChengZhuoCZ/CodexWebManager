@@ -28,6 +28,7 @@ StateDirectoryMode=0700
 RuntimeDirectory=codex-web-router-app-server
 RuntimeDirectoryMode=0700
 ReadWritePaths=/srv/codex-workspaces
+ReadOnlyPaths=/run/codex-web-router-browser-uploads
 NoNewPrivileges=true
 PrivateTmp=true
 PrivateDevices=true

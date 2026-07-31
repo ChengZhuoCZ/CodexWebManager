@@ -14,6 +14,14 @@ Environment=CODEX_HOME=/var/lib/codex-web-router
 Environment=CODEX_CLI_PATH=/opt/0xcaff-codex-web-router/bin/codex-remote-proxy-fast.mjs
 Environment=CODEX_REAL_CLI_PATH=/usr/local/bin/codex
 Environment=CODEX_UNIX_SOCKET=/run/codex-web-router-app-server/app-server.sock
+Environment=CODEX_ROUTER_ADMIN_ORIGIN=http://127.0.0.1:18318
+Environment=CODEX_ROUTER_ADMIN_TOKEN_FILE=%d/router-admin-token
+Environment=CODEX_WEB_PUBLIC_ORIGIN=http://100.95.50.98:8216
+Environment=CODEX_WEB_TRUSTED_TAILNET_ACCESS=1
+Environment=CODEX_WEB_CODEX_HOME=/var/lib/codex-web-router-app-server
+Environment=CODEX_WEB_WORKSPACE_ROOTS=/srv/codex-workspaces
+Environment=CODEX_WEB_UPLOAD_ROOT=/run/codex-web-router-browser-uploads
+LoadCredential=router-admin-token:/etc/codex-account-router/credentials/admin-token
 ExecStart=/usr/bin/node /opt/0xcaff-codex-web-router/current/src/server/main.js --host 127.0.0.1 --port 8216
 Restart=on-failure
 RestartSec=3s
@@ -39,7 +47,9 @@ AmbientCapabilities=
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
 StateDirectory=codex-web-router
 StateDirectoryMode=0700
-ReadWritePaths=/srv/codex-workspaces /var/lib/codex-web-router
+RuntimeDirectory=codex-web-router codex-web-router-browser-uploads
+RuntimeDirectoryMode=0700
+ReadWritePaths=/srv/codex-workspaces /var/lib/codex-web-router /run/codex-web-router-browser-uploads
 # The upstream Electron compatibility stub logs complete IPC messages, which
 # can contain prompt/response bodies. Keep its standard output out of journald;
 # bounded operational failures remain available on standard error.
