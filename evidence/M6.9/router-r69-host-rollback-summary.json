@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R69",
+  "generated_at": "2026-08-01T04:49:56+08:00",
+  "implementation_revision": "c9798f5ff35545b49f3c1da1c616d7a514d605ca",
+  "failure_first": {
+    "command": "<node24> --test packages/account-router/test/codex-web-host-deploy.test.mjs",
+    "result": "the success path failed because deploy-router-r69.sh did not exist; the initial failure-path assertion was also identified as too weak and was tightened to require explicit rollback output and routed-Web restart evidence"
+  },
+  "overlay": {
+    "independent_archives_identical": true,
+    "entry_count": 13,
+    "sha256": "d793e0144f63ec48e41633fb1db01ff32ec24774706aec5762ae7c4c1e17a813",
+    "source_release": "c3e92f0f-20260729-m69-router-r23",
+    "successor_release": "c3e92f0f-20260801-m69-router-r69"
+  },
+  "deployment_fixture": {
+    "tests": 3,
+    "passed": 3,
+    "success_activated_successor": true,
+    "failed_probe_restored_previous_link": true,
+    "failed_probe_restored_three_configuration_files": true,
+    "failed_probe_removed_successor": true,
+    "only_routed_app_and_web_restarted": true,
+    "standalone_8215_mutation_attempted": false,
+    "account_router_restart_attempted": false
+  },
+  "strict_matrix": {
+    "tests": 332,
+    "passed": 332,
+    "failed": 0,
+    "skipped": 0
+  },
+  "security_audit": {
+    "exit_code": 2,
+    "qualified": false,
+    "reason": "strict CI protected paths changed after qualification",
+    "local_scan_files": 550,
+    "local_scan_findings": 0
+  },
+  "deployment": {
+    "attempted": false,
+    "active_release": "c3e92f0f-20260729-m69-router-r23"
+  },
+  "real_account_configured": false,
+  "real_model_request_sent": false,
+  "real_account_switch_tested": false,
+  "seamless_account_continuity_claimed": false
+}
