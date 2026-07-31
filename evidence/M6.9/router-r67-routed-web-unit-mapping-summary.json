@@ -1,0 +1,44 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R67",
+  "generated_at": "2026-08-01T04:30:59+08:00",
+  "implementation_revision": "369d020f284fd7b9ef624a3697033b3c126f9d61",
+  "failure_first": {
+    "command": "<node24> --test --test-name-pattern='routed upstream codex-web uses separate state|provisioning files create' test/systemd-units.test.mjs",
+    "attempts": 1,
+    "tests": 2,
+    "failed": 2,
+    "missing_web_environment_fields": 7,
+    "isolated_upload_root_missing": true
+  },
+  "mapping": {
+    "web_listener": "127.0.0.1:8216",
+    "public_origin": "http://100.95.50.98:8216",
+    "trusted_tailnet_access": true,
+    "router_admin_origin": "http://127.0.0.1:18318",
+    "router_admin_token_source": "systemd credential file reference",
+    "browser_site_token_required": false,
+    "codex_home": "/var/lib/codex-web-router-app-server",
+    "workspace_roots": ["/srv/codex-workspaces"],
+    "upload_root": "/run/codex-web-router-browser-uploads",
+    "upload_root_shared_with_other_web_instances": false,
+    "app_server_upload_access": "read-only",
+    "web_upload_access": "read-write"
+  },
+  "tests": {
+    "systemd_unit_tests": {"tests": 14, "passed": 14, "failed": 0, "skipped": 0},
+    "systemd_analyze_verify": "passed_with_unrelated_host_unit_warning",
+    "strict_matrix": {"tests": 327, "passed": 327, "failed": 0, "skipped": 0},
+    "implementation_repository_scan": {"files": 541, "findings": 0},
+    "post_evidence_repository_scan": {"files": 543, "findings": 0}
+  },
+  "deployment_attempted": false,
+  "loaded_systemd_configuration_changed": false,
+  "standalone_8215_changed": false,
+  "routed_8216_changed": false,
+  "real_credentials_read": false,
+  "real_model_request_sent": false,
+  "real_account_switch_tested": false,
+  "seamless_account_continuity_claimed": false
+}
