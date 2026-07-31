@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R71",
+  "generated_at": "2026-08-01T05:06:01+08:00",
+  "implementation_revision": "a941e35082cbbeb8bba362a5234779f3aebd7462",
+  "failure_first": [
+    "missing pipeline module produced ERR_MODULE_NOT_FOUND",
+    "a synthetic predecessor failed the pinned R23 index hash boundary",
+    "a nested work root exposed Vite region-comment path dependence and was rejected rather than updating the production manifest"
+  ],
+  "pipeline": {
+    "upstream_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf",
+    "upstream_clean_required": true,
+    "previous_release": "c3e92f0f-20260729-m69-router-r23",
+    "steps": ["copy pinned inputs", "apply clean-room overlay", "compile server", "compile browser", "stage immutable candidate", "build manifest-pinned archive"],
+    "per_step_timeout_ms": 120000,
+    "retries": 0,
+    "work_root_direct_tmp_child_required": true,
+    "failed_outputs_cleaned": true,
+    "archive_sha256": "861d5229cc6aefed0e6f5a783421828a78b029046f8803ebe9b9c7ca68af880c",
+    "archive_bytes": 402086,
+    "archive_files": 13
+  },
+  "tests": {
+    "pipeline": { "tests": 1, "passed": 1 },
+    "focused": { "tests": 8, "passed": 8 },
+    "strict_matrix": { "tests": 335, "passed": 335, "failed": 0, "skipped": 0 }
+  },
+  "security_audit": {
+    "exit_code": 2,
+    "qualified": false,
+    "reason": "strict CI protected paths changed after qualification",
+    "local_scan_files": 557,
+    "local_scan_findings": 0
+  },
+  "deployment_attempted": false,
+  "active_8216_release": "c3e92f0f-20260729-m69-router-r23",
+  "real_model_request_sent": false,
+  "real_account_switch_tested": false,
+  "seamless_account_continuity_claimed": false
+}

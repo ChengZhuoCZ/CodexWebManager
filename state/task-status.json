@@ -65,12 +65,13 @@
     "r68_continuation": "6a9724516e8007b7a8b74681a3b8090daee6c712",
     "r69_continuation": "e2d13eb998b17db849b5d18d75d1f59fe7f52d3d",
     "r70_continuation": "a60f7fbfa77c8814d912abfb0c107568d5e8b86e",
+    "r71_continuation": "a8e1b7de0a06dac73567135ea377accb97f152f9",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "0cbb93f965274365ca20e66b4773db9e4fa1294e",
+  "output_revision": "a941e35082cbbeb8bba362a5234779f3aebd7462",
   "workspace_branch": "codex/m6-9-8215-worker",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -1685,6 +1686,10 @@
     {
       "command": "<node> build-routed-overlay.mjs against two independent R68 candidates; focused overlay/release/deploy fixtures; strict matrix and security audit",
       "result": "R70 rebuilt byte-identical 402086-byte 13-file archives at SHA-256 861d5229; changed input failed before output publication; focused 7/7 and strict matrix 334/334 passed; final scan covered 554 files with zero findings; strict audit remained unqualified at expected exit 2 and deployment was not attempted"
+    },
+    {
+      "command": "black-box build-routed-web-pipeline.mjs from clean pinned upstream plus immutable R23 predecessor; focused pipeline/overlay/release/deploy fixtures; strict matrix and security audit",
+      "result": "R71 single bounded pipeline rebuilt the exact 402086-byte SHA-256 861d5229 archive after clean-room server/browser compilation; focused 8/8 and strict matrix 335/335 passed; nested work roots fail closed to prevent path-dependent browser output; final scan covered 557 files with zero findings; strict audit remained unqualified and deployment was not attempted"
     }
   ],
   "evidence": [
@@ -1913,7 +1918,8 @@
     "evidence/M6.9/router-r68-test-matrix.json",
     "evidence/M6.9/deploy-router-r69.sh",
     "evidence/M6.9/router-r69-host-rollback-summary.json",
-    "evidence/M6.9/router-r70-reproducible-overlay-summary.json"
+    "evidence/M6.9/router-r70-reproducible-overlay-summary.json",
+    "evidence/M6.9/router-r71-build-pipeline-summary.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -5089,9 +5095,10 @@
     "R68 stages and verifies an inactive complete Web candidate only. It does not activate the candidate, install R67 units, restart 8216, prove the live Tailnet composer/upload path or qualify a real provider request; current remains R23.",
     "R69 validates host activation and rollback only in isolated temporary roots with command shims. It does not prove the real systemd credential mapping, Tailnet composer, attachment upload or service readiness; production remains R23 and no real model request was sent.",
     "R70 makes the pinned Web overlay reproducible from a manifest-validated staged candidate, but the staged candidate itself still depends on the clean pinned upstream build inputs and local Node dependencies; no live deployment or Tailnet behavior is inferred from archive reproducibility.",
+    "R71 makes the clean pinned upstream-to-archive path executable as one bounded pipeline, but it intentionally requires the pinned local upstream checkout, its prepared scratch assets and node_modules plus immutable R23 as inputs; it does not replace strict CI or live 8216 qualification.",
     "R28 caps a weekly reset delay at the existing 24-hour circuit maximum, so a farther reset receives a bounded half-open recheck rather than sleeping until the full provider reset time.",
     "The existing local commits 3f8723f, 776f352 and 0b93593 have test evidence but their commit messages omit the test commands required by the current AGENTS.md; history was not rewritten and later commit messages include test commands.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-08-01T04:54:58+08:00"
+  "updated_at": "2026-08-01T05:06:01+08:00"
 }
