@@ -1,0 +1,31 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R68",
+  "generated_at": "2026-08-01T04:43:33+08:00",
+  "implementation_revision": "89a27f715c72e09a57b69bfc4dfeda690a714673",
+  "command": "umask 0022; env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <node24> scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+  "first_run": "failed closed because the new test file was not assigned to a suite",
+  "totals": {
+    "tests": 329,
+    "passed": 329,
+    "failed": 0,
+    "skipped": 0
+  },
+  "suites": [
+    { "id": "unit", "test_files": 26, "tests": 158, "passed": 158 },
+    { "id": "integration", "test_files": 13, "tests": 118, "passed": 118 },
+    { "id": "e2e", "test_files": 11, "tests": 53, "passed": 53 }
+  ],
+  "security_audit": {
+    "exit_code": 2,
+    "result": "strict CI protected paths changed after qualification",
+    "qualified": false,
+    "local_scan_files": 547,
+    "local_scan_findings": 0
+  },
+  "real_account_configured": false,
+  "real_model_request_sent": false,
+  "real_account_switch_tested": false,
+  "seamless_account_continuity_claimed": false
+}
