@@ -58,12 +58,13 @@
     "r61_continuation": "b6feca53305449513f36a5f2e2134e9b50d95076",
     "r62_continuation": "77de7f19a108b2efdd13786707e2fb7b05bf531c",
     "r63_continuation": "631cc15f4b683f597b0d771a6c4d4c96e5dcaa2e",
+    "r64_continuation": "f8fe92ea57ae50effc745195a9dcc7bebb9edcf5",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "29b2080c69b81341e6f292cb463b2189106691f9",
+  "output_revision": "0b946cc9de5e63f250104c321e8f589c9202bbb4",
   "workspace_branch": "codex/m6-9-8215-worker",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -1574,6 +1575,38 @@
     {
       "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
       "result": "R63 final state-and-evidence-tree security audit passed within its bounded three-pass limit after preliminary and pre-state evidence passes; 104/104 focused security tests and retained 492/492 strict UI evidence passed, and 530 repository files were scanned with zero findings"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/linux-release.test.mjs",
+      "result": "R64 minimal fixture failed on its sole pre-implementation attempt because synthetic_retry_backoff_deadline was absent; after implementation the installed candidate passed both a non-zero Retry-After capped-backoff scenario and a total-deadline-before-retry scenario"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test packages/account-router/test/config.test.mjs packages/account-router/test/runtime-bootstrap.test.mjs packages/account-router/test/systemd-units.test.mjs packages/account-router/test/linux-release.test.mjs; direct node --check for seven changed modules/tests; git diff --check",
+      "result": "R64 related runtime config/bootstrap, packaged systemd and installed release tests passed 40/40; seven changed JavaScript files passed direct syntax checks and the diff passed whitespace validation"
+    },
+    {
+      "command": "umask 0022; <bundled-node> --test",
+      "result": "R64 package-complete suite passed 298/323 with 0 failures and 25 expected pinned-public-fixture skips on its sole authoritative attempt"
+    },
+    {
+      "command": "umask 0022; env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": "R64 strict matrix passed on the documented umask after one non-authoritative wrong-umask attempt: 323/323 with no skips; unit 158, integration 117 and E2E 48, with no real account configured or real account switch executed"
+    },
+    {
+      "command": "build and verify deterministic 0.2.30 Linux x64 release with installed local-fixture Retry-After/backoff/total-deadline scenarios",
+      "result": "R64 built and verified a 49-file candidate at SHA-256 e529923e; the non-zero Retry-After scenario used exactly primary then secondary after the configured capped delay, while the 150 ms total deadline rejected the retry after only primary with sanitized total_deadline_exceeded and semantic_output false"
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r64.sh",
+      "result": "R64 router-only rollback deployment script syntax, pinned version and artifact hash passed; deployment was not attempted because host privilege remains unavailable and the script's fixed 8215 PID/start/unit-hash precondition now fails closed"
+    },
+    {
+      "command": "read-only systemd PID/start/unit-hash/mtime plus 8215/8216 loopback/Tailnet HTTP and router readyz probes",
+      "result": "R64 router and 8216 invariants remained unchanged and all public probes returned 200, but the fixed 8215 invariant failed: PID 1336830/1336828 and ActiveEnter 335738476636/335738474212 replaced 510876/508396 and 196497166178/194490256399; no R64 mutation or deployment command targeted 8215"
+    },
+    {
+      "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
+      "result": "R64 final post-state security audit passed: 105/105 focused security tests and retained 492/492 strict UI evidence passed, and 535 repository files were scanned with zero findings"
     }
   ],
   "evidence": [
@@ -1784,9 +1817,104 @@
     "evidence/M6.9/router-r63-strict-matrix-summary.json",
     "evidence/M6.9/router-r63-security-summary.json",
     "evidence/M6.9/router-r63-linux-release-verify.json",
-    "evidence/M6.9/deploy-router-r63.sh"
+    "evidence/M6.9/deploy-router-r63.sh",
+    "evidence/M6.9/router-r64-installed-retry-backoff-deadline-summary.json",
+    "evidence/M6.9/router-r64-test-matrix.json",
+    "evidence/M6.9/router-r64-security-audit.json",
+    "evidence/M6.9/router-r64-linux-release-verify.json",
+    "evidence/M6.9/deploy-router-r64.sh"
   ],
   "observations": {
+    "continuation_r64_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8215-worker",
+      "commit": "f8fe92ea57ae50effc745195a9dcc7bebb9edcf5",
+      "dependencies": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_result": "Use an installed candidate, two synthetic bindings and a loopback-only fixture upstream to observe range-checked maximum attempts, non-zero Retry-After backoff and the total deadline before a retry, without reading real credentials, sending a real model request, deploying, or changing the fixed 8215 PID 510876/508396 and ActiveEnter monotonic 196497166178/194490256399 baseline."
+    },
+    "continuation_r64_fixture_result": {
+      "implementation_revision": "0b946cc9de5e63f250104c321e8f589c9202bbb4",
+      "release_payload_changed": true,
+      "runtime_failover_environment_fields": 4,
+      "packaged_max_attempts": 3,
+      "packaged_total_deadline_ms": 120000,
+      "packaged_base_backoff_ms": 100,
+      "packaged_max_backoff_ms": 2000,
+      "synthetic_binding_definitions": 2,
+      "installed_process_starts": 2,
+      "fresh_private_state_directories": 2,
+      "readiness_statuses": [
+        200,
+        200
+      ],
+      "nonzero_retry_after_upstream_roles": [
+        "primary",
+        "secondary"
+      ],
+      "nonzero_retry_after_upstream_attempts": 2,
+      "nonzero_retry_after_delay_lower_bound_ms": 150,
+      "nonzero_retry_after_delay_upper_bound_ms": 900,
+      "deadline_before_retry_upstream_roles": [
+        "primary"
+      ],
+      "deadline_before_retry_upstream_attempts": 1,
+      "deadline_before_retry_secondary_contacted": false,
+      "deadline_before_retry_error": "all_accounts_unavailable/total_deadline_exceeded",
+      "deadline_before_retry_semantic_output": false,
+      "package_tests_passed": 298,
+      "package_fixture_skips": 25,
+      "strict_matrix_passed": 323,
+      "security_tests_passed": 105,
+      "security_scan_files": 535,
+      "security_findings": 0,
+      "routed_8216_changed": false,
+      "standalone_8215_fixed_invariant_passed": false,
+      "synthetic_credential_acquisition_tested": true,
+      "synthetic_model_requests_sent": 2,
+      "real_account_configured_for_test": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "in_flight_resume_tested": false,
+      "seamless_account_continuity_claimed": false
+    },
+    "continuation_r64_release_candidate": {
+      "router_release": "codex-account-router-0.2.30-linux-x64",
+      "artifact_sha256": "e529923ee4c9ade9a714b4c74f93a1e8cf1b319dc6b42c66c09a2013b0f099aa",
+      "payload_file_count": 49,
+      "linux_verification_passed": true,
+      "installed_retry_backoff_deadline_verified": true,
+      "real_credentials_present": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "deployment_status": "not_attempted_host_privilege_and_8215_precondition_blocked",
+      "active_router_release": "codex-account-router-0.2.6-linux-x64",
+      "production_state_changed_by_r64": false
+    },
+    "continuation_r64_8215_invariant_incident": {
+      "observation_only": true,
+      "r64_mutation_or_deployment_command_executed": false,
+      "expected_web_pid": 510876,
+      "observed_web_pid": 1336830,
+      "expected_web_active_enter_monotonic": 196497166178,
+      "observed_web_active_enter_monotonic": 335738476636,
+      "web_effective_unit_sha256_unchanged": true,
+      "expected_app_server_pid": 508396,
+      "observed_app_server_pid": 1336828,
+      "expected_app_server_active_enter_monotonic": 194490256399,
+      "observed_app_server_active_enter_monotonic": 335738474212,
+      "expected_app_server_effective_unit_sha256": "daaefec18fde144f1801e5b4e60a13cfe9e7c8abe98799192ee59a0f3b66db2f",
+      "observed_app_server_effective_unit_sha256": "ae839d73cd554222d86d7dc920f7a7938eccdab9746ec993f91a47c56c3d7a40",
+      "systemd_wall_start": "2026-07-31T10:23:29+08:00",
+      "app_server_proxy_drop_in_mtime": "2026-07-31T10:19:14.129258414+08:00",
+      "loopback_http_status": 200,
+      "tailnet_http_status": 200,
+      "fixed_baseline_unchanged": false,
+      "actor_or_intent_inferred": false
+    },
     "continuation_r63_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-8215-worker",
@@ -4616,7 +4744,8 @@
     }
   },
   "blockers": [
-    "The verified 0.2.29 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and the root-owned mode-0755 /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r63.sh is required; no duplicate deployment attempt was made.",
+    "The verified 0.2.30 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and the root-owned mode-0755 /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r64.sh would be required only after its fixed 8215 precondition passes; no deployment attempt was made.",
+    "The fixed 8215 invariant changed during R64 outside this milestone command set: codex-web-upstream.service now reports PID/ActiveEnter 1336830/335738476636 instead of 510876/196497166178, and codex-web-upstream-app-server.service reports 1336828/335738474212 plus a changed effective-unit hash instead of 508396/194490256399. R64 did not modify, restart, stop, reconfigure or restore 8215; deployment remains refused until the user determines the intended baseline.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, real two-binding credential acquisition/restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -4726,9 +4855,13 @@
     "R61 re-verifies the unchanged 0.2.29 candidate with four installed synthetic HTTP/SSE pre-semantic failure classifications, each bounded to primary then secondary with no third upstream attempt, but it is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R62 re-verifies the unchanged 0.2.29 candidate with four installed synthetic WebSocket pre-semantic failure classifications, each bounded to primary then secondary with no third upstream attempt, but it is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
     "R63 re-verifies the unchanged 0.2.29 candidate with installed synthetic WebSocket all-pool-unavailable bounds, an exact sanitized terminal error and close frame, but it is not deployed because the current execution environment lacks the required host privilege; production remains on 0.2.6.",
+    "R64 verifies an installed 0.2.30 candidate honors a non-zero HTTP Retry-After through a configured 200 ms cap and refuses a retry whose delay would exceed a 150 ms total deadline, but this uses runtime-generated synthetic credentials and a loopback fixture upstream only; provider timing and real account availability remain unqualified.",
+    "R64 exposes only positive, ceiling-checked failover environment values and pins systemd to the existing 3-attempt, 120-second, 100–2000 ms defaults. An operator can still choose a smaller valid deadline or retry budget that reduces availability, so deployment configuration remains an operational decision.",
+    "R64 did not deploy the verified 0.2.30 candidate; production remains on router 0.2.6 because host privilege is unavailable and the fixed 8215 PID/start/unit-hash precondition no longer passes.",
+    "The R64 8215 observation contradicts the fixed PID/start invariant: both standalone services restarted at 2026-07-31 10:23:29 CST and the App Server effective unit hash changed after a proxy drop-in mtime of 10:19:14 CST. No actor or intent is inferred, no R64 command targeted 8215, and R64 does not attempt restoration.",
     "R28 caps a weekly reset delay at the existing 24-hour circuit maximum, so a farther reset receives a bounded half-open recheck rather than sleeping until the full provider reset time.",
     "The existing local commits 3f8723f, 776f352 and 0b93593 have test evidence but their commit messages omit the test commands required by the current AGENTS.md; history was not rewritten and later commit messages include test commands.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-07-31T05:16:36+08:00"
+  "updated_at": "2026-07-31T10:45:01+08:00"
 }

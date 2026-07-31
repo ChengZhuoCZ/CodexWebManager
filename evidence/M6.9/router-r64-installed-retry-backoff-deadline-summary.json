@@ -1,0 +1,231 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R64",
+  "generated_at": "2026-07-31T10:45:01+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "input_revision": "f8fe92ea57ae50effc745195a9dcc7bebb9edcf5",
+  "implementation_revision": "0b946cc9de5e63f250104c321e8f589c9202bbb4",
+  "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "scope": {
+    "fixture_only": true,
+    "account_router_only": true,
+    "release_payload_changed": true,
+    "routed_8216_changed": false,
+    "deployment_attempted": false,
+    "production_model_request_sent": false,
+    "real_account_switch_tested": false,
+    "second_account_enrolled": false
+  },
+  "failure_first_experiment": {
+    "command": "bundled-node --test test/linux-release.test.mjs",
+    "attempt_limit": 1,
+    "attempts_used": 1,
+    "result": "failed_as_expected",
+    "tests_passed": 2,
+    "tests_failed": 1,
+    "observed_failure": "The installed-release verification summary had no synthetic_retry_backoff_deadline result."
+  },
+  "implementation": {
+    "runtime_environment_fields": [
+      "CODEX_ROUTER_FAILOVER_MAX_ATTEMPTS",
+      "CODEX_ROUTER_FAILOVER_TOTAL_DEADLINE_MS",
+      "CODEX_ROUTER_FAILOVER_BASE_BACKOFF_MS",
+      "CODEX_ROUTER_FAILOVER_MAX_BACKOFF_MS"
+    ],
+    "validation": "positive integer, state-machine ceiling and base-not-greater-than-maximum",
+    "packaged_systemd_defaults": {
+      "max_attempts": 3,
+      "total_deadline_ms": 120000,
+      "base_backoff_ms": 100,
+      "max_backoff_ms": 2000
+    },
+    "startup_failure_mode": "fail_closed"
+  },
+  "installed_fixture_result": {
+    "configured_bindings": 2,
+    "scenarios": 2,
+    "process_starts": 2,
+    "readiness_statuses": [
+      200,
+      200
+    ],
+    "nonzero_retry_after": {
+      "configured_max_attempts": 2,
+      "configured_retry_after_ms": 1000,
+      "configured_base_backoff_ms": 20,
+      "configured_max_backoff_ms": 200,
+      "configured_total_deadline_ms": 1000,
+      "upstream_role_sequence": [
+        "primary",
+        "secondary"
+      ],
+      "upstream_attempts": 2,
+      "observed_retry_delay_at_least_ms": 150,
+      "observed_retry_delay_below_ms": 900,
+      "downstream_status": 200,
+      "secondary_semantic_marker_received": true,
+      "completed": true
+    },
+    "deadline_before_retry": {
+      "configured_max_attempts": 2,
+      "configured_retry_after_ms": 1000,
+      "configured_base_backoff_ms": 20,
+      "configured_max_backoff_ms": 200,
+      "configured_total_deadline_ms": 150,
+      "upstream_role_sequence": [
+        "primary"
+      ],
+      "upstream_attempts": 1,
+      "secondary_contacted": false,
+      "downstream_status": 503,
+      "downstream_error": {
+        "type": "all_accounts_unavailable",
+        "reason": "total_deadline_exceeded",
+        "attempts": 1,
+        "semantic_output": false
+      }
+    },
+    "synthetic_credential_acquisition_tested": true,
+    "synthetic_model_requests_sent": 2,
+    "local_fixture_upstream_only": true,
+    "real_credentials_present": false,
+    "real_model_request_sent": false,
+    "real_account_switch_tested": false,
+    "in_flight_resume_tested": false,
+    "seamless_account_continuity_claimed": false
+  },
+  "tests": {
+    "related_tests": {
+      "tests": 40,
+      "passed": 40,
+      "failed": 0
+    },
+    "package_complete": {
+      "tests": 323,
+      "passed": 298,
+      "failed": 0,
+      "expected_fixture_skips": 25
+    },
+    "strict_matrix": {
+      "tests": 323,
+      "passed": 323,
+      "failed": 0,
+      "skipped": 0,
+      "unit": 158,
+      "integration": 117,
+      "e2e": 48,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    },
+    "security": {
+      "qualified": true,
+      "focused_tests": 105,
+      "focused_tests_passed": 105,
+      "strict_ui_tests": 492,
+      "strict_ui_tests_passed": 492,
+      "files_scanned": 535,
+      "findings": 0,
+      "final_post_state_pass": true
+    },
+    "non_authoritative_attempts": [
+      {
+        "command": "npm test",
+        "result": "npm_not_available_in_shell_path"
+      },
+      {
+        "command": "node --test with inherited umask 0077",
+        "result": "8 fixture file-mode failures; superseded by the repository's documented umask 0022 gate"
+      },
+      {
+        "command": "strict matrix with umask 0027",
+        "result": "3 deployment fixture executable-mode failures; superseded by the repository's documented umask 0022 gate"
+      }
+    ]
+  },
+  "release_candidate": {
+    "name": "codex-account-router-0.2.30-linux-x64",
+    "artifact_path": "/tmp/codex-account-router-0.2.30-linux-x64.tar.gz",
+    "artifact_sha256": "e529923ee4c9ade9a714b4c74f93a1e8cf1b319dc6b42c66c09a2013b0f099aa",
+    "payload_file_count": 49,
+    "linux_verification_passed": true,
+    "deployment_script": "evidence/M6.9/deploy-router-r64.sh",
+    "deployment_script_sha256": "74fa1a9395331feb6b38cd07ffe2be4420caac889429a183a0439b6c705481a0",
+    "deployment_script_syntax_passed": true,
+    "deployment_status": "not_attempted",
+    "active_router_release": "codex-account-router-0.2.6-linux-x64",
+    "active_router_release_changed": false,
+    "reason": "Known host privilege blocker remains, and the R64 precondition audit also detected that the fixed 8215 PID/start/unit-hash baseline had changed outside this milestone command set."
+  },
+  "production_observation": {
+    "observation_only": true,
+    "mutation_command_executed": false,
+    "router": {
+      "pid": 548777,
+      "exec_start_monotonic": 209169242080,
+      "active_enter_monotonic": 209169242318,
+      "effective_unit_sha256": "230dba0a5f7e283f4db2291e4bc6ab7b078eebd63e89e9275a9028185531dddc",
+      "readyz_status": 200,
+      "changed": false
+    },
+    "routed_8216_web": {
+      "pid": 538278,
+      "exec_start_monotonic": 205386075197,
+      "active_enter_monotonic": 205386075436,
+      "effective_unit_sha256": "bcf691a9362a8f91c4a8d2680631b238bd6ba9ada7e18975bdc567ace4823ca2",
+      "loopback_http_status": 200,
+      "tailnet_http_status": 200,
+      "changed": false
+    },
+    "routed_8216_app_server": {
+      "pid": 495033,
+      "exec_start_monotonic": 188703455553,
+      "active_enter_monotonic": 188703455626,
+      "effective_unit_sha256": "5b44e7e28c57daebdf97eb9e5bbb1e5cd6655a7511a7117079988326fea1be2b",
+      "changed": false
+    },
+    "standalone_8215_baseline": {
+      "web_pid": 510876,
+      "web_active_enter_monotonic": 196497166178,
+      "web_effective_unit_sha256": "543ddc71409cc088522e80651955a988cc9f2229e9da29dc8a9107c3def3ea1a",
+      "app_server_pid": 508396,
+      "app_server_active_enter_monotonic": 194490256399,
+      "app_server_effective_unit_sha256": "daaefec18fde144f1801e5b4e60a13cfe9e7c8abe98799192ee59a0f3b66db2f"
+    },
+    "standalone_8215_observed": {
+      "web_pid": 1336830,
+      "web_exec_start_monotonic": 335738476558,
+      "web_active_enter_monotonic": 335738476636,
+      "web_effective_unit_sha256": "543ddc71409cc088522e80651955a988cc9f2229e9da29dc8a9107c3def3ea1a",
+      "app_server_pid": 1336828,
+      "app_server_exec_start_monotonic": 335738474088,
+      "app_server_active_enter_monotonic": 335738474212,
+      "app_server_effective_unit_sha256": "ae839d73cd554222d86d7dc920f7a7938eccdab9746ec993f91a47c56c3d7a40",
+      "systemd_wall_start": "2026-07-31T10:23:29+08:00",
+      "app_server_proxy_drop_in_mtime": "2026-07-31T10:19:14.129258414+08:00",
+      "loopback_http_status": 200,
+      "tailnet_http_status": 200,
+      "fixed_baseline_unchanged": false
+    },
+    "standalone_8215_change_attribution": "No R64 command modified, restarted, stopped or reconfigured either 8215 unit or /opt/0xcaff-codex-web. The actor and intent of the observed systemd change were not inferred.",
+    "fixed_8215_invariant_passed": false
+  },
+  "blockers": [
+    "The fixed 8215 PID/start baseline changed during R64 outside this milestone command set. Deployment is refused until the user determines the intended 8215 baseline; R64 does not attempt to restore or modify 8215.",
+    "The execution environment still lacks host privilege to activate the root-owned router release.",
+    "A real second router account remains unauthorized, so no real A-to-B E2E ran."
+  ],
+  "residual_risks": [
+    "Installed timing evidence uses runtime-generated synthetic credentials and a loopback fixture upstream; it does not qualify provider timing or real account availability.",
+    "The accepted route affects only a new request and is not evidence of backend-session migration, in-flight replay, original-session restoration or running-computation recovery.",
+    "The 0.2.30 candidate is verified but inactive; production remains on router 0.2.6."
+  ]
+}
