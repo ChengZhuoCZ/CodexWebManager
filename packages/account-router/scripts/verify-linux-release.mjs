@@ -944,6 +944,14 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
     const syntheticAllPoolUnavailableFailureSequence = [];
     const syntheticWebSocketAllPoolUnavailableRoleSequence = [];
     const syntheticWebSocketAllPoolUnavailableFailureSequence = [];
+    const syntheticRetryBackoffRoleSequences = {
+      nonzero_retry_after: [],
+      deadline_before_retry: [],
+    };
+    const syntheticRetryBackoffArrivalTimes = {
+      nonzero_retry_after: [],
+      deadline_before_retry: [],
+    };
     const preSemanticFailureInjections = Object.freeze({
       rate_limited: "http_429",
       auth_expired: "http_401",
@@ -1035,6 +1043,42 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
             "event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n",
           );
         }
+        return;
+      }
+      const retryBackoffPrefix = "retry_backoff_";
+      const retryBackoffScenario =
+        syntheticFixtureScenario.startsWith(retryBackoffPrefix)
+          ? syntheticFixtureScenario.slice(retryBackoffPrefix.length)
+          : null;
+      if (
+        retryBackoffScenario !== null &&
+        Object.hasOwn(
+          syntheticRetryBackoffRoleSequences,
+          retryBackoffScenario,
+        )
+      ) {
+        syntheticRetryBackoffRoleSequences[retryBackoffScenario].push(role);
+        syntheticRetryBackoffArrivalTimes[retryBackoffScenario].push(
+          Date.now(),
+        );
+        if (role === "primary") {
+          response.writeHead(429, {
+            "content-type": "application/json",
+            "retry-after": "1",
+          });
+          response.end('{"error":{"type":"rate_limited"}}');
+          return;
+        }
+        response.writeHead(200, { "content-type": "text/event-stream" });
+        response.write(
+          "event: response.created\ndata: {\"type\":\"response.created\"}\n\n",
+        );
+        response.write(
+          "event: response.output_text.delta\ndata: {\"type\":\"response.output_text.delta\",\"delta\":\"installed-retry-backoff-secondary\"}\n\n",
+        );
+        response.end(
+          "event: response.completed\ndata: {\"type\":\"response.completed\"}\n\n",
+        );
         return;
       }
       if (syntheticFixtureScenario === "all_pool_unavailable") {
@@ -2800,6 +2844,203 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
       in_flight_resume_tested: false,
     };
 
+    const retryBackoffReadinessStatuses = [];
+    const retryBackoffResponses = new Map();
+    const retryBackoffSettings = Object.freeze({
+      nonzero_retry_after: Object.freeze({
+        maxAttempts: 2,
+        totalDeadlineMs: 1_000,
+        baseBackoffMs: 20,
+        maxBackoffMs: 200,
+      }),
+      deadline_before_retry: Object.freeze({
+        maxAttempts: 2,
+        totalDeadlineMs: 150,
+        baseBackoffMs: 20,
+        maxBackoffMs: 200,
+      }),
+    });
+    for (const [scenario, settings] of Object.entries(
+      retryBackoffSettings,
+    )) {
+      syntheticFixtureScenario = `retry_backoff_${scenario}`;
+      const scenarioStateDirectory = path.join(
+        temporaryRoot,
+        `synthetic-${syntheticFixtureScenario}-state`,
+      );
+      await fs.mkdir(scenarioStateDirectory, { mode: 0o700 });
+      child = spawn(path.join(current, "bin/codex-account-router"), [], {
+        cwd: current,
+        env: {
+          ...scrubbedRuntimeEnvironment(homeDirectory),
+          CODEX_ROUTER_ACCOUNTS_FILE: syntheticAccountsFile,
+          CODEX_ROUTER_CREDENTIAL_ROOT: syntheticBindingRoot,
+          CODEX_ROUTER_ADMIN_TOKEN_FILE: syntheticAdminTokenFile,
+          CODEX_ROUTER_STATE_DIRECTORY: scenarioStateDirectory,
+          CODEX_ROUTER_UPSTREAM_ORIGIN: syntheticUpstreamOrigin,
+          CODEX_ROUTER_FAILOVER_MAX_ATTEMPTS:
+            String(settings.maxAttempts),
+          CODEX_ROUTER_FAILOVER_TOTAL_DEADLINE_MS:
+            String(settings.totalDeadlineMs),
+          CODEX_ROUTER_FAILOVER_BASE_BACKOFF_MS:
+            String(settings.baseBackoffMs),
+          CODEX_ROUTER_FAILOVER_MAX_BACKOFF_MS:
+            String(settings.maxBackoffMs),
+        },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+      const scenarioStarted = await waitForStart(child);
+      const adminOrigin =
+        `http://127.0.0.1:${scenarioStarted.record.bind_port}`;
+      const modelOrigin =
+        `http://127.0.0.1:${scenarioStarted.record.model_bind_port}`;
+      const readyResponse = await fetch(`${adminOrigin}/readyz`, {
+        signal: AbortSignal.timeout(5_000),
+      });
+      const readiness = await readyResponse.json();
+      assert(
+        readyResponse.status === 200 &&
+          readiness.status === "ready" &&
+          readiness.usable_accounts === 2,
+        `installed router ${scenario} retry fixture readiness was invalid`,
+      );
+      retryBackoffReadinessStatuses.push(readyResponse.status);
+
+      const modelResponse = await fetch(
+        `${modelOrigin}/v1/responses`,
+        {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: '{"input":"installed-retry-backoff-fixture"}',
+          signal: AbortSignal.timeout(2_000),
+        },
+      );
+      retryBackoffResponses.set(scenario, {
+        status: modelResponse.status,
+        body: await modelResponse.text(),
+      });
+
+      child.kill("SIGTERM");
+      const [scenarioExitCode, scenarioExitSignal] =
+        await waitForExit(child);
+      child = undefined;
+      assert(
+        scenarioExitCode === 0 && scenarioExitSignal === null,
+        `installed router ${scenario} retry fixture did not exit cleanly`,
+      );
+      assert(
+        scenarioStarted.getStderr() === "",
+        `installed router ${scenario} retry fixture wrote an error log`,
+      );
+    }
+    assert(
+      fixtureUpstreamFailure === null,
+      fixtureUpstreamFailure ??
+        "installed router synthetic retry/backoff verification failed",
+    );
+
+    const nonzeroRetryAfterResponse = retryBackoffResponses.get(
+      "nonzero_retry_after",
+    );
+    const nonzeroRetryAfterRoles =
+      syntheticRetryBackoffRoleSequences.nonzero_retry_after;
+    const nonzeroRetryAfterTimes =
+      syntheticRetryBackoffArrivalTimes.nonzero_retry_after;
+    const observedRetryDelayMs =
+      nonzeroRetryAfterTimes[1] - nonzeroRetryAfterTimes[0];
+    assert(
+      nonzeroRetryAfterResponse.status === 200 &&
+        nonzeroRetryAfterResponse.body.includes(
+          "installed-retry-backoff-secondary",
+        ) &&
+        nonzeroRetryAfterResponse.body.includes(
+          "event: response.completed",
+        ) &&
+        JSON.stringify(nonzeroRetryAfterRoles) ===
+          JSON.stringify(["primary", "secondary"]) &&
+        observedRetryDelayMs >= 150 &&
+        observedRetryDelayMs < 900,
+      "installed router did not apply bounded non-zero Retry-After backoff",
+    );
+
+    const deadlineBeforeRetryResponse = retryBackoffResponses.get(
+      "deadline_before_retry",
+    );
+    const deadlineBeforeRetryError = JSON.parse(
+      deadlineBeforeRetryResponse.body,
+    )?.error;
+    const deadlineBeforeRetryRoles =
+      syntheticRetryBackoffRoleSequences.deadline_before_retry;
+    assert(
+      deadlineBeforeRetryResponse.status === 503 &&
+        deadlineBeforeRetryError?.type ===
+          "all_accounts_unavailable" &&
+        deadlineBeforeRetryError.reason ===
+          "total_deadline_exceeded" &&
+        deadlineBeforeRetryError.attempts === 1 &&
+        deadlineBeforeRetryError.semantic_output === false &&
+        JSON.stringify(deadlineBeforeRetryRoles) ===
+          JSON.stringify(["primary"]),
+      "installed router did not stop before a retry exceeding its total deadline",
+    );
+    const syntheticRetryBackoffDeadline = {
+      configured_bindings: syntheticBindings.length,
+      scenarios: Object.keys(retryBackoffSettings).length,
+      process_starts: Object.keys(retryBackoffSettings).length,
+      readiness_statuses: retryBackoffReadinessStatuses,
+      nonzero_retry_after: {
+        configured_max_attempts:
+          retryBackoffSettings.nonzero_retry_after.maxAttempts,
+        configured_retry_after_ms: 1_000,
+        configured_base_backoff_ms:
+          retryBackoffSettings.nonzero_retry_after.baseBackoffMs,
+        configured_max_backoff_ms:
+          retryBackoffSettings.nonzero_retry_after.maxBackoffMs,
+        configured_total_deadline_ms:
+          retryBackoffSettings.nonzero_retry_after.totalDeadlineMs,
+        downstream_status: nonzeroRetryAfterResponse.status,
+        upstream_role_sequence: nonzeroRetryAfterRoles,
+        upstream_attempts: nonzeroRetryAfterRoles.length,
+        observed_retry_delay_at_least_ms: 150,
+        observed_retry_delay_below_ms: 900,
+        secondary_semantic_marker_received: true,
+        completed: true,
+      },
+      deadline_before_retry: {
+        configured_max_attempts:
+          retryBackoffSettings.deadline_before_retry.maxAttempts,
+        configured_retry_after_ms: 1_000,
+        configured_base_backoff_ms:
+          retryBackoffSettings.deadline_before_retry.baseBackoffMs,
+        configured_max_backoff_ms:
+          retryBackoffSettings.deadline_before_retry.maxBackoffMs,
+        configured_total_deadline_ms:
+          retryBackoffSettings.deadline_before_retry.totalDeadlineMs,
+        downstream_status: deadlineBeforeRetryResponse.status,
+        downstream_error: {
+          type: deadlineBeforeRetryError.type,
+          reason: deadlineBeforeRetryError.reason,
+          attempts: deadlineBeforeRetryError.attempts,
+          semantic_output: deadlineBeforeRetryError.semantic_output,
+        },
+        upstream_role_sequence: deadlineBeforeRetryRoles,
+        upstream_attempts: deadlineBeforeRetryRoles.length,
+        secondary_contacted: false,
+      },
+      local_fixture_upstream_only: true,
+      synthetic_credential_acquisition_tested: true,
+      synthetic_model_requests_sent:
+        Object.keys(retryBackoffSettings).length,
+      synthetic_upstream_attempts:
+        nonzeroRetryAfterRoles.length +
+        deadlineBeforeRetryRoles.length,
+      manual_switch_tested: false,
+      real_credentials_present: false,
+      real_model_request_sent: false,
+      real_account_switch_tested: false,
+      in_flight_resume_tested: false,
+    };
+
     return {
       health_status: healthResponse.status,
       readiness_status: readinessResponse.status,
@@ -2831,6 +3072,8 @@ async function verifyInstalledRuntime({ artifactPath, architecture, release }) {
         syntheticAllPoolUnavailable,
       synthetic_pre_semantic_failure_classifications:
         syntheticPreSemanticFailureClassifications,
+      synthetic_retry_backoff_deadline:
+        syntheticRetryBackoffDeadline,
     };
   } finally {
     if (websocketClient?.socket) {

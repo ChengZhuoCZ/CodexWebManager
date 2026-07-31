@@ -93,6 +93,10 @@ The router service sets:
 
 ```text
 CODEX_ROUTER_STATE_DIRECTORY=/var/lib/codex-account-router
+CODEX_ROUTER_FAILOVER_MAX_ATTEMPTS=3
+CODEX_ROUTER_FAILOVER_TOTAL_DEADLINE_MS=120000
+CODEX_ROUTER_FAILOVER_BASE_BACKOFF_MS=100
+CODEX_ROUTER_FAILOVER_MAX_BACKOFF_MS=2000
 ```
 
 Quota, authentication, rate-limit, network, and upstream-5xx circuit failures are saved atomically.

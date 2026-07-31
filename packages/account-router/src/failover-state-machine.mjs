@@ -24,6 +24,10 @@ const MAX_ATTEMPTS = 16;
 const MAX_TOTAL_DEADLINE_MS = 60 * 60_000;
 const MAX_BACKOFF_MS = 60_000;
 const MAX_RETRY_AFTER_MS = 30 * 24 * 60 * 60_000;
+const DEFAULT_MAX_ATTEMPTS = 3;
+const DEFAULT_TOTAL_DEADLINE_MS = 120_000;
+const DEFAULT_BASE_BACKOFF_MS = 100;
+const DEFAULT_MAX_BACKOFF_MS = 2_000;
 
 class DeadlineReachedError extends Error {
   constructor() {
@@ -222,10 +226,10 @@ export function failoverErrorBody(error) {
 export function createFailoverStateMachine({
   now = () => Date.now(),
   sleep = defaultSleep,
-  maxAttempts = 3,
-  totalDeadlineMs = 120_000,
-  baseBackoffMs = 100,
-  maxBackoffMs = 2_000,
+  maxAttempts = DEFAULT_MAX_ATTEMPTS,
+  totalDeadlineMs = DEFAULT_TOTAL_DEADLINE_MS,
+  baseBackoffMs = DEFAULT_BASE_BACKOFF_MS,
+  maxBackoffMs = DEFAULT_MAX_BACKOFF_MS,
 } = {}) {
   if (typeof now !== "function") throw new TypeError("failover clock must be a function");
   if (typeof sleep !== "function") throw new TypeError("failover sleep must be a function");
@@ -497,4 +501,11 @@ export const failoverPolicy = Object.freeze({
   max_attempts: MAX_ATTEMPTS,
   max_total_deadline_ms: MAX_TOTAL_DEADLINE_MS,
   max_backoff_ms: MAX_BACKOFF_MS,
+});
+
+export const failoverDefaults = Object.freeze({
+  maxAttempts: DEFAULT_MAX_ATTEMPTS,
+  totalDeadlineMs: DEFAULT_TOTAL_DEADLINE_MS,
+  baseBackoffMs: DEFAULT_BASE_BACKOFF_MS,
+  maxBackoffMs: DEFAULT_MAX_BACKOFF_MS,
 });

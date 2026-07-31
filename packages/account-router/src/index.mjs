@@ -28,6 +28,7 @@ export {
   FailoverAttemptError,
   FailoverResultError,
   failoverErrorBody,
+  failoverDefaults,
   failoverPolicy,
 } from "./failover-state-machine.mjs";
 export { createModelProxyService } from "./model-service.mjs";

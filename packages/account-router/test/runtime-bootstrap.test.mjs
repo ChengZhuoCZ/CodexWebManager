@@ -32,8 +32,29 @@ test("builds an empty loopback runtime configuration when no accounts are config
   assert.equal(options.upstreamOrigin, "https://chatgpt.com");
   assert.equal(options.adminPort, 0);
   assert.equal(options.modelPort, 0);
+  assert.deepEqual(options.failoverOptions, {
+    maxAttempts: 3,
+    totalDeadlineMs: 120_000,
+    baseBackoffMs: 100,
+    maxBackoffMs: 2_000,
+  });
   assert.equal(options.adminAuthenticator, null);
   assert.equal(options.secretRegistry.has("codex-auth"), false);
+});
+
+test("passes bounded failover environment settings into runtime composition options", async () => {
+  const options = await loadRuntimeBootstrap({
+    CODEX_ROUTER_FAILOVER_MAX_ATTEMPTS: "2",
+    CODEX_ROUTER_FAILOVER_TOTAL_DEADLINE_MS: "150",
+    CODEX_ROUTER_FAILOVER_BASE_BACKOFF_MS: "20",
+    CODEX_ROUTER_FAILOVER_MAX_BACKOFF_MS: "200",
+  });
+  assert.deepEqual(options.failoverOptions, {
+    maxAttempts: 2,
+    totalDeadlineMs: 150,
+    baseBackoffMs: 20,
+    maxBackoffMs: 200,
+  });
 });
 
 test("loads only public account metadata and registers the Codex credential provider", async (context) => {
