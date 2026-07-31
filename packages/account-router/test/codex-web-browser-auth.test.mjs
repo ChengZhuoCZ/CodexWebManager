@@ -1252,6 +1252,7 @@ test("browser auth policy is fail-closed even when the pinned checkout is unavai
   assert.match(source, /CODEX_WEB_ACCESS_TOKEN_FILE/);
   assert.match(source, /CODEX_WEB_PUBLIC_ORIGIN/);
   assert.match(source, /CODEX_WEB_TRUSTED_TAILNET_ACCESS/);
+  assert.match(source, /limitRemoteHistory: config\.trustedTailnetAccess/);
   assert.match(source, /CODEX_WEB_CODEX_HOME/);
   assert.match(source, /CODEX_WEB_WORKSPACE_ROOTS/);
   assert.match(source, /request\.method !== "getAuthStatus"/);

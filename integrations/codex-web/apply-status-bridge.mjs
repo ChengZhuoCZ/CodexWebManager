@@ -257,6 +257,7 @@ async function applyStatusBridgeLocked({ codexWebRoot, revision = null } = {}) {
     `  const sockets = new Set<WebSocket>();
   const browserIpcRouter = new BrowserIpcRouter(
     browserSessionAuth.authorizeRendererEvent,
+    browserSessionAuth.limitRemoteHistory,
   );`,
     "browser IPC router",
   );

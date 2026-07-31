@@ -12,6 +12,7 @@ type RoutedMessage = {
 const OPEN_SOCKET_STATE = 1;
 const OUTSTANDING_REQUEST_LIMIT = 4_096;
 const OUTSTANDING_REQUEST_TTL_MS = 15 * 60 * 1_000;
+const REMOTE_HISTORY_TURN_LIMIT = 5;
 const CONFIG_DIAGNOSTIC_METHODS = new Set([
   "config/read",
   "configRequirements/read",
@@ -20,8 +21,17 @@ const CONFIG_DIAGNOSTIC_METHODS = new Set([
 
 type OutstandingRequest = {
   createdAt: number;
+  history: HistoryRequestContext | null;
   method: string | null;
   socket: BrowserSocket;
+};
+
+type HistoryRequestContext = {
+  cursor: string | null;
+  initialTurnsSortDirection: "asc" | "desc" | "invalid" | null;
+  sortDirection: "asc" | "desc" | "invalid" | null;
+  threadId: string | null;
+  turnId: string | null;
 };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -96,6 +106,55 @@ function rendererRequestMethod(message: RoutedMessage): string | null {
     return null;
   }
   return payload.request.method;
+}
+
+function boundedIdentifier(value: unknown): string | null {
+  return typeof value === "string" && value.length >= 1 && value.length <= 256
+    ? value
+    : null;
+}
+
+function boundedCursor(value: unknown): string | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  return typeof value === "string" && value.length >= 1 && value.length <= 4_096
+    ? value
+    : "invalid";
+}
+
+function sortDirection(
+  value: unknown,
+): "asc" | "desc" | "invalid" | null {
+  if (value === undefined || value === null) {
+    return null;
+  }
+  return value === "asc" || value === "desc" ? value : "invalid";
+}
+
+function rendererHistoryContext(
+  message: RoutedMessage,
+): HistoryRequestContext | null {
+  const payload = viewPayload(message);
+  if (
+    payload === null ||
+    (payload.type !== "mcp-request" &&
+      payload.type !== "thread-prewarm-start") ||
+    !isRecord(payload.request) ||
+    !isRecord(payload.request.params)
+  ) {
+    return null;
+  }
+  const initialTurnsPage = isRecord(payload.request.params.initialTurnsPage)
+    ? payload.request.params.initialTurnsPage
+    : null;
+  return {
+    cursor: boundedCursor(payload.request.params.cursor),
+    initialTurnsSortDirection: sortDirection(initialTurnsPage?.sortDirection),
+    sortDirection: sortDirection(payload.request.params.sortDirection),
+    threadId: boundedIdentifier(payload.request.params.threadId),
+    turnId: boundedIdentifier(payload.request.params.turnId),
+  };
 }
 
 function warnFilteredRendererResponse(method: string | null): void {
@@ -218,6 +277,188 @@ function sanitizedMcpError(message: unknown): unknown | null {
   };
 }
 
+function replaceMcpResult(message: unknown, result: unknown): unknown | null {
+  const envelope = isRecord(message) ? message : null;
+  const args = envelope !== null && Array.isArray(envelope.args)
+    ? envelope.args
+    : null;
+  const payload = args !== null && isRecord(args[0]) ? args[0] : null;
+  const response = payload !== null && isRecord(payload.message)
+    ? payload.message
+    : null;
+  if (envelope === null || args === null || payload === null || response === null) {
+    return null;
+  }
+  return {
+    ...envelope,
+    args: [
+      {
+        ...payload,
+        message: {
+          ...response,
+          result,
+        },
+      },
+      ...args.slice(1),
+    ],
+  };
+}
+
+function limitedThreadResult(
+  result: unknown,
+  history: HistoryRequestContext | null,
+): Record<string, unknown> | null {
+  if (
+    !isRecord(result) ||
+    !isRecord(result.thread) ||
+    !Array.isArray(result.thread.turns)
+  ) {
+    return null;
+  }
+  const limited: Record<string, unknown> = {
+    ...result,
+    thread: {
+      ...result.thread,
+      turns: result.thread.turns.slice(-REMOTE_HISTORY_TURN_LIMIT),
+    },
+  };
+  if (Object.hasOwn(result, "initialTurnsPage")) {
+    const initialTurnsPage = result.initialTurnsPage;
+    if (
+      initialTurnsPage !== null &&
+      (!isRecord(initialTurnsPage) ||
+        !Array.isArray(initialTurnsPage.data))
+    ) {
+      return null;
+    }
+    if (isRecord(initialTurnsPage) && Array.isArray(initialTurnsPage.data)) {
+      const descending =
+        history?.initialTurnsSortDirection === null ||
+        history?.initialTurnsSortDirection === "desc";
+      limited.initialTurnsPage = {
+        ...initialTurnsPage,
+        data: descending
+          ? initialTurnsPage.data.slice(0, REMOTE_HISTORY_TURN_LIMIT)
+          : [],
+        nextCursor: null,
+        backwardsCursor: null,
+      };
+    }
+  }
+  if (Object.hasOwn(result, "turnsBackwardsCursor")) {
+    limited.turnsBackwardsCursor = null;
+  }
+  return limited;
+}
+
+function limitedTurnsPageResult(
+  result: unknown,
+  history: HistoryRequestContext | null,
+): Record<string, unknown> | null {
+  if (!isRecord(result) || !Array.isArray(result.data)) {
+    return null;
+  }
+  const initialDescendingPage =
+    history?.cursor === null &&
+    (history.sortDirection === null || history.sortDirection === "desc");
+  return {
+    ...result,
+    data: initialDescendingPage
+      ? result.data.slice(0, REMOTE_HISTORY_TURN_LIMIT)
+      : [],
+    nextCursor: null,
+    backwardsCursor: null,
+  };
+}
+
+function limitedItemsPageResult(
+  result: unknown,
+  history: HistoryRequestContext | null,
+  allowedTurnIds: ReadonlySet<string> | null,
+): Record<string, unknown> | null {
+  if (!isRecord(result) || !Array.isArray(result.data)) {
+    return null;
+  }
+  const turnId = history?.turnId ?? null;
+  if (turnId === null || allowedTurnIds?.has(turnId) !== true) {
+    return {
+      ...result,
+      data: [],
+      nextCursor: null,
+      backwardsCursor: null,
+    };
+  }
+  return result.data.every(
+    (entry) => isRecord(entry) && entry.turnId === turnId,
+  )
+    ? result
+    : null;
+}
+
+function limitedBrowserHistoryResponse(
+  message: unknown,
+  request: OutstandingRequest,
+  allowedTurnIds: ReadonlySet<string> | null,
+  limitRemoteHistory: boolean,
+): unknown | null {
+  if (!limitRemoteHistory) {
+    return message;
+  }
+  if (
+    request.method !== "thread/read" &&
+    request.method !== "thread/resume" &&
+    request.method !== "thread/fork" &&
+    request.method !== "thread/rollback" &&
+    request.method !== "thread/turns/list" &&
+    request.method !== "thread/items/list"
+  ) {
+    return message;
+  }
+  const payload = mainViewPayload(message);
+  if (payload === null || !isRecord(payload.message)) {
+    return null;
+  }
+  if (Object.hasOwn(payload.message, "error")) {
+    return message;
+  }
+  if (!Object.hasOwn(payload.message, "result")) {
+    return null;
+  }
+  const result = request.method === "thread/turns/list"
+    ? limitedTurnsPageResult(payload.message.result, request.history)
+    : request.method === "thread/items/list"
+      ? limitedItemsPageResult(
+          payload.message.result,
+          request.history,
+          allowedTurnIds,
+        )
+      : limitedThreadResult(payload.message.result, request.history);
+  return result === null ? null : replaceMcpResult(message, result);
+}
+
+function mcpResult(message: unknown): Record<string, unknown> | null {
+  const payload = mainViewPayload(message);
+  return payload !== null &&
+    isRecord(payload.message) &&
+    isRecord(payload.message.result)
+    ? payload.message.result
+    : null;
+}
+
+function turnIds(value: unknown): string[] | null {
+  if (!Array.isArray(value) || value.length > REMOTE_HISTORY_TURN_LIMIT) {
+    return null;
+  }
+  const ids: string[] = [];
+  for (const turn of value) {
+    if (!isRecord(turn) || typeof turn.id !== "string" || turn.id.length === 0) {
+      return null;
+    }
+    ids.push(turn.id);
+  }
+  return ids;
+}
+
 export class BrowserIpcRouter {
   private readonly latestState = new Map<
     string,
@@ -226,16 +467,22 @@ export class BrowserIpcRouter {
   private readonly mainRequests = new Map<string, OutstandingRequest>();
   private readonly readySockets = new Set<BrowserSocket>();
   private readonly rendererRequests = new Map<string, OutstandingRequest>();
+  private readonly recentTurnIds = new Map<
+    BrowserSocket,
+    Map<string, Set<string>>
+  >();
   private readonly sockets = new Set<BrowserSocket>();
   private readonly viewReadySockets = new Set<BrowserSocket>();
   private sequence = 0;
 
   constructor(
     private readonly authorizeRendererEvent: (message: unknown) => boolean,
+    private readonly limitRemoteHistory = false,
   ) {}
 
   addSocket(socket: BrowserSocket): void {
     this.sockets.add(socket);
+    this.recentTurnIds.set(socket, new Map());
   }
 
   removeSocket(socket: BrowserSocket): void {
@@ -248,8 +495,10 @@ export class BrowserIpcRouter {
       this.latestState.clear();
       this.mainRequests.clear();
       this.rendererRequests.clear();
+      this.recentTurnIds.clear();
       this.sequence = 0;
     }
+    this.recentTurnIds.delete(socket);
   }
 
   markTransportReady(socket: BrowserSocket): boolean {
@@ -300,6 +549,7 @@ export class BrowserIpcRouter {
     }
     this.rendererRequests.set(requestKey, {
       createdAt: Date.now(),
+      history: rendererHistoryContext(message),
       method: rendererRequestMethod(message),
       socket,
     });
@@ -320,24 +570,35 @@ export class BrowserIpcRouter {
     const responseKey = mainResponseKey(message);
     if (responseKey !== null) {
       const outstanding = this.rendererRequests.get(responseKey);
-      const target = outstanding?.socket;
       this.rendererRequests.delete(responseKey);
-      if (target === undefined) {
+      if (outstanding === undefined) {
         return;
       }
-      if (!this.authorizeRendererEvent(message)) {
-        warnFilteredRendererResponse(outstanding?.method ?? null);
+      const target = outstanding.socket;
+      const threadId = outstanding.history?.threadId ?? null;
+      const allowedTurnIds = threadId === null
+        ? null
+        : this.recentTurnIds.get(target)?.get(threadId) ?? null;
+      const deliverable = limitedBrowserHistoryResponse(
+        message,
+        outstanding,
+        allowedTurnIds,
+        this.limitRemoteHistory,
+      );
+      if (deliverable === null || !this.authorizeRendererEvent(deliverable)) {
+        warnFilteredRendererResponse(outstanding.method);
         const fallback = sanitizedMcpError(message);
         if (fallback !== null) {
           this.send(target, fallback);
         }
         return;
       }
-      warnRendererConfigFlow("response", outstanding?.method ?? null);
-      warnRendererConfigDelivery(
-        outstanding?.method ?? null,
-        this.send(target, message),
-      );
+      warnRendererConfigFlow("response", outstanding.method);
+      const delivered = this.send(target, deliverable);
+      if (delivered && this.limitRemoteHistory) {
+        this.rememberRecentTurns(target, outstanding, deliverable);
+      }
+      warnRendererConfigDelivery(outstanding.method, delivered);
       return;
     }
     if (payload?.type === "mcp-response") {
@@ -362,6 +623,7 @@ export class BrowserIpcRouter {
       }
       this.mainRequests.set(requestKey, {
         createdAt: Date.now(),
+        history: null,
         method: null,
         socket: target,
       });
@@ -398,6 +660,39 @@ export class BrowserIpcRouter {
       }
     }
     return null;
+  }
+
+  private rememberRecentTurns(
+    socket: BrowserSocket,
+    request: OutstandingRequest,
+    message: unknown,
+  ): void {
+    if (request.method === "thread/turns/list") {
+      if (request.history?.cursor !== null) {
+        return;
+      }
+      const threadId = request.history?.threadId ?? null;
+      const result = mcpResult(message);
+      const ids = turnIds(result?.data);
+      if (threadId !== null && ids !== null) {
+        this.recentTurnIds.get(socket)?.set(threadId, new Set(ids));
+      }
+      return;
+    }
+    if (
+      request.method !== "thread/read" &&
+      request.method !== "thread/resume" &&
+      request.method !== "thread/fork" &&
+      request.method !== "thread/rollback"
+    ) {
+      return;
+    }
+    const result = mcpResult(message);
+    const thread = isRecord(result?.thread) ? result.thread : null;
+    const ids = turnIds(thread?.turns);
+    if (thread !== null && typeof thread.id === "string" && ids !== null) {
+      this.recentTurnIds.get(socket)?.set(thread.id, new Set(ids));
+    }
   }
 
   private removeSocketRequests(

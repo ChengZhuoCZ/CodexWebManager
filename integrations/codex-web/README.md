@@ -55,6 +55,16 @@ hostnames, wildcard origins, and other flag values. In this mode
 loopback behind a tailnet-only Tailscale TCP forwarder; never combine this mode with a public
 listener or Tailscale Funnel.
 
+Trusted Tailnet mode also limits historical conversation payloads sent over the browser IPC
+WebSocket to the five newest complete turns. A complete turn is the upstream protocol's native
+history unit and keeps its user/assistant messages, attachments, and tool results together.
+`thread/read`, `thread/resume`, fork/rollback history, and the first descending
+`thread/turns/list` page are trimmed server-side; older turn cursors are closed, and
+`thread/items/list` is accepted only for one of the five delivered turn IDs. Live semantic
+notifications are not treated as history and are forwarded unchanged. This limit is disabled for
+loopback site-key mode, does not delete server-side history, and does not change the context used
+by the model.
+
 `CODEX_WEB_CODEX_HOME` must be an existing, non-symlink directory dedicated to the Codex
 app-server runtime. It is returned only to an authenticated browser session as path
 configuration; credential files and their contents are never returned by this route.

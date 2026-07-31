@@ -63,6 +63,7 @@ export type BrowserSessionAuth = {
   authorizeRendererMessage(message: unknown): boolean;
   authorizeWebSocket(request: IncomingMessage): WebSocketAuthorization;
   bindWebSocket(sessionId: string, socket: SessionSocket): () => void;
+  limitRemoteHistory: boolean;
   onSessionRevoked(listener: (sessionId: string) => void): () => void;
   publicOrigin: string;
   resolveWorkspaceDirectory(directoryPath: string | null): Promise<string>;
@@ -1229,6 +1230,7 @@ export async function registerBrowserSessionAuth(
       session.sockets.add(socket);
       return () => session.sockets.delete(socket);
     },
+    limitRemoteHistory: config.trustedTailnetAccess,
     onSessionRevoked(listener): () => void {
       sessionRevocationListeners.add(listener);
       return () => sessionRevocationListeners.delete(listener);
