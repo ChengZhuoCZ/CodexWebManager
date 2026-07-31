@@ -59,12 +59,13 @@
     "r62_continuation": "77de7f19a108b2efdd13786707e2fb7b05bf531c",
     "r63_continuation": "631cc15f4b683f597b0d771a6c4d4c96e5dcaa2e",
     "r64_continuation": "f8fe92ea57ae50effc745195a9dcc7bebb9edcf5",
+    "r65_continuation": "acd6fe9a95395168b1b886c36c37c03d7d6bd425",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "0b946cc9de5e63f250104c321e8f589c9202bbb4",
+  "output_revision": "dd4f30c53041cb07d4d3e36ba8b092dd5f701579",
   "workspace_branch": "codex/m6-9-8215-worker",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -1607,6 +1608,26 @@
     {
       "command": "env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node> packages/account-router/scripts/run-security-audit.mjs --summary <private-summary>",
       "result": "R64 final post-state security audit passed: 105/105 focused security tests and retained 492/492 strict UI evidence passed, and 535 repository files were scanned with zero findings"
+    },
+    {
+      "command": "M6_3_CODEX_WEB_ROOT=/opt/0xcaff-codex-web-router/current <bundled-node> --test --test-name-pattern='five newest complete history turns' packages/account-router/test/codex-web-browser-ipc-router.test.mjs",
+      "result": "R65 failure-first fixture failed on its sole pre-implementation attempt: the browser received all seven synthetic history turns instead of only turn-3 through turn-7"
+    },
+    {
+      "command": "umask 0022; env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node-v24.14.0> packages/account-router/scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": "R65 final fixture matrix passed 326/326 with no failures or skips: unit 158, integration 117 and E2E 51; HTTP/SSE and WebSocket pre-semantic failover/post-semantic no-replay, weekly persistence, restart, failure injection and Tailnet five-complete-turn history boundaries passed without a real account or switch"
+    },
+    {
+      "command": "env -u CREDENTIALS_DIRECTORY M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <bundled-node-v24.14.0> --test <15 security-policy test files>; scanRepository with the checked-in security policy",
+      "result": "R65 local security checks passed 108/108 with no skips; the implementation scan covered 535 files and the final post-evidence scan covered 538 files, both with zero findings. The strict audit remained fail-closed because protected browser paths changed after the retained GitHub Actions qualification"
+    },
+    {
+      "command": "apply the clean-room browser overlay to two independent clean pinned upstream clones, compile each server, and compare five runtime SHA-256 values",
+      "result": "R65 two clean builds were byte-identical; browser-ipc-router.js SHA-256 1a4badf9386656c9b917476410863cdb599ccaf666dae2476e4dc7566014e870 and all four companion runtime hashes matched"
+    },
+    {
+      "command": "read-only systemd PID/start/unit-hash plus 8215/8216 loopback HTTP and active-release probes",
+      "result": "R65 adopted the explicitly user-approved 8215 baseline and kept it unchanged at PID 1336830/1336828 and ActiveEnter 335738476636/335738474212 with matching effective-unit hashes and HTTP 200; router/app/web PIDs and 8216 R23 release remained unchanged with HTTP 200"
     }
   ],
   "evidence": [
@@ -1822,9 +1843,74 @@
     "evidence/M6.9/router-r64-test-matrix.json",
     "evidence/M6.9/router-r64-security-audit.json",
     "evidence/M6.9/router-r64-linux-release-verify.json",
-    "evidence/M6.9/deploy-router-r64.sh"
+    "evidence/M6.9/deploy-router-r64.sh",
+    "evidence/M6.9/router-r65-tailnet-history-summary.json",
+    "evidence/M6.9/router-r65-test-matrix.json",
+    "evidence/M6.9/router-r65-local-security-summary.json"
   ],
   "observations": {
+    "continuation_r65_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8215-worker",
+      "commit": "acd6fe9a95395168b1b886c36c37c03d7d6bd425",
+      "dependencies": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_result": "Use fixtures only to limit a trusted-Tailnet browser to the five newest complete upstream history turns while preserving loopback history and live semantic notifications, without changing model context, deleting server history, reading credentials, sending a real model request, switching an account, deploying, or changing the explicitly approved 8215 PID/start/unit-hash baseline."
+    },
+    "continuation_r65_fixture_result": {
+      "implementation_revision": "dd4f30c53041cb07d4d3e36ba8b092dd5f701579",
+      "failure_first_attempts": 1,
+      "preimplementation_turns_delivered": 7,
+      "remote_history_turn_limit": 5,
+      "history_unit": "complete_upstream_turn",
+      "trusted_tailnet_only": true,
+      "loopback_history_changed": false,
+      "live_semantic_notifications_changed": false,
+      "server_history_deleted": false,
+      "model_context_changed": false,
+      "request_tracking_retains_full_params": false,
+      "strict_matrix_passed": 326,
+      "strict_matrix_failed": 0,
+      "strict_matrix_skipped": 0,
+      "security_tests_passed": 108,
+      "security_scan_files": 538,
+      "implementation_security_scan_files": 535,
+      "security_findings": 0,
+      "strict_ci_qualified": false,
+      "deployment_attempted": false,
+      "standalone_8215_changed": false,
+      "routed_8216_changed": false,
+      "second_account_enrolled": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "in_flight_computation_resume_claimed": false,
+      "seamless_account_continuity_claimed": false
+    },
+    "continuation_r65_build_candidate": {
+      "pinned_upstream_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf",
+      "independent_clean_builds": 2,
+      "byte_identical": true,
+      "browser_ipc_router_sha256": "1a4badf9386656c9b917476410863cdb599ccaf666dae2476e4dc7566014e870",
+      "deployment_status": "not_attempted_strict_ci_and_8216_unit_migration_blocked",
+      "active_web_release": "c3e92f0f-20260729-m69-router-r23",
+      "production_state_changed": false
+    },
+    "continuation_r65_authorized_8215_baseline": {
+      "authorized_by_user": true,
+      "authorization_scope": "read_only_baseline_adoption_only",
+      "web_pid": 1336830,
+      "web_active_enter_monotonic": 335738476636,
+      "web_effective_unit_sha256": "543ddc71409cc088522e80651955a988cc9f2229e9da29dc8a9107c3def3ea1a",
+      "app_server_pid": 1336828,
+      "app_server_active_enter_monotonic": 335738474212,
+      "app_server_effective_unit_sha256": "ae839d73cd554222d86d7dc920f7a7938eccdab9746ec993f91a47c56c3d7a40",
+      "loopback_http_status": 200,
+      "unchanged_during_r65": true,
+      "mutation_or_restart_executed": false
+    },
     "continuation_r64_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-8215-worker",
@@ -4744,8 +4830,8 @@
     }
   },
   "blockers": [
-    "The verified 0.2.30 router release cannot be activated from this execution environment because the previously demonstrated sudo root-GID transition failure is unchanged and the root-owned mode-0755 /opt/codex-account-router is not writable by the codex user. A host-privileged execution of evidence/M6.9/deploy-router-r64.sh would be required only after its fixed 8215 precondition passes; no deployment attempt was made.",
-    "The fixed 8215 invariant changed during R64 outside this milestone command set: codex-web-upstream.service now reports PID/ActiveEnter 1336830/335738476636 instead of 510876/196497166178, and codex-web-upstream-app-server.service reports 1336828/335738474212 plus a changed effective-unit hash instead of 508396/194490256399. R64 did not modify, restart, stop, reconfigure or restore 8215; deployment remains refused until the user determines the intended baseline.",
+    "The R65 browser candidate changes strict-CI-protected paths after the retained GitHub Actions qualification. Because this task forbids push, the checked-in security audit correctly fails closed and the candidate cannot be deployed or represented as qualified.",
+    "The active 8216 web unit is still the legacy R23 configuration and lacks the required trusted-Tailnet browser public-origin, workspace/upload roots and router-admin credential-file wiring. An 8216-only failure-first unit migration, rollback evidence and a deployment script pinned to the newly approved 8215 baseline are required before safe activation; the execution environment also retains the previously observed host-privilege limitation.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, real two-binding credential acquisition/restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -4858,10 +4944,13 @@
     "R64 verifies an installed 0.2.30 candidate honors a non-zero HTTP Retry-After through a configured 200 ms cap and refuses a retry whose delay would exceed a 150 ms total deadline, but this uses runtime-generated synthetic credentials and a loopback fixture upstream only; provider timing and real account availability remain unqualified.",
     "R64 exposes only positive, ceiling-checked failover environment values and pins systemd to the existing 3-attempt, 120-second, 100–2000 ms defaults. An operator can still choose a smaller valid deadline or retry budget that reduces availability, so deployment configuration remains an operational decision.",
     "R64 did not deploy the verified 0.2.30 candidate; production remains on router 0.2.6 because host privilege is unavailable and the fixed 8215 PID/start/unit-hash precondition no longer passes.",
-    "The R64 8215 observation contradicts the fixed PID/start invariant: both standalone services restarted at 2026-07-31 10:23:29 CST and the App Server effective unit hash changed after a proxy drop-in mtime of 10:19:14 CST. No actor or intent is inferred, no R64 command targeted 8215, and R64 does not attempt restoration.",
+    "The R64 8215 observation contradicted the prior fixed PID/start invariant. The user explicitly approved adopting PID 1336830/1336828, ActiveEnter 335738476636/335738474212 and the observed effective-unit hashes as the new read-only baseline for R65 onward; this does not authorize enrollment, switching, model traffic or any 8215 mutation.",
+    "R65 limits trusted-Tailnet browser history by complete upstream turns rather than splitting native turns into individual user/assistant/tool messages. This preserves attachments and tool-result coherence but means one delivered turn can contain multiple protocol items; no claim is made that the server deleted history or reduced model context.",
+    "R65 is fixture- and static-build-qualified locally only. The candidate was not activated on 8216, so Tailnet composer behavior, attachment upload and the five-turn browser boundary remain unverified against the live R23 deployment.",
+    "R65 leaves WebSocket Retry-After/backoff/total-deadline timing parity as the next unblocked fixture-only failover milestone; existing WebSocket attempt bounds and post-semantic no-replay tests still pass.",
     "R28 caps a weekly reset delay at the existing 24-hour circuit maximum, so a farther reset receives a bounded half-open recheck rather than sleeping until the full provider reset time.",
     "The existing local commits 3f8723f, 776f352 and 0b93593 have test evidence but their commit messages omit the test commands required by the current AGENTS.md; history was not rewritten and later commit messages include test commands.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-07-31T10:45:01+08:00"
+  "updated_at": "2026-08-01T04:14:39+08:00"
 }

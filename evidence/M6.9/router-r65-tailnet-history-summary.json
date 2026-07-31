@@ -1,0 +1,108 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R65",
+  "generated_at": "2026-08-01T04:14:39+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8215-worker",
+  "task_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
+  "continuation_revision": "acd6fe9a95395168b1b886c36c37c03d7d6bd425",
+  "implementation_revision": "dd4f30c53041cb07d4d3e36ba8b092dd5f701579",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "scope": {
+    "trusted_tailnet_history_unit": "five newest complete upstream turns",
+    "complete_turn_contents_preserved": true,
+    "loopback_site_key_mode_changed": false,
+    "server_history_deleted": false,
+    "model_context_changed": false,
+    "live_semantic_notifications_changed": false
+  },
+  "failure_first_experiment": {
+    "command": "M6_3_CODEX_WEB_ROOT=/opt/0xcaff-codex-web-router/current <bundled-node> --test --test-name-pattern='five newest complete history turns' packages/account-router/test/codex-web-browser-ipc-router.test.mjs",
+    "attempts": 1,
+    "exit_status": 1,
+    "expected_turn_ids": [
+      "turn-3",
+      "turn-4",
+      "turn-5",
+      "turn-6",
+      "turn-7"
+    ],
+    "observed_preimplementation_turn_count": 7
+  },
+  "implementation": {
+    "history_methods": [
+      "thread/read",
+      "thread/resume",
+      "thread/fork",
+      "thread/rollback",
+      "thread/turns/list",
+      "thread/items/list"
+    ],
+    "older_pagination_closed": true,
+    "item_pages_restricted_to_delivered_turn_ids": true,
+    "request_tracking_retains_full_request_body": false,
+    "bounded_history_metadata_only": true
+  },
+  "candidate_build": {
+    "independent_clean_builds": 2,
+    "pinned_upstream_revision": "888692f7d885118c6a92bbaf60cf2121f5947adf",
+    "byte_identical": true,
+    "runtime_sha256": {
+      "main.js": "3caee54f9e3e2e2b2c9a83b79d6647f6385bdf016022f43a99b1e3a43dd9a6e5",
+      "browser-ipc-router.js": "1a4badf9386656c9b917476410863cdb599ccaf666dae2476e4dc7566014e870",
+      "browser-session-auth.js": "a5c196a2519cd781324a9deab2e7ca6d88ccd69ca3907aa9ecd051471ac22c4d",
+      "browser-upload-store.js": "0ea86e37d585a7d91ab0a6a6de803059f3f1e883b5f8c954d269f41bff17e834",
+      "router-status-bridge.js": "185cf83adf11510e2b5c69d3c0652f5c146aa87a56ed97c6028ea2dc62bf3757"
+    }
+  },
+  "authorized_8215_baseline": {
+    "authorization": "User explicitly approved use of the new baseline in this thread; this is not authorization for account enrollment, switching, or model traffic.",
+    "web": {
+      "pid": 1336830,
+      "active_enter_monotonic": 335738476636,
+      "effective_unit_sha256": "543ddc71409cc088522e80651955a988cc9f2229e9da29dc8a9107c3def3ea1a",
+      "state": "active/running"
+    },
+    "app_server": {
+      "pid": 1336828,
+      "active_enter_monotonic": 335738474212,
+      "effective_unit_sha256": "ae839d73cd554222d86d7dc920f7a7938eccdab9746ec993f91a47c56c3d7a40",
+      "state": "active/running"
+    },
+    "loopback_http_status": 200,
+    "unchanged_during_r65": true,
+    "mutated_or_restarted_by_r65": false
+  },
+  "routed_8216_observation": {
+    "router_pid": 548777,
+    "router_active_enter_monotonic": 209169242318,
+    "app_server_pid": 495033,
+    "app_server_active_enter_monotonic": 188703455626,
+    "web_pid": 538278,
+    "web_active_enter_monotonic": 205386075436,
+    "web_release": "c3e92f0f-20260729-m69-router-r23",
+    "loopback_http_status": 200,
+    "changed_by_r65": false
+  },
+  "deployment": {
+    "attempted": false,
+    "status": "blocked_fail_closed",
+    "blockers": [
+      "Protected browser paths lack fresh strict GitHub Actions qualification and the task forbids push.",
+      "The active 8216 web unit does not yet provide the required trusted-Tailnet browser auth, workspace, upload, public-origin and router-admin credential-file configuration; an 8216-only rollback-tested unit migration is required before activation."
+    ]
+  },
+  "real_account_configured": false,
+  "second_account_enrolled": false,
+  "real_model_request_sent": false,
+  "real_account_switch_tested": false,
+  "in_flight_computation_resume_claimed": false,
+  "seamless_account_continuity_claimed": false
+}
