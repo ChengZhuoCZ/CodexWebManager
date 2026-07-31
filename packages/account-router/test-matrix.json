@@ -59,6 +59,7 @@
         "test/codex-web-browser-auth.test.mjs",
         "test/codex-web-browser-ipc-router.test.mjs",
         "test/codex-web-browser-policy.test.mjs",
+        "test/codex-web-build-pipeline.test.mjs",
         "test/codex-web-host-deploy.test.mjs",
         "test/codex-web-integration.test.mjs",
         "test/codex-web-overlay-build.test.mjs",

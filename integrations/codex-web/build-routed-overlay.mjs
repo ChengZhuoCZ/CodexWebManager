@@ -64,6 +64,7 @@ function validateManifest(value) {
 
 export async function buildRoutedWebOverlay({ candidate, output, manifest } = {}) {
   let temporary = null;
+  let phase = "validate";
   try {
     if (!path.isAbsolute(candidate ?? "") || !path.isAbsolute(output ?? "") || candidate === output) {
       throw new Error("overlay paths are invalid");
@@ -73,6 +74,7 @@ export async function buildRoutedWebOverlay({ candidate, output, manifest } = {}
     if (!root.isDirectory() || root.isSymbolicLink()) throw new Error("candidate is invalid");
     const entries = [];
     for (const expected of checked.files) {
+      phase = expected.path;
       const target = path.join(candidate, expected.path);
       const metadata = await fs.lstat(target);
       if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size < 1 ||
@@ -80,7 +82,11 @@ export async function buildRoutedWebOverlay({ candidate, output, manifest } = {}
         throw new Error("overlay input is invalid");
       }
       const bytes = await fs.readFile(target);
-      if (digest(bytes) !== expected.sha256) throw new Error("overlay input hash changed");
+      const actualSha256 = digest(bytes);
+      if (actualSha256 !== expected.sha256) {
+        phase = `${expected.path}:${actualSha256}`;
+        throw new Error("overlay input hash changed");
+      }
       entries.push({ path: expected.path, bytes });
     }
     const archive = gzipSync(tar(entries), { level: 9, mtime: 0 });
@@ -96,7 +102,7 @@ export async function buildRoutedWebOverlay({ candidate, output, manifest } = {}
       files: entries.length,
     });
   } catch {
-    throw new Error("overlay build failed");
+    throw new Error(`overlay build failed at ${phase}`);
   } finally {
     if (temporary) await fs.rm(temporary, { force: true }).catch(() => undefined);
   }
