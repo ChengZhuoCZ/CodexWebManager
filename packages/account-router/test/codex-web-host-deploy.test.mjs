@@ -79,7 +79,7 @@ test("host deployment script pins the approved baseline and forbids unrelated se
   const source = await fs.readFile(deployScript, "utf8");
   assert.match(source, /STANDALONE_WEB_PID=1336830/);
   assert.match(source, /STANDALONE_APP_PID=1336828/);
-  assert.match(source, /PRODUCTION_ARCHIVE_SHA256=d793e014/);
+  assert.match(source, /PRODUCTION_ARCHIVE_SHA256=861d5229/);
   assert.doesNotMatch(source, /(?:restart|stop|start) codex-web-upstream/);
   assert.doesNotMatch(source, /(?:restart|stop|start) codex-account-router/);
   assert.doesNotMatch(source, /\/opt\/0xcaff-codex-web(?:\/|\s|$)/);

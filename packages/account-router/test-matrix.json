@@ -61,6 +61,7 @@
         "test/codex-web-browser-policy.test.mjs",
         "test/codex-web-host-deploy.test.mjs",
         "test/codex-web-integration.test.mjs",
+        "test/codex-web-overlay-build.test.mjs",
         "test/codex-web-routed-release.test.mjs",
         "test/codex-web-status-bridge.test.mjs",
         "test/deployment-manager.test.mjs",

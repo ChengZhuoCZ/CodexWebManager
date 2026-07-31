@@ -3,8 +3,8 @@ set -euo pipefail
 
 readonly REPOSITORY=/srv/codex-workspaces/CodexWebManager
 readonly RELEASE_NAME=c3e92f0f-20260801-m69-router-r69
-readonly PRODUCTION_ARCHIVE=/tmp/codex-m69-r69-web-overlay-a.tar.gz
-readonly PRODUCTION_ARCHIVE_SHA256=d793e0144f63ec48e41633fb1db01ff32ec24774706aec5762ae7c4c1e17a813
+readonly PRODUCTION_ARCHIVE=/tmp/codex-m69-r70-web-overlay-a.tar.gz
+readonly PRODUCTION_ARCHIVE_SHA256=861d5229cc6aefed0e6f5a783421828a78b029046f8803ebe9b9c7ca68af880c
 readonly WEB_UNIT_SHA256=f66b20c7f64bc258ee3752a22a7c2b1b21e3695b1f5685e4d8047ce9b3bcba3f
 readonly APP_UNIT_SHA256=03de8d81201637f24e8fe136f14415b3d0f1d33853aaa641f29adc16864cee3b
 readonly TMPFILES_SHA256=e657aa145e0037fcba7c50fa139b391a1396ab9b29f4c070beaeccd5f1532197

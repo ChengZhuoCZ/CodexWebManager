@@ -1,0 +1,18 @@
+{
+  "schema_version": 1,
+  "files": [
+    { "path": "src/server/main.js", "sha256": "3caee54f9e3e2e2b2c9a83b79d6647f6385bdf016022f43a99b1e3a43dd9a6e5" },
+    { "path": "src/server/module.js", "sha256": "45c56e45751dce9a0eb39a152ae556828490e58a015ffbf812690e7df270600f" },
+    { "path": "src/server/electron/index.js", "sha256": "c7b96798154540ef00c80fe6321580ebc2df42d97a0b7b0c4e00d83bb135130b" },
+    { "path": "src/server/browser-ipc-router.js", "sha256": "1a4badf9386656c9b917476410863cdb599ccaf666dae2476e4dc7566014e870" },
+    { "path": "src/server/browser-session-auth.js", "sha256": "a5c196a2519cd781324a9deab2e7ca6d88ccd69ca3907aa9ecd051471ac22c4d" },
+    { "path": "src/server/browser-upload-store.js", "sha256": "0ea86e37d585a7d91ab0a6a6de803059f3f1e883b5f8c954d269f41bff17e834" },
+    { "path": "src/server/router-status-bridge.js", "sha256": "185cf83adf11510e2b5c69d3c0652f5c146aa87a56ed97c6028ea2dc62bf3757" },
+    { "path": "scratch/asar/webview/index.html", "sha256": "1621c24d87d0ba2be42cb30b1248f815f4dd84e671fea3dd300c2ef9e26369f0" },
+    { "path": "scratch/asar/webview/index.html.gz", "sha256": "a0dbeaeb2cc8e204650300f2c096fb02b6ab606ca849be21e73f6dc2d808fcdc" },
+    { "path": "scratch/asar/webview/index.html.br", "sha256": "274be90e2e1cf0ae1efd2f0b8f6c82426e3b85383b3a85f5d7f18b4ffe243d59" },
+    { "path": "scratch/asar/webview/assets/preload-343f16dc.js", "sha256": "343f16dc88d932a1a96711d68173f15013696a158a0e4b158e6aa7f2dd7ffbd7" },
+    { "path": "scratch/asar/webview/assets/preload-343f16dc.js.gz", "sha256": "e85461dcf25ced5e83e95e6f91215cd0bc663c2ad4bb0f12597bcbd0501eaed6" },
+    { "path": "scratch/asar/webview/assets/preload-343f16dc.js.br", "sha256": "6c802468771e6c0e444cc02a64e043b3fcb7594135d6e3486106a7e59befe835" }
+  ]
+}
