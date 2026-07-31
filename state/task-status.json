@@ -60,12 +60,13 @@
     "r63_continuation": "631cc15f4b683f597b0d771a6c4d4c96e5dcaa2e",
     "r64_continuation": "f8fe92ea57ae50effc745195a9dcc7bebb9edcf5",
     "r65_continuation": "acd6fe9a95395168b1b886c36c37c03d7d6bd425",
+    "r66_continuation": "c822b9d84669d32d709ff4175e86893b7124bead",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "dd4f30c53041cb07d4d3e36ba8b092dd5f701579",
+  "output_revision": "0ec4e6251d51d03aabf10411dea18f86cf33f683",
   "workspace_branch": "codex/m6-9-8215-worker",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -1628,6 +1629,26 @@
     {
       "command": "read-only systemd PID/start/unit-hash plus 8215/8216 loopback HTTP and active-release probes",
       "result": "R65 adopted the explicitly user-approved 8215 baseline and kept it unchanged at PID 1336830/1336828 and ActiveEnter 335738476636/335738474212 with matching effective-unit hashes and HTTP 200; router/app/web PIDs and 8216 R23 release remained unchanged with HTTP 200"
+    },
+    {
+      "command": "<node24> --test --test-name-pattern='bounded Retry-After backoff' test/websocket-failover.test.mjs",
+      "result": "R66 sole pre-implementation attempt failed because an upstream WebSocket upgrade 429 exposed retryAfterMs null instead of the synthetic 1000 ms value"
+    },
+    {
+      "command": "<node24> --test test/websocket-failover.test.mjs test/websocket-tunnel.test.mjs test/failover-state-machine.test.mjs; <node24> --test test/linux-release.test.mjs",
+      "result": "R66 related WebSocket/state-machine tests passed 22/22 and installed release tests passed 3/3"
+    },
+    {
+      "command": "umask 0022; env -u CREDENTIALS_DIRECTORY M4_1_CODEX_WEB_ROOT=<complete-clean-fixture> M4_2_CODEX_WEB_ROOT=<complete-clean-fixture> M4_3_CODEX_WEB_ROOT=<complete-clean-fixture> M6_3_CODEX_WEB_ROOT=<complete-clean-fixture> <node24> scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": "R66 strict fixture matrix passed 327/327 with no failures or skips: unit 158, integration 118 and E2E 51; no real account, model request or switch was used"
+    },
+    {
+      "command": "two deterministic 0.2.31 Linux x64 builds plus installed synthetic WebSocket Retry-After/backoff/total-deadline verification",
+      "result": "Both 49-file archives matched at SHA-256 e62ef872; installed non-zero Retry-After used primary then secondary after the configured cap, while the 150 ms deadline scenario contacted only primary and emitted sanitized total_deadline_exceeded with semantic_output false"
+    },
+    {
+      "command": "scanRepository after R66 state/evidence; checked-in strict security audit",
+      "result": "R66 final scan covered 541 files with zero findings; strict CI remained fail-closed because protected paths changed after retained qualification, so deployment was not attempted"
     }
   ],
   "evidence": [
@@ -1846,9 +1867,53 @@
     "evidence/M6.9/deploy-router-r64.sh",
     "evidence/M6.9/router-r65-tailnet-history-summary.json",
     "evidence/M6.9/router-r65-test-matrix.json",
-    "evidence/M6.9/router-r65-local-security-summary.json"
+    "evidence/M6.9/router-r65-local-security-summary.json",
+    "evidence/M6.9/router-r66-websocket-retry-backoff-summary.json",
+    "evidence/M6.9/router-r66-test-matrix.json",
+    "evidence/M6.9/router-r66-linux-release-verify.json"
   ],
   "observations": {
+    "continuation_r66_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8215-worker",
+      "commit": "c822b9d84669d32d709ff4175e86893b7124bead",
+      "dependencies": ["M2.5", "M6.8", "G-SECRETS"],
+      "expected_result": "Use fixtures only to preserve an upstream WebSocket upgrade 429 Retry-After hint through the existing capped backoff and total deadline before semantic output, without changing post-semantic no-replay, deploying, reading real credentials, sending a real model request, switching accounts or changing the approved 8215 baseline."
+    },
+    "continuation_r66_fixture_result": {
+      "implementation_revision": "0ec4e6251d51d03aabf10411dea18f86cf33f683",
+      "failure_first_attempts": 1,
+      "preimplementation_retry_after_ms": null,
+      "configured_retry_after_ms": 1000,
+      "configured_max_backoff_ms": 200,
+      "nonzero_retry_upstream_roles": ["primary", "secondary"],
+      "deadline_before_retry_upstream_roles": ["primary"],
+      "deadline_before_retry_secondary_contacted": false,
+      "deadline_error": "all_accounts_unavailable/total_deadline_exceeded",
+      "deadline_semantic_output": false,
+      "strict_matrix_passed": 327,
+      "strict_matrix_failed": 0,
+      "strict_matrix_skipped": 0,
+      "security_scan_files": 541,
+      "security_findings": 0,
+      "strict_ci_qualified": false,
+      "deployment_attempted": false,
+      "standalone_8215_changed": false,
+      "routed_8216_changed": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "seamless_account_continuity_claimed": false
+    },
+    "continuation_r66_release_candidate": {
+      "router_release": "codex-account-router-0.2.31-linux-x64",
+      "artifact_sha256": "e62ef872ff3cd3c229df43e7d66fbd20683c0558d2b7a54b26b709b9ea72c08a",
+      "payload_file_count": 49,
+      "deterministic_builds_matched": true,
+      "installed_websocket_retry_backoff_deadline_verified": true,
+      "deployment_status": "not_attempted_existing_strict_ci_unit_migration_and_host_privilege_blockers",
+      "active_router_release": "codex-account-router-0.2.6-linux-x64",
+      "production_state_changed": false
+    },
     "continuation_r65_start": {
       "repository": "ChengZhuoCZ/CodexWebManager",
       "branch": "codex/m6-9-8215-worker",
@@ -4947,10 +5012,10 @@
     "The R64 8215 observation contradicted the prior fixed PID/start invariant. The user explicitly approved adopting PID 1336830/1336828, ActiveEnter 335738476636/335738474212 and the observed effective-unit hashes as the new read-only baseline for R65 onward; this does not authorize enrollment, switching, model traffic or any 8215 mutation.",
     "R65 limits trusted-Tailnet browser history by complete upstream turns rather than splitting native turns into individual user/assistant/tool messages. This preserves attachments and tool-result coherence but means one delivered turn can contain multiple protocol items; no claim is made that the server deleted history or reduced model context.",
     "R65 is fixture- and static-build-qualified locally only. The candidate was not activated on 8216, so Tailnet composer behavior, attachment upload and the five-turn browser boundary remain unverified against the live R23 deployment.",
-    "R65 leaves WebSocket Retry-After/backoff/total-deadline timing parity as the next unblocked fixture-only failover milestone; existing WebSocket attempt bounds and post-semantic no-replay tests still pass.",
+    "R66 verifies WebSocket Retry-After/backoff/total-deadline timing with runtime-generated synthetic credentials and a loopback fixture upstream only. It does not qualify provider timing or real account availability, and it does not resume or recover an in-flight request or computation.",
     "R28 caps a weekly reset delay at the existing 24-hour circuit maximum, so a farther reset receives a bounded half-open recheck rather than sleeping until the full provider reset time.",
     "The existing local commits 3f8723f, 776f352 and 0b93593 have test evidence but their commit messages omit the test commands required by the current AGENTS.md; history was not rewritten and later commit messages include test commands.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-08-01T04:14:39+08:00"
+  "updated_at": "2026-08-01T04:25:36+08:00"
 }
