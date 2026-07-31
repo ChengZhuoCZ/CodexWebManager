@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R70",
+  "generated_at": "2026-08-01T04:54:58+08:00",
+  "implementation_revision": "0cbb93f965274365ca20e66b4773db9e4fa1294e",
+  "failure_first": {
+    "command": "<node22> --test packages/account-router/test/codex-web-overlay-build.test.mjs",
+    "result": "failed with ERR_MODULE_NOT_FOUND before build-routed-overlay.mjs existed"
+  },
+  "builder": {
+    "implementation": "pure Node deterministic ustar plus gzip",
+    "manifest_entries": 13,
+    "manifest_hashes_verified_before_publish": true,
+    "atomic_output_publish": true,
+    "changed_input_rejected_without_output": true
+  },
+  "real_candidate_rebuild": {
+    "independent_candidates": 2,
+    "archives_identical": true,
+    "archive_bytes": 402086,
+    "archive_sha256": "861d5229cc6aefed0e6f5a783421828a78b029046f8803ebe9b9c7ca68af880c",
+    "deployment_script_pinned_to_rebuilt_archive": true
+  },
+  "tests": {
+    "focused": { "tests": 7, "passed": 7 },
+    "strict_matrix": { "tests": 334, "passed": 334, "failed": 0, "skipped": 0 }
+  },
+  "security_audit": {
+    "exit_code": 2,
+    "qualified": false,
+    "reason": "strict CI protected paths changed after qualification",
+    "local_scan_files": 554,
+    "local_scan_findings": 0
+  },
+  "deployment_attempted": false,
+  "active_8216_release": "c3e92f0f-20260729-m69-router-r23",
+  "real_account_configured": false,
+  "real_model_request_sent": false,
+  "real_account_switch_tested": false,
+  "seamless_account_continuity_claimed": false
+}
