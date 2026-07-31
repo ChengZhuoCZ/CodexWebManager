@@ -55,8 +55,8 @@ test("builds a byte-reproducible x64 Linux archive without desktop dependencies"
   assert.ok(manifestEntry);
 
   const manifest = JSON.parse(manifestEntry.content.toString("utf8"));
-  assert.equal(manifest.version, "0.2.30");
-  assert.equal(first.releaseName, "codex-account-router-0.2.30-linux-x64");
+  assert.equal(manifest.version, "0.2.31");
+  assert.equal(first.releaseName, "codex-account-router-0.2.31-linux-x64");
   assert.deepEqual(manifest.target, { os: "linux", architecture: "x64" });
   assert.equal(manifest.runtime.node, ">=22");
   assert.equal(manifest.runtime.electron_required, false);
@@ -575,4 +575,53 @@ test("installed release verifies stalled startup stop signals", async (context) 
     real_account_switch_tested: false,
     in_flight_resume_tested: false,
   });
+  assert.deepEqual(
+    summary.runtime.synthetic_websocket_retry_backoff_deadline,
+    {
+      configured_bindings: 2,
+      scenarios: 2,
+      process_starts: 2,
+      readiness_statuses: [200, 200],
+      downstream_upgrade_statuses: [101, 101],
+      nonzero_retry_after: {
+        configured_max_attempts: 2,
+        configured_retry_after_ms: 1_000,
+        configured_base_backoff_ms: 20,
+        configured_max_backoff_ms: 200,
+        configured_total_deadline_ms: 1_000,
+        upstream_role_sequence: ["primary", "secondary"],
+        upstream_attempts: 2,
+        observed_retry_delay_at_least_ms: 150,
+        observed_retry_delay_below_ms: 900,
+        secondary_semantic_marker_received: true,
+        completed: true,
+        downstream_error_exposed: false,
+      },
+      deadline_before_retry: {
+        configured_max_attempts: 2,
+        configured_retry_after_ms: 1_000,
+        configured_base_backoff_ms: 20,
+        configured_max_backoff_ms: 200,
+        configured_total_deadline_ms: 150,
+        downstream_error: {
+          type: "all_accounts_unavailable",
+          reason: "total_deadline_exceeded",
+          attempts: 1,
+          semantic_output: false,
+        },
+        upstream_role_sequence: ["primary"],
+        upstream_attempts: 1,
+        secondary_contacted: false,
+      },
+      local_fixture_upstream_only: true,
+      synthetic_credential_acquisition_tested: true,
+      synthetic_websocket_requests_sent: 2,
+      synthetic_upstream_attempts: 3,
+      manual_switch_tested: false,
+      real_credentials_present: false,
+      real_model_request_sent: false,
+      real_account_switch_tested: false,
+      in_flight_resume_tested: false,
+    },
+  );
 });

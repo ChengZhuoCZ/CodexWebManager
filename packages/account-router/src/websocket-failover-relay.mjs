@@ -79,9 +79,23 @@ function failureFromMessage(message) {
   return null;
 }
 
-function responseFailure(statusCode) {
+function retryAfterMilliseconds(value) {
+  if (typeof value !== "string") return null;
+  if (/^(?:0|[1-9][0-9]{0,8})$/.test(value)) {
+    return Math.min(Number(value) * 1_000, 30 * 24 * 60 * 60_000);
+  }
+  const parsed = Date.parse(value);
+  if (!Number.isFinite(parsed)) return null;
+  return Math.min(Math.max(0, parsed - Date.now()), 30 * 24 * 60 * 60_000);
+}
+
+function responseFailure(statusCode, headers) {
   if (statusCode === 401 || statusCode === 403) return new FailoverAttemptError("auth_expired");
-  if (statusCode === 429) return new FailoverAttemptError("rate_limited");
+  if (statusCode === 429) {
+    return new FailoverAttemptError("rate_limited", {
+      retryAfterMs: retryAfterMilliseconds(headers?.["retry-after"]),
+    });
+  }
   if (statusCode >= 500 && statusCode <= 599) return new FailoverAttemptError("upstream_5xx");
   return new FailoverAttemptError("protocol_error");
 }
@@ -127,7 +141,7 @@ function openManagedConnection({
       incoming.destroy();
       if (!settled) {
         settled = true;
-        reject(responseFailure(incoming.statusCode ?? 502));
+        reject(responseFailure(incoming.statusCode ?? 502, incoming.headers));
       }
     });
     upstreamRequest.once("error", () => {

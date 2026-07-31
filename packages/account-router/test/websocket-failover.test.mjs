@@ -30,13 +30,16 @@ async function close(server, sockets) {
   await new Promise((resolve) => server.close(() => resolve()));
 }
 
-function createUpstream(onMessage) {
+function createUpstream(onMessage, onUpgrade = null) {
   const sockets = new Set();
   const server = http.createServer();
   server.on("upgrade", (request, socket, head) => {
     sockets.add(socket);
     socket.once("close", () => sockets.delete(socket));
     socket.on("error", () => undefined);
+    if (onUpgrade?.(request, socket) === true) {
+      return;
+    }
     const key = request.headers["sec-websocket-key"];
     socket.write(
       "HTTP/1.1 101 Switching Protocols\r\n" +
@@ -133,9 +136,16 @@ function collectMessages(socket, initial = Buffer.alloc(0)) {
 }
 
 async function fixture(context, accountListeners, options = {}) {
+  const {
+    upstreamUpgradeHandlers = {},
+    ...proxyOptions
+  } = options;
   const origins = new Map();
   for (const [accountId, listener] of Object.entries(accountListeners)) {
-    const upstream = createUpstream(listener);
+    const upstream = createUpstream(
+      listener,
+      upstreamUpgradeHandlers[accountId] ?? null,
+    );
     context.after(() => close(upstream.server, upstream.sockets));
     const address = await listen(upstream.server);
     origins.set(accountId, `http://127.0.0.1:${address.port}`);
@@ -163,7 +173,7 @@ async function fixture(context, accountListeners, options = {}) {
     },
     upstreamHeadersTimeoutMs: 500,
     requestTotalTimeoutMs: 2_000,
-    ...options,
+    ...proxyOptions,
   });
   const service = createModelProxyService({ modelPort: 0, proxyHandler });
   context.after(() => service.stop());
@@ -261,6 +271,54 @@ test("reconnects and replays an initial WebSocket request only before semantic o
   );
   assert.deepEqual(resolverCalls, [[], ["A"]]);
   assert.deepEqual(releases, ["A", "B"]);
+});
+
+test("applies bounded Retry-After backoff to a pre-semantic WebSocket upgrade 429", async (context) => {
+  const arrivalTimes = [];
+  const failures = [];
+  const { client, collector, resolverCalls } = await fixture(context, {
+    A() {
+      throw new Error("primary upgrade rejection must not reach a WebSocket message");
+    },
+    B(_message, socket) {
+      arrivalTimes.push(Date.now());
+      sendCompleted(socket, "retry-after-secondary");
+    },
+  }, {
+    upstreamUpgradeHandlers: {
+      A(_request, socket) {
+        arrivalTimes.push(Date.now());
+        socket.end(
+          "HTTP/1.1 429 Too Many Requests\r\n" +
+          "Connection: close\r\n" +
+          "Retry-After: 1\r\n" +
+          "Content-Length: 0\r\n\r\n",
+        );
+        return true;
+      },
+    },
+    failoverStateMachine: createFailoverStateMachine({
+      maxAttempts: 2,
+      totalDeadlineMs: 1_000,
+      baseBackoffMs: 20,
+      maxBackoffMs: 200,
+    }),
+    async onAttemptFailure(failure) {
+      failures.push(failure);
+    },
+  });
+  sendCreate(client);
+  await collector.waitFor(
+    (message) => message.type === "response.completed",
+    2_000,
+  );
+  assert.deepEqual(resolverCalls, [[], ["A"]]);
+  assert.equal(failures.length, 1);
+  assert.equal(failures[0].kind, "rate_limited");
+  assert.equal(failures[0].retryAfterMs, 1_000);
+  assert.equal(arrivalTimes.length, 2);
+  assert.ok(arrivalTimes[1] - arrivalTimes[0] >= 150);
+  assert.ok(arrivalTimes[1] - arrivalTimes[0] < 900);
 });
 
 test("emits unsafe_to_replay and never selects B after WebSocket semantic output", async (context) => {
