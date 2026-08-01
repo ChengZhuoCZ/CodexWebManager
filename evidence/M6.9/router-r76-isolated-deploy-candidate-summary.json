@@ -47,6 +47,16 @@
     "reason": "The current container cannot switch to root GID, has no passwordless root command, and exposes no documented privileged deployment queue.",
     "active_web_release": "c3e92f0f-20260729-m69-router-r23"
   },
+  "pre_deployment_http_baseline": {
+    "active_release": "c3e92f0f-20260729-m69-router-r23",
+    "sample_count_per_path": 5,
+    "loopback_mean_ttfb_ms": 1.269,
+    "loopback_mean_total_ms": 1.29,
+    "tailnet_mean_ttfb_ms": 2.288,
+    "tailnet_mean_total_ms": 2.712,
+    "response_bytes": 17788,
+    "stable_performance_claimed": false
+  },
   "real_account_test_executed": false,
   "model_request_sent": false,
   "account_switch_tested": false,

@@ -1722,6 +1722,10 @@
     {
       "command": "failure-first isolated deploy contract; umask 0022 node --test packages/account-router/test/codex-web-host-deploy.test.mjs; systemd-analyze verify isolated units; repository-only scanRepository",
       "result": "R76 failed once before the deployment entry existed, then passed 7/7 activation/rollback fixtures; both isolated units verified, and the post-state scan covered 571 repository files with zero findings. Production deployment was not attempted because this container cannot obtain root and no privileged deployment queue is defined"
+    },
+    {
+      "command": "five bounded loopback and five Tailnet HTTP samples against the still-active R23 release",
+      "result": "R76 pre-deployment baseline observed mean loopback TTFB/total 1.269/1.290 ms and Tailnet TTFB/total 2.288/2.712 ms for the 17788-byte HTML response; this is a ten-sample same-host observation only and no stable performance claim is made"
     }
   ],
   "evidence": [
