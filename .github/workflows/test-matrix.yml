@@ -67,6 +67,7 @@ jobs:
           M6_3_CODEX_WEB_ROOT: ${{ github.workspace }}/.m6/codex-web
         run: |
           set -euo pipefail
+          umask 0022
           install -d -m 0700 artifacts/test-matrix
           node packages/account-router/scripts/run-test-matrix.mjs \
             --summary "$PWD/artifacts/test-matrix/node-${{ matrix.node-version }}.json"
