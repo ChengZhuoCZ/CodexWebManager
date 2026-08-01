@@ -75,7 +75,7 @@
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "3f2bb230ebd246721bd9848401ba100c4c98d9fd",
+  "output_revision": "5b636435c01b3ec56bc14e00a2b0cfa1a5118aa0",
   "workspace_branch": "test/8216-fixture",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -5248,6 +5248,30 @@
       "model_request_sent": false,
       "account_switch_tested": false,
       "stable_performance_claimed": false
+    },
+    "r86_handoff_deployment_guard": {
+      "input_revision": "4e2a6cf26ef6d81b12967b6334b1cede07e0d820",
+      "implementation_revision": "5b636435c01b3ec56bc14e00a2b0cfa1a5118aa0",
+      "failure_first": "a readiness-probe failure could previously reach success through an errexit-dependent guard",
+      "routed_deployment_fixture": {
+        "tests": 7,
+        "passed": 7,
+        "failed": 0
+      },
+      "complete_package_suite": {
+        "tests": 345,
+        "passed": 315,
+        "failed": 0,
+        "skipped": 30
+      },
+      "evidence": "evidence/M6.9/router-r86-handoff-deployment-guard.json",
+      "deployed": false,
+      "services_restarted": false,
+      "credentials_read_or_recorded": false,
+      "second_account_enrolled": false,
+      "model_request_sent": false,
+      "account_switch_tested": false,
+      "seamless_continuity_claimed": false
     }
   },
   "blockers": [

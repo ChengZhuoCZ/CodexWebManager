@@ -1,0 +1,70 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R86-candidate",
+  "generated_at": "2026-08-01T22:39:12+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "workspace_branch": "codex/m6-9-8216-r85-handoff",
+  "workspace_input_revision": "4e2a6cf26ef6d81b12967b6334b1cede07e0d820",
+  "implementation_revision": "5b636435c01b3ec56bc14e00a2b0cfa1a5118aa0",
+  "dependencies": ["M2.5", "M6.8", "G-SECRETS"],
+  "scope": {
+    "change": "The isolated routed deployment guard now performs every preflight, activation, readiness, and post-activation assertion through an explicit fail-closed boundary. The host fixture also supports the local Bash and filesystem variants used for verification.",
+    "not_changed": [
+      "request failover policy",
+      "weekly quota policy",
+      "credential material or enrollment",
+      "account bindings",
+      "running 8215 or 8216 services"
+    ]
+  },
+  "failure_first": {
+    "command": "<bundled-node> --test packages/account-router/test/codex-web-host-deploy.test.mjs",
+    "exit_code": 1,
+    "observed": "A fixture with no readiness marker could reach deployment_status=success because the script relied on errexit for the final readiness assertion."
+  },
+  "verification": {
+    "shell_syntax": {
+      "command": "bash -n evidence/M6.9/deploy-router-r69.sh && bash -n evidence/M6.9/deploy-router-r85-isolated.sh",
+      "exit_code": 0
+    },
+    "routed_deployment_fixture": {
+      "command": "<bundled-node> --test packages/account-router/test/codex-web-host-deploy.test.mjs",
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "coverage": [
+        "isolated activation",
+        "readiness failure rollback",
+        "8215 untouched assertion",
+        "8216-only service restart assertion"
+      ]
+    },
+    "complete_package_suite": {
+      "command": "<bundled-node> --test",
+      "tests": 345,
+      "passed": 315,
+      "failed": 0,
+      "skipped": 30,
+      "host_permission": "The suite used only local loopback fixture listeners."
+    },
+    "platform_qualification": {
+      "local_host": "macOS arm64",
+      "native_linux_release_verifier": "Skipped outside Linux; it remains mandatory on Linux and was not represented as passed locally."
+    }
+  },
+  "deployment": {
+    "status": "not_deployed",
+    "reason": "This is a source and fixture hardening commit. No new routed overlay archive or user-authorized production deployment was requested.",
+    "services_restarted": [],
+    "accounts_enrolled": 0,
+    "real_model_requests": 0,
+    "real_account_switches": 0
+  },
+  "residual_risks": [
+    "The active R85 release was not replaced by this candidate and still requires an independently built, pinned successor before deployment.",
+    "The Linux-native verification remains required on a Linux x64 release host before any release claim.",
+    "A real user-authorized two-account new-request E2E remains required for M6.9 completion; no semantic stream may be replayed or migrated after output begins.",
+    "No cross-account continuity, in-flight recovery, or stable performance claim is made."
+  ]
+}
