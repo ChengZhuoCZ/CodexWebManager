@@ -128,7 +128,10 @@ test("rejects unsupported Linux architectures before writing an artifact", async
   assert.deepEqual(await fs.readdir(outputDirectory), []);
 });
 
-test("installed native release verifies stalled startup stop signals", async (context) => {
+test(
+  "installed native release verifies stalled startup stop signals",
+  { skip: process.platform !== "linux" },
+  async (context) => {
   const temporaryRoot = await temporaryDirectory(context);
   const release = await buildLinuxRelease({
     architecture: process.arch,
@@ -635,4 +638,5 @@ test("installed native release verifies stalled startup stop signals", async (co
       in_flight_resume_tested: false,
     },
   );
-});
+  },
+);

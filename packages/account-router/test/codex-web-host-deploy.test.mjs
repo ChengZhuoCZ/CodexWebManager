@@ -268,7 +268,7 @@ test("restores units and current when the isolated 8216 probe fails", async (con
   const value = await fixture(context, { healthy: false });
   const legacy = await fs.readFile(path.join(value.root, "etc/systemd/system/codex-web-router.service"));
   const result = deploy(value);
-  assert.notEqual(result.status, 0);
+  assert.notEqual(result.status, 0, `${result.stdout}\n${result.stderr}`);
   assert.match(result.stdout, /deployment_status=rolled_back/);
   assert.equal(await fs.readlink(path.join(value.root, "opt/0xcaff-codex-web-router/current")), "releases/previous");
   assert.deepEqual(await fs.readFile(path.join(value.root, "etc/systemd/system/codex-web-router.service")), legacy);
@@ -317,11 +317,14 @@ test("isolated deployment restores both base units and its predecessor after a f
   const webBefore = await fs.readFile(path.join(unitRoot, "codex-web-router.service"));
   const appBefore = await fs.readFile(path.join(unitRoot, "codex-web-router-app-server.service"));
   const result = deployIsolated(value);
-  assert.notEqual(result.status, 0);
+  assert.notEqual(result.status, 0, `${result.stdout}\n${result.stderr}`);
   assert.match(`${result.stdout}\n${result.stderr}`, /deployment_status=rolled_back/);
   assert.equal(
     await fs.realpath(path.join(value.root, "opt/0xcaff-codex-web-router/current")),
-    path.join(value.root, "opt/0xcaff-codex-web-router/releases/previous"),
+    await fs.realpath(path.join(
+      value.root,
+      "opt/0xcaff-codex-web-router/releases/previous",
+    )),
   );
   assert.deepEqual(await fs.readFile(path.join(unitRoot, "codex-web-router.service")), webBefore);
   assert.deepEqual(await fs.readFile(path.join(unitRoot, "codex-web-router-app-server.service")), appBefore);

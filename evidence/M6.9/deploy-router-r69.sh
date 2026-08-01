@@ -58,6 +58,22 @@ expect_sha256() {
   [[ "$(sha256sum "$2" | awk '{print $1}')" == "$1" ]]
 }
 
+copy_release_tree() {
+  if cp --help 2>&1 | grep -q reflink; then
+    cp -a --reflink=auto "$1" "$2"
+  else
+    cp -a "$1" "$2"
+  fi
+}
+
+replace_current_link() {
+  if mv --help 2>&1 | grep -q -- '-T'; then
+    mv -Tf "$1" "$2"
+  else
+    mv -hf "$1" "$2"
+  fi
+}
+
 expect_8215_unchanged() {
   if [[ -n "$fixture_root" ]]; then
     return 0
@@ -83,7 +99,7 @@ rollback() {
     if [[ "$current_switched" -eq 1 ]]; then
       local rollback_link="${PREFIX}/.current-r69-rollback.$$"
       ln -s "$current_before" "$rollback_link"
-      mv -Tf "$rollback_link" "$CURRENT"
+      replace_current_link "$rollback_link" "$CURRENT"
     fi
     if [[ "$units_installed" -eq 1 ]]; then
       restore_units
@@ -116,7 +132,10 @@ if [[ -z "$fixture_root" ]]; then
   [[ "$(readlink -f "$CURRENT")" == "${RELEASES}/c3e92f0f-20260729-m69-router-r23" ]]
 fi
 
-mapfile -t archive_entries < <(tar -tzf "$ARCHIVE")
+archive_entries=()
+while IFS= read -r archive_entry; do
+  archive_entries+=("$archive_entry")
+done < <(tar -tzf "$ARCHIVE")
 expected_entries=(
   src/server/main.js src/server/module.js src/server/electron/index.js
   src/server/browser-ipc-router.js src/server/browser-session-auth.js
@@ -138,7 +157,7 @@ cp -a "$WEB_UNIT_TARGET" "${backup_directory}/codex-web-router.service"
 cp -a "$APP_UNIT_TARGET" "${backup_directory}/codex-web-router-app-server.service"
 cp -a "$TMPFILES_TARGET" "${backup_directory}/codex-stack.conf"
 
-cp -a --reflink=auto "$(readlink -f "$CURRENT")" "$SUCCESSOR"
+copy_release_tree "$(readlink -f "$CURRENT")" "$SUCCESSOR"
 successor_created=1
 tar --no-same-owner -xzf "$ARCHIVE" -C "$SUCCESSOR"
 
@@ -151,7 +170,7 @@ units_installed=1
 
 next_link="${PREFIX}/.current-r69.$$"
 ln -s "$SUCCESSOR" "$next_link"
-mv -Tf "$next_link" "$CURRENT"
+replace_current_link "$next_link" "$CURRENT"
 current_switched=1
 "$SYSTEMCTL" restart codex-web-router-app-server.service
 "$SYSTEMCTL" restart codex-web-router.service
@@ -168,7 +187,10 @@ for attempt in $(seq 1 "${M69_READY_ATTEMPTS:-50}"); do
   fi
   sleep "${M69_READY_SLEEP_SECONDS:-0.2}"
 done
-[[ "$ready" -eq 1 ]]
+if [[ "$ready" -ne 1 ]]; then
+  printf 'deployment_error=readiness_probe_failed\n' >&2
+  exit 1
+fi
 expect_8215_unchanged
 [[ "$(readlink -f "$CURRENT")" == "$SUCCESSOR" ]]
 

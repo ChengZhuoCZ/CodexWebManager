@@ -88,6 +88,22 @@ sha256() {
   sha256sum "$1" | awk '{print $1}'
 }
 
+copy_release_tree() {
+  if cp --help 2>&1 | grep -q reflink; then
+    cp -a --reflink=auto "$1" "$2"
+  else
+    cp -a "$1" "$2"
+  fi
+}
+
+replace_current_link() {
+  if mv --help 2>&1 | grep -q -- '-T'; then
+    mv -Tf "$1" "$2"
+  else
+    mv -hf "$1" "$2"
+  fi
+}
+
 unit_value() {
   "$SYSTEMCTL" show -p "$1" --value "$2"
 }
@@ -170,6 +186,17 @@ restart_8216() {
   "$SYSTEMCTL" restart "$WEB_SERVICE"
 }
 
+fail_closed() {
+  printf 'deployment_error=%s\n' "$1" >&2
+  exit 1
+}
+
+must() {
+  local label=$1
+  shift
+  "$@" || fail_closed "$label"
+}
+
 restore_units() {
   cp -a "${backup_directory}/codex-web-router.service" "$WEB_UNIT_TARGET"
   cp -a "${backup_directory}/codex-web-router-app-server.service" "$APP_UNIT_TARGET"
@@ -182,7 +209,7 @@ rollback() {
     if [[ "$current_switched" -eq 1 ]]; then
       local rollback_link="${WEB_PREFIX}/.current-r85-rollback.$$"
       ln -s "$current_before" "$rollback_link"
-      mv -Tf "$rollback_link" "$CURRENT"
+      replace_current_link "$rollback_link" "$CURRENT"
     fi
     if [[ "$units_installed" -eq 1 ]]; then
       restore_units
@@ -203,28 +230,39 @@ rollback() {
 trap rollback EXIT
 
 printf 'deployment_status=preflight\n'
-expect_8215_unchanged
-expect_no_pending_reload
-expect_isolation_files
+must standalone_8215_changed expect_8215_unchanged
+must pending_daemon_reload expect_no_pending_reload
+must isolation_files_changed expect_isolation_files
 for unit in "$WEB_SERVICE" "$APP_SERVICE" "$ACCOUNT_SERVICE"; do
-  expect_active "$unit"
+  must "service_inactive_${unit}" expect_active "$unit"
 done
-[[ "$(sha256 "$ARCHIVE")" == "$ARCHIVE_SHA256" ]]
-[[ "$(sha256 "$WEB_UNIT_SOURCE")" == "$WEB_UNIT_SHA256" ]]
-[[ "$(sha256 "$APP_UNIT_SOURCE")" == "$APP_UNIT_SHA256" ]]
-[[ "$(sha256 "$WEB_UNIT_TARGET")" == "$EXPECTED_WEB_BASE_SHA256" ]]
-[[ "$(sha256 "$APP_UNIT_TARGET")" == "$EXPECTED_APP_BASE_SHA256" ]]
-[[ "$(sha256 "$ACCOUNT_UNIT_TARGET")" == "$EXPECTED_ACCOUNT_BASE_SHA256" ]]
-[[ -L "$CURRENT" && ! -e "$SUCCESSOR" ]]
-current_before=$(readlink -f "$CURRENT")
-router_current_before=$(readlink -f "$ROUTER_CURRENT")
-if [[ -z "$fixture_root" ]]; then
-  [[ "$current_before" == "${RELEASES}/c3e92f0f-20260801-m69-router-r84" ]]
+must archive_hash_mismatch test "$(sha256 "$ARCHIVE")" = "$ARCHIVE_SHA256"
+must web_unit_source_hash_mismatch test "$(sha256 "$WEB_UNIT_SOURCE")" = "$WEB_UNIT_SHA256"
+must app_unit_source_hash_mismatch test "$(sha256 "$APP_UNIT_SOURCE")" = "$APP_UNIT_SHA256"
+must web_unit_baseline_mismatch test "$(sha256 "$WEB_UNIT_TARGET")" = "$EXPECTED_WEB_BASE_SHA256"
+must app_unit_baseline_mismatch test "$(sha256 "$APP_UNIT_TARGET")" = "$EXPECTED_APP_BASE_SHA256"
+must account_unit_baseline_mismatch test "$(sha256 "$ACCOUNT_UNIT_TARGET")" = "$EXPECTED_ACCOUNT_BASE_SHA256"
+must current_precondition_failed test -L "$CURRENT"
+must successor_already_exists test ! -e "$SUCCESSOR"
+if ! current_before=$(readlink -f "$CURRENT"); then
+  fail_closed current_link_unresolvable
 fi
-[[ "$router_current_before" == "$EXPECTED_ROUTER_CURRENT" ]]
-[[ "$(sha256 "${current_before}/src/server/electron/index.js")" == "$EXPECTED_PREVIOUS_ELECTRON_SHA256" ]]
+if ! router_current_before=$(readlink -f "$ROUTER_CURRENT"); then
+  fail_closed router_current_link_unresolvable
+fi
+if ! expected_router_current=$(readlink -f "$EXPECTED_ROUTER_CURRENT"); then
+  fail_closed expected_router_release_unresolvable
+fi
+if [[ -z "$fixture_root" ]]; then
+  must unexpected_web_predecessor test "$current_before" = "${RELEASES}/c3e92f0f-20260801-m69-router-r84"
+fi
+must unexpected_router_release test "$router_current_before" = "$expected_router_current"
+must predecessor_electron_hash_mismatch test "$(sha256 "${current_before}/src/server/electron/index.js")" = "$EXPECTED_PREVIOUS_ELECTRON_SHA256"
 
-mapfile -t archive_entries < <(tar -tzf "$ARCHIVE")
+archive_entries=()
+while IFS= read -r archive_entry; do
+  archive_entries+=("$archive_entry")
+done < <(tar -tzf "$ARCHIVE")
 expected_entries=(
   src/server/main.js src/server/module.js
   src/server/browser-ipc-router.js src/server/browser-session-auth.js
@@ -238,33 +276,37 @@ expected_entries=(
   scratch/asar/webview/assets/app-initial-BTphDPeq.js.gz
   scratch/asar/webview/assets/app-initial-BTphDPeq.js.br
 )
-[[ "${#archive_entries[@]}" -eq "${#expected_entries[@]}" ]]
+must archive_entry_count_mismatch test "${#archive_entries[@]}" -eq "${#expected_entries[@]}"
 for index in "${!expected_entries[@]}"; do
-  [[ "${archive_entries[$index]}" == "${expected_entries[$index]}" ]]
+  must "archive_entry_mismatch_${index}" test "${archive_entries[$index]}" = "${expected_entries[$index]}"
 done
-tar -tvzf "$ARCHIVE" | awk '$1 !~ /^-/ { exit 1 }'
+if ! tar -tvzf "$ARCHIVE" | awk '$1 !~ /^-/ { exit 1 }'; then
+  fail_closed archive_permissions_invalid
+fi
 
-backup_directory=$(mktemp -d "${fixture_root:-/tmp}/m69-r85-units.XXXXXX")
-cp -a "$WEB_UNIT_TARGET" "${backup_directory}/codex-web-router.service"
-cp -a "$APP_UNIT_TARGET" "${backup_directory}/codex-web-router-app-server.service"
+if ! backup_directory=$(mktemp -d "${fixture_root:-/tmp}/m69-r85-units.XXXXXX"); then
+  fail_closed backup_directory_create_failed
+fi
+must backup_web_unit_failed cp -a "$WEB_UNIT_TARGET" "${backup_directory}/codex-web-router.service"
+must backup_app_unit_failed cp -a "$APP_UNIT_TARGET" "${backup_directory}/codex-web-router-app-server.service"
 
-cp -a --reflink=auto "$current_before" "$SUCCESSOR"
+must successor_copy_failed copy_release_tree "$current_before" "$SUCCESSOR"
 successor_created=1
-tar --no-same-owner -xzf "$ARCHIVE" -C "$SUCCESSOR"
-[[ "$(sha256 "${SUCCESSOR}/src/server/electron/index.js")" == "$EXPECTED_PREVIOUS_ELECTRON_SHA256" ]]
-install -m 0644 "$WEB_UNIT_SOURCE" "$WEB_UNIT_TARGET"
-install -m 0644 "$APP_UNIT_SOURCE" "$APP_UNIT_TARGET"
+must successor_extract_failed tar --no-same-owner -xzf "$ARCHIVE" -C "$SUCCESSOR"
+must successor_electron_hash_mismatch test "$(sha256 "${SUCCESSOR}/src/server/electron/index.js")" = "$EXPECTED_PREVIOUS_ELECTRON_SHA256"
+must web_unit_install_failed install -m 0644 "$WEB_UNIT_SOURCE" "$WEB_UNIT_TARGET"
+must app_unit_install_failed install -m 0644 "$APP_UNIT_SOURCE" "$APP_UNIT_TARGET"
 units_installed=1
 
 next_link="${WEB_PREFIX}/.current-r85.$$"
-ln -s "$SUCCESSOR" "$next_link"
-mv -Tf "$next_link" "$CURRENT"
+must current_link_stage_failed ln -s "$SUCCESSOR" "$next_link"
+must current_link_replace_failed replace_current_link "$next_link" "$CURRENT"
 current_switched=1
 
-"$SYSTEMCTL" daemon-reload
-expect_no_pending_reload
-expect_isolation_files
-restart_8216
+must daemon_reload_failed "$SYSTEMCTL" daemon-reload
+must pending_daemon_reload expect_no_pending_reload
+must isolation_files_changed expect_isolation_files
+must service_restart_failed restart_8216
 
 ready=0
 for attempt in $(seq 1 "${R85_READY_ATTEMPTS:-30}"); do
@@ -277,17 +319,20 @@ for attempt in $(seq 1 "${R85_READY_ATTEMPTS:-30}"); do
   fi
   sleep "${R85_READY_SLEEP_SECONDS:-0.2}"
 done
-[[ "$ready" -eq 1 ]]
+must readiness_probe_failed test "$ready" -eq 1
 
-expect_8215_unchanged
-expect_no_pending_reload
-expect_isolation_files
-expect_8216_runtime_isolation
-[[ "$(sha256 "$WEB_UNIT_TARGET")" == "$WEB_UNIT_SHA256" ]]
-[[ "$(sha256 "$APP_UNIT_TARGET")" == "$APP_UNIT_SHA256" ]]
-[[ "$(sha256 "$ACCOUNT_UNIT_TARGET")" == "$EXPECTED_ACCOUNT_BASE_SHA256" ]]
-[[ "$(readlink -f "$CURRENT")" == "$SUCCESSOR" ]]
-[[ "$(readlink -f "$ROUTER_CURRENT")" == "$router_current_before" ]]
+must standalone_8215_changed expect_8215_unchanged
+must pending_daemon_reload expect_no_pending_reload
+must isolation_files_changed expect_isolation_files
+must runtime_isolation_failed expect_8216_runtime_isolation
+must web_unit_postinstall_hash_mismatch test "$(sha256 "$WEB_UNIT_TARGET")" = "$WEB_UNIT_SHA256"
+must app_unit_postinstall_hash_mismatch test "$(sha256 "$APP_UNIT_TARGET")" = "$APP_UNIT_SHA256"
+must account_unit_changed test "$(sha256 "$ACCOUNT_UNIT_TARGET")" = "$EXPECTED_ACCOUNT_BASE_SHA256"
+if ! successor_current=$(readlink -f "$SUCCESSOR"); then
+  fail_closed successor_link_unresolvable
+fi
+must current_link_not_successor test "$(readlink -f "$CURRENT")" = "$successor_current"
+must router_release_changed test "$(readlink -f "$ROUTER_CURRENT")" = "$router_current_before"
 
 success=1
 trap - EXIT
@@ -297,5 +342,3 @@ printf 'deployment_status=success\n'
 printf 'release=%s\n' "$RELEASE_NAME"
 printf 'account_router_release_unchanged=true\n'
 printf 'standalone_8215_unchanged=true\n'
-
-
