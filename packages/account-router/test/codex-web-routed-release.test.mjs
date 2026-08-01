@@ -10,6 +10,15 @@ import { stageRoutedWebRelease } from "../../../integrations/codex-web/stage-rou
 
 const appHostSource =
   's6=new class extends R3{#e;get services(){return this.#e}constructor(e){super(),this.#e=e}}({appActions:j5,appUpdates:L5,clientCoordination:V4,downloads:a6});async function d6(){var e;u6=function(){let{port1:e,port2:t}=new MessageChannel;return window.postMessage({type:"connect-app-host",port:t},window.location.origin,[t]),N3(e,s6)}(),null!=(h6=await u6.services).clientCoordination&&(e=h6.clientCoordination,H4=e),null!=h6.terminal&&function(e){a5.bindHostService(e)}(h6.terminal),h6.devboxService}\n';
+const r85IncompleteAppHostSource = appHostSource
+  .replace(
+    's6=new class extends R3{#e;get services(){return this.#e}constructor(e){super(),this.#e=e}}({appActions:j5,appUpdates:L5,clientCoordination:V4,downloads:a6})',
+    's6=new class extends R3{#e;get services(){return this.#e}constructor(e){super(),this.#e=e}}({...window.__ELECTRON_SHIM__?.services,appActions:j5,appUpdates:L5,clientCoordination:V4,downloads:a6})',
+  )
+  .replace(
+    /async function d6\(\)\{var e;[\s\S]*?h6\.devboxService\}/u,
+    'async function d6(){u6=s6,h6=s6.services,h6.devboxService}',
+  );
 
 test("patches the pinned browser app-host handshake exactly once", () => {
   const first = patchBrowserAppHostSource(appHostSource);
@@ -25,8 +34,20 @@ test("patches the pinned browser app-host handshake exactly once", () => {
     () => patchBrowserAppHostSource(appHostSource + appHostSource),
     /browser app host anchor is invalid/u,
   );
-  assert.match(first.source, /async function d6\(\)\{u6=s6,h6=s6\.services,h6\.devboxService\}/u);
+  assert.match(
+    first.source,
+    /async function d6\(\)\{var e;u6=s6,null!=\(h6=s6\.services\)\.clientCoordination&&\(e=h6\.clientCoordination,H4=e\),null!=h6\.terminal&&function\(e\)\{a5\.bindHostService\(e\)\}\(h6\.terminal\),h6\.devboxService\}/u,
+  );
   assert.doesNotMatch(first.source, /MessageChannel|connect-app-host/u);
+});
+
+test("repairs the incomplete R85 local app-host initializer exactly once", () => {
+  const first = patchBrowserAppHostSource(r85IncompleteAppHostSource);
+  assert.equal(first.changed, true);
+  assert.match(first.source, /H4=e/u);
+  assert.match(first.source, /a5\.bindHostService\(e\)/u);
+  assert.doesNotMatch(first.source, /h6=s6\.services,h6\.devboxService/u);
+  assert.equal(patchBrowserAppHostSource(first.source).changed, false);
 });
 
 const serverFiles = [
@@ -135,7 +156,7 @@ test("stages a complete routed Web successor without changing the previous relea
   );
   assert.match(
     appHost.toString(),
-    /async function d6\(\)\{u6=s6,h6=s6\.services,h6\.devboxService\}/u,
+    /async function d6\(\)\{var e;u6=s6,null!=\(h6=s6\.services\)\.clientCoordination&&\(e=h6\.clientCoordination,H4=e\),null!=h6\.terminal&&function\(e\)\{a5\.bindHostService\(e\)\}\(h6\.terminal\),h6\.devboxService\}/u,
   );
   assert.doesNotMatch(appHost.toString(), /connect-app-host/u);
   assert.deepEqual(

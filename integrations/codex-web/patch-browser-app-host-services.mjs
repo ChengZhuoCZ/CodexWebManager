@@ -20,8 +20,10 @@ const APP_HOST_CONNECT_ANCHOR =
   'async function d6(){var e;u6=function(){let{port1:e,port2:t}=new MessageChannel;return window.postMessage({type:"connect-app-host",port:t},window.location.origin,[t]),N3(e,s6)}(),null!=(h6=await u6.services).clientCoordination&&(e=h6.clientCoordination,H4=e),null!=h6.terminal&&function(e){a5.bindHostService(e)}(h6.terminal),h6.devboxService}';
 const APP_HOST_CONNECT_CONDITIONAL =
   'async function d6(){var e;if(window.__ELECTRON_SHIM__!=null){u6=s6,h6=s6.services,h6.devboxService;return}u6=function(){let{port1:e,port2:t}=new MessageChannel;return window.postMessage({type:"connect-app-host",port:t},window.location.origin,[t]),N3(e,s6)}(),null!=(h6=await u6.services).clientCoordination&&(e=h6.clientCoordination,H4=e),null!=h6.terminal&&function(e){a5.bindHostService(e)}(h6.terminal),h6.devboxService}';
-const APP_HOST_CONNECT_REPLACEMENT =
+const APP_HOST_CONNECT_R85_INCOMPLETE =
   "async function d6(){u6=s6,h6=s6.services,h6.devboxService}";
+const APP_HOST_CONNECT_REPLACEMENT =
+  "async function d6(){var e;u6=s6,null!=(h6=s6.services).clientCoordination&&(e=h6.clientCoordination,H4=e),null!=h6.terminal&&function(e){a5.bindHostService(e)}(h6.terminal),h6.devboxService}";
 const APP_HOST_VERSIONED_URL =
   /\.\/assets\/app-initial-BTphDPeq\.js\?v=[a-f0-9]{16}/gu;
 
@@ -47,12 +49,14 @@ export function patchBrowserAppHostSource(source) {
   const hasPatchedServices = source.includes(APP_HOST_SERVICES_REPLACEMENT);
   const hasOriginalConnect = source.includes(APP_HOST_CONNECT_ANCHOR);
   const hasConditionalConnect = source.includes(APP_HOST_CONNECT_CONDITIONAL);
+  const hasR85IncompleteConnect = source.includes(APP_HOST_CONNECT_R85_INCOMPLETE);
   const hasLocalConnect = source.includes(APP_HOST_CONNECT_REPLACEMENT);
   if (hasPatchedServices && hasLocalConnect) {
     if (
       hasOriginalServices ||
       hasOriginalConnect ||
-      hasConditionalConnect
+      hasConditionalConnect ||
+      hasR85IncompleteConnect
     ) {
       throw new Error("browser app host source is mixed");
     }
@@ -60,11 +64,14 @@ export function patchBrowserAppHostSource(source) {
   }
   const migratesConditional =
     hasPatchedServices && hasConditionalConnect &&
-    !hasOriginalServices && !hasOriginalConnect && !hasLocalConnect;
+    !hasOriginalServices && !hasOriginalConnect && !hasR85IncompleteConnect && !hasLocalConnect;
+  const repairsR85Incomplete =
+    hasPatchedServices && hasR85IncompleteConnect &&
+    !hasOriginalServices && !hasOriginalConnect && !hasConditionalConnect && !hasLocalConnect;
   const patchesOriginal =
     hasOriginalServices && hasOriginalConnect &&
-    !hasPatchedServices && !hasConditionalConnect && !hasLocalConnect;
-  if (!migratesConditional && !patchesOriginal) {
+    !hasPatchedServices && !hasConditionalConnect && !hasR85IncompleteConnect && !hasLocalConnect;
+  if (!migratesConditional && !repairsR85Incomplete && !patchesOriginal) {
     throw new Error("browser app host anchor is invalid");
   }
   const withServices = patchesOriginal
@@ -77,7 +84,11 @@ export function patchBrowserAppHostSource(source) {
   return Object.freeze({
     source: replaceExactlyOnce(
       withServices,
-      migratesConditional ? APP_HOST_CONNECT_CONDITIONAL : APP_HOST_CONNECT_ANCHOR,
+      migratesConditional
+        ? APP_HOST_CONNECT_CONDITIONAL
+        : repairsR85Incomplete
+          ? APP_HOST_CONNECT_R85_INCOMPLETE
+          : APP_HOST_CONNECT_ANCHOR,
       APP_HOST_CONNECT_REPLACEMENT,
     ),
     changed: true,

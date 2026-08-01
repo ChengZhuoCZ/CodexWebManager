@@ -1,0 +1,58 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R86-app-host-init-repair",
+  "generated_at": "2026-08-01T23:20:00+08:00",
+  "implementation_mode": "clean-room",
+  "input_release": "c3e92f0f-20260801-m69-router-r85",
+  "observed_failure": {
+    "user_stage": "diag_v2:render_wait",
+    "meaning": "the renderer bridge and React root existed after the timeout but the startup loader remained",
+    "validated_candidate_cause": "the R85 local App Host fast path set the service object but skipped the upstream client-coordination and terminal-service bindings"
+  },
+  "repair": {
+    "scope": "only the routed 8216 App Host static bundle and its versioned index",
+    "behavior": "bind local services without connect-app-host while preserving client-coordination assignment and terminal binding",
+    "r85_migration": "the patch accepts only the exact previous incomplete R85 initializer and replaces it once",
+    "account_router_changed": false,
+    "credential_or_account_data_read": false,
+    "request_failover_policy_changed": false,
+    "semantic_replay_introduced": false
+  },
+  "archive": {
+    "path": "/tmp/codex-m69-r86-static-overlay.tar.gz",
+    "sha256": "6b5b1b03e7f7c1c0904700c971a603f963805230a5e0bb30df45a55d6751639d",
+    "bytes": 11622155,
+    "files": 6,
+    "deterministic_builds_equal": true,
+    "app_host_version": "ff9095a7653d588e"
+  },
+  "verification": {
+    "commands": [
+      "<bundled-node> --check integrations/codex-web/patch-browser-app-host-services.mjs",
+      "<bundled-node> --test packages/account-router/test/codex-web-routed-release.test.mjs",
+      "bash -n evidence/M6.9/deploy-router-r86-app-host-init.sh",
+      "<bundled-node> integrations/codex-web/build-routed-overlay.mjs <candidate> <archive> <manifest> (twice)"
+    ],
+    "results": [
+      "4/4 focused routed-release tests passed",
+      "the exact incomplete R85 initializer was repaired once and a second pass was a no-op",
+      "deployment script syntax passed",
+      "two 6-file overlay archives were byte-identical and had the pinned SHA-256"
+    ]
+  },
+  "deployment_guard": {
+    "preflight": "requires the current R85 release and its exact index/app hashes, five units without a pending daemon reload, and the live 8215 PID/start/unit hashes",
+    "rollback": "restores the R85 current symlink and restarts only the three 8216 services on activation/readiness failure",
+    "forbidden_mutations": [
+      "no 8215 restart, stop, start, unit write, or release write",
+      "no account-router release switch",
+      "no credential, cookie, account identifier, prompt, response, or quota payload output"
+    ]
+  },
+  "residual_risks": [
+    "A successful service/readiness deployment does not itself prove a real browser composer renders; an authenticated user-device verification remains required.",
+    "The second account remains auth-expired and is not qualified for real A-to-B E2E; this UI repair does not retry or alter it.",
+    "No seamless cross-account continuity or in-flight computation recovery is claimed."
+  ]
+}
