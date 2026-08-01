@@ -1,0 +1,58 @@
+[Unit]
+Description=Isolated 8216 Codex Web account-router App Server
+After=network-online.target codex-account-router.service
+Wants=network-online.target codex-account-router.service
+StartLimitIntervalSec=60s
+StartLimitBurst=5
+
+[Service]
+Type=simple
+User=codex8216
+Group=codex8216
+Slice=codex-8216.slice
+LimitCORE=0
+WorkingDirectory=/srv/codex-workspaces/CodexWebManager-8216-fixture
+Environment=HOME=/var/lib/codex-web-router-app-server
+Environment=CODEX_HOME=/var/lib/codex-web-router-app-server
+LoadCredential=codex-auth:/etc/codex-account-router/credentials/app-server-auth.json
+ExecStartPre=/usr/bin/ln -sfn %d/codex-auth /var/lib/codex-web-router-app-server/auth.json
+ExecStart=/usr/local/bin/codex -c 'openai_base_url="http://127.0.0.1:18317/backend-api/codex"' -c features.code_mode_host=true app-server --analytics-default-enabled --listen unix:///run/codex-web-router-app-server/app-server.sock
+ExecStopPost=/usr/bin/rm -f /var/lib/codex-web-router-app-server/auth.json
+Restart=on-failure
+RestartSec=3s
+TimeoutStartSec=30s
+TimeoutStopSec=20s
+KillSignal=SIGTERM
+UMask=0077
+StateDirectory=codex-web-router-app-server
+StateDirectoryMode=0700
+RuntimeDirectory=codex-web-router-app-server
+RuntimeDirectoryMode=0700
+ReadWritePaths=/srv/codex-workspaces/CodexWebManager-8216-fixture /var/lib/codex-web-router-app-server
+ReadOnlyPaths=/run/codex-web-router-browser-uploads
+InaccessiblePaths=/srv/codex-workspaces/CodexWebManager
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+PrivateMounts=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectHostname=true
+ProtectClock=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+SystemCallArchitectures=native
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=codex-web-router-app-server
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,63 @@
+[Unit]
+Description=Isolated 8216 upstream codex-web with account-router model path
+After=network-online.target tailscaled.service codex-web-router-app-server.service
+Wants=network-online.target codex-web-router-app-server.service
+
+[Service]
+Type=simple
+User=codex8216
+Group=codex8216
+Slice=codex-8216.slice
+WorkingDirectory=/srv/codex-workspaces/CodexWebManager-8216-fixture
+Environment=NODE_ENV=production
+Environment=HOME=/var/lib/codex-web-router
+Environment=CODEX_HOME=/var/lib/codex-web-router
+Environment=CODEX_CLI_PATH=/opt/0xcaff-codex-web-router/bin/codex-remote-proxy-fast.mjs
+Environment=CODEX_REAL_CLI_PATH=/usr/local/bin/codex
+Environment=CODEX_UNIX_SOCKET=/run/codex-web-router-app-server/app-server.sock
+Environment=CODEX_ROUTER_ADMIN_ORIGIN=http://127.0.0.1:18318
+Environment=CODEX_ROUTER_ADMIN_TOKEN_FILE=%d/router-admin-token
+Environment=CODEX_WEB_PUBLIC_ORIGIN=http://100.95.50.98:8216
+Environment=CODEX_WEB_TRUSTED_TAILNET_ACCESS=1
+Environment=CODEX_WEB_CODEX_HOME=/var/lib/codex-web-router-app-server
+Environment=CODEX_WEB_WORKSPACE_ROOTS=/srv/codex-workspaces/CodexWebManager-8216-fixture
+Environment=CODEX_WEB_UPLOAD_ROOT=/run/codex-web-router-browser-uploads
+LoadCredential=router-admin-token:/etc/codex-account-router/credentials/admin-token
+ExecStart=/usr/bin/node /opt/0xcaff-codex-web-router/current/src/server/main.js --host 127.0.0.1 --port 8216
+Restart=on-failure
+RestartSec=3s
+TimeoutStopSec=20s
+KillSignal=SIGTERM
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectHostname=true
+ProtectClock=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+LockPersonality=true
+RestrictRealtime=true
+CapabilityBoundingSet=
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+StateDirectory=codex-web-router
+StateDirectoryMode=0700
+RuntimeDirectory=codex-web-router codex-web-router-browser-uploads
+RuntimeDirectoryMode=0700
+ReadWritePaths=/srv/codex-workspaces/CodexWebManager-8216-fixture /var/lib/codex-web-router /run/codex-web-router-browser-uploads
+InaccessiblePaths=/srv/codex-workspaces/CodexWebManager
+# The upstream Electron compatibility stub logs complete IPC messages, which
+# can contain prompt/response bodies. Keep its standard output out of journald;
+# bounded operational failures remain available on standard error.
+StandardOutput=null
+StandardError=journal
+SyslogIdentifier=codex-web-router
+
+[Install]
+WantedBy=multi-user.target

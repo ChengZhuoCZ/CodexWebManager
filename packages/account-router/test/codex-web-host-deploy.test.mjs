@@ -8,6 +8,11 @@ import test from "node:test";
 
 const repositoryRoot = path.resolve(import.meta.dirname, "../../..");
 const deployScript = path.join(repositoryRoot, "evidence/M6.9/deploy-router-r69.sh");
+const isolatedDeployScript = path.join(
+  repositoryRoot,
+  "evidence/M6.9/deploy-router-r76-isolated.sh",
+);
+const isolatedUnitRoot = path.join(repositoryRoot, "systemd/8216-fixture");
 const overlayFiles = [
   "src/server/main.js", "src/server/module.js", "src/server/electron/index.js",
   "src/server/browser-ipc-router.js", "src/server/browser-session-auth.js",
@@ -75,6 +80,80 @@ function deploy(value) {
   });
 }
 
+async function isolatedFixture(context, { healthy }) {
+  const value = await fixture(context, { healthy });
+  const unitRoot = path.join(value.root, "etc/systemd/system");
+  const routerRelease = path.join(
+    value.root,
+    "opt/codex-account-router/releases/codex-account-router-0.2.6-linux-x64",
+  );
+  await fs.mkdir(routerRelease, { recursive: true });
+  await fs.symlink("releases/codex-account-router-0.2.6-linux-x64", path.join(
+    value.root,
+    "opt/codex-account-router/current",
+  ));
+
+  const accountUnit = path.join(unitRoot, "codex-account-router.service");
+  await fs.writeFile(accountUnit, "fixture account unit\n");
+  const isolationFiles = {
+    web: path.join(unitRoot, "codex-web-router.service.d/8216-isolation.conf"),
+    app: path.join(unitRoot, "codex-web-router-app-server.service.d/8216-isolation.conf"),
+    account: path.join(unitRoot, "codex-account-router.service.d/8216-isolation.conf"),
+  };
+  for (const [name, target] of Object.entries(isolationFiles)) {
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.writeFile(target, `fixture ${name} isolation\n`);
+  }
+  await fs.writeFile(
+    value.systemctl,
+    [
+      "#!/bin/sh",
+      'printf "%s\\n" "$*" >> "$M69_COMMAND_LOG"',
+      'case "$1" in',
+      '  show) [ "$3" = NeedDaemonReload ] && printf "no\\n" ;;',
+      '  is-active) printf "active\\n" ;;',
+      "esac",
+      "",
+    ].join("\n"),
+  );
+  return {
+    ...value,
+    accountUnit,
+    isolationFiles,
+    hashes: {
+      oldWeb: createHash("sha256").update(await fs.readFile(path.join(unitRoot, "codex-web-router.service"))).digest("hex"),
+      oldApp: createHash("sha256").update(await fs.readFile(path.join(unitRoot, "codex-web-router-app-server.service"))).digest("hex"),
+      account: createHash("sha256").update(await fs.readFile(accountUnit)).digest("hex"),
+      webIsolation: createHash("sha256").update(await fs.readFile(isolationFiles.web)).digest("hex"),
+      appIsolation: createHash("sha256").update(await fs.readFile(isolationFiles.app)).digest("hex"),
+      accountIsolation: createHash("sha256").update(await fs.readFile(isolationFiles.account)).digest("hex"),
+    },
+  };
+}
+
+function deployIsolated(value) {
+  return spawnSync("bash", [isolatedDeployScript], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+    env: {
+      PATH: process.env.PATH,
+      M69_COMMAND_LOG: value.commandLog,
+      R76_FIXTURE_ROOT: value.root,
+      R76_ARCHIVE: value.archive,
+      R76_ARCHIVE_SHA256: value.archiveHash,
+      R76_SYSTEMCTL: value.systemctl,
+      R76_OLD_WEB_UNIT_SHA256: value.hashes.oldWeb,
+      R76_OLD_APP_UNIT_SHA256: value.hashes.oldApp,
+      R76_ACCOUNT_UNIT_SHA256: value.hashes.account,
+      R76_WEB_ISOLATION_SHA256: value.hashes.webIsolation,
+      R76_APP_ISOLATION_SHA256: value.hashes.appIsolation,
+      R76_ACCOUNT_ISOLATION_SHA256: value.hashes.accountIsolation,
+      R76_READY_ATTEMPTS: "2",
+      R76_READY_SLEEP_SECONDS: "0",
+    },
+  });
+}
+
 test("host deployment script pins the approved baseline and forbids unrelated service mutations", async () => {
   const source = await fs.readFile(deployScript, "utf8");
   assert.match(source, /STANDALONE_WEB_PID=1336830/);
@@ -83,6 +162,53 @@ test("host deployment script pins the approved baseline and forbids unrelated se
   assert.doesNotMatch(source, /(?:restart|stop|start) codex-web-upstream/);
   assert.doesNotMatch(source, /(?:restart|stop|start) codex-account-router/);
   assert.doesNotMatch(source, /\/opt\/0xcaff-codex-web(?:\/|\s|$)/);
+});
+
+test("isolated deployment updates only 8216 base units and preserves migration drop-ins", async () => {
+  const source = await fs.readFile(isolatedDeployScript, "utf8");
+  assert.match(source, /STANDALONE_WEB_PID=1336830/);
+  assert.match(source, /STANDALONE_APP_PID=1336828/);
+  assert.match(source, /PRODUCTION_ARCHIVE_SHA256=6a8060aa/);
+  assert.match(source, /8216-isolation\.conf/);
+  assert.match(source, /NeedDaemonReload/);
+  assert.match(source, /daemon-reload/);
+  assert.doesNotMatch(source, /install[^\n]+8216-isolation\.conf/);
+  assert.doesNotMatch(source, /(?:restart|stop|start) codex-web-upstream/);
+  assert.doesNotMatch(source, /\/opt\/0xcaff-codex-web(?:\/|\s|$)/);
+});
+
+test("isolated candidate units retain Tailnet, upload, router-status, and workspace boundaries", async () => {
+  const [web, app] = await Promise.all([
+    fs.readFile(path.join(isolatedUnitRoot, "codex-web-router.service"), "utf8"),
+    fs.readFile(path.join(isolatedUnitRoot, "codex-web-router-app-server.service"), "utf8"),
+  ]);
+  for (const content of [web, app]) {
+    assert.match(content, /^User=codex8216$/m);
+    assert.match(content, /^Group=codex8216$/m);
+    assert.match(content, /^Slice=codex-8216\.slice$/m);
+    assert.match(
+      content,
+      /^WorkingDirectory=\/srv\/codex-workspaces\/CodexWebManager-8216-fixture$/m,
+    );
+    assert.match(content, /^InaccessiblePaths=\/srv\/codex-workspaces\/CodexWebManager$/m);
+  }
+  for (const setting of [
+    "CODEX_ROUTER_ADMIN_ORIGIN=http://127.0.0.1:18318",
+    "CODEX_ROUTER_ADMIN_TOKEN_FILE=%d/router-admin-token",
+    "CODEX_WEB_PUBLIC_ORIGIN=http://100.95.50.98:8216",
+    "CODEX_WEB_TRUSTED_TAILNET_ACCESS=1",
+    "CODEX_WEB_CODEX_HOME=/var/lib/codex-web-router-app-server",
+    "CODEX_WEB_WORKSPACE_ROOTS=/srv/codex-workspaces/CodexWebManager-8216-fixture",
+    "CODEX_WEB_UPLOAD_ROOT=/run/codex-web-router-browser-uploads",
+  ]) {
+    assert.ok(web.includes(setting), setting);
+  }
+  assert.match(web, /^StandardOutput=null$/m);
+  assert.match(app, /^ReadOnlyPaths=\/run\/codex-web-router-browser-uploads$/m);
+  assert.doesNotMatch(
+    `${web}\n${app}`,
+    /0\.0\.0\.0|\[::\]|(?:Bearer\s+|Authorization=|refresh_token|access_token|sk-[A-Za-z0-9_-]{12,})/i,
+  );
 });
 
 test("activates only the routed Web successor in an isolated host fixture", async (context) => {
@@ -107,4 +233,52 @@ test("restores units and current when the isolated 8216 probe fails", async (con
   assert.deepEqual(await fs.readFile(path.join(value.root, "etc/systemd/system/codex-web-router.service")), legacy);
   assert.match(await fs.readFile(value.commandLog, "utf8"), /restart codex-web-router\.service/);
   await assert.rejects(fs.access(path.join(value.root, "opt/0xcaff-codex-web-router/releases/c3e92f0f-20260801-m69-router-r69")));
+});
+
+test("isolated deployment activates the routed Web candidate and restarts only the 8216 stack", async (context) => {
+  const value = await isolatedFixture(context, { healthy: true });
+  const isolationBefore = await Promise.all(
+    Object.values(value.isolationFiles).map((file) => fs.readFile(file)),
+  );
+  const result = deployIsolated(value);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /deployment_status=success/);
+  assert.match(
+    await fs.readlink(path.join(value.root, "opt/0xcaff-codex-web-router/current")),
+    /router-r76$/,
+  );
+  const log = await fs.readFile(value.commandLog, "utf8");
+  assert.match(log, /daemon-reload/);
+  assert.match(log, /restart codex-account-router\.service/);
+  assert.match(log, /restart codex-web-router-app-server\.service/);
+  assert.match(log, /restart codex-web-router\.service/);
+  assert.doesNotMatch(log, /(?:restart|stop|start) codex-web-upstream/);
+  assert.equal(
+    await fs.readlink(path.join(value.root, "opt/codex-account-router/current")),
+    "releases/codex-account-router-0.2.6-linux-x64",
+  );
+  assert.deepEqual(
+    await Promise.all(Object.values(value.isolationFiles).map((file) => fs.readFile(file))),
+    isolationBefore,
+  );
+});
+
+test("isolated deployment restores both base units and R23 after a failed probe", async (context) => {
+  const value = await isolatedFixture(context, { healthy: false });
+  const unitRoot = path.join(value.root, "etc/systemd/system");
+  const webBefore = await fs.readFile(path.join(unitRoot, "codex-web-router.service"));
+  const appBefore = await fs.readFile(path.join(unitRoot, "codex-web-router-app-server.service"));
+  const result = deployIsolated(value);
+  assert.notEqual(result.status, 0);
+  assert.match(result.stdout, /deployment_status=rolled_back/);
+  assert.equal(
+    await fs.realpath(path.join(value.root, "opt/0xcaff-codex-web-router/current")),
+    path.join(value.root, "opt/0xcaff-codex-web-router/releases/previous"),
+  );
+  assert.deepEqual(await fs.readFile(path.join(unitRoot, "codex-web-router.service")), webBefore);
+  assert.deepEqual(await fs.readFile(path.join(unitRoot, "codex-web-router-app-server.service")), appBefore);
+  await assert.rejects(fs.access(path.join(
+    value.root,
+    "opt/0xcaff-codex-web-router/releases/c3e92f0f-20260801-m69-router-r76",
+  )));
 });
