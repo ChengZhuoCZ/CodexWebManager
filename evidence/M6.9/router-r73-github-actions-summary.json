@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R73",
+  "workflow": "Automated test matrix",
+  "workflow_file": ".github/workflows/test-matrix.yml",
+  "run_id": 30688290732,
+  "event": "push",
+  "branch": "codex/m6-9-8215-worker",
+  "head_sha": "9f9afc7bef0e04bcd26ce5aec1ea77e9b5320e6d",
+  "conclusion": "success",
+  "total_duration_seconds": 122,
+  "jobs": [
+    {
+      "name": "Node 22 unit, integration, and E2E",
+      "runner": "ubuntu-24.04",
+      "conclusion": "success",
+      "tests": 335,
+      "passed": 335,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "Node 24 unit, integration, and E2E",
+      "runner": "ubuntu-24.04",
+      "conclusion": "success",
+      "tests": 335,
+      "passed": 335,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "artifacts": [
+    {
+      "name": "automated-test-matrix-node-22",
+      "artifact_id": 8814739968,
+      "archive_sha256": "841318317a5a2a81ff8373f7a929764a74b6e92935c64291dc96fe1ebeb1dcc4"
+    },
+    {
+      "name": "automated-test-matrix-node-24",
+      "artifact_id": 8814738899,
+      "archive_sha256": "1b4b5e68dca478fc69415a9e13859fea1fcfeead0f8086a1cb234ec78963d982"
+    }
+  ],
+  "run_url": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/30688290732",
+  "qualification_basis": "The successful workflow validates both sanitized matrix summaries before artifact upload; each summary must report 335 tests passed with zero failures and zero skips.",
+  "real_account_configured": false,
+  "account_switch_tested": false,
+  "seamless_account_continuity_claimed": false
+}
