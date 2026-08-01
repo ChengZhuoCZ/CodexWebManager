@@ -3,8 +3,8 @@ set -euo pipefail
 
 readonly REPOSITORY=/srv/codex-workspaces/CodexWebManager
 readonly RELEASE_NAME=c3e92f0f-20260801-m69-router-r69
-readonly PRODUCTION_ARCHIVE=/tmp/codex-m69-r70-web-overlay-a.tar.gz
-readonly PRODUCTION_ARCHIVE_SHA256=861d5229cc6aefed0e6f5a783421828a78b029046f8803ebe9b9c7ca68af880c
+readonly PRODUCTION_ARCHIVE=/tmp/codex-m69-r72-web-overlay.tar.gz
+readonly PRODUCTION_ARCHIVE_SHA256=6a8060aaf32c67190412d0f97e9b57da9e89638143ec76484da9927dc00744b9
 readonly WEB_UNIT_SHA256=f66b20c7f64bc258ee3752a22a7c2b1b21e3695b1f5685e4d8047ce9b3bcba3f
 readonly APP_UNIT_SHA256=03de8d81201637f24e8fe136f14415b3d0f1d33853aaa641f29adc16864cee3b
 readonly TMPFILES_SHA256=e657aa145e0037fcba7c50fa139b391a1396ab9b29f4c070beaeccd5f1532197
@@ -123,9 +123,9 @@ expected_entries=(
   src/server/browser-upload-store.js src/server/router-status-bridge.js
   scratch/asar/webview/index.html scratch/asar/webview/index.html.gz
   scratch/asar/webview/index.html.br
-  scratch/asar/webview/assets/preload-343f16dc.js
-  scratch/asar/webview/assets/preload-343f16dc.js.gz
-  scratch/asar/webview/assets/preload-343f16dc.js.br
+  scratch/asar/webview/assets/preload-d153ef5a.js
+  scratch/asar/webview/assets/preload-d153ef5a.js.gz
+  scratch/asar/webview/assets/preload-d153ef5a.js.br
 )
 [[ "${#archive_entries[@]}" -eq "${#expected_entries[@]}" ]]
 for index in "${!expected_entries[@]}"; do

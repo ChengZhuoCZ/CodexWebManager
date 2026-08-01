@@ -14,9 +14,9 @@ const overlayFiles = [
   "src/server/browser-upload-store.js", "src/server/router-status-bridge.js",
   "scratch/asar/webview/index.html", "scratch/asar/webview/index.html.gz",
   "scratch/asar/webview/index.html.br",
-  "scratch/asar/webview/assets/preload-343f16dc.js",
-  "scratch/asar/webview/assets/preload-343f16dc.js.gz",
-  "scratch/asar/webview/assets/preload-343f16dc.js.br",
+  "scratch/asar/webview/assets/preload-d153ef5a.js",
+  "scratch/asar/webview/assets/preload-d153ef5a.js.gz",
+  "scratch/asar/webview/assets/preload-d153ef5a.js.br",
 ];
 
 async function fixture(context, { healthy }) {
@@ -79,7 +79,7 @@ test("host deployment script pins the approved baseline and forbids unrelated se
   const source = await fs.readFile(deployScript, "utf8");
   assert.match(source, /STANDALONE_WEB_PID=1336830/);
   assert.match(source, /STANDALONE_APP_PID=1336828/);
-  assert.match(source, /PRODUCTION_ARCHIVE_SHA256=861d5229/);
+  assert.match(source, /PRODUCTION_ARCHIVE_SHA256=6a8060aa/);
   assert.doesNotMatch(source, /(?:restart|stop|start) codex-web-upstream/);
   assert.doesNotMatch(source, /(?:restart|stop|start) codex-account-router/);
   assert.doesNotMatch(source, /\/opt\/0xcaff-codex-web(?:\/|\s|$)/);

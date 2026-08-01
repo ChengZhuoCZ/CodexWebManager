@@ -1362,6 +1362,12 @@ async function handleLocalBrowserMessage(
   build: {`,
       "Vite gzip plugin",
     );
+    patchedVite = replaceOnce(
+      patchedVite,
+      "    minify: false,",
+      '    minify: "oxc",',
+      "Vite routed preload minifier",
+    );
   }
 
   const overlayCopies = [

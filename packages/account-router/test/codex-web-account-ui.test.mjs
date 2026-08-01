@@ -241,6 +241,7 @@ integrationTest("pinned browser overlay bundles without writing to the upstream 
   assert.match(output, /Router accounts/);
   assert.doesNotMatch(output, /5-hour quota|fiveHourLabel/);
   assert.match(output, /Cross-account continuity is not verified/);
+  assert.ok(Buffer.byteLength(output) < 400_000, "routed browser preload must stay minified");
   const trackedDiff = spawnSync("git", ["-C", codexWebRoot, "diff", "--quiet", "--exit-code"]);
   assert.equal(trackedDiff.status, 0);
 });
