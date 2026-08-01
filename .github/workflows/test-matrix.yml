@@ -79,6 +79,8 @@ jobs:
           if (( matrix_status != 0 )); then
             failures="$(awk '/^not ok [0-9]+ - / { sub(/^not ok [0-9]+ - /, ""); print; if (++count == 20) exit }' "$matrix_log" | paste -sd ';' -)"
             if [[ -z "$failures" ]]; then failures="strict matrix exited with status $matrix_status"; fi
+            pipeline_phase="$(grep -Eo 'routed Web build pipeline failed at [a-z_]+' "$matrix_log" | sort -u | paste -sd ';' - || true)"
+            if [[ -n "$pipeline_phase" ]]; then failures="$failures [$pipeline_phase]"; fi
             failures="${failures//'%'/'%25'}"
             failures="${failures//$'\r'/'%0D'}"
             failures="${failures//$'\n'/'%0A'}"
