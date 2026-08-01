@@ -3,8 +3,12 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { pathToFileURL } from "node:url";
 
-import { parseAccountCommand } from "../bin/codex-router-account.mjs";
+import {
+  isDirectCliInvocation,
+  parseAccountCommand,
+} from "../bin/codex-router-account.mjs";
 import { createAccountEnrollmentManager } from "../src/account-enrollment.mjs";
 
 function fixtureAuth() {
@@ -207,4 +211,17 @@ test("account CLI accepts only public metadata and a private source path", () =>
   ]) {
     assert.throws(() => parseAccountCommand(argumentsList));
   }
+});
+
+test("account CLI recognizes a symlinked direct entrypoint", async (context) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "router-cli-entrypoint-"));
+  context.after(() => fs.rm(root, { recursive: true, force: true }));
+  const target = path.join(root, "codex-router-account.mjs");
+  const symlink = path.join(root, "current-account-cli.mjs");
+  await fs.writeFile(target, "// fixture\n", { mode: 0o600 });
+  await fs.symlink(target, symlink);
+
+  const targetUrl = pathToFileURL(await fs.realpath(target)).href;
+  assert.equal(isDirectCliInvocation(targetUrl, symlink), true);
+  assert.equal(isDirectCliInvocation(targetUrl, path.join(root, "missing.mjs")), false);
 });

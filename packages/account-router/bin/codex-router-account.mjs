@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
+import { realpathSync } from "node:fs";
 import http from "node:http";
+import { pathToFileURL } from "node:url";
 
 import { createAccountEnrollmentManager } from "../src/account-enrollment.mjs";
 
@@ -69,6 +71,15 @@ export function parseAccountCommand(argumentsList) {
       64,
     ),
   });
+}
+
+export function isDirectCliInvocation(moduleUrl, executablePath) {
+  if (typeof executablePath !== "string" || executablePath.length === 0) return false;
+  try {
+    return moduleUrl === pathToFileURL(realpathSync(executablePath)).href;
+  } catch {
+    return false;
+  }
 }
 
 function restartRouter() {
@@ -184,8 +195,7 @@ async function main() {
   process.stdout.write(`${JSON.stringify(result)}\n`);
 }
 
-const invokedDirectly = process.argv[1] !== undefined &&
-  import.meta.url === new URL(`file://${process.argv[1]}`).href;
+const invokedDirectly = isDirectCliInvocation(import.meta.url, process.argv[1]);
 if (invokedDirectly) {
   main().catch(() => {
     process.stderr.write("account enrollment failed\n");
