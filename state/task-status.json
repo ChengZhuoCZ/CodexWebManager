@@ -75,7 +75,7 @@
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "ef6f2e82d826f007c7c4a2d6fc45c94a454420cb",
+  "output_revision": "fa749e75976b20c874ccc5739683b875cb3f3a25",
   "workspace_branch": "test/8216-fixture",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -1762,6 +1762,22 @@
     {
       "command": "R82 rollback deployment; trusted Tailnet HTML and startup-probe probes; post-deployment five-service PID/start/reload/unit-hash verification",
       "result": "R82 deployed successfully. Tailnet HTML and the authenticated probe returned 200, exactly one probe precedes preload, all three 8216 services are active with zero post-activation restarts and no pending reload, and account-router remains 0.2.6. 8215 retained PID 3522733/3522725, starts 451372467525/451372452251 and both approved effective-unit hashes. No real browser stage code, composer result, model request or account switch is claimed"
+    },
+    {
+      "command": "failure-first R82 bundle inspection and fixed-code loader_timeout correlation; exact browser App Host anchor fixture; R83 deployment; failure-first immutable cache-key check; R84 cache-busted successor",
+      "result": "The active bundle discarded the transferred connect-app-host MessagePort and awaited App Host services before React render. The pre-fix bypass assertion exited 1. R83 injected the existing browser-mode local services boundary and deployed, then a second assertion exited 1 because index.html retained the old immutable query. R84 versions both import-map and modulepreload references from the patched bundle digest"
+    },
+    {
+      "command": "two deterministic 15-file R84 pipeline builds; release/compression/cache-key fixtures; isolated activation and rollback fixtures",
+      "result": "Both R84 builds produced the identical 11916341-byte archive SHA-256 4edf04cbd438553f90717fb7b923884f8eabc11d2376f01b10560c7edbce67c3. Focused release/deployment tests passed 12/12 with zero skips, and raw/gzip/Brotli App Host and index bytes matched"
+    },
+    {
+      "command": "umask 0022; complete pinned-fixture test matrix; 15 focused security test files; repository-only scanRepository",
+      "result": "R84 strict matrix passed 345/345 with zero failures/skips; focused security passed 108/108; 583 repository files scanned with zero findings. Two earlier bounded matrix attempts were not counted as passes: one omitted required fixture environment variables and one exposed the stale expected archive digest. Aggregate strict CI remains fail-closed because protected routed Web paths changed and test/8216-fixture is not authorized for push"
+    },
+    {
+      "command": "R83 then R84 rollback deployment; served cache-key, Tailnet page, readiness and post-deployment five-service PID/start/reload/unit-hash verification",
+      "result": "R84 is active with the patched cache key served twice in index.html, router readiness 200 and two bounded Tailnet page retries 200. All three 8216 services are active with zero restarts and no pending reload; account-router remains 0.2.6. 8215 retained PID 3522733/3522725, starts 451372467525/451372452251 and both approved effective-unit hashes. A real browser-rendered composer, model request and account switch remain unverified"
     }
   ],
   "evidence": [
@@ -2001,7 +2017,10 @@
     "evidence/M6.9/deploy-router-r81-isolated.sh",
     "evidence/M6.9/router-r81-csp-startup-summary.json",
     "evidence/M6.9/deploy-router-r82-isolated.sh",
-    "evidence/M6.9/router-r82-browser-startup-diagnostic-summary.json"
+    "evidence/M6.9/router-r82-browser-startup-diagnostic-summary.json",
+    "evidence/M6.9/deploy-router-r83-isolated.sh",
+    "evidence/M6.9/deploy-router-r84-isolated.sh",
+    "evidence/M6.9/router-r84-app-host-startup-summary.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -5162,10 +5181,32 @@
       "model_request_sent": false,
       "account_switch_tested": false,
       "stable_performance_claimed": false
+    },
+    "r84_app_host_startup_repair": {
+      "implementation_revision": "fa749e75976b20c874ccc5739683b875cb3f3a25",
+      "reported_stage_code": "loader_timeout",
+      "failure_first_app_host_bypass_exit": 1,
+      "failure_first_cache_key_exit": 1,
+      "patched_app_host_sha256": "3b830d6fbfe812bfa31e2f4db79b822399fd5c5010e22599d27027246731e6a8",
+      "served_app_host_version": "3b830d6fbfe812bf",
+      "deterministic_archive_sha256": "4edf04cbd438553f90717fb7b923884f8eabc11d2376f01b10560c7edbce67c3",
+      "strict_matrix_passed": 345,
+      "focused_security_passed": 108,
+      "repository_files_scanned": 583,
+      "security_findings": 0,
+      "active_web_release": "c3e92f0f-20260801-m69-router-r84",
+      "account_router_release": "codex-account-router-0.2.6-linux-x64",
+      "deployment_status": "success",
+      "live_tailnet_page_retry_statuses": [200, 200],
+      "browser_rendered_composer_verified": false,
+      "standalone_8215_pid_start_and_effective_units_unchanged": true,
+      "model_request_sent": false,
+      "account_switch_tested": false,
+      "stable_performance_claimed": false
     }
   },
   "blockers": [
-    "R82 is active and its trusted Tailnet HTML plus authenticated fixed-code startup probe are verified, but the real browser has not yet loaded the R82 document. A hard refresh is required before the fixed stage code or rendered composer can be evaluated.",
+    "R84 is active with the verified App Host browser bypass and digest-derived immutable cache key, but the real user browser has not yet hard-refreshed R84. A rendered composer can only be claimed after that client observation; if it still fails, the fixed startup stage code is required.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, real two-binding credential acquisition/restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -5299,7 +5340,11 @@
     "R82 reports only one of eight fixed startup stage codes through an authenticated CSRF-protected endpoint and deliberately discards exception messages, URLs, stacks and arbitrary browser data. This coarse boundary may require another fixture-only repair after the real browser hard-refreshes.",
     "R82 replaces a still-present startup loader after 20 seconds with an actionable fixed stage code, but a successful real browser-rendered composer remains unverified and is not claimed.",
     "One predeployment header diagnostic accidentally printed an ephemeral trusted-session Cookie to internal command output. The subsequent 8216 Web restart invalidated all predeployment in-memory sessions; the value was not copied into a file or commit and is not reproduced in evidence.",
-    "The protected routed Web paths changed after the last qualified remote strict-CI baseline. Local matrix/security coverage passed, but strict CI remains unqualified because test/8216-fixture was not pushed and no push is authorized for this branch."
+    "The protected routed Web paths changed after the last qualified remote strict-CI baseline. Local matrix/security coverage passed, but strict CI remains unqualified because test/8216-fixture was not pushed and no push is authorized for this branch.",
+    "R84 removes the verified pre-render App Host deadlock and cache-busts the patched main bundle, but a successful real browser-rendered composer remains unverified and is not claimed.",
+    "The server-side headless Firefox screenshot attempt did not complete and was stopped without a model request. It is not evidence of either browser success or application failure.",
+    "The first direct Tailnet HTTP check after R84 returned 401, followed by two bounded 200 responses; remote client startup must still be observed after refresh.",
+    "R84 keeps the 3.117 MB Brotli and 13.936 MB decoded main bundle unchanged; the repair removes a deadlock but does not reduce transfer or parse cost."
   ],
-  "updated_at": "2026-08-01T20:09:44+08:00"
+  "updated_at": "2026-08-01T20:42:09+08:00"
 }

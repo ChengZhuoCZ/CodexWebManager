@@ -1,0 +1,123 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "continuation": "R84",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "test/8216-fixture",
+  "input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
+  "implementation_revision": "fa749e75976b20c874ccc5739683b875cb3f3a25",
+  "objective": "Remove the verified browser-mode App Host startup deadlock and publish a cache-busted 8216-only successor without changing 8215, credentials, routing semantics or model traffic boundaries.",
+  "failure_first": {
+    "reported_stage_code": "loader_timeout",
+    "live_config_read_requests_before_fix": 0,
+    "transferred_app_host_port_discarded_by_browser_shim": true,
+    "app_host_browser_bypass_missing_exit": 1,
+    "r83_cache_key_stale_exit": 1,
+    "conclusion": "The main entry awaited desktop App Host services before React render, while the browser shim discarded the transferred MessagePort. R83 fixed the wait but retained the old immutable asset key; R84 also versions the import-map and modulepreload URLs from the patched bundle digest."
+  },
+  "implementation": {
+    "browser_app_host_services_injected": true,
+    "desktop_message_port_wait_bypassed_only_when_electron_shim_exists": true,
+    "patch_anchor_count": 2,
+    "index_cache_key_anchor_count": 2,
+    "patched_bundle_sha256": "3b830d6fbfe812bfa31e2f4db79b822399fd5c5010e22599d27027246731e6a8",
+    "patched_bundle_version": "3b830d6fbfe812bf",
+    "precompressed_variants_regenerated": true,
+    "archive_files": 15,
+    "archive_bytes": 11916341,
+    "archive_sha256": "4edf04cbd438553f90717fb7b923884f8eabc11d2376f01b10560c7edbce67c3",
+    "deterministic_rebuilds": 2,
+    "r83_deployment_script": "evidence/M6.9/deploy-router-r83-isolated.sh",
+    "r83_deployment_script_sha256": "75e7fd9f987376a1bf0faab08c4056fbf94df70f8c85bf352a064d32c567f954",
+    "r84_deployment_script": "evidence/M6.9/deploy-router-r84-isolated.sh",
+    "r84_deployment_script_sha256": "0a156ce90fd5387f552d2563e976bfba7438a3914c6f84f6312c0ae03a0b06b6"
+  },
+  "tests": {
+    "focused_release_and_rollback": {
+      "tests": 12,
+      "passed": 12,
+      "failed": 0,
+      "skipped": 0
+    },
+    "strict_matrix": {
+      "tests": 345,
+      "passed": 345,
+      "failed": 0,
+      "skipped": 0,
+      "unit": 158,
+      "integration": 118,
+      "e2e": 69,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    },
+    "focused_security": {
+      "test_files": 15,
+      "tests": 108,
+      "passed": 108,
+      "failed": 0,
+      "skipped": 0
+    },
+    "repository_scan": {
+      "files_scanned": 583,
+      "findings": 0
+    },
+    "strict_ci_audit": {
+      "passed": false,
+      "reason": "Protected routed Web paths changed after the retained remote qualification and no push is authorized for test/8216-fixture."
+    }
+  },
+  "deployment": {
+    "r83_status": "success_intermediate",
+    "r84_status": "success",
+    "active_release": "c3e92f0f-20260801-m69-router-r84",
+    "predecessor_release": "c3e92f0f-20260801-m69-router-r83",
+    "account_router_release": "codex-account-router-0.2.6-linux-x64",
+    "rollback_triggered": false,
+    "web_pid": 3619023,
+    "web_start_monotonic": 458989316217,
+    "app_server_pid": 3619016,
+    "app_server_start_monotonic": 458989291210,
+    "account_router_pid": 3618988,
+    "account_router_start_monotonic": 458988828307,
+    "service_restarts_after_activation": 0,
+    "need_daemon_reload": false
+  },
+  "live_verification": {
+    "loopback_trusted_page_status": 200,
+    "tailnet_page_retry_statuses": [200, 200],
+    "initial_tailnet_probe_status": 401,
+    "router_ready_status": 200,
+    "served_app_host_cache_key_occurrences": 2,
+    "served_app_host_cache_key": "3b830d6fbfe812bf",
+    "real_browser_rendered_composer_verified": false,
+    "headless_firefox_screenshot_completed": false,
+    "real_model_request_sent": false,
+    "account_switch_tested": false
+  },
+  "standalone_8215": {
+    "web_pid": 3522733,
+    "web_start_monotonic": 451372467525,
+    "web_effective_unit_sha256": "a8c8ceab5b354698c288d1e7db500f059f89c5027579ff9ea49bf5cc788bcb0c",
+    "app_server_pid": 3522725,
+    "app_server_start_monotonic": 451372452251,
+    "app_server_effective_unit_sha256": "662de56df5c27359cdd6e567169f28e517727c761c46fb4b7abeb274c21d099e",
+    "mutated": false
+  },
+  "safety": {
+    "real_account_credentials_read_or_recorded": false,
+    "email_or_account_identifier_recorded": false,
+    "second_account_enrolled": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false,
+    "semantic_replay_rules_changed": false,
+    "seamless_continuity_claimed": false,
+    "in_flight_resume_claimed": false
+  },
+  "residual_risks": [
+    "A user browser hard refresh against R84 is still required before the rendered composer can be claimed; the server-side headless Firefox screenshot attempt did not complete and was stopped without a model request.",
+    "One first direct Tailnet HTTP check returned 401, followed by two bounded 200 responses; client-side Tailnet startup remains to be observed after refresh.",
+    "R84 keeps the 3.117 MB Brotli and 13.936 MB decoded main bundle; this repair removes a deadlock and corrects the cache key but does not reduce bundle transfer or parse size.",
+    "Real A-to-B switching remains blocked until explicit second-account enrollment authorization is given."
+  ],
+  "updated_at": "2026-08-01T20:42:09+08:00"
+}
