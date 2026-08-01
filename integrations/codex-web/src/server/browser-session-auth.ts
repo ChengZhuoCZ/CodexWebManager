@@ -29,6 +29,11 @@ const MAX_TRUSTED_TAILNET_SESSIONS = 64;
 const IPC_SUBPROTOCOL = "codex-ipc.v1";
 const INLINE_UUID_SCRIPT_SHA256 =
   "'sha256-Dclel/rGxNWaGiFViYSHBS21+R0OTVg2FgATT6T00nc='";
+const ROUTED_INLINE_SCRIPT_SHA256 = [
+  "'sha256-JFzyxau0BLv5eiwJiFmkh6tzLMjL1kwn6z7lIuy0XAA='",
+  "'sha256-mNtCN1bmWu5o8zc8kEpxzwQtpB4bQ4jUuStyIR1LrEI='",
+  "'sha256-px6C9XySPrv19JRhBPxaQkoxemcODcCoV+kMOUtL3/I='",
+].join(" ");
 
 type SessionSocket = {
   close(code?: number, reason?: string | Buffer): void;
@@ -482,7 +487,7 @@ function setSecurityHeaders(
       "content-security-policy",
       [
         "default-src 'self' data: blob:",
-        `script-src 'self' ${INLINE_UUID_SCRIPT_SHA256} 'wasm-unsafe-eval'`,
+        `script-src 'self' ${INLINE_UUID_SCRIPT_SHA256} ${ROUTED_INLINE_SCRIPT_SHA256} 'wasm-unsafe-eval'`,
         "style-src 'self' 'unsafe-inline'",
         "img-src 'self' data: blob:",
         `connect-src 'self' ${websocketOrigin}`,

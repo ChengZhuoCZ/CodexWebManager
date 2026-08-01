@@ -1199,7 +1199,7 @@ integrationTest(
 );
 
 integrationTest(
-  "browser CSP permits only the pinned inline UUID bootstrap",
+  "browser CSP permits every pinned routed startup script without unsafe-inline",
   async () => {
     const root = codexWebRoot;
     assert.ok(root && path.isAbsolute(root));
@@ -1212,7 +1212,19 @@ integrationTest(
     )
       .filter((match) => !/\bsrc\s*=/u.test(match[1]))
       .map((match) => match[2]);
-    assert.ok(inlineScripts.length <= 1);
+    const routedIndexSource = await fs.readFile(
+      new URL(
+        "./fixtures/routed-web-previous/scratch/asar/webview/index.html",
+        import.meta.url,
+      ),
+      "utf8",
+    );
+    const routedInlineScripts = Array.from(
+      routedIndexSource.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/gu),
+    )
+      .filter((match) => !/\bsrc\s*=/u.test(match[1]))
+      .map((match) => match[2]);
+    assert.equal(routedInlineScripts.length, 3);
     const authSource = await fs.readFile(
       new URL(
         "../../../integrations/codex-web/src/server/browser-session-auth.ts",
@@ -1230,6 +1242,7 @@ integrationTest(
     );
     assert.equal(typeof scriptSourceLine, "string");
     assert.match(scriptSourceLine, /INLINE_UUID_SCRIPT_SHA256/u);
+    assert.match(scriptSourceLine, /ROUTED_INLINE_SCRIPT_SHA256/u);
     assert.doesNotMatch(scriptSourceLine, /unsafe-inline/u);
     assert.match(authSource, /requestPath === "\/assets\/preload\.js"/u);
     if (inlineScripts.length === 1) {
@@ -1237,6 +1250,15 @@ integrationTest(
         .update(inlineScripts[0])
         .digest("base64");
       assert.ok(authSource.includes(`sha256-${digest}`));
+    }
+    for (const inlineScript of routedInlineScripts) {
+      const digest = createHash("sha256")
+        .update(inlineScript)
+        .digest("base64");
+      assert.ok(
+        authSource.includes(`sha256-${digest}`),
+        `routed startup script ${digest} must be pinned by the CSP`,
+      );
     }
   },
 );
