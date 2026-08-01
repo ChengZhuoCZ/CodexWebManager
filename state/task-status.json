@@ -69,12 +69,13 @@
     "r72_continuation": "741908b12adc6a86e3b0ecf781ca9563feaf2835",
     "r74_continuation": "276f5256914ca4c629b5d0b7bc32573d2934631b",
     "r75_continuation": "be83872b8b6a51c248c93e23318adf524e8822f2",
+    "r76_continuation": "4a6d98fe7189400f973fefcaf4d8599d0cbd8ef3",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "1cdce0aeb3cce86760bcbcf2dca4e5b61573b5b8",
+  "output_revision": "f05b378844d99c25df4c9af6fa4ccc3d5a7ca97c",
   "workspace_branch": "test/8216-fixture",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -1717,6 +1718,10 @@
     {
       "command": "read-only Git/workspace permission, three 8216 systemd identity/slice/sandbox, HTTP 200, active release and 8215 PID/start/effective-unit probes",
       "result": "R75 adopted the isolated test/8216-fixture workspace at be83872; all three 8216 services were active as codex8216 in codex-8216.slice and HTTP returned 200, while 8215 retained its approved PID/start/effective-unit baseline; the repository-only scan covered 567 files with zero findings; no real-account test, model request, switch, deployment or service mutation was performed"
+    },
+    {
+      "command": "failure-first isolated deploy contract; umask 0022 node --test packages/account-router/test/codex-web-host-deploy.test.mjs; systemd-analyze verify isolated units; repository-only scanRepository",
+      "result": "R76 failed once before the deployment entry existed, then passed 7/7 activation/rollback fixtures; both isolated units verified, and the post-state scan covered 571 repository files with zero findings. Production deployment was not attempted because this container cannot obtain root and no privileged deployment queue is defined"
     }
   ],
   "evidence": [
@@ -1950,7 +1955,8 @@
     "evidence/M6.9/router-r72-preload-performance-summary.json",
     "evidence/M6.9/router-r73-github-actions-summary.json",
     "evidence/M6.9/router-r74-linux-x64-only-summary.json",
-    "evidence/M6.9/router-r75-isolated-workspace-baseline-summary.json"
+    "evidence/M6.9/router-r75-isolated-workspace-baseline-summary.json",
+    "evidence/M6.9/router-r76-isolated-deploy-candidate-summary.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -5027,10 +5033,24 @@
       "deployment_performed": false,
       "model_request_sent": false,
       "account_switch_tested": false
+    },
+    "r76_isolated_deploy_candidate": {
+      "implementation_revision": "f05b378844d99c25df4c9af6fa4ccc3d5a7ca97c",
+      "failure_first_attempts": 1,
+      "fixture_tests_passed": 7,
+      "fixture_tests_failed": 0,
+      "repository_files_scanned": 571,
+      "security_findings": 0,
+      "deployment_script_sha256": "b3b3f94474497057537816a4a136a824d31ae453697b834be04a776203bd4f06",
+      "archive_sha256": "6a8060aaf32c67190412d0f97e9b57da9e89638143ec76484da9927dc00744b9",
+      "production_deployment_attempted": false,
+      "active_web_release": "c3e92f0f-20260729-m69-router-r23",
+      "model_request_sent": false,
+      "account_switch_tested": false
     }
   },
   "blockers": [
-    "The isolated 8216 services and editable test/8216-fixture workspace are active, but production still runs Web R23 and account-router 0.2.6. Activating the qualified x64-only candidate still requires an explicitly defined 8216-only restart/deployment mechanism; no root password will be accepted or used.",
+    "R76 provides the migration-compatible, hash-pinned 8216-only deployment and rollback mechanism, but production still runs Web R23. The current container cannot switch to root GID, has no passwordless root command and exposes no documented privileged deployment queue; an administrator must install or execute the exact R76 script before live composer/upload/performance verification can continue. No root password will be accepted or used.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, real two-binding credential acquisition/restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -5158,5 +5178,5 @@
     "The existing local commits 3f8723f, 776f352 and 0b93593 have test evidence but their commit messages omit the test commands required by the current AGENTS.md; history was not rewritten and later commit messages include test commands.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-08-01T16:46:45+08:00"
+  "updated_at": "2026-08-01T17:04:41+08:00"
 }

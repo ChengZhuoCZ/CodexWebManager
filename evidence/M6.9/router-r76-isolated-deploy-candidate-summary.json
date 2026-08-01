@@ -1,0 +1,54 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R76",
+  "scope": "Migration-compatible, rollback-capable 8216-only Web candidate deployment",
+  "input_revision": "4a6d98fe7189400f973fefcaf4d8599d0cbd8ef3",
+  "implementation_revision": "f05b378844d99c25df4c9af6fa4ccc3d5a7ca97c",
+  "failure_first": {
+    "attempts": 1,
+    "command": "node --test --test-name-pattern='isolated deployment updates only' packages/account-router/test/codex-web-host-deploy.test.mjs",
+    "expected_result": "failed because deploy-router-r76-isolated.sh did not exist"
+  },
+  "candidate": {
+    "release": "c3e92f0f-20260801-m69-router-r76",
+    "archive_sha256": "6a8060aaf32c67190412d0f97e9b57da9e89638143ec76484da9927dc00744b9",
+    "deployment_script_sha256": "b3b3f94474497057537816a4a136a824d31ae453697b834be04a776203bd4f06",
+    "web_unit_sha256": "6bf41fbfe8ed66508a088eac9cc49cc6af623aa76cecc9a956189a3893e51dd1",
+    "app_server_unit_sha256": "3f84a2d964a6361ece8e75a21344651d6790cad2f5219b64afe1aab93d8cfabd"
+  },
+  "boundaries": {
+    "service_identity": "codex8216",
+    "slice": "codex-8216.slice",
+    "workspace": "/srv/codex-workspaces/CodexWebManager-8216-fixture",
+    "tailnet_origin": "http://100.95.50.98:8216",
+    "updates_only_8216_base_units": true,
+    "preserves_isolation_dropins": true,
+    "restarts_only_three_8216_services": true,
+    "checks_8215_before_and_after": true,
+    "bounded_readiness_attempts": 30
+  },
+  "tests": [
+    {
+      "command": "umask 0022; node --test packages/account-router/test/codex-web-host-deploy.test.mjs",
+      "result": "7/7 passed, including isolated activation and failed-probe rollback"
+    },
+    {
+      "command": "systemd-analyze verify isolated Web and App Server units",
+      "result": "passed; only an unrelated pre-existing runawesun.service file-mode warning was emitted"
+    },
+    {
+      "command": "repository-only scanRepository",
+      "result": "570 implementation files and 571 post-state files scanned with zero findings"
+    }
+  ],
+  "production_deployment": {
+    "attempted": false,
+    "reason": "The current container cannot switch to root GID, has no passwordless root command, and exposes no documented privileged deployment queue.",
+    "active_web_release": "c3e92f0f-20260729-m69-router-r23"
+  },
+  "real_account_test_executed": false,
+  "model_request_sent": false,
+  "account_switch_tested": false,
+  "seamless_account_continuity_claimed": false
+}
