@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R72",
+  "generated_at": "2026-08-01T09:25:05+08:00",
+  "implementation_revision": "e0188a1c521061aa0459cfca692a3951607a0082",
+  "failure_first": {
+    "test": "pinned browser overlay bundles without writing to the upstream checkout",
+    "result": "failed because the routed preload was 634538 bytes and exceeded the new 400000-byte bound"
+  },
+  "minifier": {
+    "selected": "Vite 8 pinned Oxc",
+    "independent_builds_identical": true,
+    "esbuild_probe_exit": 1,
+    "esbuild_probe_reason": "the pinned checkout does not install the optional esbuild package",
+    "new_dependency_added": false
+  },
+  "preload_measurements": {
+    "before_identity_bytes": 634538,
+    "after_identity_bytes": 361282,
+    "identity_reduction_bytes": 273256,
+    "identity_reduction_percent": 43.06,
+    "before_brotli_bytes": 103481,
+    "after_brotli_bytes": 79451,
+    "brotli_reduction_bytes": 24030,
+    "brotli_reduction_percent": 23.22,
+    "after_gzip_bytes": 93823,
+    "preload_sha256": "d153ef5adef87db419a7499cd95c01c477d1f5919193398f27f9aed7367047c9"
+  },
+  "overlay_measurements": {
+    "before_archive_bytes": 402086,
+    "after_archive_bytes": 313733,
+    "archive_reduction_bytes": 88353,
+    "archive_reduction_percent": 21.97,
+    "archive_sha256": "6a8060aaf32c67190412d0f97e9b57da9e89638143ec76484da9927dc00744b9"
+  },
+  "tests": {
+    "focused": { "tests": 14, "passed": 14 },
+    "strict_matrix": { "tests": 335, "passed": 335, "failed": 0, "skipped": 0 }
+  },
+  "security_audit": {
+    "exit_code": 2,
+    "qualified": false,
+    "reason": "strict CI protected paths changed after qualification",
+    "local_scan_files": 558,
+    "local_scan_findings": 0
+  },
+  "deployment_attempted": false,
+  "active_8216_release": "c3e92f0f-20260729-m69-router-r23",
+  "live_startup_speedup_claimed": false,
+  "live_response_speedup_claimed": false,
+  "real_model_request_sent": false,
+  "real_account_switch_tested": false,
+  "seamless_account_continuity_claimed": false
+}
