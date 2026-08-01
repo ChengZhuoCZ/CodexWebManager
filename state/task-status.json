@@ -75,7 +75,7 @@
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "f05b378844d99c25df4c9af6fa4ccc3d5a7ca97c",
+  "output_revision": "734e5126f9c6306b8ebbf4c470188f16f84d7f38",
   "workspace_branch": "test/8216-fixture",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -1726,6 +1726,18 @@
     {
       "command": "five bounded loopback and five Tailnet HTTP samples against the still-active R23 release",
       "result": "R76 pre-deployment baseline observed mean loopback TTFB/total 1.269/1.290 ms and Tailnet TTFB/total 2.288/2.712 ms for the 17788-byte HTML response; this is a ten-sample same-host observation only and no stable performance claim is made"
+    },
+    {
+      "command": "failure-first staged-index, predecessor-Electron and trusted-HTML probe contracts; pinned upstream compile; deterministic 12-file overlay rebuild; isolated activation/rollback fixtures",
+      "result": "R77-R80 closed three sequential production-shaped failures with bounded rollback: namespace lifetime, already-versioned index startup, preservation of the qualified R23 Electron shim, and the trusted Tailnet HTML readiness header. Focused R80 tests passed 20/20 with zero skips"
+    },
+    {
+      "command": "umask 0022; complete pinned-fixture test matrix; 15 focused security test files; repository-only scanRepository",
+      "result": "343/343 strict matrix tests and 108/108 focused security tests passed with zero failures/skips; 573 repository files scanned with zero findings. The aggregate strict audit remained fail-closed because protected UI paths changed after the last remote CI qualification and test/8216-fixture was not pushed"
+    },
+    {
+      "command": "R80 rollback deployment, one bounded 8216-only restart, trusted Tailnet HTML/session/immutable asset probes, synthetic 43-byte upload/download/logout, and ten-sample same-host HTTP timings",
+      "result": "R80 deployed and persisted across restart in 697 ms in one observation; Tailnet HTML/session/preload/entry/upload/download/logout returned 200/200/200/200/200/200/204, Brotli immutable assets were served, and logout removed all upload files. Median totals were 0.584 ms loopback, 2.325 ms Tailnet and 0.461 ms router ready. No model request or account switch ran; real browser-rendered composer remains unverified"
     }
   ],
   "evidence": [
@@ -1960,7 +1972,8 @@
     "evidence/M6.9/router-r73-github-actions-summary.json",
     "evidence/M6.9/router-r74-linux-x64-only-summary.json",
     "evidence/M6.9/router-r75-isolated-workspace-baseline-summary.json",
-    "evidence/M6.9/router-r76-isolated-deploy-candidate-summary.json"
+    "evidence/M6.9/router-r76-isolated-deploy-candidate-summary.json",
+    "evidence/M6.9/router-r80-isolated-deployment-summary.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -5051,10 +5064,32 @@
       "active_web_release": "c3e92f0f-20260729-m69-router-r23",
       "model_request_sent": false,
       "account_switch_tested": false
+    },
+    "r80_isolated_deployment": {
+      "implementation_revisions": [
+        "6ea3afb",
+        "2a53fd4",
+        "734e512"
+      ],
+      "active_web_release": "c3e92f0f-20260801-m69-router-r80",
+      "account_router_release": "codex-account-router-0.2.6-linux-x64",
+      "deployment_status": "success",
+      "restart_ready_ms_single_observation": 697,
+      "tailnet_http_status": 200,
+      "synthetic_upload_download_logout_statuses": [
+        200,
+        200,
+        204
+      ],
+      "browser_rendered_composer_verified": false,
+      "standalone_8215_pid_start_and_effective_units_unchanged": true,
+      "model_request_sent": false,
+      "account_switch_tested": false,
+      "stable_performance_claimed": false
     }
   },
   "blockers": [
-    "R76 provides the migration-compatible, hash-pinned 8216-only deployment and rollback mechanism, but production still runs Web R23. The current container cannot switch to root GID, has no passwordless root command and exposes no documented privileged deployment queue; an administrator must install or execute the exact R76 script before live composer/upload/performance verification can continue. No root password will be accepted or used.",
+    "R80 is active and its trusted Tailnet HTML/session/assets plus synthetic attachment transport are verified, but this display-less server has no working browser runner; two bounded Electron headless attempts terminated before window creation, so a real browser-rendered composer remains unverified.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, real two-binding credential acquisition/restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -5180,7 +5215,10 @@
     "R74 intentionally qualifies only Linux x64 for this server. The release builder retains generic arm64 parsing code for upstream mergeability, but CI, artifacts, deployment documentation and M6.9 acceptance no longer cover or promise arm64.",
     "R28 caps a weekly reset delay at the existing 24-hour circuit maximum, so a farther reset receives a bounded half-open recheck rather than sleeping until the full provider reset time.",
     "The existing local commits 3f8723f, 776f352 and 0b93593 have test evidence but their commit messages omit the test commands required by the current AGENTS.md; history was not rewritten and later commit messages include test commands.",
-    "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
+    "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed.",
+    "R80 preserves the exact qualified R23 Electron shim instead of replacing it with the clean upstream compile. The predecessor hash is pinned before and after extraction, but a future successor must either retain that contract or port its browser IPC/session changes into the reproducible overlay.",
+    "R80 same-host HTTP and restart measurements are bounded observations only; they do not establish remote Tailnet, DERP or stable end-to-end composer performance.",
+    "The protected routed Web paths changed after the last qualified remote strict-CI baseline. Local matrix/security coverage passed, but strict CI remains unqualified because test/8216-fixture was not pushed and no push is authorized for this branch."
   ],
-  "updated_at": "2026-08-01T17:04:41+08:00"
+  "updated_at": "2026-08-01T19:04:03+08:00"
 }

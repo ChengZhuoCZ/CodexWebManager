@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "continuation": "R80",
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "test/8216-fixture",
+  "input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
+  "implementation_revisions": [
+    "6ea3afb",
+    "2a53fd4",
+    "734e512"
+  ],
+  "objective": "Deploy the latest isolated 8216 routed Web candidate without changing 8215, then verify trusted Tailnet HTTP, persistent restart, immutable assets and a synthetic attachment path without a model request or account switch.",
+  "failure_first": [
+    {
+      "candidate": "R76",
+      "observed_failure": "226/NAMESPACE because the shared browser upload runtime directory was absent when app-server mount namespacing was created",
+      "result": "rolled_back"
+    },
+    {
+      "candidate": "R77",
+      "observed_failure": "compiled server attempted to reapply an unversioned preload transformation to an already staged content-hashed index",
+      "result": "rolled_back"
+    },
+    {
+      "candidate": "R78",
+      "observed_failure": "candidate replaced the R23 Electron session shim and failed at session.defaultSession.cookies",
+      "result": "rolled_back"
+    },
+    {
+      "candidate": "R79",
+      "observed_failure": "trusted Tailnet readiness probe omitted Accept: text/html and therefore received the expected unauthenticated API response",
+      "result": "rolled_back"
+    },
+    {
+      "candidate": "R80",
+      "observed_failure": null,
+      "result": "deployed"
+    }
+  ],
+  "implementation": {
+    "staged_index_accepts_exactly_one_versioned_preload": true,
+    "ambiguous_preload_fails_closed": true,
+    "runtime_directory_preserved_across_restart": true,
+    "qualified_predecessor_electron_shim_preserved": true,
+    "qualified_predecessor_electron_sha256": "51e9a0bcbd38ec5f7c57c75b1ff668047fb219cb17e6ce51c2571c40d0aa4bf4",
+    "overlay_files": 12,
+    "overlay_sha256": "ed1b420c29ab9ccbf10fa4249d6c9d221584d77bf43f067e2bff29731c122199",
+    "overlay_bytes": 308981,
+    "deployment_script": "evidence/M6.9/deploy-router-r80-isolated.sh",
+    "deployment_script_sha256": "d1f263bd443b39d9b5c2ca8bb226c9b2869c86a56ff681fd6ebb773fbcd2a199"
+  },
+  "tests": {
+    "failure_first_runtime_index": "failed before implementation because prepareBrowserIndexForRuntime was absent, then passed",
+    "focused_r80": {
+      "tests": 20,
+      "passed": 20,
+      "failed": 0,
+      "skipped": 0
+    },
+    "strict_matrix_before_deployment": {
+      "tests": 343,
+      "passed": 343,
+      "failed": 0,
+      "skipped": 0,
+      "unit": 158,
+      "integration": 118,
+      "e2e": 67,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    },
+    "focused_security_tests": {
+      "test_files": 15,
+      "tests": 108,
+      "passed": 108,
+      "failed": 0,
+      "skipped": 0
+    },
+    "repository_scan": {
+      "files_scanned": 573,
+      "findings": 0
+    },
+    "strict_ci_audit": {
+      "passed": false,
+      "reason": "protected paths changed after the last qualified remote strict-CI baseline; this isolated branch was not pushed"
+    }
+  },
+  "deployment": {
+    "status": "success",
+    "active_release": "c3e92f0f-20260801-m69-router-r80",
+    "account_router_release": "codex-account-router-0.2.6-linux-x64",
+    "web_pid_after_restart": 3551161,
+    "web_start_monotonic_after_restart": 453289419853,
+    "app_server_pid_after_restart": 3551155,
+    "app_server_start_monotonic_after_restart": 453289395496,
+    "account_router_pid_after_restart": 3551126,
+    "account_router_start_monotonic_after_restart": 453289270254,
+    "restart_ready_ms_single_observation": 697,
+    "need_daemon_reload": false,
+    "loopback_listener": "127.0.0.1:8216",
+    "tailnet_listener": "100.95.50.98:8216",
+    "runtime_user": "codex8216",
+    "runtime_slice": "codex-8216.slice"
+  },
+  "live_verification": {
+    "tailnet_page_status": 200,
+    "trusted_session_status": 200,
+    "preload_status": 200,
+    "entry_status": 200,
+    "preload_content_encoding": "br",
+    "entry_content_encoding": "br",
+    "immutable_asset_cache_control": "public, max-age=31536000, immutable",
+    "composer_asset_present": true,
+    "synthetic_upload_status": 200,
+    "synthetic_download_status": 200,
+    "synthetic_logout_status": 204,
+    "synthetic_upload_bytes": 43,
+    "upload_files_after_logout": 0,
+    "upload_root_mode": "0700",
+    "browser_rendered_composer_verified": false,
+    "browser_render_blocker": "server has no display server and the available Electron runtime terminated before window creation in both bounded headless attempts",
+    "real_model_request_sent": false,
+    "account_switch_tested": false
+  },
+  "performance": {
+    "scope": "same-host bounded observations; no stability claim",
+    "samples_each": 10,
+    "loopback_page_total_ms": {
+      "min": 0.317,
+      "median": 0.584,
+      "mean": 0.758,
+      "max": 1.575
+    },
+    "tailnet_page_total_ms": {
+      "min": 1.748,
+      "median": 2.325,
+      "mean": 2.449,
+      "max": 3.552
+    },
+    "router_ready_total_ms": {
+      "min": 0.236,
+      "median": 0.461,
+      "mean": 0.498,
+      "max": 0.905
+    },
+    "stable_performance_claimed": false
+  },
+  "standalone_8215": {
+    "web_pid": 3522733,
+    "web_start_monotonic": 451372467525,
+    "web_effective_unit_sha256": "a8c8ceab5b354698c288d1e7db500f059f89c5027579ff9ea49bf5cc788bcb0c",
+    "app_server_pid": 3522725,
+    "app_server_start_monotonic": 451372452251,
+    "app_server_effective_unit_sha256": "662de56df5c27359cdd6e567169f28e517727c761c46fb4b7abeb274c21d099e",
+    "http_status": 200,
+    "mutated": false
+  },
+  "safety": {
+    "credentials_read_or_recorded": false,
+    "email_or_account_identifier_recorded": false,
+    "real_second_account_enrolled": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false,
+    "semantic_replay_rules_changed": false,
+    "seamless_continuity_claimed": false,
+    "in_flight_resume_claimed": false
+  },
+  "residual_risks": [
+    "A real browser-rendered composer was not verified on this display-less server; HTTP/session/assets and attachment transport were verified instead.",
+    "The protected UI paths require a new strict remote CI qualification, but test/8216-fixture was not pushed and no push is authorized for this branch.",
+    "The second account is not authorized for router enrollment, so real A-to-B switching remains blocked.",
+    "Performance observations are same-host samples and do not establish remote Tailnet or stable end-to-end latency."
+  ],
+  "updated_at": "2026-08-01T19:04:03+08:00"
+}
