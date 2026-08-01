@@ -31,6 +31,13 @@ const PINNED_BROWSER_INPUTS = Object.freeze([
     sha256: "a3eb9db8ca315ee8f301e5f26f02bab9c609907bd0a47989bfb961d8ecd181d7",
   }),
 ]);
+const PINNED_BROWSER_OUTPUTS = Object.freeze([
+  Object.freeze({
+    path: "scratch/asar/webview/assets/preload.js",
+    bytes: 361282,
+    sha256: "d153ef5adef87db419a7499cd95c01c477d1f5919193398f27f9aed7367047c9",
+  }),
+]);
 const STEP_TIMEOUT_MS = 120_000;
 
 function sha256(bytes) {
@@ -70,17 +77,17 @@ async function mustNotExist(target) {
   );
 }
 
-async function installPinnedBrowserInputs(buildRoot) {
-  for (const input of PINNED_BROWSER_INPUTS) {
+async function installPinnedBrowserFiles(buildRoot, inputs) {
+  for (const input of inputs) {
     const source = path.join(PINNED_BROWSER_INPUT_ROOT, input.path);
     const metadata = await fs.lstat(source);
     if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size !== input.bytes ||
         (metadata.mode & 0o022) !== 0) {
-      throw new Error("pinned browser build input boundary is invalid");
+      throw new Error("pinned browser build file boundary is invalid");
     }
     const bytes = await fs.readFile(source);
     if (sha256(bytes) !== input.sha256) {
-      throw new Error("pinned browser build input digest is invalid");
+      throw new Error("pinned browser build file digest is invalid");
     }
     const target = path.join(buildRoot, input.path);
     await fs.mkdir(path.dirname(target), { recursive: true, mode: 0o755 });
@@ -89,7 +96,7 @@ async function installPinnedBrowserInputs(buildRoot) {
       throw error;
     });
     if (existing !== null && (!existing.isFile() || existing.isSymbolicLink())) {
-      throw new Error("browser build input target boundary is invalid");
+      throw new Error("browser build file target boundary is invalid");
     }
     const temporary = path.join(path.dirname(target), `.${path.basename(target)}.${randomUUID()}.next`);
     try {
@@ -146,7 +153,7 @@ export async function buildRoutedWebPipeline({ upstream, previous, workRoot, can
     await fs.writeFile(revisionFile, `${revisionProcess}\n`, { mode: 0o600 });
 
     phase = "pin_browser_inputs";
-    await installPinnedBrowserInputs(buildRoot);
+    await installPinnedBrowserFiles(buildRoot, PINNED_BROWSER_INPUTS);
     phase = "apply_overlay";
     await applyStatusBridge({ codexWebRoot: buildRoot, revision: revisionProcess });
     phase = "compile_server";
@@ -158,6 +165,8 @@ export async function buildRoutedWebPipeline({ upstream, previous, workRoot, can
       path.join(upstreamRoot, "node_modules/vite/bin/vite.js"), "build", "--config",
       path.join(buildRoot, "vite.browser.config.ts"),
     ], { cwd: buildRoot });
+    phase = "pin_browser_output";
+    await installPinnedBrowserFiles(buildRoot, PINNED_BROWSER_OUTPUTS);
     phase = "stage_candidate";
     await stageRoutedWebRelease({
       previous: previousRoot,
