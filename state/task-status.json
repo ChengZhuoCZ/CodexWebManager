@@ -75,7 +75,7 @@
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "734e5126f9c6306b8ebbf4c470188f16f84d7f38",
+  "output_revision": "ef6f2e82d826f007c7c4a2d6fc45c94a454420cb",
   "workspace_branch": "test/8216-fixture",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -1738,6 +1738,18 @@
     {
       "command": "R80 rollback deployment, one bounded 8216-only restart, trusted Tailnet HTML/session/immutable asset probes, synthetic 43-byte upload/download/logout, and ten-sample same-host HTTP timings",
       "result": "R80 deployed and persisted across restart in 697 ms in one observation; Tailnet HTML/session/preload/entry/upload/download/logout returned 200/200/200/200/200/200/204, Brotli immutable assets were served, and logout removed all upload files. Median totals were 0.584 ms loopback, 2.325 ms Tailnet and 0.461 ms router ready. No model request or account switch ran; real browser-rendered composer remains unverified"
+    },
+    {
+      "command": "failure-first production HTML/CSP hash comparison; pinned routed startup CSP fixture; deterministic 12-file R81 overlay build; isolated activation/rollback fixtures",
+      "result": "R80 returned HTTP 200 but allowed 0/3 exact inline startup scripts because its CSP retained one obsolete hash. The new test failed before implementation, then R81 pinned the exact UUID bootstrap, import map and Tailnet startup fastpath hashes without unsafe-inline; focused production-shape tests passed 33/33 and deployment fixtures passed 7/7"
+    },
+    {
+      "command": "umask 0022; complete pinned-fixture test matrix; 15 focused security test files; repository-only scanRepository",
+      "result": "R81 strict matrix passed 343/343 with zero failures/skips; focused security passed 108/108; final repository scan covered 578 files with zero findings. Aggregate strict CI remains fail-closed because protected routed Web paths changed after the retained remote qualification and test/8216-fixture is not authorized for push"
+    },
+    {
+      "command": "R81 rollback deployment; exact live HTML/CSP comparison; trusted Tailnet page/browser-config/startup assets and bounded no-model WebSocket handshake",
+      "result": "R81 deployed successfully and all three exact inline startup scripts are now allowed by four pinned CSP hashes with no script unsafe-inline. Page, browser config, preload, main entry and WebSocket startup transport passed; the socket opened in 4.474 ms and its first initialization frame arrived in 6.065 ms in one same-host observation. No model request or account switch ran; real browser-rendered composer remains unverified"
     }
   ],
   "evidence": [
@@ -1973,7 +1985,9 @@
     "evidence/M6.9/router-r74-linux-x64-only-summary.json",
     "evidence/M6.9/router-r75-isolated-workspace-baseline-summary.json",
     "evidence/M6.9/router-r76-isolated-deploy-candidate-summary.json",
-    "evidence/M6.9/router-r80-isolated-deployment-summary.json"
+    "evidence/M6.9/router-r80-isolated-deployment-summary.json",
+    "evidence/M6.9/deploy-router-r81-isolated.sh",
+    "evidence/M6.9/router-r81-csp-startup-summary.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -5086,10 +5100,36 @@
       "model_request_sent": false,
       "account_switch_tested": false,
       "stable_performance_claimed": false
+    },
+    "r81_csp_startup_repair": {
+      "implementation_revision": "ef6f2e82d826f007c7c4a2d6fc45c94a454420cb",
+      "failure_first_attempts": 1,
+      "pre_fix_inline_startup_scripts": 3,
+      "pre_fix_inline_scripts_allowed": 0,
+      "exact_csp_hashes_added": 3,
+      "script_unsafe_inline_added": false,
+      "strict_matrix_passed": 343,
+      "focused_security_passed": 108,
+      "repository_files_scanned": 578,
+      "security_findings": 0,
+      "active_web_release": "c3e92f0f-20260801-m69-router-r81",
+      "account_router_release": "codex-account-router-0.2.6-linux-x64",
+      "deployment_status": "success",
+      "live_inline_startup_scripts_allowed": 3,
+      "live_websocket_open_ms_single_observation": 4.474,
+      "live_first_initialization_frame_ms_single_observation": 6.065,
+      "predeployment_ephemeral_session_cookie_accidentally_printed_to_internal_command_output": true,
+      "printed_session_invalidated_by_8216_web_restart": true,
+      "session_cookie_committed_or_copied": false,
+      "browser_rendered_composer_verified": false,
+      "standalone_8215_pid_start_and_effective_units_unchanged": true,
+      "model_request_sent": false,
+      "account_switch_tested": false,
+      "stable_performance_claimed": false
     }
   },
   "blockers": [
-    "R80 is active and its trusted Tailnet HTML/session/assets plus synthetic attachment transport are verified, but this display-less server has no working browser runner; two bounded Electron headless attempts terminated before window creation, so a real browser-rendered composer remains unverified.",
+    "R81 is active and its exact CSP, trusted Tailnet HTML/session/startup assets and IPC handshake are verified, but this display-less server has no working browser runner; a real browser-rendered composer remains unverified and an already-open tab must hard-refresh to receive the corrected CSP header.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, real two-binding credential acquisition/restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -5218,7 +5258,10 @@
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed.",
     "R80 preserves the exact qualified R23 Electron shim instead of replacing it with the clean upstream compile. The predecessor hash is pinned before and after extraction, but a future successor must either retain that contract or port its browser IPC/session changes into the reproducible overlay.",
     "R80 same-host HTTP and restart measurements are bounded observations only; they do not establish remote Tailnet, DERP or stable end-to-end composer performance.",
+    "R81 corrects a verified CSP mismatch that blocked all three pinned inline startup scripts, including the Tailnet telemetry fastpath. The live response now permits those exact hashes without script unsafe-inline, but the display-less server cannot measure real browser usable-screen time and no stable end-to-end speedup is claimed.",
+    "R81 leaves the 3.117 MB Brotli and 13.936 MB decoded main bundle unchanged; cold Tailnet transfer and client-side parsing remain the dominant likely startup cost after the CSP repair.",
+    "One predeployment header diagnostic accidentally printed an ephemeral trusted-session Cookie to internal command output. The subsequent 8216 Web restart invalidated all predeployment in-memory sessions; the value was not copied into a file or commit and is not reproduced in evidence.",
     "The protected routed Web paths changed after the last qualified remote strict-CI baseline. Local matrix/security coverage passed, but strict CI remains unqualified because test/8216-fixture was not pushed and no push is authorized for this branch."
   ],
-  "updated_at": "2026-08-01T19:04:03+08:00"
+  "updated_at": "2026-08-01T19:44:49+08:00"
 }

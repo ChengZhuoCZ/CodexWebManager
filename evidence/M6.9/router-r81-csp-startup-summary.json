@@ -1,0 +1,138 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "continuation": "R81",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "test/8216-fixture",
+  "input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
+  "implementation_revision": "ef6f2e82d826f007c7c4a2d6fc45c94a454420cb",
+  "objective": "Remove the production CSP mismatch that blocked the pinned Tailnet startup fastpath and could leave the 8216 browser on the startup loader, without changing 8215, account routing semantics, credentials or model traffic.",
+  "failure_first": {
+    "production_page_status": 200,
+    "production_inline_startup_scripts": 3,
+    "production_csp_script_hashes": 1,
+    "production_inline_scripts_allowed": 0,
+    "focused_test_failed_before_implementation": true,
+    "failure": "The R80 response CSP did not contain the SHA-256 of the UUID compatibility bootstrap, import map or Tailnet startup fastpath."
+  },
+  "implementation": {
+    "exact_routed_script_hashes_added": 3,
+    "unsafe_inline_added": false,
+    "arbitrary_inline_scripts_allowed": false,
+    "overlay_files": 12,
+    "overlay_bytes": 309143,
+    "overlay_sha256": "93e21e39ed6f51c8addf4045f44bc5fbf4c50376585f69d83d97d4312855e731",
+    "deployment_script": "evidence/M6.9/deploy-router-r81-isolated.sh",
+    "deployment_script_sha256": "88512345a241f23a134a5ada3f0dffa7a0b4bf26167063a798001ef6aea4e033"
+  },
+  "tests": {
+    "focused_production_shape": {
+      "tests": 33,
+      "passed": 33,
+      "failed": 0,
+      "fixture_dependent_skips_before_full_matrix": 5
+    },
+    "isolated_activation_and_rollback": {
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    "strict_matrix": {
+      "tests": 343,
+      "passed": 343,
+      "failed": 0,
+      "skipped": 0,
+      "unit": 158,
+      "integration": 118,
+      "e2e": 67,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    },
+    "focused_security": {
+      "test_files": 15,
+      "tests": 108,
+      "passed": 108,
+      "failed": 0,
+      "skipped": 0
+    },
+    "repository_scan": {
+      "files_scanned": 578,
+      "findings": 0
+    },
+    "strict_ci_audit": {
+      "passed": false,
+      "reason": "Protected routed Web paths changed after the retained remote strict-CI qualification, and no push is authorized for test/8216-fixture."
+    }
+  },
+  "deployment": {
+    "status": "success",
+    "active_release": "c3e92f0f-20260801-m69-router-r81",
+    "predecessor_release": "c3e92f0f-20260801-m69-router-r80",
+    "account_router_release": "codex-account-router-0.2.6-linux-x64",
+    "deployment_elapsed_ms": 21530,
+    "rollback_triggered": false,
+    "web_pid": 3572632,
+    "web_start_monotonic": 455760829137,
+    "app_server_pid": 3572626,
+    "app_server_start_monotonic": 455760801126,
+    "account_router_pid": 3572599,
+    "account_router_start_monotonic": 455760659902,
+    "service_restarts_after_activation": 0,
+    "need_daemon_reload": false
+  },
+  "live_verification": {
+    "tailnet_page_status": 200,
+    "csp_script_hashes": 4,
+    "inline_startup_scripts": 3,
+    "inline_startup_scripts_allowed": 3,
+    "script_unsafe_inline": false,
+    "page_ms_single_observation": 20.023,
+    "browser_config_status": 200,
+    "browser_config_ms_single_observation": 2.122,
+    "preload_status": 200,
+    "preload_brotli": true,
+    "preload_ms_single_observation": 8.913,
+    "main_entry_status": 200,
+    "main_entry_brotli": true,
+    "main_entry_ms_single_observation": 102.231,
+    "websocket_open_ms_single_observation": 4.474,
+    "first_initialization_frame_ms_single_observation": 6.065,
+    "initialization_frames_in_500_ms": 11,
+    "websocket_close_code": 1000,
+    "payload_content_logged": false,
+    "browser_rendered_composer_verified": false,
+    "real_model_request_sent": false,
+    "account_switch_tested": false
+  },
+  "standalone_8215": {
+    "web_pid": 3522733,
+    "web_start_monotonic": 451372467525,
+    "web_effective_unit_sha256": "a8c8ceab5b354698c288d1e7db500f059f89c5027579ff9ea49bf5cc788bcb0c",
+    "app_server_pid": 3522725,
+    "app_server_start_monotonic": 451372452251,
+    "app_server_effective_unit_sha256": "662de56df5c27359cdd6e567169f28e517727c761c46fb4b7abeb274c21d099e",
+    "mutated": false
+  },
+  "safety": {
+    "real_account_credentials_read_or_recorded": false,
+    "predeployment_ephemeral_session_cookie_accidentally_printed_to_internal_command_output": true,
+    "printed_session_invalidated_by_8216_web_restart": true,
+    "session_cookie_committed_or_copied": false,
+    "email_or_account_identifier_recorded": false,
+    "second_account_enrolled": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false,
+    "semantic_replay_rules_changed": false,
+    "seamless_continuity_claimed": false,
+    "in_flight_resume_claimed": false
+  },
+  "residual_risks": [
+    "The display-less server still cannot verify the real browser-rendered composer; the live page, exact CSP, startup assets and IPC handshake were verified instead.",
+    "The 3.117 MB Brotli and 13.936 MB decoded main bundle remains the largest cold-start transfer and parse cost.",
+    "The reported timings are same-host single observations and are not a stable Tailnet end-to-end performance guarantee.",
+    "A hard refresh is required in an already-open browser tab so the document receives the corrected R81 CSP header.",
+    "Real A-to-B switching remains blocked until explicit second-account enrollment authorization is given."
+  ],
+  "updated_at": "2026-08-01T19:44:49+08:00"
+}
