@@ -9,7 +9,6 @@ import { brotliCompressSync, constants as zlibConstants, gzipSync } from "node:z
 const SERVER_FILES = Object.freeze([
   "src/server/main.js",
   "src/server/module.js",
-  "src/server/electron/index.js",
   "src/server/browser-ipc-router.js",
   "src/server/browser-session-auth.js",
   "src/server/browser-upload-store.js",

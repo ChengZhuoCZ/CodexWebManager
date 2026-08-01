@@ -31,7 +31,13 @@ async function fixture(context) {
   const serverBuild = path.join(root, "server-build");
   const browserBuild = path.join(root, "browser-build");
   for (const relativePath of serverFiles) {
-    await write(previous, relativePath, `old:${relativePath}\n`);
+    await write(
+      previous,
+      relativePath,
+      relativePath === "src/server/electron/index.js"
+        ? "stable predecessor electron shim\n"
+        : `old:${relativePath}\n`,
+    );
     await write(serverBuild, relativePath, `new:${relativePath}\n`);
   }
   await write(
@@ -60,7 +66,9 @@ test("stages a complete routed Web successor without changing the previous relea
   for (const relativePath of serverFiles) {
     assert.equal(
       await fs.readFile(path.join(paths.candidate, relativePath), "utf8"),
-      `new:${relativePath}\n`,
+      relativePath === "src/server/electron/index.js"
+        ? "stable predecessor electron shim\n"
+        : `new:${relativePath}\n`,
     );
   }
   const webview = path.join(paths.candidate, "scratch/asar/webview");

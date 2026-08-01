@@ -10,7 +10,7 @@ const repositoryRoot = path.resolve(import.meta.dirname, "../../..");
 const deployScript = path.join(repositoryRoot, "evidence/M6.9/deploy-router-r69.sh");
 const isolatedDeployScript = path.join(
   repositoryRoot,
-  "evidence/M6.9/deploy-router-r78-isolated.sh",
+  "evidence/M6.9/deploy-router-r79-isolated.sh",
 );
 const isolatedUnitRoot = path.join(repositoryRoot, "systemd/8216-fixture");
 const overlayFiles = [
@@ -23,6 +23,9 @@ const overlayFiles = [
   "scratch/asar/webview/assets/preload-d153ef5a.js.gz",
   "scratch/asar/webview/assets/preload-d153ef5a.js.br",
 ];
+const isolatedOverlayFiles = overlayFiles.filter(
+  (relativePath) => relativePath !== "src/server/electron/index.js",
+);
 
 async function fixture(context, { healthy }) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "m69-r69-deploy-"));
@@ -82,6 +85,19 @@ function deploy(value) {
 
 async function isolatedFixture(context, { healthy }) {
   const value = await fixture(context, { healthy });
+  const previousElectron = path.join(
+    value.root,
+    "opt/0xcaff-codex-web-router/releases/previous/src/server/electron/index.js",
+  );
+  await fs.mkdir(path.dirname(previousElectron), { recursive: true });
+  await fs.writeFile(previousElectron, "stable predecessor electron shim\n");
+  const isolatedTar = spawnSync("tar", ["-czf", value.archive, ...isolatedOverlayFiles], {
+    cwd: path.join(value.root, "overlay"),
+  });
+  assert.equal(isolatedTar.status, 0);
+  const isolatedArchiveHash = createHash("sha256")
+    .update(await fs.readFile(value.archive))
+    .digest("hex");
   const unitRoot = path.join(value.root, "etc/systemd/system");
   const routerRelease = path.join(
     value.root,
@@ -118,6 +134,7 @@ async function isolatedFixture(context, { healthy }) {
   );
   return {
     ...value,
+    archiveHash: isolatedArchiveHash,
     accountUnit,
     isolationFiles,
     hashes: {
@@ -127,6 +144,7 @@ async function isolatedFixture(context, { healthy }) {
       webIsolation: createHash("sha256").update(await fs.readFile(isolationFiles.web)).digest("hex"),
       appIsolation: createHash("sha256").update(await fs.readFile(isolationFiles.app)).digest("hex"),
       accountIsolation: createHash("sha256").update(await fs.readFile(isolationFiles.account)).digest("hex"),
+      previousElectron: createHash("sha256").update(await fs.readFile(previousElectron)).digest("hex"),
     },
   };
 }
@@ -138,18 +156,19 @@ function deployIsolated(value) {
     env: {
       PATH: process.env.PATH,
       M69_COMMAND_LOG: value.commandLog,
-      R78_FIXTURE_ROOT: value.root,
-      R78_ARCHIVE: value.archive,
-      R78_ARCHIVE_SHA256: value.archiveHash,
-      R78_SYSTEMCTL: value.systemctl,
-      R78_OLD_WEB_UNIT_SHA256: value.hashes.oldWeb,
-      R78_OLD_APP_UNIT_SHA256: value.hashes.oldApp,
-      R78_ACCOUNT_UNIT_SHA256: value.hashes.account,
-      R78_WEB_ISOLATION_SHA256: value.hashes.webIsolation,
-      R78_APP_ISOLATION_SHA256: value.hashes.appIsolation,
-      R78_ACCOUNT_ISOLATION_SHA256: value.hashes.accountIsolation,
-      R78_READY_ATTEMPTS: "2",
-      R78_READY_SLEEP_SECONDS: "0",
+      R79_FIXTURE_ROOT: value.root,
+      R79_ARCHIVE: value.archive,
+      R79_ARCHIVE_SHA256: value.archiveHash,
+      R79_SYSTEMCTL: value.systemctl,
+      R79_OLD_WEB_UNIT_SHA256: value.hashes.oldWeb,
+      R79_OLD_APP_UNIT_SHA256: value.hashes.oldApp,
+      R79_ACCOUNT_UNIT_SHA256: value.hashes.account,
+      R79_WEB_ISOLATION_SHA256: value.hashes.webIsolation,
+      R79_APP_ISOLATION_SHA256: value.hashes.appIsolation,
+      R79_ACCOUNT_ISOLATION_SHA256: value.hashes.accountIsolation,
+      R79_PREVIOUS_ELECTRON_SHA256: value.hashes.previousElectron,
+      R79_READY_ATTEMPTS: "2",
+      R79_READY_SLEEP_SECONDS: "0",
     },
   });
 }
@@ -168,7 +187,8 @@ test("isolated deployment updates only 8216 base units and preserves migration d
   const source = await fs.readFile(isolatedDeployScript, "utf8");
   assert.match(source, /STANDALONE_WEB_PID=3522733/);
   assert.match(source, /STANDALONE_APP_PID=3522725/);
-  assert.match(source, /PRODUCTION_ARCHIVE_SHA256=a742fb89/);
+  assert.match(source, /PRODUCTION_ARCHIVE_SHA256=ed1b420c/);
+  assert.match(source, /PREVIOUS_ELECTRON_SHA256=51e9a0bc/);
   assert.match(source, /8216-isolation\.conf/);
   assert.match(source, /NeedDaemonReload/);
   assert.match(source, /daemon-reload/);
@@ -255,7 +275,14 @@ test("isolated deployment activates the routed Web candidate and restarts only t
   assert.match(result.stdout, /deployment_status=success/);
   assert.match(
     await fs.readlink(path.join(value.root, "opt/0xcaff-codex-web-router/current")),
-    /router-r78$/,
+    /router-r79$/,
+  );
+  assert.equal(
+    await fs.readFile(
+      path.join(value.root, "opt/0xcaff-codex-web-router/current/src/server/electron/index.js"),
+      "utf8",
+    ),
+    "stable predecessor electron shim\n",
   );
   const log = await fs.readFile(value.commandLog, "utf8");
   assert.match(log, /daemon-reload/);
@@ -289,6 +316,6 @@ test("isolated deployment restores both base units and R23 after a failed probe"
   assert.deepEqual(await fs.readFile(path.join(unitRoot, "codex-web-router-app-server.service")), appBefore);
   await assert.rejects(fs.access(path.join(
     value.root,
-    "opt/0xcaff-codex-web-router/releases/c3e92f0f-20260801-m69-router-r78",
+    "opt/0xcaff-codex-web-router/releases/c3e92f0f-20260801-m69-router-r79",
   )));
 });
