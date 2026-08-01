@@ -189,9 +189,12 @@ export async function buildRoutedWebPipeline({ upstream, previous, workRoot, can
       await fs.rm(candidate, { recursive: true, force: true }).catch(() => undefined);
     }
     await fs.rm(output, { force: true }).catch(() => undefined);
-    const detail = phase === "build_archive" && /^overlay build failed at [a-z0-9._~/: -]+$/u.test(error?.message)
-      ? ` (${error.message})`
-      : "";
+    const safeDetail =
+      (phase === "build_archive" &&
+        /^overlay build failed at [a-z0-9._~/: -]+$/u.test(error?.message)) ||
+      (phase === "stage_candidate" &&
+        /^routed Web release staging failed at [a-z_]+$/u.test(error?.message));
+    const detail = safeDetail ? ` (${error.message})` : "";
     throw new Error(`routed Web build pipeline failed at ${phase}${detail}`);
   } finally {
     if (workCreated) await fs.rm(workRoot, { recursive: true, force: true }).catch(() => undefined);

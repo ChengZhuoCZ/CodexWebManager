@@ -96,8 +96,9 @@ export async function stageRoutedWebRelease({
       (error) => { if (error?.code !== "ENOENT") throw error; },
     );
 
-    phase = "read_inputs";
+    phase = "read_preload";
     const preload = await readRegular(browserRoot, PRELOAD_RELATIVE, 4 * 1024 * 1024);
+    phase = "read_previous_index";
     const previousIndex = await readRegular(previousRoot, INDEX_RELATIVE, 256 * 1024);
     const indexText = previousIndex.toString("utf8");
     if (!Buffer.from(indexText).equals(previousIndex)) {
@@ -109,6 +110,7 @@ export async function stageRoutedWebRelease({
     }
     const serverOutputs = new Map();
     for (const relativePath of SERVER_FILES) {
+      phase = `read_${path.basename(relativePath, ".js").replaceAll("-", "_")}`;
       serverOutputs.set(relativePath, await readRegular(serverRoot, relativePath));
     }
 

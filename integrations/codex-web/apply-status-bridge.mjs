@@ -78,10 +78,33 @@ export function prepareBrowserIndexForRuntime(originalBrowserIndex) {
   if (backgroundCounts.reduce((total, count) => total + count, 0) !== 1) {
     throw new Error("codex-web startup background anchor is unavailable");
   }
-  if (backgroundCounts[0] === 1) {
-    return browserIndexWithCacheKey.replace(transparentBackground, canvasBackground);
+  const browserIndexWithBackground = backgroundCounts[0] === 1
+    ? browserIndexWithCacheKey.replace(transparentBackground, canvasBackground)
+    : browserIndexWithCacheKey;
+  const startupProbeScript =
+    '<script src="/__backend/startup-probe.js"></script>';
+  if (browserIndexWithBackground.includes(startupProbeScript)) {
+    throw new Error("codex-web browser startup probe anchor is unavailable");
   }
-  return browserIndexWithCacheKey;
+  const preloadSource = unversionedCount === 1
+    ? 'src="./assets/preload.js?v=m6-8-startup-chat-r8"'
+    : versionedPreloads[0];
+  const preloadSourceIndex = browserIndexWithBackground.indexOf(preloadSource);
+  const preloadLineStart = browserIndexWithBackground.lastIndexOf(
+    "\n",
+    preloadSourceIndex,
+  ) + 1;
+  if (preloadSourceIndex < 0 || preloadLineStart < 0) {
+    throw new Error("codex-web browser startup probe anchor is unavailable");
+  }
+  const indentation = browserIndexWithBackground
+    .slice(preloadLineStart, preloadSourceIndex)
+    .match(/^[ \t]*/u)?.[0] ?? "";
+  return (
+    browserIndexWithBackground.slice(0, preloadLineStart) +
+    indentation + startupProbeScript + "\n" +
+    browserIndexWithBackground.slice(preloadLineStart)
+  );
 }
 
 function replaceOnce(value, anchor, replacement, label) {
@@ -465,9 +488,28 @@ async function applyStatusBridgeLocked({ codexWebRoot, revision = null } = {}) {
   if (backgroundCounts.reduce((total, count) => total + count, 0) !== 1) {
     throw new Error("codex-web startup background anchor is unavailable");
   }
-  const browserIndexHtml = backgroundCounts[0] === 1
+  const browserIndexWithBackground = backgroundCounts[0] === 1
     ? browserIndexWithCacheKey.replace(transparentBackground, canvasBackground)
     : browserIndexWithCacheKey;
+  const startupProbeScript = '<script src="/__backend/startup-probe.js"></script>';
+  if (browserIndexWithBackground.includes(startupProbeScript)) {
+    throw new Error("codex-web browser startup probe anchor is unavailable");
+  }
+  const preloadSource: string = unversionedCount === 1
+    ? 'src="./assets/preload.js?v=m6-8-startup-chat-r8"'
+    : versionedPreloads[0]!;
+  const preloadSourceIndex = browserIndexWithBackground.indexOf(preloadSource);
+  const preloadLineStart = browserIndexWithBackground.lastIndexOf("\\n", preloadSourceIndex) + 1;
+  if (preloadSourceIndex < 0 || preloadLineStart < 0) {
+    throw new Error("codex-web browser startup probe anchor is unavailable");
+  }
+  const indentation = browserIndexWithBackground
+    .slice(preloadLineStart, preloadSourceIndex)
+    .match(/^[ \\t]*/u)?.[0] ?? "";
+  const browserIndexHtml =
+    browserIndexWithBackground.slice(0, preloadLineStart) +
+    indentation + startupProbeScript + "\\n" +
+    browserIndexWithBackground.slice(preloadLineStart);
   const sendBrowserIndex = (reply: import("fastify").FastifyReply) =>
     reply.type("text/html; charset=utf-8").send(browserIndexHtml);`,
     "browser preload cache key",

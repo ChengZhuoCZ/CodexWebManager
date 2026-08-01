@@ -23,7 +23,16 @@ test("runtime index preparation accepts one staged preload without re-versioning
     "<style>:root { --startup-background: rgb(248 248 248); }</style>",
     '<script type="module" src="./assets/preload-d153ef5a.js"></script>',
   ].join("\n");
-  assert.equal(prepareBrowserIndexForRuntime(staged), staged);
+  const prepared = prepareBrowserIndexForRuntime(staged);
+  assert.match(prepared, /<script src="\/__backend\/startup-probe\.js"><\/script>/u);
+  assert.ok(
+    prepared.indexOf("/__backend/startup-probe.js") <
+      prepared.indexOf("./assets/preload-d153ef5a.js"),
+  );
+  assert.equal(
+    prepared.match(/\/__backend\/startup-probe\.js/gu)?.length,
+    1,
+  );
 });
 
 test("runtime index preparation versions the pinned build input once", () => {
@@ -32,9 +41,26 @@ test("runtime index preparation versions the pinned build input once", () => {
     '<script type="module" src="./assets/preload.js"></script>',
   ].join("\n");
   const prepared = prepareBrowserIndexForRuntime(buildInput);
+  assert.match(prepared, /<script src="\/__backend\/startup-probe\.js"><\/script>/u);
+  assert.ok(
+    prepared.indexOf("/__backend/startup-probe.js") <
+      prepared.indexOf("./assets/preload.js?v=m6-8-startup-chat-r8"),
+  );
   assert.match(prepared, /preload\.js\?v=m6-8-startup-chat-r8/);
   assert.match(prepared, /--startup-background: Canvas;/);
   assert.doesNotMatch(prepared, /--startup-background: transparent;/);
+});
+
+test("runtime index preparation rejects an already-injected startup probe", () => {
+  const duplicate = [
+    "<style>:root { --startup-background: rgb(248 248 248); }</style>",
+    '<script src="/__backend/startup-probe.js"></script>',
+    '<script type="module" src="./assets/preload-d153ef5a.js"></script>',
+  ].join("\n");
+  assert.throws(
+    () => prepareBrowserIndexForRuntime(duplicate),
+    /browser startup probe anchor is unavailable/,
+  );
 });
 
 test("runtime index preparation remains fail-closed for ambiguous staged preload", () => {

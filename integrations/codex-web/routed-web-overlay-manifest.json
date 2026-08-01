@@ -1,10 +1,10 @@
 {
   "schema_version": 1,
   "files": [
-    { "path": "src/server/main.js", "sha256": "d1e55c83ee0bff10f5b6cd56403c7298c3ac5e3533adef5863089a2003176bf2" },
+    { "path": "src/server/main.js", "sha256": "4490fa185f23d1cd54b8a1cd6f312a85f1533e510aa83468d26830214509fdb3" },
     { "path": "src/server/module.js", "sha256": "45c56e45751dce9a0eb39a152ae556828490e58a015ffbf812690e7df270600f" },
     { "path": "src/server/browser-ipc-router.js", "sha256": "1a4badf9386656c9b917476410863cdb599ccaf666dae2476e4dc7566014e870" },
-    { "path": "src/server/browser-session-auth.js", "sha256": "916385c7a24209c13a1e1c8319f83b4bafb3b7766f56943e4a25b588e64de42c" },
+    { "path": "src/server/browser-session-auth.js", "sha256": "0029149e8b810d8aba52072c7ccc86a185d3aaaadcbc10d766092731b52eb676" },
     { "path": "src/server/browser-upload-store.js", "sha256": "0ea86e37d585a7d91ab0a6a6de803059f3f1e883b5f8c954d269f41bff17e834" },
     { "path": "src/server/router-status-bridge.js", "sha256": "185cf83adf11510e2b5c69d3c0652f5c146aa87a56ed97c6028ea2dc62bf3757" },
     { "path": "scratch/asar/webview/index.html", "sha256": "da7a4aec1546599c57315729a1963c32fa90a6d32e01152695b0a25e7f2472bf" },

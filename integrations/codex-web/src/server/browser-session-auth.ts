@@ -21,7 +21,10 @@ const LOGIN_PATH = "/__backend/session/login";
 const SESSION_PATH = "/__backend/session";
 const HEALTH_PATH = "/__backend/healthz";
 const BROWSER_CONFIG_PATH = "/__backend/browser-config";
+const STARTUP_PROBE_PATH = "/__backend/startup-probe.js";
+const STARTUP_DIAGNOSTIC_PATH = "/__backend/startup-diagnostic";
 const MAX_LOGIN_BODY_BYTES = 8 * 1_024;
+const MAX_STARTUP_DIAGNOSTIC_BODY_BYTES = 128;
 const MAX_FAILED_LOGIN_IPS = 1_024;
 const MAX_FAILED_LOGINS_PER_WINDOW = 5;
 const FAILED_LOGIN_WINDOW_MS = 60_000;
@@ -34,6 +37,81 @@ const ROUTED_INLINE_SCRIPT_SHA256 = [
   "'sha256-mNtCN1bmWu5o8zc8kEpxzwQtpB4bQ4jUuStyIR1LrEI='",
   "'sha256-px6C9XySPrv19JRhBPxaQkoxemcODcCoV+kMOUtL3/I='",
 ].join(" ");
+const STARTUP_DIAGNOSTIC_CODES = new Set([
+  "bridge_missing",
+  "bridge_ready",
+  "loader_timeout",
+  "module_load_error",
+  "probe_loaded",
+  "resource_load_error",
+  "runtime_error",
+  "unhandled_rejection",
+]);
+const STARTUP_PROBE_SOURCE = `(() => {
+  "use strict";
+  const reported = new Set();
+  let failureCode = "";
+  const report = async (code) => {
+    if (reported.has(code)) return;
+    reported.add(code);
+    try {
+      const session = await fetch("/__backend/session", {
+        cache: "no-store",
+        credentials: "same-origin",
+      });
+      if (!session.ok) return;
+      const body = await session.json();
+      if (!body || typeof body.csrfToken !== "string") return;
+      await fetch("/__backend/startup-diagnostic", {
+        body: JSON.stringify({ code }),
+        credentials: "same-origin",
+        headers: {
+          "content-type": "application/json",
+          "x-codex-csrf": body.csrfToken,
+        },
+        method: "POST",
+      });
+    } catch {}
+  };
+  const fail = (code) => {
+    if (failureCode === "") failureCode = code;
+    void report(code);
+  };
+  window.addEventListener("error", (event) => {
+    if (event.target === window) {
+      fail("runtime_error");
+    } else if (event.target instanceof HTMLScriptElement) {
+      fail("module_load_error");
+    } else {
+      fail("resource_load_error");
+    }
+  }, true);
+  window.addEventListener("unhandledrejection", () => {
+    fail("unhandled_rejection");
+  });
+  void report("probe_loaded");
+  document.addEventListener("DOMContentLoaded", () => {
+    if (typeof globalThis.electronBridge === "object") {
+      void report("bridge_ready");
+    } else {
+      fail("bridge_missing");
+    }
+  }, { once: true });
+  window.setTimeout(() => {
+    const loader = document.querySelector(".startup-loader");
+    if (loader === null) return;
+    const code = failureCode || "loader_timeout";
+    void report(code);
+    loader.setAttribute("aria-hidden", "false");
+    loader.textContent = "";
+    const message = document.createElement("div");
+    message.setAttribute("role", "alert");
+    message.style.cssText = "max-width:32rem;padding:1.5rem;font:14px/1.5 system-ui,sans-serif;text-align:center;color:CanvasText";
+    message.textContent = "8216 启动未完成（" + code + "）。请强制刷新；若仍失败，请把阶段码发给开发任务。";
+    loader.append(message);
+  }, 20000);
+})();
+`;
 
 type SessionSocket = {
   close(code?: number, reason?: string | Buffer): void;
@@ -46,6 +124,7 @@ type Session = {
   id: string;
   responses: Set<ServerResponse>;
   sockets: Set<SessionSocket>;
+  startupDiagnostics: Set<string>;
 };
 
 type FailedLoginWindow = {
@@ -1004,6 +1083,7 @@ export async function registerBrowserSessionAuth(
       id: sha256(token).toString("hex"),
       responses: new Set(),
       sockets: new Set(),
+      startupDiagnostics: new Set(),
     };
     sessions.set(session.id, session);
     session.expiryTimer = setTimeout(() => {
@@ -1194,6 +1274,38 @@ export async function registerBrowserSessionAuth(
       workspaceRoots: [...config.workspaceRoots],
     });
   });
+
+  app.get(STARTUP_PROBE_PATH, async (_request, reply) => {
+    return reply
+      .header("cache-control", "no-store")
+      .type("application/javascript; charset=utf-8")
+      .send(STARTUP_PROBE_SOURCE);
+  });
+
+  app.post(
+    STARTUP_DIAGNOSTIC_PATH,
+    { bodyLimit: MAX_STARTUP_DIAGNOSTIC_BODY_BYTES },
+    async (request, reply) => {
+      const body = request.body;
+      if (
+        !isRecord(body) ||
+        !onlyKeys(body, ["code"]) ||
+        typeof body.code !== "string" ||
+        !STARTUP_DIAGNOSTIC_CODES.has(body.code)
+      ) {
+        return reply.code(400).send({ error: "invalid_startup_diagnostic" });
+      }
+      const session = requestSessions.get(request);
+      if (session === undefined) {
+        return reply.code(401).send({ error: "authentication_required" });
+      }
+      if (!session.startupDiagnostics.has(body.code)) {
+        session.startupDiagnostics.add(body.code);
+        console.warn(`[browser-startup] code=${body.code}`);
+      }
+      return reply.code(204).send();
+    },
+  );
 
   app.delete(SESSION_PATH, async (request, reply) => {
     const session = requestSessions.get(request);

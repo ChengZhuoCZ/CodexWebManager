@@ -10,7 +10,7 @@ const repositoryRoot = path.resolve(import.meta.dirname, "../../..");
 const deployScript = path.join(repositoryRoot, "evidence/M6.9/deploy-router-r69.sh");
 const isolatedDeployScript = path.join(
   repositoryRoot,
-  "evidence/M6.9/deploy-router-r81-isolated.sh",
+  "evidence/M6.9/deploy-router-r82-isolated.sh",
 );
 const isolatedUnitRoot = path.join(repositoryRoot, "systemd/8216-fixture");
 const overlayFiles = [
@@ -156,19 +156,19 @@ function deployIsolated(value) {
     env: {
       PATH: process.env.PATH,
       M69_COMMAND_LOG: value.commandLog,
-      R81_FIXTURE_ROOT: value.root,
-      R81_ARCHIVE: value.archive,
-      R81_ARCHIVE_SHA256: value.archiveHash,
-      R81_SYSTEMCTL: value.systemctl,
-      R81_OLD_WEB_UNIT_SHA256: value.hashes.oldWeb,
-      R81_OLD_APP_UNIT_SHA256: value.hashes.oldApp,
-      R81_ACCOUNT_UNIT_SHA256: value.hashes.account,
-      R81_WEB_ISOLATION_SHA256: value.hashes.webIsolation,
-      R81_APP_ISOLATION_SHA256: value.hashes.appIsolation,
-      R81_ACCOUNT_ISOLATION_SHA256: value.hashes.accountIsolation,
-      R81_PREVIOUS_ELECTRON_SHA256: value.hashes.previousElectron,
-      R81_READY_ATTEMPTS: "2",
-      R81_READY_SLEEP_SECONDS: "0",
+      R82_FIXTURE_ROOT: value.root,
+      R82_ARCHIVE: value.archive,
+      R82_ARCHIVE_SHA256: value.archiveHash,
+      R82_SYSTEMCTL: value.systemctl,
+      R82_OLD_WEB_UNIT_SHA256: value.hashes.oldWeb,
+      R82_OLD_APP_UNIT_SHA256: value.hashes.oldApp,
+      R82_ACCOUNT_UNIT_SHA256: value.hashes.account,
+      R82_WEB_ISOLATION_SHA256: value.hashes.webIsolation,
+      R82_APP_ISOLATION_SHA256: value.hashes.appIsolation,
+      R82_ACCOUNT_ISOLATION_SHA256: value.hashes.accountIsolation,
+      R82_PREVIOUS_ELECTRON_SHA256: value.hashes.previousElectron,
+      R82_READY_ATTEMPTS: "2",
+      R82_READY_SLEEP_SECONDS: "0",
     },
   });
 }
@@ -187,7 +187,7 @@ test("isolated deployment updates only 8216 base units and preserves migration d
   const source = await fs.readFile(isolatedDeployScript, "utf8");
   assert.match(source, /STANDALONE_WEB_PID=3522733/);
   assert.match(source, /STANDALONE_APP_PID=3522725/);
-  assert.match(source, /PRODUCTION_ARCHIVE_SHA256=93e21e39/);
+  assert.match(source, /PRODUCTION_ARCHIVE_SHA256=93957f6d/);
   assert.match(source, /PREVIOUS_ELECTRON_SHA256=51e9a0bc/);
   assert.match(source, /8216-isolation\.conf/);
   assert.match(source, /NeedDaemonReload/);
@@ -276,7 +276,7 @@ test("isolated deployment activates the routed Web candidate and restarts only t
   assert.match(result.stdout, /deployment_status=success/);
   assert.match(
     await fs.readlink(path.join(value.root, "opt/0xcaff-codex-web-router/current")),
-    /router-r81$/,
+    /router-r82$/,
   );
   assert.equal(
     await fs.readFile(

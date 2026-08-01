@@ -459,6 +459,12 @@ integrationTest(
       ),
       401,
     );
+    assert.equal(
+      await fetch(`${fixture.origin}/__backend/startup-probe.js`).then(
+        (response) => response.status,
+      ),
+      401,
+    );
     const unauthenticatedHtml = await fetch(`${fixture.origin}/`, {
       redirect: "manual",
       headers: { accept: "text/html" },
@@ -489,6 +495,59 @@ integrationTest(
     assert.equal(session.status, 200);
     const sessionBody = await session.json();
     assert.match(sessionBody.csrfToken, /^[A-Za-z0-9_-]{43}$/);
+
+    const startupProbe = await fetch(
+      `${fixture.origin}/__backend/startup-probe.js`,
+      { headers: { cookie } },
+    );
+    assert.equal(startupProbe.status, 200);
+    assert.match(startupProbe.headers.get("content-type") ?? "", /javascript/u);
+    assert.equal(startupProbe.headers.get("cache-control"), "no-store");
+    const startupProbeSource = await startupProbe.text();
+    for (const code of [
+      "probe_loaded",
+      "runtime_error",
+      "unhandled_rejection",
+      "bridge_missing",
+      "loader_timeout",
+    ]) {
+      assert.match(startupProbeSource, new RegExp(`\\b${code}\\b`, "u"));
+    }
+    assert.doesNotMatch(
+      startupProbeSource,
+      /event\.(?:message|reason)|\.stack\b|location\.href/u,
+    );
+
+    const invalidStartupDiagnostic = await fetch(
+      `${fixture.origin}/__backend/startup-diagnostic`,
+      {
+        method: "POST",
+        headers: sameOriginHeaders(fixture.origin, {
+          cookie,
+          "content-type": "application/json",
+          "x-codex-csrf": sessionBody.csrfToken,
+        }),
+        body: JSON.stringify({ code: "fixture-not-allowed" }),
+      },
+    );
+    assert.equal(invalidStartupDiagnostic.status, 400);
+    assert.deepEqual(await invalidStartupDiagnostic.json(), {
+      error: "invalid_startup_diagnostic",
+    });
+    const acceptedStartupDiagnostic = await fetch(
+      `${fixture.origin}/__backend/startup-diagnostic`,
+      {
+        method: "POST",
+        headers: sameOriginHeaders(fixture.origin, {
+          cookie,
+          "content-type": "application/json",
+          "x-codex-csrf": sessionBody.csrfToken,
+        }),
+        body: JSON.stringify({ code: "probe_loaded" }),
+      },
+    );
+    assert.equal(acceptedStartupDiagnostic.status, 204);
+    assert.equal(await acceptedStartupDiagnostic.text(), "");
 
     const browserConfig = await fetch(
       `${fixture.origin}/__backend/browser-config`,
