@@ -75,7 +75,7 @@
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "fa749e75976b20c874ccc5739683b875cb3f3a25",
+  "output_revision": "3f2bb230ebd246721bd9848401ba100c4c98d9fd",
   "workspace_branch": "test/8216-fixture",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -1782,6 +1782,18 @@
     {
       "command": "user-reported R84 loader_timeout; three bounded fresh-profile WebDriver observations without Cookie inspection, account data access or model traffic",
       "result": "The user browser still reported loader_timeout. A fresh isolated Firefox profile loaded the R84 startup assets with electronBridge and __ELECTRON_SHIM__ present, no Service Worker controller, and removed the startup loader in 1430 ms; after 5 seconds React had replaced the root with 9672 bytes of DOM. No composer control was observed or claimed. The next discriminator is a cache-busted new-tab navigation on the user device"
+    },
+    {
+      "command": "R85 failure-first App Host fixture; focused startup/release/deployment tests; critical HTTP/SSE/WebSocket failover, weekly persistence and restart tests",
+      "result": "The pre-fix App Host assertion exited 1. After the minimal repair, startup/release/deployment passed 19/19 and the M6.9 failover/persistence/restart suite passed 101/101 with no skips. The routed startup function no longer opens or awaits connect-app-host, and diag_v2 classifies app_main_missing, react_root_missing or render_wait without collecting arbitrary browser data"
+    },
+    {
+      "command": "two deterministic 15-file R85 overlay builds; package-complete tests; 15 focused security files; repository-only scanRepository",
+      "result": "Both overlays produced the identical 11915006-byte SHA-256 2fd59e23. The package suite passed 316/345 with zero failures and 29 external-fixture skips; focused security passed 108/108 and 585 repository files scanned with zero findings. The aggregate security CLI remains fail-closed because protected Web paths changed after the retained strict qualification"
+    },
+    {
+      "command": "R85 rollback deployment; five-service PID/start/reload/unit-hash checks; bounded fresh-profile Firefox render probe without Cookie/account-data access",
+      "result": "R85 deployed successfully. All three 8216 services are active with zero restarts and no pending reload; account-router remains 0.2.6. A fresh isolated Firefox removed the loader in 1561 ms with bridge object, codexRoot present and no diag_v2 error. This proves startup rendering only, not a real composer, attachment, model request or switch. 8215 retained both approved PID/start/unit hashes"
     }
   ],
   "evidence": [
@@ -2024,7 +2036,9 @@
     "evidence/M6.9/router-r82-browser-startup-diagnostic-summary.json",
     "evidence/M6.9/deploy-router-r83-isolated.sh",
     "evidence/M6.9/deploy-router-r84-isolated.sh",
-    "evidence/M6.9/router-r84-app-host-startup-summary.json"
+    "evidence/M6.9/router-r84-app-host-startup-summary.json",
+    "evidence/M6.9/deploy-router-r85-isolated.sh",
+    "evidence/M6.9/router-r85-startup-stage-summary.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -5212,10 +5226,33 @@
       "model_request_sent": false,
       "account_switch_tested": false,
       "stable_performance_claimed": false
+    },
+    "r85_startup_stage_repair": {
+      "implementation_revision": "3f2bb230ebd246721bd9848401ba100c4c98d9fd",
+      "deterministic_archive_sha256": "2fd59e23736b17d37f6109d97e6abdda65e20b16762035e5324723ce7b91d830",
+      "served_app_host_version": "80c20671f32cdc91",
+      "focused_startup_release_deployment_passed": 19,
+      "critical_failover_persistence_restart_passed": 101,
+      "focused_security_passed": 108,
+      "repository_files_scanned": 585,
+      "security_findings": 0,
+      "strict_ci_qualified": false,
+      "active_web_release": "c3e92f0f-20260801-m69-router-r85",
+      "account_router_release": "codex-account-router-0.2.6-linux-x64",
+      "deployment_status": "success",
+      "fresh_headless_firefox_loader_removed_ms": 1561,
+      "fresh_headless_firefox_diag_v2_displayed": false,
+      "fresh_headless_firefox_react_root_bytes": 9672,
+      "browser_rendered_composer_verified": false,
+      "standalone_8215_pid_start_and_effective_units_unchanged": true,
+      "model_request_sent": false,
+      "account_switch_tested": false,
+      "stable_performance_claimed": false
     }
   },
   "blockers": [
-    "R84 is active and a fresh isolated Firefox profile removes its loader in 1430 ms, but the user browser still reports loader_timeout. A cache-busted new-tab navigation is required to distinguish retained client state from a device-specific module failure; a rendered composer is not yet claimed.",
+    "R85 is active and a fresh isolated Firefox profile removes its loader in 1561 ms without a diag_v2 error, but the user's real Tailnet browser has not yet confirmed the new release. If it still fails, the exact diag_v2 stage code is required; a rendered composer is not yet claimed.",
+    "The R85 predecessor tree retains static-asset symlinks to the standalone 8215 installation. A complete independent public scratch input or another approved independent asset source is required to materialize 8216 without reading or modifying 8215.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, real two-binding credential acquisition/restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -5353,7 +5390,11 @@
     "R84 removes the verified pre-render App Host deadlock and cache-busts the patched main bundle, but a successful real browser-rendered composer remains unverified and is not claimed.",
     "The server-side headless Firefox screenshot attempt did not complete and was stopped without a model request. It is not evidence of either browser success or application failure.",
     "The first direct Tailnet HTTP check after R84 returned 401, followed by two bounded 200 responses; remote client startup must still be observed after refresh.",
-    "R84 keeps the 3.117 MB Brotli and 13.936 MB decoded main bundle unchanged; the repair removes a deadlock but does not reduce transfer or parse cost."
+    "R84 keeps the 3.117 MB Brotli and 13.936 MB decoded main bundle unchanged; the repair removes a deadlock but does not reduce transfer or parse cost.",
+    "R85 makes the routed App Host binding unconditional and adds diag_v2 fixed stages, but one fresh-profile 1561 ms loader-removal observation is not a stable performance guarantee and does not prove a usable composer.",
+    "The complete public 539 MB scratch download stalled after 123 MB and was boundedly aborted. R85 was therefore built as the existing 15-file overlay and still inherits predecessor static-asset symlinks to the 8215 installation; full 8216 asset materialization remains required.",
+    "The aggregate security CLI remains fail-closed because protected routed Web paths changed after the retained strict-CI qualification. Direct focused security passed 108/108 and the repository scan found zero findings, but this is not a replacement for a newly qualified strict matrix.",
+    "No real composer interaction, attachment upload, model request, second-account enrollment or real A-to-B switch was performed for R85."
   ],
-  "updated_at": "2026-08-01T20:57:40+08:00"
+  "updated_at": "2026-08-01T21:53:21+08:00"
 }

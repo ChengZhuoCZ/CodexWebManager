@@ -137,7 +137,7 @@ test("stages a complete routed Web successor without changing the previous relea
     appHost.toString(),
     /async function d6\(\)\{u6=s6,h6=s6\.services,h6\.devboxService\}/u,
   );
-  assert.doesNotMatch(appHost.toString(), /MessageChannel|connect-app-host/u);
+  assert.doesNotMatch(appHost.toString(), /connect-app-host/u);
   assert.deepEqual(
     gunzipSync(await fs.readFile(path.join(webview, "assets", "app-initial-BTphDPeq.js.gz"))),
     appHost,

@@ -1,0 +1,92 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R85",
+  "generated_at": "2026-08-01T21:53:21+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "workspace_branch": "test/8216-fixture",
+  "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
+  "implementation_revision": "3f2bb230ebd246721bd9848401ba100c4c98d9fd",
+  "dependencies": ["M2.5", "M6.8", "G-SECRETS"],
+  "failure_first": {
+    "command": "bounded App Host fixture before implementation",
+    "exit_code": 1,
+    "observed": "the generated startup function retained a conditional shim bypass and the desktop MessageChannel fallback"
+  },
+  "change": {
+    "app_host_binding": "the routed browser bundle binds the existing local browser services without opening or awaiting connect-app-host",
+    "startup_diagnostic_version": "diag_v2",
+    "timeout_stage_codes": ["bridge_missing", "app_main_missing", "react_root_missing", "render_wait"],
+    "arbitrary_browser_error_data_collected": false,
+    "request_failover_policy_changed": false,
+    "weekly_quota_policy_changed": false,
+    "credential_or_account_state_changed": false
+  },
+  "artifact": {
+    "files": 15,
+    "bytes": 11915006,
+    "archive_sha256": "2fd59e23736b17d37f6109d97e6abdda65e20b16762035e5324723ce7b91d830",
+    "independent_builds_identical": true,
+    "app_host_sha256": "80c20671f32cdc918592883e4235c1857cdbc939d906ed69cc25f18d509cd199",
+    "app_host_version": "80c20671f32cdc91",
+    "index_sha256": "58065cc870f6280a2d7c91ce2ae0d87df2bad9e303b0fc9ce30ced431195b2c4",
+    "deployment_script_sha256": "2ad78a6325599c1badf8c7df8b6caa95a48a1c22c97da8720b3252adfc62d762"
+  },
+  "tests": {
+    "startup_release_and_deployment_focused": {"passed": 19, "failed": 0, "skipped": 0},
+    "http_sse_websocket_failover_persistence_restart": {"passed": 101, "failed": 0, "skipped": 0},
+    "package_complete_without_external_fixture": {"tests": 345, "passed": 316, "failed": 0, "skipped": 29},
+    "focused_security": {"passed": 108, "failed": 0, "skipped": 0},
+    "repository_scan": {"files_scanned": 585, "findings": 0},
+    "strict_ci_qualified": false,
+    "strict_ci_reason": "protected routed Web paths changed after the retained qualification; the complete public scratch download stalled and was boundedly aborted"
+  },
+  "deployment": {
+    "status": "success",
+    "active_release": "c3e92f0f-20260801-m69-router-r85",
+    "predecessor_release": "c3e92f0f-20260801-m69-router-r84",
+    "account_router_release": "codex-account-router-0.2.6-linux-x64",
+    "web_pid": 3656674,
+    "web_start_monotonic": 463310558677,
+    "app_server_pid": 3656667,
+    "app_server_start_monotonic": 463310536034,
+    "account_router_pid": 3656641,
+    "account_router_start_monotonic": 463310439284,
+    "service_restarts_after_activation": 0,
+    "need_daemon_reload": false
+  },
+  "fresh_browser_observation": {
+    "cookie_or_account_data_read": false,
+    "loader_removed_ms": 1561,
+    "ready_state": "complete",
+    "bridge_type": "object",
+    "codex_root_present": true,
+    "react_root_children": 1,
+    "react_root_html_bytes": 9672,
+    "diag_v2_displayed": false,
+    "rendered_composer_verified": false
+  },
+  "standalone_8215": {
+    "web_pid": 3522733,
+    "web_start_monotonic": 451372467525,
+    "web_effective_unit_sha256": "a8c8ceab5b354698c288d1e7db500f059f89c5027579ff9ea49bf5cc788bcb0c",
+    "app_server_pid": 3522725,
+    "app_server_start_monotonic": 451372452251,
+    "app_server_effective_unit_sha256": "662de56df5c27359cdd6e567169f28e517727c761c46fb4b7abeb274c21d099e",
+    "mutated": false
+  },
+  "safety": {
+    "real_credentials_read_or_recorded": false,
+    "second_account_enrolled": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false,
+    "seamless_continuity_claimed": false,
+    "in_flight_resume_claimed": false
+  },
+  "residual_risks": [
+    "The user's real Tailnet device has not yet confirmed R85 or supplied a diag_v2 stage code.",
+    "R85 still inherits predecessor static-asset symlinks that target the standalone 8215 installation tree; those targets were not read or modified, and full 8216 asset materialization remains required.",
+    "A real rendered composer, attachment upload, model request and two-account switch remain unverified.",
+    "No stable end-to-end startup or response-time guarantee is claimed from one fresh-profile observation."
+  ]
+}
