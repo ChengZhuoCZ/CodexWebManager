@@ -10,7 +10,7 @@ const repositoryRoot = path.resolve(import.meta.dirname, "../../..");
 const deployScript = path.join(repositoryRoot, "evidence/M6.9/deploy-router-r69.sh");
 const isolatedDeployScript = path.join(
   repositoryRoot,
-  "evidence/M6.9/deploy-router-r79-isolated.sh",
+  "evidence/M6.9/deploy-router-r80-isolated.sh",
 );
 const isolatedUnitRoot = path.join(repositoryRoot, "systemd/8216-fixture");
 const overlayFiles = [
@@ -156,19 +156,19 @@ function deployIsolated(value) {
     env: {
       PATH: process.env.PATH,
       M69_COMMAND_LOG: value.commandLog,
-      R79_FIXTURE_ROOT: value.root,
-      R79_ARCHIVE: value.archive,
-      R79_ARCHIVE_SHA256: value.archiveHash,
-      R79_SYSTEMCTL: value.systemctl,
-      R79_OLD_WEB_UNIT_SHA256: value.hashes.oldWeb,
-      R79_OLD_APP_UNIT_SHA256: value.hashes.oldApp,
-      R79_ACCOUNT_UNIT_SHA256: value.hashes.account,
-      R79_WEB_ISOLATION_SHA256: value.hashes.webIsolation,
-      R79_APP_ISOLATION_SHA256: value.hashes.appIsolation,
-      R79_ACCOUNT_ISOLATION_SHA256: value.hashes.accountIsolation,
-      R79_PREVIOUS_ELECTRON_SHA256: value.hashes.previousElectron,
-      R79_READY_ATTEMPTS: "2",
-      R79_READY_SLEEP_SECONDS: "0",
+      R80_FIXTURE_ROOT: value.root,
+      R80_ARCHIVE: value.archive,
+      R80_ARCHIVE_SHA256: value.archiveHash,
+      R80_SYSTEMCTL: value.systemctl,
+      R80_OLD_WEB_UNIT_SHA256: value.hashes.oldWeb,
+      R80_OLD_APP_UNIT_SHA256: value.hashes.oldApp,
+      R80_ACCOUNT_UNIT_SHA256: value.hashes.account,
+      R80_WEB_ISOLATION_SHA256: value.hashes.webIsolation,
+      R80_APP_ISOLATION_SHA256: value.hashes.appIsolation,
+      R80_ACCOUNT_ISOLATION_SHA256: value.hashes.accountIsolation,
+      R80_PREVIOUS_ELECTRON_SHA256: value.hashes.previousElectron,
+      R80_READY_ATTEMPTS: "2",
+      R80_READY_SLEEP_SECONDS: "0",
     },
   });
 }
@@ -192,6 +192,7 @@ test("isolated deployment updates only 8216 base units and preserves migration d
   assert.match(source, /8216-isolation\.conf/);
   assert.match(source, /NeedDaemonReload/);
   assert.match(source, /daemon-reload/);
+  assert.match(source, /Accept: text\/html/);
   assert.doesNotMatch(source, /install[^\n]+8216-isolation\.conf/);
   assert.doesNotMatch(source, /(?:restart|stop|start) codex-web-upstream/);
   assert.doesNotMatch(source, /\/opt\/0xcaff-codex-web(?:\/|\s|$)/);
@@ -275,7 +276,7 @@ test("isolated deployment activates the routed Web candidate and restarts only t
   assert.match(result.stdout, /deployment_status=success/);
   assert.match(
     await fs.readlink(path.join(value.root, "opt/0xcaff-codex-web-router/current")),
-    /router-r79$/,
+    /router-r80$/,
   );
   assert.equal(
     await fs.readFile(
@@ -316,6 +317,6 @@ test("isolated deployment restores both base units and R23 after a failed probe"
   assert.deepEqual(await fs.readFile(path.join(unitRoot, "codex-web-router-app-server.service")), appBefore);
   await assert.rejects(fs.access(path.join(
     value.root,
-    "opt/0xcaff-codex-web-router/releases/c3e92f0f-20260801-m69-router-r79",
+    "opt/0xcaff-codex-web-router/releases/c3e92f0f-20260801-m69-router-r80",
   )));
 });
