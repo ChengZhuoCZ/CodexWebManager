@@ -27,6 +27,12 @@ const SWITCH_REASONS = new Set([
 let sessionSnapshotPromise = null;
 let installedCleanup = null;
 
+function setPanelStage(value) {
+  if (typeof document !== "undefined") {
+    document.documentElement.dataset.routerPanelStage = value;
+  }
+}
+
 function isRecord(value) {
   return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -303,10 +309,16 @@ function requestJson(url, { method = "GET", headers = {}, body = null } = {}) {
         body: responseBody,
       });
     }, { once: true });
-    request.addEventListener("error", () => reject(new Error("browser request failed")), {
+    request.addEventListener("error", () => {
+      setPanelStage("request_error");
+      reject(new Error("browser request failed"));
+    }, {
       once: true,
     });
-    request.addEventListener("timeout", () => reject(new Error("browser request timed out")), {
+    request.addEventListener("timeout", () => {
+      setPanelStage("request_timeout");
+      reject(new Error("browser request timed out"));
+    }, {
       once: true,
     });
     request.timeout = 10_000;
@@ -345,6 +357,7 @@ function domReady() {
 export async function installRouterAccountPanel() {
   if (installedCleanup) return installedCleanup;
   await domReady();
+  setPanelStage("dom_ready");
   let host = null;
   let root = null;
   let model = null;
@@ -363,17 +376,21 @@ export async function installRouterAccountPanel() {
     if (model) renderPanel(ensureHost(), model, requestSwitch, busyAlias, transientMessage);
   };
   const refresh = async () => {
+    setPanelStage("status_request");
     const response = await requestJson(STATUS_PATH, {
       headers: { accept: "application/json" },
     });
+    setPanelStage("status_received");
     const body = response.body;
     if (response.status === 404 && isRecord(body) && body.enabled === false) return "disabled";
     if (!response.ok || !isRecord(body) || body.enabled !== true || !("router" in body)) {
+      setPanelStage("status_invalid");
       throw new Error("router status is unavailable");
     }
     model = deriveRouterAccountPanelModel(body.router);
     transientMessage = null;
     renderPanel(ensureHost(), model, requestSwitch, busyAlias, transientMessage);
+    setPanelStage("ready");
     return "enabled";
   };
   async function requestSwitch(account) {
@@ -434,5 +451,6 @@ export async function installRouterAccountPanel() {
 }
 
 if (typeof window !== "undefined" && typeof document !== "undefined") {
-  installRouterAccountPanel().catch(() => undefined);
+  setPanelStage("module_loaded");
+  installRouterAccountPanel().catch(() => setPanelStage("install_failed"));
 }

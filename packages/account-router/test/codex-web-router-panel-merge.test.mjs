@@ -19,9 +19,9 @@ import {
 const INDEX = "scratch/asar/webview/index.html";
 const ASSETS = "scratch/asar/webview/assets";
 const APP = `${ASSETS}/app-initial-BTphDPeq.js`;
-const R90_DEPLOY = path.resolve(
+const R91_DEPLOY = path.resolve(
   import.meta.dirname,
-  "../../../evidence/M6.9/deploy-router-r90-standalone-panel.sh",
+  "../../../evidence/M6.9/deploy-router-r91-standalone-panel.sh",
 );
 
 function sha256(value) {
@@ -139,14 +139,14 @@ test("rejects a panel preload without the bounded router UI contract", async (co
   );
 });
 
-test("R90 deployment preserves both bridge files and restarts only routed Web", async () => {
-  const source = await fs.readFile(R90_DEPLOY, "utf8");
+test("R91 deployment preserves both bridge files and restarts only routed Web", async () => {
+  const source = await fs.readFile(R91_DEPLOY, "utf8");
   assert.match(source, /router-r87-materialized-r23/u);
-  assert.match(source, /INSTALLER_SHA256=6ec7a6ef/u);
-  assert.match(source, /PANEL_MODULE_SHA256=f80b0416/u);
+  assert.match(source, /INSTALLER_SHA256=737b9833/u);
+  assert.match(source, /PANEL_MODULE_SHA256=c4f3be1f/u);
   assert.match(source, /QUALIFIED_APP_SHA256=e2d356e0/u);
   assert.match(source, /QUALIFIED_PRELOAD_SHA256=65708a1c/u);
-  assert.match(source, /STANDALONE_INDEX_SHA256=f161f0c0/u);
+  assert.match(source, /STANDALONE_INDEX_SHA256=f9116342/u);
   assert.match(source, /restart_8216_web_app/u);
   assert.match(source, /expect_8215_unchanged/u);
   assert.match(source, /expect_account_router_unchanged/u);

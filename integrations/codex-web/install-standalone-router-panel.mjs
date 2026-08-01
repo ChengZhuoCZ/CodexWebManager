@@ -20,12 +20,12 @@ const PANEL_NAME = /^router-account-panel-[a-f0-9]{8}\.js$/u;
 
 export const PINNED_STANDALONE_PANEL_CONTRACT = Object.freeze({
   qualified_preload_name: "preload-65708a1c.js",
-  panel_name: "router-account-panel-f80b0416.js",
+  panel_name: "router-account-panel-c4f3be1f.js",
   qualified_index_sha256: "5e89e6e9cb38ebb82fde42526a113458d0072e40bd4cd9f10393a320e793bef9",
   qualified_app_sha256: "e2d356e06763a8287003e5a087acb09a09160a1d6bc8fbf9cecccdfdaf82b6b0",
   qualified_preload_sha256: "65708a1c2c053568691f6691b76290a6bd07df09ea84ef1186ac77090649fc5a",
   qualified_app_version: "e2d356e06763a828",
-  panel_sha256: "f80b0416b57cec80ce289b7a316383be44e288a40e73e6009af4101cb9597446",
+  panel_sha256: "c4f3be1f8122da4f8a2f9da61054c325126af412d5cf09d4ca037e4163e058f9",
 });
 
 function validateContract(value) {
