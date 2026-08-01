@@ -1778,6 +1778,10 @@
     {
       "command": "R83 then R84 rollback deployment; served cache-key, Tailnet page, readiness and post-deployment five-service PID/start/reload/unit-hash verification",
       "result": "R84 is active with the patched cache key served twice in index.html, router readiness 200 and two bounded Tailnet page retries 200. All three 8216 services are active with zero restarts and no pending reload; account-router remains 0.2.6. 8215 retained PID 3522733/3522725, starts 451372467525/451372452251 and both approved effective-unit hashes. A real browser-rendered composer, model request and account switch remain unverified"
+    },
+    {
+      "command": "user-reported R84 loader_timeout; three bounded fresh-profile WebDriver observations without Cookie inspection, account data access or model traffic",
+      "result": "The user browser still reported loader_timeout. A fresh isolated Firefox profile loaded the R84 startup assets with electronBridge and __ELECTRON_SHIM__ present, no Service Worker controller, and removed the startup loader in 1430 ms; after 5 seconds React had replaced the root with 9672 bytes of DOM. No composer control was observed or claimed. The next discriminator is a cache-busted new-tab navigation on the user device"
     }
   ],
   "evidence": [
@@ -5198,6 +5202,11 @@
       "account_router_release": "codex-account-router-0.2.6-linux-x64",
       "deployment_status": "success",
       "live_tailnet_page_retry_statuses": [200, 200],
+      "user_browser_stage_after_r84_refresh": "loader_timeout",
+      "fresh_headless_firefox_loader_removed_ms": 1430,
+      "fresh_headless_firefox_startup_assets_loaded": true,
+      "fresh_headless_firefox_service_worker_controlled": false,
+      "fresh_headless_firefox_react_root_bytes_after_5s": 9672,
       "browser_rendered_composer_verified": false,
       "standalone_8215_pid_start_and_effective_units_unchanged": true,
       "model_request_sent": false,
@@ -5206,7 +5215,7 @@
     }
   },
   "blockers": [
-    "R84 is active with the verified App Host browser bypass and digest-derived immutable cache key, but the real user browser has not yet hard-refreshed R84. A rendered composer can only be claimed after that client observation; if it still fails, the fixed startup stage code is required.",
+    "R84 is active and a fresh isolated Firefox profile removes its loader in 1430 ms, but the user browser still reports loader_timeout. A cache-busted new-tab navigation is required to distinguish retained client state from a device-specific module failure; a rendered composer is not yet claimed.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, real two-binding credential acquisition/restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -5346,5 +5355,5 @@
     "The first direct Tailnet HTTP check after R84 returned 401, followed by two bounded 200 responses; remote client startup must still be observed after refresh.",
     "R84 keeps the 3.117 MB Brotli and 13.936 MB decoded main bundle unchanged; the repair removes a deadlock but does not reduce transfer or parse cost."
   ],
-  "updated_at": "2026-08-01T20:42:09+08:00"
+  "updated_at": "2026-08-01T20:57:40+08:00"
 }

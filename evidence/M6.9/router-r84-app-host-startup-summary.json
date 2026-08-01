@@ -89,6 +89,13 @@
     "router_ready_status": 200,
     "served_app_host_cache_key_occurrences": 2,
     "served_app_host_cache_key": "3b830d6fbfe812bf",
+    "user_browser_stage_after_r84_refresh": "loader_timeout",
+    "fresh_headless_firefox_loader_removed_ms": 1430,
+    "fresh_headless_firefox_bridge_type": "object",
+    "fresh_headless_firefox_shim_type": "object",
+    "fresh_headless_firefox_startup_assets_loaded": true,
+    "fresh_headless_firefox_service_worker_controlled": false,
+    "fresh_headless_firefox_react_root_bytes_after_5s": 9672,
     "real_browser_rendered_composer_verified": false,
     "headless_firefox_screenshot_completed": false,
     "real_model_request_sent": false,
@@ -114,10 +121,10 @@
     "in_flight_resume_claimed": false
   },
   "residual_risks": [
-    "A user browser hard refresh against R84 is still required before the rendered composer can be claimed; the server-side headless Firefox screenshot attempt did not complete and was stopped without a model request.",
+    "The user browser still reported loader_timeout after R84, while a fresh isolated Firefox profile removed the loader in 1430 ms and loaded the patched startup graph. This divergence requires a cache-busted new client navigation before any device-specific conclusion; a rendered composer is still not claimed.",
     "One first direct Tailnet HTTP check returned 401, followed by two bounded 200 responses; client-side Tailnet startup remains to be observed after refresh.",
     "R84 keeps the 3.117 MB Brotli and 13.936 MB decoded main bundle; this repair removes a deadlock and corrects the cache key but does not reduce bundle transfer or parse size.",
     "Real A-to-B switching remains blocked until explicit second-account enrollment authorization is given."
   ],
-  "updated_at": "2026-08-01T20:42:09+08:00"
+  "updated_at": "2026-08-01T20:57:40+08:00"
 }
