@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly RELEASE_NAME=c3e92f0f-20260802-m69-router-r89-standalone-panel
+readonly RELEASE_NAME=c3e92f0f-20260802-m69-router-r90-standalone-panel
 readonly WEB_PREFIX=/opt/0xcaff-codex-web-router
 readonly CURRENT="${WEB_PREFIX}/current"
 readonly RELEASES="${WEB_PREFIX}/releases"
@@ -9,8 +9,8 @@ readonly SUCCESSOR="${RELEASES}/${RELEASE_NAME}"
 readonly QUALIFIED_SOURCE="${RELEASES}/c3e92f0f-20260802-m69-router-r87-materialized-r23"
 readonly INSTALLER="${R89_INSTALLER:-/tmp/codex-m69-r89-install-standalone-panel.mjs}"
 readonly PANEL_MODULE="${R89_PANEL_MODULE:-/tmp/router-account-panel-standalone.js}"
-readonly INSTALLER_SHA256=b1967a23076a1d9df98f468ce3ad177df8d6a57dd8e0f101e2a08c5e24f934c9
-readonly PANEL_MODULE_SHA256=ccbc4a2ebe029fe65c4df5bef52e3a0d8e781a88cbe856ebca4d76ebea4fa142
+readonly INSTALLER_SHA256=6ec7a6ef56f0ecd465e7dc7e489769812341709e8301024a75285a46fae7b460
+readonly PANEL_MODULE_SHA256=f80b0416b57cec80ce289b7a316383be44e288a40e73e6009af4101cb9597446
 readonly STANDALONE_CURRENT=/opt/0xcaff-codex-web/releases/c3e92f0-20260729-tailnet-startup-r3
 readonly ROUTER_CURRENT=/opt/codex-account-router/releases/codex-account-router-0.2.6-linux-x64
 readonly WEB_SERVICE=codex-web-router.service
@@ -32,9 +32,9 @@ readonly APP_UNIT_SHA256=b3723ecef6a6e1a6153ec0f08f5bf4f890183ed377ab2b27f9d82dc
 readonly QUALIFIED_INDEX_SHA256=5e89e6e9cb38ebb82fde42526a113458d0072e40bd4cd9f10393a320e793bef9
 readonly QUALIFIED_APP_SHA256=e2d356e06763a8287003e5a087acb09a09160a1d6bc8fbf9cecccdfdaf82b6b0
 readonly QUALIFIED_PRELOAD_SHA256=65708a1c2c053568691f6691b76290a6bd07df09ea84ef1186ac77090649fc5a
-readonly STANDALONE_INDEX_SHA256=3f94c5c06f4ffe3a2b8250e0a76c6ad9dc6a23f5033048326f3a3ecfc382ba85
+readonly STANDALONE_INDEX_SHA256=f161f0c0afbc218ac4d25bdbd0f205bedc0d24554c0d7694509a44b3ba59a171
 readonly QUALIFIED_PRELOAD=preload-65708a1c.js
-readonly PANEL_ASSET=router-account-panel-ccbc4a2e.js
+readonly PANEL_ASSET=router-account-panel-f80b0416.js
 
 success=0
 successor_created=0
@@ -137,7 +137,7 @@ rollback() {
   trap - EXIT
   if [[ "$success" -ne 1 ]]; then
     if [[ "$current_switched" -eq 1 ]]; then
-      local rollback_link="${WEB_PREFIX}/.current-r89-rollback.$$"
+      local rollback_link="${WEB_PREFIX}/.current-r90-rollback.$$"
       ln -s "$current_before" "$rollback_link"
       replace_current_link "$rollback_link" "$CURRENT"
       restart_8216_web_app >/dev/null 2>&1 || true
@@ -186,7 +186,7 @@ must standalone_assets_changed verify_standalone_assets "$SUCCESSOR"
 must standalone_8215_changed expect_8215_unchanged
 must account_router_changed expect_account_router_unchanged
 
-next_link="${WEB_PREFIX}/.current-r89.$$"
+next_link="${WEB_PREFIX}/.current-r90.$$"
 must current_link_stage_failed ln -s "$SUCCESSOR" "$next_link"
 must current_link_replace_failed replace_current_link "$next_link" "$CURRENT"
 current_switched=1

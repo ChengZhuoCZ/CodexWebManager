@@ -280,13 +280,45 @@ function appendHost() {
   return { host, root };
 }
 
+function requestJson(url, { method = "GET", headers = {}, body = null } = {}) {
+  return new Promise((resolve, reject) => {
+    const request = new XMLHttpRequest();
+    request.open(method, url, true);
+    request.responseType = "json";
+    for (const [name, value] of Object.entries(headers)) {
+      request.setRequestHeader(name, value);
+    }
+    request.addEventListener("load", () => {
+      let responseBody = request.response;
+      if (responseBody === null && typeof request.responseText === "string") {
+        try {
+          responseBody = JSON.parse(request.responseText);
+        } catch {
+          responseBody = null;
+        }
+      }
+      resolve({
+        ok: request.status >= 200 && request.status < 300,
+        status: request.status,
+        body: responseBody,
+      });
+    }, { once: true });
+    request.addEventListener("error", () => reject(new Error("browser request failed")), {
+      once: true,
+    });
+    request.addEventListener("timeout", () => reject(new Error("browser request timed out")), {
+      once: true,
+    });
+    request.timeout = 10_000;
+    request.send(body);
+  });
+}
+
 async function browserCsrfHeaders() {
-  sessionSnapshotPromise ??= fetch(SESSION_PATH, {
-    cache: "no-store",
-    credentials: "same-origin",
+  sessionSnapshotPromise ??= requestJson(SESSION_PATH, {
     headers: { accept: "application/json" },
-  }).then(async (response) => {
-    const value = await response.json();
+  }).then((response) => {
+    const value = response.body;
     if (
       !response.ok || !isRecord(value) ||
       typeof value.csrfToken !== "string" || !/^[A-Za-z0-9_-]{43}$/u.test(value.csrfToken) ||
@@ -331,11 +363,10 @@ export async function installRouterAccountPanel() {
     if (model) renderPanel(ensureHost(), model, requestSwitch, busyAlias, transientMessage);
   };
   const refresh = async () => {
-    const response = await fetch(STATUS_PATH, {
+    const response = await requestJson(STATUS_PATH, {
       headers: { accept: "application/json" },
-      cache: "no-store",
     });
-    const body = await response.json();
+    const body = response.body;
     if (response.status === 404 && isRecord(body) && body.enabled === false) return "disabled";
     if (!response.ok || !isRecord(body) || body.enabled !== true || !("router" in body)) {
       throw new Error("router status is unavailable");
@@ -357,7 +388,7 @@ export async function installRouterAccountPanel() {
     transientMessage = null;
     if (model) renderPanel(ensureHost(), model, requestSwitch, busyAlias, transientMessage);
     try {
-      const response = await fetch(SWITCH_PATH, {
+      const response = await requestJson(SWITCH_PATH, {
         method: "POST",
         headers: {
           "content-type": "application/json",
@@ -381,10 +412,12 @@ export async function installRouterAccountPanel() {
   } catch {
     return () => undefined;
   }
-  eventSource = new EventSource(EVENTS_PATH);
-  eventSource.addEventListener("router.switch", () => {
-    refresh().catch(() => showError("Router status is temporarily unavailable."));
-  });
+  if (typeof EventSource === "function") {
+    eventSource = new EventSource(EVENTS_PATH);
+    eventSource.addEventListener("router.switch", () => {
+      refresh().catch(() => showError("Router status is temporarily unavailable."));
+    });
+  }
   pollTimer = window.setInterval(() => {
     refresh().catch(() => showError("Router status is temporarily unavailable."));
   }, POLL_INTERVAL_MS);
