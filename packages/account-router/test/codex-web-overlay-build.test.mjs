@@ -14,7 +14,11 @@ function sha256(bytes) {
 test("builds the same pinned overlay from independent candidate directories", async (context) => {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "m69-overlay-build-"));
   context.after(() => fs.rm(root, { recursive: true, force: true }));
-  const files = ["src/server/main.js", "scratch/asar/webview/index.html"];
+  const files = [
+    "src/server/main.js",
+    "scratch/asar/webview/index.html",
+    "scratch/asar/webview/assets/app-initial-BTphDPeq.js",
+  ];
   const manifest = { schema_version: 1, files: [] };
   for (const relativePath of files) {
     const bytes = Buffer.from(`fixture:${relativePath}\n`);

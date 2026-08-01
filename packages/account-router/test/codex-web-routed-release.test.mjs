@@ -5,7 +5,27 @@ import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { brotliDecompressSync, gunzipSync } from "node:zlib";
+import { patchBrowserAppHostSource } from "../../../integrations/codex-web/patch-browser-app-host-services.mjs";
 import { stageRoutedWebRelease } from "../../../integrations/codex-web/stage-routed-release.mjs";
+
+const appHostSource =
+  's6=new class extends R3{#e;get services(){return this.#e}constructor(e){super(),this.#e=e}}({appActions:j5,appUpdates:L5,clientCoordination:V4,downloads:a6});async function d6(){var e;u6=function(){return "desktop"}()}\n';
+
+test("patches the pinned browser app-host handshake exactly once", () => {
+  const first = patchBrowserAppHostSource(appHostSource);
+  assert.equal(first.changed, true);
+  const second = patchBrowserAppHostSource(first.source);
+  assert.equal(second.changed, false);
+  assert.equal(second.source, first.source);
+  assert.throws(
+    () => patchBrowserAppHostSource("const baselineChanged = true;\n"),
+    /browser app host anchor is invalid/u,
+  );
+  assert.throws(
+    () => patchBrowserAppHostSource(appHostSource + appHostSource),
+    /browser app host anchor is invalid/u,
+  );
+});
 
 const serverFiles = [
   "src/server/main.js",
@@ -43,11 +63,21 @@ async function fixture(context) {
   await write(
     previous,
     "scratch/asar/webview/index.html",
-    '<script type="module" src="./assets/preload-deadbeef.js"></script>\n',
+    [
+      '<script type="importmap">{"imports":{"./assets/app-initial-BTphDPeq.js":"./assets/app-initial-BTphDPeq.js?v=e2d356e06763a828"}}</script>',
+      '<link rel="modulepreload" href="./assets/app-initial-BTphDPeq.js?v=e2d356e06763a828">',
+      '<script type="module" src="./assets/preload-deadbeef.js"></script>',
+      "",
+    ].join("\n"),
   );
   await write(previous, "scratch/asar/webview/index.html.gz", "old gzip\n");
   await write(previous, "scratch/asar/webview/index.html.br", "old brotli\n");
   await write(previous, "scratch/asar/webview/assets/preload-deadbeef.js", "old preload\n");
+  await write(
+    previous,
+    "scratch/asar/webview/assets/app-initial-BTphDPeq.js",
+    appHostSource,
+  );
   await write(browserBuild, "scratch/asar/webview/assets/preload.js", "const routed = true;\n");
   return { root, previous, candidate, serverBuild, browserBuild };
 }
@@ -77,6 +107,13 @@ test("stages a complete routed Web successor without changing the previous relea
   assert.equal(preload.toString(), "const routed = true;\n");
   assert.match(index.toString(), new RegExp(`assets/${result.preload_name}`));
   assert.doesNotMatch(index.toString(), /preload-deadbeef/);
+  assert.equal(
+    index.toString().match(
+      new RegExp(`app-initial-BTphDPeq\\.js\\?v=${result.app_host_version}`, "gu"),
+    )?.length,
+    2,
+  );
+  assert.doesNotMatch(index.toString(), /app-initial-BTphDPeq\.js\?v=e2d356e06763a828/u);
   assert.deepEqual(gunzipSync(await fs.readFile(path.join(webview, "index.html.gz"))), index);
   assert.deepEqual(brotliDecompressSync(await fs.readFile(path.join(webview, "index.html.br"))), index);
   assert.deepEqual(
@@ -86,6 +123,27 @@ test("stages a complete routed Web successor without changing the previous relea
   assert.deepEqual(
     brotliDecompressSync(await fs.readFile(path.join(webview, "assets", `${result.preload_name}.br`))),
     preload,
+  );
+  const appHost = await fs.readFile(
+    path.join(webview, "assets", "app-initial-BTphDPeq.js"),
+  );
+  assert.match(
+    appHost.toString(),
+    /\.\.\.window\.__ELECTRON_SHIM__\?\.services/u,
+  );
+  assert.match(
+    appHost.toString(),
+    /if\(window\.__ELECTRON_SHIM__!=null\)\{u6=s6,h6=s6\.services,h6\.devboxService;return\}/u,
+  );
+  assert.deepEqual(
+    gunzipSync(await fs.readFile(path.join(webview, "assets", "app-initial-BTphDPeq.js.gz"))),
+    appHost,
+  );
+  assert.deepEqual(
+    brotliDecompressSync(
+      await fs.readFile(path.join(webview, "assets", "app-initial-BTphDPeq.js.br")),
+    ),
+    appHost,
   );
   assert.deepEqual(
     await fs.readFile(path.join(paths.previous, "scratch/asar/webview/index.html")),

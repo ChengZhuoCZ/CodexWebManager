@@ -10,7 +10,7 @@ const repositoryRoot = path.resolve(import.meta.dirname, "../../..");
 const deployScript = path.join(repositoryRoot, "evidence/M6.9/deploy-router-r69.sh");
 const isolatedDeployScript = path.join(
   repositoryRoot,
-  "evidence/M6.9/deploy-router-r82-isolated.sh",
+  "evidence/M6.9/deploy-router-r84-isolated.sh",
 );
 const isolatedUnitRoot = path.join(repositoryRoot, "systemd/8216-fixture");
 const overlayFiles = [
@@ -23,9 +23,14 @@ const overlayFiles = [
   "scratch/asar/webview/assets/preload-d153ef5a.js.gz",
   "scratch/asar/webview/assets/preload-d153ef5a.js.br",
 ];
-const isolatedOverlayFiles = overlayFiles.filter(
-  (relativePath) => relativePath !== "src/server/electron/index.js",
-);
+const isolatedOverlayFiles = [
+  ...overlayFiles.filter(
+    (relativePath) => relativePath !== "src/server/electron/index.js",
+  ),
+  "scratch/asar/webview/assets/app-initial-BTphDPeq.js",
+  "scratch/asar/webview/assets/app-initial-BTphDPeq.js.gz",
+  "scratch/asar/webview/assets/app-initial-BTphDPeq.js.br",
+];
 
 async function fixture(context, { healthy }) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "m69-r69-deploy-"));
@@ -85,6 +90,11 @@ function deploy(value) {
 
 async function isolatedFixture(context, { healthy }) {
   const value = await fixture(context, { healthy });
+  for (const relativePath of isolatedOverlayFiles) {
+    const target = path.join(value.root, "overlay", relativePath);
+    await fs.mkdir(path.dirname(target), { recursive: true });
+    await fs.writeFile(target, `fixture:${relativePath}\n`);
+  }
   const previousElectron = path.join(
     value.root,
     "opt/0xcaff-codex-web-router/releases/previous/src/server/electron/index.js",
@@ -156,19 +166,19 @@ function deployIsolated(value) {
     env: {
       PATH: process.env.PATH,
       M69_COMMAND_LOG: value.commandLog,
-      R82_FIXTURE_ROOT: value.root,
-      R82_ARCHIVE: value.archive,
-      R82_ARCHIVE_SHA256: value.archiveHash,
-      R82_SYSTEMCTL: value.systemctl,
-      R82_OLD_WEB_UNIT_SHA256: value.hashes.oldWeb,
-      R82_OLD_APP_UNIT_SHA256: value.hashes.oldApp,
-      R82_ACCOUNT_UNIT_SHA256: value.hashes.account,
-      R82_WEB_ISOLATION_SHA256: value.hashes.webIsolation,
-      R82_APP_ISOLATION_SHA256: value.hashes.appIsolation,
-      R82_ACCOUNT_ISOLATION_SHA256: value.hashes.accountIsolation,
-      R82_PREVIOUS_ELECTRON_SHA256: value.hashes.previousElectron,
-      R82_READY_ATTEMPTS: "2",
-      R82_READY_SLEEP_SECONDS: "0",
+      R84_FIXTURE_ROOT: value.root,
+      R84_ARCHIVE: value.archive,
+      R84_ARCHIVE_SHA256: value.archiveHash,
+      R84_SYSTEMCTL: value.systemctl,
+      R84_OLD_WEB_UNIT_SHA256: value.hashes.oldWeb,
+      R84_OLD_APP_UNIT_SHA256: value.hashes.oldApp,
+      R84_ACCOUNT_UNIT_SHA256: value.hashes.account,
+      R84_WEB_ISOLATION_SHA256: value.hashes.webIsolation,
+      R84_APP_ISOLATION_SHA256: value.hashes.appIsolation,
+      R84_ACCOUNT_ISOLATION_SHA256: value.hashes.accountIsolation,
+      R84_PREVIOUS_ELECTRON_SHA256: value.hashes.previousElectron,
+      R84_READY_ATTEMPTS: "2",
+      R84_READY_SLEEP_SECONDS: "0",
     },
   });
 }
@@ -187,7 +197,7 @@ test("isolated deployment updates only 8216 base units and preserves migration d
   const source = await fs.readFile(isolatedDeployScript, "utf8");
   assert.match(source, /STANDALONE_WEB_PID=3522733/);
   assert.match(source, /STANDALONE_APP_PID=3522725/);
-  assert.match(source, /PRODUCTION_ARCHIVE_SHA256=93957f6d/);
+  assert.match(source, /PRODUCTION_ARCHIVE_SHA256=4edf04cb/);
   assert.match(source, /PREVIOUS_ELECTRON_SHA256=51e9a0bc/);
   assert.match(source, /8216-isolation\.conf/);
   assert.match(source, /NeedDaemonReload/);
@@ -276,7 +286,7 @@ test("isolated deployment activates the routed Web candidate and restarts only t
   assert.match(result.stdout, /deployment_status=success/);
   assert.match(
     await fs.readlink(path.join(value.root, "opt/0xcaff-codex-web-router/current")),
-    /router-r82$/,
+    /router-r84$/,
   );
   assert.equal(
     await fs.readFile(
@@ -317,6 +327,6 @@ test("isolated deployment restores both base units and its predecessor after a f
   assert.deepEqual(await fs.readFile(path.join(unitRoot, "codex-web-router-app-server.service")), appBefore);
   await assert.rejects(fs.access(path.join(
     value.root,
-    "opt/0xcaff-codex-web-router/releases/c3e92f0f-20260801-m69-router-r81",
+    "opt/0xcaff-codex-web-router/releases/c3e92f0f-20260801-m69-router-r84",
   )));
 });

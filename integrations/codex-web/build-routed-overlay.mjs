@@ -8,7 +8,7 @@ import { gzipSync } from "node:zlib";
 
 const DEFAULT_MANIFEST = fileURLToPath(new URL("./routed-web-overlay-manifest.json", import.meta.url));
 const SHA256 = /^[a-f0-9]{64}$/u;
-const SAFE_PATH = /^(?:[a-z0-9._~-]+\/)*[a-z0-9._~-]+$/u;
+const SAFE_PATH = /^(?:[A-Za-z0-9._~-]+\/)*[A-Za-z0-9._~-]+$/u;
 const BLOCK = 512;
 
 function digest(bytes) { return createHash("sha256").update(bytes).digest("hex"); }

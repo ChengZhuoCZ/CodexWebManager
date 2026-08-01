@@ -5,6 +5,10 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { brotliCompressSync, constants as zlibConstants, gzipSync } from "node:zlib";
+import {
+  patchBrowserAppHostServices,
+  versionBrowserAppHostIndex,
+} from "./patch-browser-app-host-services.mjs";
 
 const SERVER_FILES = Object.freeze([
   "src/server/main.js",
@@ -130,11 +134,20 @@ export async function stageRoutedWebRelease({
       await writeReleaseFile(staging, relativePath, bytes);
     }
 
+    phase = "patch_app_host_services";
+    const appHost = await patchBrowserAppHostServices(staging);
+
     const preloadHash = sha256(preload);
     const preloadName = `preload-${preloadHash.slice(0, 8)}.js`;
     const versionedRelative = `scratch/asar/webview/assets/${preloadName}`;
     const preloadCompressed = compressed(preload);
-    const index = Buffer.from(indexText.replace(VERSIONED_PRELOAD, `./assets/${preloadName}`));
+    const versionedIndex = versionBrowserAppHostIndex(
+      indexText,
+      appHost.app_host_version,
+    );
+    const index = Buffer.from(
+      versionedIndex.replace(VERSIONED_PRELOAD, `./assets/${preloadName}`),
+    );
     const indexCompressed = compressed(index);
     await writeReleaseFile(staging, versionedRelative, preload);
     await writeReleaseFile(staging, `${versionedRelative}.gz`, preloadCompressed.gzip);
@@ -157,6 +170,7 @@ export async function stageRoutedWebRelease({
       index_sha256: sha256(index),
       index_gzip_sha256: sha256(indexCompressed.gzip),
       index_brotli_sha256: sha256(indexCompressed.brotli),
+      ...appHost,
       server_files: [...SERVER_FILES],
     });
   } catch {
