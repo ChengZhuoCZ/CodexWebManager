@@ -75,7 +75,7 @@
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "0f04d652f9db35193d06324cb86e39ea27dca50c",
+  "output_revision": "f9c26727e3e42bd8fba5131bf2edbfb35f73c565",
   "workspace_branch": "test/8216-fixture",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -2042,7 +2042,9 @@
     "evidence/M6.9/deploy-router-r84-isolated.sh",
     "evidence/M6.9/router-r84-app-host-startup-summary.json",
     "evidence/M6.9/deploy-router-r85-isolated.sh",
-    "evidence/M6.9/router-r85-startup-stage-summary.json"
+    "evidence/M6.9/router-r85-startup-stage-summary.json",
+    "evidence/M6.9/deploy-router-r87-materialized-r23.sh",
+    "evidence/M6.9/router-r87-materialized-r23-recovery.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -5316,11 +5318,36 @@
       "account_switch_tested": false,
       "semantic_replay_attempted": false,
       "cross_account_continuity_claimed": false
+    },
+    "r87_materialized_r23_startup_recovery": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "ae6a9ad36ac8fae1b0ceb5d30d82a889f098b1af",
+      "implementation_revision": "f9c26727e3e42bd8fba5131bf2edbfb35f73c565",
+      "dependencies": ["M2.5", "M6.8", "G-SECRETS"],
+      "expected_result": "Recover a usable routed 8216 composer from diag_v2:render_wait without changing or restarting standalone 8215 or account-router, and remove the routed release's runtime symlink dependency on the 8215 static tree.",
+      "input_release": "c3e92f0f-20260801-m69-router-r86",
+      "output_release": "c3e92f0f-20260802-m69-router-r87-materialized-r23",
+      "evidence": "evidence/M6.9/router-r87-materialized-r23-recovery.json",
+      "deployment_script_sha256": "bc8a72f73087275f0332ef0df4a8538bf7af23d46d1dc585451c3c7ef2c12d06",
+      "materialized_source_symlinks": 4738,
+      "output_release_symlinks": 0,
+      "deployed": true,
+      "five_services_active": true,
+      "pending_daemon_reload": false,
+      "standalone_8215_pid_start_and_effective_units_unchanged": true,
+      "account_router_process_and_release_unchanged": true,
+      "browser_document_ready_state": "complete",
+      "browser_startup_loader_present": false,
+      "browser_composer_present": true,
+      "browser_diag_v2_render_wait_reproduced": false,
+      "model_request_sent": false,
+      "account_switch_tested": false,
+      "semantic_replay_attempted": false,
+      "cross_account_continuity_claimed": false
     }
   },
   "blockers": [
-    "R86 is active with the previously missing local App Host bindings restored, and its service/readiness checks passed, but the user's real Tailnet browser has not yet confirmed a rendered composer after hard refresh. A rendered composer is not yet claimed.",
-    "The R85 predecessor tree retains static-asset symlinks to the standalone 8215 installation. A complete independent public scratch input or another approved independent asset source is required to materialize 8216 without reading or modifying 8215.",
     "The user-authorized second credential has been atomically enrolled, but its first real pre-semantic acquisition was classified auth_expired. A fresh distinct private device authorization is required before the real new-request A-to-B E2E may be retried.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -5464,7 +5491,10 @@
     "The aggregate security CLI remains fail-closed because protected routed Web paths changed after the retained strict-CI qualification. Direct focused security passed 108/108 and the repository scan found zero findings, but this is not a replacement for a newly qualified strict matrix.",
     "No real composer interaction, attachment upload, model request, second-account enrollment or real A-to-B switch was performed for R85.",
     "R87 confirms private atomic enrollment and an eligible primary routed request, but the second private credential was classified auth_expired before semantic output. M6.9 remains blocked; no real provider A-to-B success, cross-account continuity, or in-flight recovery is claimed.",
-    "R86 deploys only a cache-versioned static App Host initializer repair. Its post-deployment service/readiness evidence does not prove a user browser's composer, attachment upload, model request, second-account switch, seamless continuity, or in-flight recovery."
+    "R86 deploys only a cache-versioned static App Host initializer repair. Its post-deployment service/readiness evidence did not prove a user browser's composer and was superseded by the R87 startup recovery.",
+    "R87 restores the previously browser-qualified R23 App Host bridge in a fully materialized routed release. The in-app browser verified a signed-in composer, but no attachment upload, model request or account switch was performed.",
+    "The in-app browser reported timeouts to optional Statsig telemetry while the 8216 document reached complete and rendered its composer. This did not block the verified main UI but may continue to produce non-fatal client diagnostics.",
+    "R87 does not establish seamless cross-account continuity or recovery of an in-flight computation."
   ],
-  "updated_at": "2026-08-01T23:37:04+08:00"
+  "updated_at": "2026-08-02T03:25:00+08:00"
 }

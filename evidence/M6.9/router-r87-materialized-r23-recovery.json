@@ -1,0 +1,94 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R87-materialized-R23-startup-recovery",
+  "generated_at": "2026-08-02T03:25:00+08:00",
+  "implementation_mode": "clean-room",
+  "input_revision": "ae6a9ad36ac8fae1b0ceb5d30d82a889f098b1af",
+  "implementation_revision": "f9c26727e3e42bd8fba5131bf2edbfb35f73c565",
+  "input_release": "c3e92f0f-20260801-m69-router-r86",
+  "output_release": "c3e92f0f-20260802-m69-router-r87-materialized-r23",
+  "observed_failure": {
+    "user_stage": "diag_v2:render_wait",
+    "r86_browser_result": "the React root was created but the routed App Host remained suspended before a usable composer",
+    "validated_recovery_basis": "the previously browser-qualified R23 main bundle and preload contain the complete App Host MessagePort bridge and had already rendered a signed-in composer"
+  },
+  "repair": {
+    "scope": "only the routed 8216 static release and the routed 8216 Web/App Server processes",
+    "strategy": "restore the exact browser-qualified R23 static behavior while materializing every inherited file into an independent R87 release",
+    "materialized_source_symlinks": 4738,
+    "output_release_symlinks": 0,
+    "allowed_source_boundary": "/opt/0xcaff-codex-web/current/",
+    "account_router_release_changed": false,
+    "account_router_process_restarted": false,
+    "standalone_8215_changed_or_restarted": false,
+    "credential_or_account_data_read": false,
+    "model_request_sent": false,
+    "account_switch_tested": false,
+    "semantic_replay_attempted": false
+  },
+  "deployment": {
+    "script": "evidence/M6.9/deploy-router-r87-materialized-r23.sh",
+    "script_sha256": "bc8a72f73087275f0332ef0df4a8538bf7af23d46d1dc585451c3c7ef2c12d06",
+    "status": "success",
+    "rollback_target": "c3e92f0f-20260801-m69-router-r86",
+    "restarted_units": [
+      "codex-web-router-app-server.service",
+      "codex-web-router.service"
+    ],
+    "unchanged_processes": {
+      "account_router_pid": 3693211,
+      "account_router_active_enter_monotonic": 469668415342,
+      "standalone_8215_app_pid": 3664550,
+      "standalone_8215_app_active_enter_monotonic": 464091596213,
+      "standalone_8215_web_pid": 3664557,
+      "standalone_8215_web_active_enter_monotonic": 464091607256
+    },
+    "routed_8216_successor_processes": {
+      "app_pid": 3754558,
+      "app_active_enter_monotonic": 481355317099,
+      "web_pid": 3754566,
+      "web_active_enter_monotonic": 481355340224
+    }
+  },
+  "static_integrity": {
+    "index_sha256": "5e89e6e9cb38ebb82fde42526a113458d0072e40bd4cd9f10393a320e793bef9",
+    "app_sha256": "e2d356e06763a8287003e5a087acb09a09160a1d6bc8fbf9cecccdfdaf82b6b0",
+    "preload_sha256": "65708a1c2c053568691f6691b76290a6bd07df09ea84ef1186ac77090649fc5a"
+  },
+  "verification": {
+    "commands": [
+      "bash -n evidence/M6.9/deploy-router-r87-materialized-r23.sh",
+      "shellcheck evidence/M6.9/deploy-router-r87-materialized-r23.sh (attempted; binary unavailable in the handoff workspace)",
+      "remote deployment with exact release, static-hash, unit-hash, PID/start and pending-reload preflights",
+      "remote five-unit active-state, current-release, successor-symlink and loopback/Tailnet HTTP checks",
+      "Codex in-app browser navigation to http://100.95.50.98:8216/?v=r87 followed by read-only DOM checks",
+      "bounded sensitive-pattern scan of the R87 script, recovery evidence and task status"
+    ],
+    "results": {
+      "deployment_script_syntax_passed": true,
+      "shellcheck_available": false,
+      "five_services_active": true,
+      "pending_daemon_reload": false,
+      "loopback_http_status": 200,
+      "loopback_total_seconds": 0.001984,
+      "same_host_tailnet_http_status": 200,
+      "same_host_tailnet_total_seconds": 0.001404,
+      "browser_url": "http://100.95.50.98:8216/?v=r87",
+      "browser_document_ready_state": "complete",
+      "browser_title": "Codex",
+      "browser_startup_loader_present": false,
+      "browser_root_children": 2,
+      "browser_composer_present": true,
+      "browser_diag_v2_render_wait_reproduced": false,
+      "browser_telemetry_timeout_affected_main_ui": false,
+      "sensitive_pattern_scan_findings": 0
+    }
+  },
+  "residual_risks": [
+    "R87 restores the previously qualified R23 browser bridge rather than proving that the R86 initializer is correct.",
+    "The browser verification proves a rendered signed-in composer only; it did not send a model request, upload an attachment or test account switching.",
+    "The second account remains auth-expired, so real A-to-B failover remains blocked pending a fresh distinct authorization.",
+    "No seamless cross-account continuity or in-flight computation recovery is claimed."
+  ]
+}
