@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
+import { createHash, randomUUID } from "node:crypto";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -10,7 +11,31 @@ import { buildRoutedWebOverlay } from "./build-routed-overlay.mjs";
 import { stageRoutedWebRelease } from "./stage-routed-release.mjs";
 
 const MANIFEST_PATH = fileURLToPath(new URL("./routed-web-overlay-manifest.json", import.meta.url));
+const PINNED_BROWSER_INPUT_ROOT = fileURLToPath(
+  new URL("./pinned-routed-web-inputs", import.meta.url),
+);
+const PINNED_BROWSER_INPUTS = Object.freeze([
+  Object.freeze({
+    path: "scratch/asar/package.json",
+    bytes: 5663,
+    sha256: "6d704019a44ec7179321be59ac1aee79d5ac96ed5714428fe6ecd6a60a547f38",
+  }),
+  Object.freeze({
+    path: "scratch/asar/.vite/build/preload.js",
+    bytes: 3229,
+    sha256: "0e27fe62e3ee829b76b7e11ce2e1a8cc917d67f6316311a26159444e8c89d7f5",
+  }),
+  Object.freeze({
+    path: "scratch/asar/webview/index.html",
+    bytes: 13748,
+    sha256: "a3eb9db8ca315ee8f301e5f26f02bab9c609907bd0a47989bfb961d8ecd181d7",
+  }),
+]);
 const STEP_TIMEOUT_MS = 120_000;
+
+function sha256(bytes) {
+  return createHash("sha256").update(bytes).digest("hex");
+}
 
 function absolute(value, label) {
   if (typeof value !== "string" || !path.isAbsolute(value)) throw new Error(`${label} must be absolute`);
@@ -43,6 +68,38 @@ async function mustNotExist(target) {
     () => { throw new Error("pipeline output already exists"); },
     (error) => { if (error?.code !== "ENOENT") throw error; },
   );
+}
+
+async function installPinnedBrowserInputs(buildRoot) {
+  for (const input of PINNED_BROWSER_INPUTS) {
+    const source = path.join(PINNED_BROWSER_INPUT_ROOT, input.path);
+    const metadata = await fs.lstat(source);
+    if (!metadata.isFile() || metadata.isSymbolicLink() || metadata.size !== input.bytes ||
+        (metadata.mode & 0o022) !== 0) {
+      throw new Error("pinned browser build input boundary is invalid");
+    }
+    const bytes = await fs.readFile(source);
+    if (sha256(bytes) !== input.sha256) {
+      throw new Error("pinned browser build input digest is invalid");
+    }
+    const target = path.join(buildRoot, input.path);
+    await fs.mkdir(path.dirname(target), { recursive: true, mode: 0o755 });
+    const existing = await fs.lstat(target).catch((error) => {
+      if (error?.code === "ENOENT") return null;
+      throw error;
+    });
+    if (existing !== null && (!existing.isFile() || existing.isSymbolicLink())) {
+      throw new Error("browser build input target boundary is invalid");
+    }
+    const temporary = path.join(path.dirname(target), `.${path.basename(target)}.${randomUUID()}.next`);
+    try {
+      await fs.writeFile(temporary, bytes, { flag: "wx", mode: 0o644 });
+      await fs.chmod(temporary, 0o644);
+      await fs.rename(temporary, target);
+    } finally {
+      await fs.rm(temporary, { force: true }).catch(() => undefined);
+    }
+  }
 }
 
 export async function buildRoutedWebPipeline({ upstream, previous, workRoot, candidate, output } = {}) {
@@ -88,6 +145,8 @@ export async function buildRoutedWebPipeline({ upstream, previous, workRoot, can
     await fs.symlink(path.join(upstreamRoot, "node_modules"), path.join(buildRoot, "node_modules"));
     await fs.writeFile(revisionFile, `${revisionProcess}\n`, { mode: 0o600 });
 
+    phase = "pin_browser_inputs";
+    await installPinnedBrowserInputs(buildRoot);
     phase = "apply_overlay";
     await applyStatusBridge({ codexWebRoot: buildRoot, revision: revisionProcess });
     phase = "compile_server";
