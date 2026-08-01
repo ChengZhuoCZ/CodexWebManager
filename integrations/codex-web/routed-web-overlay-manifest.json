@@ -4,17 +4,17 @@
     { "path": "src/server/main.js", "sha256": "4490fa185f23d1cd54b8a1cd6f312a85f1533e510aa83468d26830214509fdb3" },
     { "path": "src/server/module.js", "sha256": "45c56e45751dce9a0eb39a152ae556828490e58a015ffbf812690e7df270600f" },
     { "path": "src/server/browser-ipc-router.js", "sha256": "1a4badf9386656c9b917476410863cdb599ccaf666dae2476e4dc7566014e870" },
-    { "path": "src/server/browser-session-auth.js", "sha256": "0029149e8b810d8aba52072c7ccc86a185d3aaaadcbc10d766092731b52eb676" },
+    { "path": "src/server/browser-session-auth.js", "sha256": "e8d447dfad97ddef264d013d67cebeb867588ff1e24bf40193012b32b528a92c" },
     { "path": "src/server/browser-upload-store.js", "sha256": "0ea86e37d585a7d91ab0a6a6de803059f3f1e883b5f8c954d269f41bff17e834" },
     { "path": "src/server/router-status-bridge.js", "sha256": "185cf83adf11510e2b5c69d3c0652f5c146aa87a56ed97c6028ea2dc62bf3757" },
-    { "path": "scratch/asar/webview/index.html", "sha256": "e947f063b0622a7bc1ff5a2990c0d8a5e16a11edeec38e78dc00b1268c36b64f" },
-    { "path": "scratch/asar/webview/index.html.gz", "sha256": "03923f96d48247acb22f2b462d08607e6bad26a1667abcfaeb6fd4014ba869df" },
-    { "path": "scratch/asar/webview/index.html.br", "sha256": "fb44f567ca969eb7da4165cff1710b36f5105b3d2c37792ec770d4d61ef8a655" },
+    { "path": "scratch/asar/webview/index.html", "sha256": "58065cc870f6280a2d7c91ce2ae0d87df2bad9e303b0fc9ce30ced431195b2c4" },
+    { "path": "scratch/asar/webview/index.html.gz", "sha256": "f83d1f84260f5a7c161a68d37baf941f713b70ee16537d5ecbf13dcce3c612cd" },
+    { "path": "scratch/asar/webview/index.html.br", "sha256": "7cab7ab9218311595c6103ee3565e882a4f5cadf00c532f4823b87a92d415ccf" },
     { "path": "scratch/asar/webview/assets/preload-d153ef5a.js", "sha256": "d153ef5adef87db419a7499cd95c01c477d1f5919193398f27f9aed7367047c9" },
     { "path": "scratch/asar/webview/assets/preload-d153ef5a.js.gz", "sha256": "b4c5c5254673a4b9710c7e6851994723efe4a200a1f5e0905fd244ed8bd19416" },
     { "path": "scratch/asar/webview/assets/preload-d153ef5a.js.br", "sha256": "5cbb982bd41de80e354fb9ea5f30af5884c47ff666e69a998dc1a7d3ca85ae58" },
-    { "path": "scratch/asar/webview/assets/app-initial-BTphDPeq.js", "sha256": "3b830d6fbfe812bfa31e2f4db79b822399fd5c5010e22599d27027246731e6a8" },
-    { "path": "scratch/asar/webview/assets/app-initial-BTphDPeq.js.gz", "sha256": "4f4527207d2e89d02d4a4769111cb83b1605d469e880e1663bbdc0d2c3513f73" },
-    { "path": "scratch/asar/webview/assets/app-initial-BTphDPeq.js.br", "sha256": "d40777336d091e9dc342d7983f07b33bcebeb8cdeb7680cdd3bb591105f942c1" }
+    { "path": "scratch/asar/webview/assets/app-initial-BTphDPeq.js", "sha256": "80c20671f32cdc918592883e4235c1857cdbc939d906ed69cc25f18d509cd199" },
+    { "path": "scratch/asar/webview/assets/app-initial-BTphDPeq.js.gz", "sha256": "ffc74555021217c39b519f9dd735eebd1b2303700da45480a32b9414b38bc6b0" },
+    { "path": "scratch/asar/webview/assets/app-initial-BTphDPeq.js.br", "sha256": "21786235f29721f234050689fbf262a69050db6e6b6a663af952a279df14206a" }
   ]
 }

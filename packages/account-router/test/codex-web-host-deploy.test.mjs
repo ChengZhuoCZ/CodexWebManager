@@ -10,7 +10,7 @@ const repositoryRoot = path.resolve(import.meta.dirname, "../../..");
 const deployScript = path.join(repositoryRoot, "evidence/M6.9/deploy-router-r69.sh");
 const isolatedDeployScript = path.join(
   repositoryRoot,
-  "evidence/M6.9/deploy-router-r84-isolated.sh",
+  "evidence/M6.9/deploy-router-r85-isolated.sh",
 );
 const isolatedUnitRoot = path.join(repositoryRoot, "systemd/8216-fixture");
 const overlayFiles = [
@@ -166,19 +166,19 @@ function deployIsolated(value) {
     env: {
       PATH: process.env.PATH,
       M69_COMMAND_LOG: value.commandLog,
-      R84_FIXTURE_ROOT: value.root,
-      R84_ARCHIVE: value.archive,
-      R84_ARCHIVE_SHA256: value.archiveHash,
-      R84_SYSTEMCTL: value.systemctl,
-      R84_OLD_WEB_UNIT_SHA256: value.hashes.oldWeb,
-      R84_OLD_APP_UNIT_SHA256: value.hashes.oldApp,
-      R84_ACCOUNT_UNIT_SHA256: value.hashes.account,
-      R84_WEB_ISOLATION_SHA256: value.hashes.webIsolation,
-      R84_APP_ISOLATION_SHA256: value.hashes.appIsolation,
-      R84_ACCOUNT_ISOLATION_SHA256: value.hashes.accountIsolation,
-      R84_PREVIOUS_ELECTRON_SHA256: value.hashes.previousElectron,
-      R84_READY_ATTEMPTS: "2",
-      R84_READY_SLEEP_SECONDS: "0",
+      R85_FIXTURE_ROOT: value.root,
+      R85_ARCHIVE: value.archive,
+      R85_ARCHIVE_SHA256: value.archiveHash,
+      R85_SYSTEMCTL: value.systemctl,
+      R85_OLD_WEB_UNIT_SHA256: value.hashes.oldWeb,
+      R85_OLD_APP_UNIT_SHA256: value.hashes.oldApp,
+      R85_ACCOUNT_UNIT_SHA256: value.hashes.account,
+      R85_WEB_ISOLATION_SHA256: value.hashes.webIsolation,
+      R85_APP_ISOLATION_SHA256: value.hashes.appIsolation,
+      R85_ACCOUNT_ISOLATION_SHA256: value.hashes.accountIsolation,
+      R85_PREVIOUS_ELECTRON_SHA256: value.hashes.previousElectron,
+      R85_READY_ATTEMPTS: "2",
+      R85_READY_SLEEP_SECONDS: "0",
     },
   });
 }
@@ -197,7 +197,7 @@ test("isolated deployment updates only 8216 base units and preserves migration d
   const source = await fs.readFile(isolatedDeployScript, "utf8");
   assert.match(source, /STANDALONE_WEB_PID=3522733/);
   assert.match(source, /STANDALONE_APP_PID=3522725/);
-  assert.match(source, /PRODUCTION_ARCHIVE_SHA256=4edf04cb/);
+  assert.match(source, /PRODUCTION_ARCHIVE_SHA256=2fd59e23/);
   assert.match(source, /PREVIOUS_ELECTRON_SHA256=51e9a0bc/);
   assert.match(source, /8216-isolation\.conf/);
   assert.match(source, /NeedDaemonReload/);
@@ -282,11 +282,11 @@ test("isolated deployment activates the routed Web candidate and restarts only t
     Object.values(value.isolationFiles).map((file) => fs.readFile(file)),
   );
   const result = deployIsolated(value);
-  assert.equal(result.status, 0, result.stderr);
+  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
   assert.match(result.stdout, /deployment_status=success/);
   assert.match(
     await fs.readlink(path.join(value.root, "opt/0xcaff-codex-web-router/current")),
-    /router-r84$/,
+    /router-r85$/,
   );
   assert.equal(
     await fs.readFile(
@@ -318,7 +318,7 @@ test("isolated deployment restores both base units and its predecessor after a f
   const appBefore = await fs.readFile(path.join(unitRoot, "codex-web-router-app-server.service"));
   const result = deployIsolated(value);
   assert.notEqual(result.status, 0);
-  assert.match(result.stdout, /deployment_status=rolled_back/);
+  assert.match(`${result.stdout}\n${result.stderr}`, /deployment_status=rolled_back/);
   assert.equal(
     await fs.realpath(path.join(value.root, "opt/0xcaff-codex-web-router/current")),
     path.join(value.root, "opt/0xcaff-codex-web-router/releases/previous"),
@@ -327,6 +327,6 @@ test("isolated deployment restores both base units and its predecessor after a f
   assert.deepEqual(await fs.readFile(path.join(unitRoot, "codex-web-router-app-server.service")), appBefore);
   await assert.rejects(fs.access(path.join(
     value.root,
-    "opt/0xcaff-codex-web-router/releases/c3e92f0f-20260801-m69-router-r84",
+    "opt/0xcaff-codex-web-router/releases/c3e92f0f-20260801-m69-router-r85",
   )));
 });

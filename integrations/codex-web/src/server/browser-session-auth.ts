@@ -40,9 +40,11 @@ const ROUTED_INLINE_SCRIPT_SHA256 = [
 const STARTUP_DIAGNOSTIC_CODES = new Set([
   "bridge_missing",
   "bridge_ready",
-  "loader_timeout",
+  "app_main_missing",
   "module_load_error",
   "probe_loaded",
+  "react_root_missing",
+  "render_wait",
   "resource_load_error",
   "runtime_error",
   "unhandled_rejection",
@@ -100,14 +102,22 @@ const STARTUP_PROBE_SOURCE = `(() => {
   window.setTimeout(() => {
     const loader = document.querySelector(".startup-loader");
     if (loader === null) return;
-    const code = failureCode || "loader_timeout";
+    const code = failureCode || (
+      typeof globalThis.electronBridge !== "object"
+        ? "bridge_missing"
+        : document.documentElement.dataset.codexWindowType !== "electron"
+          ? "app_main_missing"
+          : globalThis.__codexRoot == null
+            ? "react_root_missing"
+            : "render_wait"
+    );
     void report(code);
     loader.setAttribute("aria-hidden", "false");
     loader.textContent = "";
     const message = document.createElement("div");
     message.setAttribute("role", "alert");
     message.style.cssText = "max-width:32rem;padding:1.5rem;font:14px/1.5 system-ui,sans-serif;text-align:center;color:CanvasText";
-    message.textContent = "8216 启动未完成（" + code + "）。请强制刷新；若仍失败，请把阶段码发给开发任务。";
+    message.textContent = "8216 启动未完成（diag_v2:" + code + "）。请强制刷新；若仍失败，请把阶段码发给开发任务。";
     loader.append(message);
   }, 20000);
 })();

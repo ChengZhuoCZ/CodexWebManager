@@ -509,7 +509,10 @@ integrationTest(
       "runtime_error",
       "unhandled_rejection",
       "bridge_missing",
-      "loader_timeout",
+      "app_main_missing",
+      "react_root_missing",
+      "render_wait",
+      "diag_v2",
     ]) {
       assert.match(startupProbeSource, new RegExp(`\\b${code}\\b`, "u"));
     }
@@ -517,6 +520,7 @@ integrationTest(
       startupProbeSource,
       /event\.(?:message|reason)|\.stack\b|location\.href/u,
     );
+    assert.doesNotMatch(startupProbeSource, /loader_timeout/u);
 
     const invalidStartupDiagnostic = await fetch(
       `${fixture.origin}/__backend/startup-diagnostic`,

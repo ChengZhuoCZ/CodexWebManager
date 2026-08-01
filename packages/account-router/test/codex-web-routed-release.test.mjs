@@ -9,7 +9,7 @@ import { patchBrowserAppHostSource } from "../../../integrations/codex-web/patch
 import { stageRoutedWebRelease } from "../../../integrations/codex-web/stage-routed-release.mjs";
 
 const appHostSource =
-  's6=new class extends R3{#e;get services(){return this.#e}constructor(e){super(),this.#e=e}}({appActions:j5,appUpdates:L5,clientCoordination:V4,downloads:a6});async function d6(){var e;u6=function(){return "desktop"}()}\n';
+  's6=new class extends R3{#e;get services(){return this.#e}constructor(e){super(),this.#e=e}}({appActions:j5,appUpdates:L5,clientCoordination:V4,downloads:a6});async function d6(){var e;u6=function(){let{port1:e,port2:t}=new MessageChannel;return window.postMessage({type:"connect-app-host",port:t},window.location.origin,[t]),N3(e,s6)}(),null!=(h6=await u6.services).clientCoordination&&(e=h6.clientCoordination,H4=e),null!=h6.terminal&&function(e){a5.bindHostService(e)}(h6.terminal),h6.devboxService}\n';
 
 test("patches the pinned browser app-host handshake exactly once", () => {
   const first = patchBrowserAppHostSource(appHostSource);
@@ -25,6 +25,8 @@ test("patches the pinned browser app-host handshake exactly once", () => {
     () => patchBrowserAppHostSource(appHostSource + appHostSource),
     /browser app host anchor is invalid/u,
   );
+  assert.match(first.source, /async function d6\(\)\{u6=s6,h6=s6\.services,h6\.devboxService\}/u);
+  assert.doesNotMatch(first.source, /MessageChannel|connect-app-host/u);
 });
 
 const serverFiles = [
@@ -133,8 +135,9 @@ test("stages a complete routed Web successor without changing the previous relea
   );
   assert.match(
     appHost.toString(),
-    /if\(window\.__ELECTRON_SHIM__!=null\)\{u6=s6,h6=s6\.services,h6\.devboxService;return\}/u,
+    /async function d6\(\)\{u6=s6,h6=s6\.services,h6\.devboxService\}/u,
   );
+  assert.doesNotMatch(appHost.toString(), /MessageChannel|connect-app-host/u);
   assert.deepEqual(
     gunzipSync(await fs.readFile(path.join(webview, "assets", "app-initial-BTphDPeq.js.gz"))),
     appHost,

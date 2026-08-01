@@ -34,8 +34,8 @@ integrationTest("rebuilds the exact routed Web overlay from the clean pinned ups
   });
   assert.equal(execution.status, 0, execution.stderr);
   const result = JSON.parse(execution.stdout);
-  assert.equal(result.archive_sha256, "4edf04cbd438553f90717fb7b923884f8eabc11d2376f01b10560c7edbce67c3");
-  assert.equal(result.archive_bytes, 11916341);
+  assert.equal(result.archive_sha256, "2fd59e23736b17d37f6109d97e6abdda65e20b16762035e5324723ce7b91d830");
+  assert.equal(result.archive_bytes, 11915006);
   assert.equal(result.files, 15);
   assert.equal(result.upstream_revision, "888692f7d885118c6a92bbaf60cf2121f5947adf");
   assert.equal(result.real_model_request_sent, false);

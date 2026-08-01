@@ -16,9 +16,12 @@ const APP_HOST_SERVICES_ANCHOR =
   "s6=new class extends R3{#e;get services(){return this.#e}constructor(e){super(),this.#e=e}}({appActions:j5,appUpdates:L5,clientCoordination:V4,downloads:a6})";
 const APP_HOST_SERVICES_REPLACEMENT =
   "s6=new class extends R3{#e;get services(){return this.#e}constructor(e){super(),this.#e=e}}({...window.__ELECTRON_SHIM__?.services,appActions:j5,appUpdates:L5,clientCoordination:V4,downloads:a6})";
-const APP_HOST_CONNECT_ANCHOR = "async function d6(){var e;u6=function(){";
+const APP_HOST_CONNECT_ANCHOR =
+  'async function d6(){var e;u6=function(){let{port1:e,port2:t}=new MessageChannel;return window.postMessage({type:"connect-app-host",port:t},window.location.origin,[t]),N3(e,s6)}(),null!=(h6=await u6.services).clientCoordination&&(e=h6.clientCoordination,H4=e),null!=h6.terminal&&function(e){a5.bindHostService(e)}(h6.terminal),h6.devboxService}';
+const APP_HOST_CONNECT_CONDITIONAL =
+  'async function d6(){var e;if(window.__ELECTRON_SHIM__!=null){u6=s6,h6=s6.services,h6.devboxService;return}u6=function(){let{port1:e,port2:t}=new MessageChannel;return window.postMessage({type:"connect-app-host",port:t},window.location.origin,[t]),N3(e,s6)}(),null!=(h6=await u6.services).clientCoordination&&(e=h6.clientCoordination,H4=e),null!=h6.terminal&&function(e){a5.bindHostService(e)}(h6.terminal),h6.devboxService}';
 const APP_HOST_CONNECT_REPLACEMENT =
-  "async function d6(){var e;if(window.__ELECTRON_SHIM__!=null){u6=s6,h6=s6.services,h6.devboxService;return}u6=function(){";
+  "async function d6(){u6=s6,h6=s6.services,h6.devboxService}";
 const APP_HOST_VERSIONED_URL =
   /\.\/assets\/app-initial-BTphDPeq\.js\?v=[a-f0-9]{16}/gu;
 
@@ -40,27 +43,41 @@ export function patchBrowserAppHostSource(source) {
   if (typeof source !== "string" || source.length < 1) {
     throw new Error("browser app host source is invalid");
   }
-  const alreadyPatched =
-    source.includes(APP_HOST_SERVICES_REPLACEMENT) &&
-    source.includes(APP_HOST_CONNECT_REPLACEMENT);
-  if (alreadyPatched) {
+  const hasOriginalServices = source.includes(APP_HOST_SERVICES_ANCHOR);
+  const hasPatchedServices = source.includes(APP_HOST_SERVICES_REPLACEMENT);
+  const hasOriginalConnect = source.includes(APP_HOST_CONNECT_ANCHOR);
+  const hasConditionalConnect = source.includes(APP_HOST_CONNECT_CONDITIONAL);
+  const hasLocalConnect = source.includes(APP_HOST_CONNECT_REPLACEMENT);
+  if (hasPatchedServices && hasLocalConnect) {
     if (
-      source.includes(APP_HOST_SERVICES_ANCHOR) ||
-      source.includes(APP_HOST_CONNECT_ANCHOR)
+      hasOriginalServices ||
+      hasOriginalConnect ||
+      hasConditionalConnect
     ) {
       throw new Error("browser app host source is mixed");
     }
     return Object.freeze({ source, changed: false });
   }
-  const withServices = replaceExactlyOnce(
-    source,
-    APP_HOST_SERVICES_ANCHOR,
-    APP_HOST_SERVICES_REPLACEMENT,
-  );
+  const migratesConditional =
+    hasPatchedServices && hasConditionalConnect &&
+    !hasOriginalServices && !hasOriginalConnect && !hasLocalConnect;
+  const patchesOriginal =
+    hasOriginalServices && hasOriginalConnect &&
+    !hasPatchedServices && !hasConditionalConnect && !hasLocalConnect;
+  if (!migratesConditional && !patchesOriginal) {
+    throw new Error("browser app host anchor is invalid");
+  }
+  const withServices = patchesOriginal
+    ? replaceExactlyOnce(
+        source,
+        APP_HOST_SERVICES_ANCHOR,
+        APP_HOST_SERVICES_REPLACEMENT,
+      )
+    : source;
   return Object.freeze({
     source: replaceExactlyOnce(
       withServices,
-      APP_HOST_CONNECT_ANCHOR,
+      migratesConditional ? APP_HOST_CONNECT_CONDITIONAL : APP_HOST_CONNECT_ANCHOR,
       APP_HOST_CONNECT_REPLACEMENT,
     ),
     changed: true,
