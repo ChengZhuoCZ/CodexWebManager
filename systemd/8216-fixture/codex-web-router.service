@@ -50,6 +50,7 @@ StateDirectory=codex-web-router
 StateDirectoryMode=0700
 RuntimeDirectory=codex-web-router codex-web-router-browser-uploads
 RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=restart
 ReadWritePaths=/srv/codex-workspaces/CodexWebManager-8216-fixture /var/lib/codex-web-router /run/codex-web-router-browser-uploads
 InaccessiblePaths=/srv/codex-workspaces/CodexWebManager
 # The upstream Electron compatibility stub logs complete IPC messages, which
