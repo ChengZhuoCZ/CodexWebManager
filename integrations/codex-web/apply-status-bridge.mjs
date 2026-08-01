@@ -49,6 +49,41 @@ function digest(value) {
   return createHash("sha256").update(value, "utf8").digest("hex");
 }
 
+export function prepareBrowserIndexForRuntime(originalBrowserIndex) {
+  if (typeof originalBrowserIndex !== "string") {
+    throw new Error("codex-web browser index is unavailable");
+  }
+  const unversionedPreload = 'src="./assets/preload.js"';
+  const versionedPreloads = originalBrowserIndex.match(
+    /src="\.\/assets\/preload-[a-f0-9]{8}\.js"/gu,
+  ) ?? [];
+  const unversionedCount = originalBrowserIndex.split(unversionedPreload).length - 1;
+  let browserIndexWithCacheKey;
+  if (unversionedCount === 1 && versionedPreloads.length === 0) {
+    browserIndexWithCacheKey = originalBrowserIndex.replace(
+      unversionedPreload,
+      'src="./assets/preload.js?v=m6-8-startup-chat-r8"',
+    );
+  } else if (unversionedCount === 0 && versionedPreloads.length === 1) {
+    browserIndexWithCacheKey = originalBrowserIndex;
+  } else {
+    throw new Error("codex-web browser preload anchor is unavailable");
+  }
+
+  const transparentBackground = "--startup-background: transparent;";
+  const stagedBackground = "--startup-background: rgb(248 248 248);";
+  const canvasBackground = "--startup-background: Canvas;";
+  const backgroundCounts = [transparentBackground, stagedBackground, canvasBackground]
+    .map((anchor) => browserIndexWithCacheKey.split(anchor).length - 1);
+  if (backgroundCounts.reduce((total, count) => total + count, 0) !== 1) {
+    throw new Error("codex-web startup background anchor is unavailable");
+  }
+  if (backgroundCounts[0] === 1) {
+    return browserIndexWithCacheKey.replace(transparentBackground, canvasBackground);
+  }
+  return browserIndexWithCacheKey;
+}
+
 function replaceOnce(value, anchor, replacement, label) {
   if (!value.includes(anchor)) {
     throw new Error(`codex-web ${label} integration anchor is unavailable`);
@@ -405,20 +440,34 @@ async function applyStatusBridgeLocked({ codexWebRoot, revision = null } = {}) {
     "../../scratch/asar/webview/index.html",
   );
   const originalBrowserIndex = await fs.readFile(browserIndexPath, "utf8");
-  const browserIndexWithCacheKey = originalBrowserIndex.replace(
-    'src="./assets/preload.js"',
-    'src="./assets/preload.js?v=m6-8-startup-chat-r8"',
-  );
-  if (browserIndexWithCacheKey === originalBrowserIndex) {
+  const unversionedPreload = 'src="./assets/preload.js"';
+  const versionedPreloads = originalBrowserIndex.match(
+    /src="\\.\\/assets\\/preload-[a-f0-9]{8}\\.js"/gu,
+  ) ?? [];
+  const unversionedCount = originalBrowserIndex.split(unversionedPreload).length - 1;
+  let browserIndexWithCacheKey: string;
+  if (unversionedCount === 1 && versionedPreloads.length === 0) {
+    browserIndexWithCacheKey = originalBrowserIndex.replace(
+      unversionedPreload,
+      'src="./assets/preload.js?v=m6-8-startup-chat-r8"',
+    );
+  } else if (unversionedCount === 0 && versionedPreloads.length === 1) {
+    browserIndexWithCacheKey = originalBrowserIndex;
+  } else {
     throw new Error("codex-web browser preload anchor is unavailable");
   }
-  const browserIndexHtml = browserIndexWithCacheKey.replace(
-    "--startup-background: transparent;",
-    "--startup-background: Canvas;",
-  );
-  if (browserIndexHtml === browserIndexWithCacheKey) {
+
+  const transparentBackground = "--startup-background: transparent;";
+  const stagedBackground = "--startup-background: rgb(248 248 248);";
+  const canvasBackground = "--startup-background: Canvas;";
+  const backgroundCounts = [transparentBackground, stagedBackground, canvasBackground]
+    .map((anchor) => browserIndexWithCacheKey.split(anchor).length - 1);
+  if (backgroundCounts.reduce((total, count) => total + count, 0) !== 1) {
     throw new Error("codex-web startup background anchor is unavailable");
   }
+  const browserIndexHtml = backgroundCounts[0] === 1
+    ? browserIndexWithCacheKey.replace(transparentBackground, canvasBackground)
+    : browserIndexWithCacheKey;
   const sendBrowserIndex = (reply: import("fastify").FastifyReply) =>
     reply.type("text/html; charset=utf-8").send(browserIndexHtml);`,
     "browser preload cache key",

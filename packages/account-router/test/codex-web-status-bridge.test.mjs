@@ -10,12 +10,44 @@ import test from "node:test";
 import {
   applyStatusBridge,
   EXPECTED_CODEX_WEB_REVISION,
+  prepareBrowserIndexForRuntime,
   replaceFilesRecoverably,
 } from "../../../integrations/codex-web/apply-status-bridge.mjs";
 
 const ADMIN_TOKEN = "fixture-admin-token-0123456789";
 const codexWebRoot = process.env.M4_2_CODEX_WEB_ROOT;
 const integrationTest = codexWebRoot && path.isAbsolute(codexWebRoot) ? test : test.skip;
+
+test("runtime index preparation accepts one staged preload without re-versioning", () => {
+  const staged = [
+    "<style>:root { --startup-background: rgb(248 248 248); }</style>",
+    '<script type="module" src="./assets/preload-d153ef5a.js"></script>',
+  ].join("\n");
+  assert.equal(prepareBrowserIndexForRuntime(staged), staged);
+});
+
+test("runtime index preparation versions the pinned build input once", () => {
+  const buildInput = [
+    "<style>:root { --startup-background: transparent; }</style>",
+    '<script type="module" src="./assets/preload.js"></script>',
+  ].join("\n");
+  const prepared = prepareBrowserIndexForRuntime(buildInput);
+  assert.match(prepared, /preload\.js\?v=m6-8-startup-chat-r8/);
+  assert.match(prepared, /--startup-background: Canvas;/);
+  assert.doesNotMatch(prepared, /--startup-background: transparent;/);
+});
+
+test("runtime index preparation remains fail-closed for ambiguous staged preload", () => {
+  const ambiguous = [
+    "<style>:root { --startup-background: rgb(248 248 248); }</style>",
+    '<script type="module" src="./assets/preload-d153ef5a.js"></script>',
+    '<script type="module" src="./assets/preload-deadbeef.js"></script>',
+  ].join("\n");
+  assert.throws(
+    () => prepareBrowserIndexForRuntime(ambiguous),
+    /browser preload anchor is unavailable/,
+  );
+});
 
 test("patch file transaction restores every installed file after a later failure", async (context) => {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "m6-3-patch-transaction-"));
@@ -146,7 +178,11 @@ main().catch(() => { process.stderr.write("fixture bridge failed\\n"); process.e
   assert.match(patchedMain, /preload\.js\?v=m6-8-startup-chat-r8/);
   assert.match(
     patchedMain,
-    /"--startup-background: transparent;"[\s\S]*"--startup-background: Canvas;"/,
+    /versionedPreloads[\s\S]*unversionedCount[\s\S]*versionedPreloads\.length === 1/,
+  );
+  assert.match(
+    patchedMain,
+    /transparentBackground[\s\S]*stagedBackground[\s\S]*canvasBackground/,
   );
   assert.match(
     patchedMain,
