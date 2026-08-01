@@ -22,7 +22,7 @@ Security and license boundaries are normative:
 
 ## Prerequisites
 
-- Ubuntu 24.04 or another compatible systemd Linux host, x64 or arm64.
+- Ubuntu 24.04 or another compatible systemd Linux x64 host.
 - Node.js 22 or newer at `/usr/bin/node`.
 - A verified router release archive for the host architecture.
 - Codex CLI installed at `/usr/local/bin/codex` after rechecking the required App Server help

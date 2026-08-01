@@ -7,17 +7,16 @@ runtime requirement is Node.js 22 or newer.
 The release remains in `LIMITED_MODE`. These packaging checks use no account configuration and do
 not test account switching. They do not establish seamless cross-account conversation continuity.
 
-## Supported targets
+## Deployment target
 
-The release builder accepts these explicit targets:
+M6.9 development and deployment targets this server class only:
 
-- `x64`, installed on an `x86_64` Linux host;
-- `arm64`, installed on an `aarch64` Linux host.
+- `x64`, installed on an `x86_64` Linux host.
 
 The `Linux headless release` GitHub Actions workflow builds, installs, starts, health-checks, and
-stops each target on a native Ubuntu 24.04 runner. A successful job uploads the archive, its SHA-256
-file, and a sanitized verification summary. The summary explicitly records that no account switch
-was tested.
+stops that target on a native Ubuntu 24.04 x64 runner. A successful job uploads the archive, its
+SHA-256 file, and a sanitized verification summary. The summary explicitly records that no account
+switch was tested.
 
 ## Reproducible build
 
@@ -30,9 +29,9 @@ SOURCE_DATE_EPOCH=0 node packages/account-router/scripts/build-linux-release.mjs
   --output packages/account-router/dist
 ```
 
-Use `--arch arm64` for the arm64 archive. With the same repository content, architecture, and
-`SOURCE_DATE_EPOCH`, the builder emits a byte-identical USTAR archive in a deterministic gzip
-container. The adjacent `.sha256` file contains the archive digest.
+With the same repository content and `SOURCE_DATE_EPOCH`, the builder emits a byte-identical x64
+USTAR archive in a deterministic gzip container. The adjacent `.sha256` file contains the archive
+digest.
 
 Verify the archive before extraction:
 

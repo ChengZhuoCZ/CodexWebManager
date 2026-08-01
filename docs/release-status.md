@@ -24,7 +24,7 @@ calculation moved between accounts.
 | Protocol observation | Limited | Observed single-account protocol supports `LIMITED_MODE`; real A-to-B continuity is unverified. |
 | Automated matrix | Passed | Node 22 and Node 24 each passed 226/226 at the current M6.3 commit with zero skips. |
 | Security and secret audit | Passed | 268 files scanned with zero findings; 75/75 focused security tests passed. |
-| Linux x64/arm64 packaging | Passed | Native Ubuntu build/install/health verification passed. |
+| Linux x64 packaging | Passed | Native Ubuntu x64 build/install/health verification passed. |
 | systemd lifecycle and rollback | Passed | Least-privilege lifecycle, persistence, upgrade, and rollback fixtures passed. |
 | Remote Tailnet web authentication | Partial | Protected site is reachable; the negative HTTP/WS matrix passed, but positive session checks and deployed-revision verification remain blocked by SSH/site-key access. |
 | M6.2 24-hour soak | Rejected | Stopped after about 17 minutes by user direction; no 24-hour qualification. |

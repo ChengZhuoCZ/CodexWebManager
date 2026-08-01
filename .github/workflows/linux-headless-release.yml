@@ -15,19 +15,9 @@ permissions:
 
 jobs:
   verify:
-    name: Verify Linux ${{ matrix.architecture }}
-    runs-on: ${{ matrix.runner }}
+    name: Verify Linux x64
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - architecture: x64
-            machine: x86_64
-            runner: ubuntu-24.04
-          - architecture: arm64
-            machine: aarch64
-            runner: ubuntu-24.04-arm
 
     steps:
       - name: Check out source
@@ -42,8 +32,8 @@ jobs:
         shell: bash
         run: |
           test "$(uname -s)" = "Linux"
-          test "$(uname -m)" = "${{ matrix.machine }}"
-          test "$(node -p 'process.arch')" = "${{ matrix.architecture }}"
+          test "$(uname -m)" = "x86_64"
+          test "$(node -p 'process.arch')" = "x64"
 
       - name: Test deterministic release builder
         run: node --test packages/account-router/test/linux-release.test.mjs
@@ -51,24 +41,24 @@ jobs:
       - name: Build release archive
         run: >-
           node packages/account-router/scripts/build-linux-release.mjs
-          --arch ${{ matrix.architecture }}
-          --output artifacts/${{ matrix.architecture }}
+          --arch x64
+          --output artifacts/x64
 
       - name: Install and run headlessly
         shell: bash
         run: |
           version=$(node -p "require('./packages/account-router/package.json').version")
-          artifact="artifacts/${{ matrix.architecture }}/codex-account-router-${version}-linux-${{ matrix.architecture }}.tar.gz"
+          artifact="artifacts/x64/codex-account-router-${version}-linux-x64.tar.gz"
           node packages/account-router/scripts/verify-linux-release.mjs \
-            --arch "${{ matrix.architecture }}" \
+            --arch x64 \
             --artifact "$artifact" \
-            --summary "artifacts/${{ matrix.architecture }}/verification.json"
-          cat "artifacts/${{ matrix.architecture }}/verification.json" >> "$GITHUB_STEP_SUMMARY"
+            --summary artifacts/x64/verification.json
+          cat artifacts/x64/verification.json >> "$GITHUB_STEP_SUMMARY"
 
       - name: Upload verified archive and evidence
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: codex-account-router-linux-${{ matrix.architecture }}
-          path: artifacts/${{ matrix.architecture }}/
+          name: codex-account-router-linux-x64
+          path: artifacts/x64/
           if-no-files-found: error
           compression-level: 0

@@ -11,7 +11,7 @@ not resume an in-flight calculation in place and does not prove seamless cross-a
 
 ## Preconditions
 
-- Linux x64 or arm64 matching the release manifest.
+- Linux x64 matching the release manifest.
 - Node.js 22 or newer at `/usr/bin/node`.
 - The M5.2 systemd identity, directories, credential sources, and router unit are installed.
 - `/opt/codex-account-router/current` is a relative link to one retained release below

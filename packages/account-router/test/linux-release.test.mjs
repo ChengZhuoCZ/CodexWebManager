@@ -12,6 +12,7 @@ import {
 } from "../scripts/build-linux-release.mjs";
 
 const packageDirectory = path.dirname(fileURLToPath(new URL("../package.json", import.meta.url)));
+const repositoryDirectory = path.resolve(packageDirectory, "../..");
 
 async function temporaryDirectory(context) {
   const directory = await fs.mkdtemp(path.join(os.tmpdir(), "router-linux-release-test-"));
@@ -22,6 +23,16 @@ async function temporaryDirectory(context) {
 function sha256(content) {
   return createHash("sha256").update(content).digest("hex");
 }
+
+test("Linux release CI targets only this host architecture", async () => {
+  const workflow = await fs.readFile(
+    path.join(repositoryDirectory, ".github/workflows/linux-headless-release.yml"),
+    "utf8",
+  );
+  assert.match(workflow, /runs-on:\s*ubuntu-24\.04/);
+  assert.match(workflow, /--arch x64/);
+  assert.doesNotMatch(workflow, /arm64|aarch64|ubuntu-24\.04-arm/);
+});
 
 test("builds a byte-reproducible x64 Linux archive without desktop dependencies", async (context) => {
   const temporaryRoot = await temporaryDirectory(context);
