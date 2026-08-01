@@ -4,6 +4,7 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath } from "node:url";
 
 const upstream = process.env.M6_3_CODEX_WEB_ROOT;
 const integrationTest = upstream && path.isAbsolute(upstream) ? test : test.skip;
@@ -15,8 +16,9 @@ integrationTest("rebuilds the exact routed Web overlay from the clean pinned ups
     fs.rm(root, { recursive: true, force: true }),
     fs.rm(workRoot, { recursive: true, force: true }),
   ]));
-  const previous = process.env.M69_ROUTED_WEB_PREVIOUS ??
-    "/opt/0xcaff-codex-web-router/releases/c3e92f0f-20260729-m69-router-r23";
+  const previous = process.env.M69_ROUTED_WEB_PREVIOUS ?? fileURLToPath(
+    new URL("./fixtures/routed-web-previous", import.meta.url),
+  );
   assert.ok(path.isAbsolute(previous));
   const execution = spawnSync(process.execPath, [
     path.resolve(import.meta.dirname, "../../../integrations/codex-web/build-routed-web-pipeline.mjs"),
