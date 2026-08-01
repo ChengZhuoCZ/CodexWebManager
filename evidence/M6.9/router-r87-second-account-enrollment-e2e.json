@@ -1,0 +1,50 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "implementation_mode": "clean-room",
+  "input_revision": "c783007cc25d74856169e9197a61c9b7fee36eff",
+  "objective": "Enroll one user-authorized private second credential atomically and qualify only independent new-request A-to-B routing without recording credential, identity, prompt, or response-body data.",
+  "enrollment": {
+    "source_was_private_regular_file": true,
+    "source_matched_existing_router_credential": false,
+    "installed_cli_symlink_entrypoint_workaround_required": true,
+    "configured_accounts_after": 2,
+    "private_router_credentials_after": 2,
+    "router_ready_with_two_accounts": true,
+    "router_restarted": true,
+    "standalone_8215_unchanged": true,
+    "routed_8216_web_and_app_server_unchanged": true,
+    "credential_values_or_identities_recorded": false
+  },
+  "local_regression": {
+    "command": "<bundled-node> --check packages/account-router/bin/codex-router-account.mjs && <bundled-node> --test packages/account-router/test/account-enrollment.test.mjs",
+    "tests": 5,
+    "passed": 5,
+    "failed": 0,
+    "covers": "a symlinked installed enrollment wrapper invokes the CLI rather than silently succeeding without enrolling"
+  },
+  "authorized_real_new_request_e2e": {
+    "primary_model_catalog_request_http_status": 200,
+    "primary_response_body_recorded": false,
+    "secondary_route_attempt_reached_private_credential_acquisition": true,
+    "secondary_authentication_classification": "auth_expired",
+    "secondary_circuit_open_after_attempt": true,
+    "secondary_failure_preceded_current_router_process": false,
+    "post_attempt_current_route_category": "primary",
+    "secondary_model_success_qualified": false,
+    "a_to_b_e2e_qualified": false,
+    "semantic_stream_replay_attempted": false,
+    "cross_account_continuity_claimed": false,
+    "in_flight_recovery_claimed": false,
+    "reason_not_qualified": "The second private credential was classified auth_expired at the pre-semantic boundary. The router returned to the eligible primary route; no request body or semantic output was replayed."
+  },
+  "remote_test_commands": [
+    "private atomic enrollment CLI with a private source path and system credential-store destination",
+    "loopback GET /backend-api/codex/models with response body discarded",
+    "protected manual next-request route A then B with active_streams checked as zero"
+  ],
+  "residual_risks": [
+    "A fresh user-authorized second-account device login must replace the auth-expired private source before this E2E may be retried.",
+    "This evidence does not qualify automatic real-provider failover, cross-account continuity, or in-flight computation recovery."
+  ]
+}

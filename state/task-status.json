@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M6.9",
-  "status": "in_progress",
+  "status": "blocked",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-SKIP-M6.2-SOAK",
@@ -75,7 +75,7 @@
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "5b636435c01b3ec56bc14e00a2b0cfa1a5118aa0",
+  "output_revision": "c783007cc25d74856169e9197a61c9b7fee36eff",
   "workspace_branch": "test/8216-fixture",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -91,6 +91,10 @@
     "evidence/M6.9/linux-deployment-summary.json"
   ],
   "tests": [
+    {
+      "command": "<bundled-node> --check packages/account-router/bin/codex-router-account.mjs && <bundled-node> --test packages/account-router/test/account-enrollment.test.mjs; authorized private enrollment and response-body-discarded loopback A-to-B qualification attempt",
+      "result": "5/5 local tests passed. The private second credential enrolled atomically and router readiness reported two accounts without restarting 8215 or the 8216 Web/App Server. A primary model-catalog request returned HTTP 200 with its body discarded. The second credential was classified auth_expired before semantic output, so the real A-to-B proof is blocked; no credential, identity, prompt, response body, or full quota payload was recorded."
+    },
     {
       "command": "<bundled-node> --check integrations/codex-web-upstream/build-minified-precompressed-asset.mjs && <bundled-node> --check integrations/codex-web-upstream/inline-versioned-startup-fastpath.mjs && <bundled-node> --test packages/account-router/test/codex-web-upstream-fastpath.test.mjs",
       "result": "10 passed, 0 failed; pinned Terser validation and deterministic output passed; earlier inline, wrong-hash, unsafe-boundary, wrong-order and second-run failures remain fail closed"
@@ -5272,12 +5276,29 @@
       "model_request_sent": false,
       "account_switch_tested": false,
       "seamless_continuity_claimed": false
+    },
+    "r87_second_account_enrollment_e2e": {
+      "input_revision": "c783007cc25d74856169e9197a61c9b7fee36eff",
+      "evidence": "evidence/M6.9/router-r87-second-account-enrollment-e2e.json",
+      "local_enrollment_cli_regression_tests": 5,
+      "local_enrollment_cli_regression_passed": 5,
+      "private_second_credential_enrolled_atomically": true,
+      "router_ready_with_two_accounts": true,
+      "router_restarted": true,
+      "standalone_8215_unchanged": true,
+      "routed_8216_web_and_app_server_unchanged": true,
+      "primary_response_body_discarded_model_catalog_http_status": 200,
+      "secondary_authentication_classification": "auth_expired",
+      "real_a_to_b_e2e_qualified": false,
+      "semantic_stream_replay_attempted": false,
+      "cross_account_continuity_claimed": false,
+      "status": "blocked_pending_fresh_second_account_authorization"
     }
   },
   "blockers": [
     "R85 is active and a fresh isolated Firefox profile removes its loader in 1561 ms without a diag_v2 error, but the user's real Tailnet browser has not yet confirmed the new release. If it still fails, the exact diag_v2 stage code is required; a rendered composer is not yet claimed.",
     "The R85 predecessor tree retains static-asset symlinks to the standalone 8215 installation. A complete independent public scratch input or another approved independent asset source is required to materialize 8216 without reading or modifying 8215.",
-    "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, real two-binding credential acquisition/restart verification and provider-level failover proof can run.",
+    "The user-authorized second credential has been atomically enrolled, but its first real pre-semantic acquisition was classified auth_expired. A fresh distinct private device authorization is required before the real new-request A-to-B E2E may be retried.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
   "residual_risks": [
@@ -5418,7 +5439,8 @@
     "R85 makes the routed App Host binding unconditional and adds diag_v2 fixed stages, but one fresh-profile 1561 ms loader-removal observation is not a stable performance guarantee and does not prove a usable composer.",
     "The complete public 539 MB scratch download stalled after 123 MB and was boundedly aborted. R85 was therefore built as the existing 15-file overlay and still inherits predecessor static-asset symlinks to the 8215 installation; full 8216 asset materialization remains required.",
     "The aggregate security CLI remains fail-closed because protected routed Web paths changed after the retained strict-CI qualification. Direct focused security passed 108/108 and the repository scan found zero findings, but this is not a replacement for a newly qualified strict matrix.",
-    "No real composer interaction, attachment upload, model request, second-account enrollment or real A-to-B switch was performed for R85."
+    "No real composer interaction, attachment upload, model request, second-account enrollment or real A-to-B switch was performed for R85.",
+    "R87 confirms private atomic enrollment and an eligible primary routed request, but the second private credential was classified auth_expired before semantic output. M6.9 remains blocked; no real provider A-to-B success, cross-account continuity, or in-flight recovery is claimed."
   ],
-  "updated_at": "2026-08-01T21:53:21+08:00"
+  "updated_at": "2026-08-01T23:11:00+08:00"
 }
