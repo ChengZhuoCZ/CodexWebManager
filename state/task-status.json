@@ -68,13 +68,14 @@
     "r71_continuation": "a8e1b7de0a06dac73567135ea377accb97f152f9",
     "r72_continuation": "741908b12adc6a86e3b0ecf781ca9563feaf2835",
     "r74_continuation": "276f5256914ca4c629b5d0b7bc32573d2934631b",
+    "r75_continuation": "be83872b8b6a51c248c93e23318adf524e8822f2",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
   "output_revision": "1cdce0aeb3cce86760bcbcf2dca4e5b61573b5b8",
-  "workspace_branch": "codex/m6-9-8215-worker",
+  "workspace_branch": "test/8216-fixture",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
     "M2.5",
@@ -1712,6 +1713,10 @@
     {
       "command": "umask 0022; node --test packages/account-router/test/security-audit-contract.test.mjs; repository-only scanRepository",
       "result": "R74 post-state security policy tests passed 6/6 and 565 repository files were scanned with zero findings; no deployed path or credential directory was scanned"
+    },
+    {
+      "command": "read-only Git/workspace permission, three 8216 systemd identity/slice/sandbox, HTTP 200, active release and 8215 PID/start/effective-unit probes",
+      "result": "R75 adopted the isolated test/8216-fixture workspace at be83872; all three 8216 services were active as codex8216 in codex-8216.slice and HTTP returned 200, while 8215 retained its approved PID/start/effective-unit baseline; the repository-only scan covered 567 files with zero findings; no real-account test, model request, switch, deployment or service mutation was performed"
     }
   ],
   "evidence": [
@@ -1944,7 +1949,8 @@
     "evidence/M6.9/router-r71-build-pipeline-summary.json",
     "evidence/M6.9/router-r72-preload-performance-summary.json",
     "evidence/M6.9/router-r73-github-actions-summary.json",
-    "evidence/M6.9/router-r74-linux-x64-only-summary.json"
+    "evidence/M6.9/router-r74-linux-x64-only-summary.json",
+    "evidence/M6.9/router-r75-isolated-workspace-baseline-summary.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -5007,10 +5013,24 @@
       "deployment_performed": false,
       "model_request_sent": false,
       "account_switch_tested": false
+    },
+    "r75_isolated_workspace_baseline": {
+      "workspace": "/srv/codex-workspaces/CodexWebManager-8216-fixture",
+      "branch": "test/8216-fixture",
+      "input_revision": "be83872b8b6a51c248c93e23318adf524e8822f2",
+      "workspace_writeable": true,
+      "services_active": 3,
+      "tailnet_http_status": 200,
+      "web_release": "c3e92f0f-20260729-m69-router-r23",
+      "account_router_release": "codex-account-router-0.2.6-linux-x64",
+      "standalone_8215_pid_start_and_effective_units_unchanged": true,
+      "deployment_performed": false,
+      "model_request_sent": false,
+      "account_switch_tested": false
     }
   },
   "blockers": [
-    "The current x64-only candidate and strict baseline are GitHub Actions-qualified. Activating the existing exact 8216-only rollback deployment remains blocked because the current process has no host privilege; a root-owned, hash-pinned wrapper is required and no root password will be accepted or used.",
+    "The isolated 8216 services and editable test/8216-fixture workspace are active, but production still runs Web R23 and account-router 0.2.6. Activating the qualified x64-only candidate still requires an explicitly defined 8216-only restart/deployment mechanism; no root password will be accepted or used.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, real two-binding credential acquisition/restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -5138,5 +5158,5 @@
     "The existing local commits 3f8723f, 776f352 and 0b93593 have test evidence but their commit messages omit the test commands required by the current AGENTS.md; history was not rewritten and later commit messages include test commands.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-08-01T15:09:26+08:00"
+  "updated_at": "2026-08-01T16:46:45+08:00"
 }

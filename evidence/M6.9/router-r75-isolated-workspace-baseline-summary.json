@@ -1,0 +1,60 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R75",
+  "scope": "Adopt the isolated 8216 development workspace without exercising a real account",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "workspace": "/srv/codex-workspaces/CodexWebManager-8216-fixture",
+  "branch": "test/8216-fixture",
+  "input_revision": "be83872b8b6a51c248c93e23318adf524e8822f2",
+  "workspace_writeable_by_development_identity": true,
+  "migration_owned_untracked_paths_preserved": [
+    "sentry/"
+  ],
+  "routed_8216": {
+    "http_status": 200,
+    "slice": "codex-8216.slice",
+    "service_identity": "codex8216",
+    "services": [
+      {
+        "name": "codex-web-router.service",
+        "pid": 3474029,
+        "start_monotonic": 444713892490,
+        "active": true
+      },
+      {
+        "name": "codex-web-router-app-server.service",
+        "pid": 3474024,
+        "start_monotonic": 444713886288,
+        "active": true
+      },
+      {
+        "name": "codex-account-router.service",
+        "pid": 3475813,
+        "start_monotonic": 444874395166,
+        "active": true
+      }
+    ],
+    "web_release": "c3e92f0f-20260729-m69-router-r23",
+    "account_router_release": "codex-account-router-0.2.6-linux-x64",
+    "latest_candidate_deployed": false
+  },
+  "standalone_8215_read_only_invariants": {
+    "web_pid": 1336830,
+    "web_start_monotonic": 335738476636,
+    "web_effective_unit_sha256": "543ddc71409cc088522e80651955a988cc9f2229e9da29dc8a9107c3def3ea1a",
+    "app_server_pid": 1336828,
+    "app_server_start_monotonic": 335738474212,
+    "app_server_effective_unit_sha256": "ae839d73cd554222d86d7dc920f7a7938eccdab9746ec993f91a47c56c3d7a40",
+    "unchanged": true,
+    "mutation_performed": false
+  },
+  "repository_security_scan": {
+    "files_scanned": 567,
+    "findings": 0
+  },
+  "real_account_test_executed": false,
+  "account_switch_tested": false,
+  "model_request_sent": false,
+  "seamless_account_continuity_claimed": false
+}
