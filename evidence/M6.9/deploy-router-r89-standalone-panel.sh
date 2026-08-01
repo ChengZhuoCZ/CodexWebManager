@@ -1,15 +1,16 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly RELEASE_NAME=c3e92f0f-20260802-m69-router-r88-hybrid-panel
+readonly RELEASE_NAME=c3e92f0f-20260802-m69-router-r89-standalone-panel
 readonly WEB_PREFIX=/opt/0xcaff-codex-web-router
 readonly CURRENT="${WEB_PREFIX}/current"
 readonly RELEASES="${WEB_PREFIX}/releases"
 readonly SUCCESSOR="${RELEASES}/${RELEASE_NAME}"
 readonly QUALIFIED_SOURCE="${RELEASES}/c3e92f0f-20260802-m69-router-r87-materialized-r23"
-readonly PANEL_SOURCE="${RELEASES}/c3e92f0f-20260801-m69-router-r86"
-readonly MERGER="${R88_MERGER:-/tmp/codex-m69-r88-merge-router-panel.mjs}"
-readonly MERGER_SHA256=81e032da8267f7fb245e97a04f67d6e1bf3acb288ca4c87968de26de365155b7
+readonly INSTALLER="${R89_INSTALLER:-/tmp/codex-m69-r89-install-standalone-panel.mjs}"
+readonly PANEL_MODULE="${R89_PANEL_MODULE:-/tmp/router-account-panel-standalone.js}"
+readonly INSTALLER_SHA256=b1967a23076a1d9df98f468ce3ad177df8d6a57dd8e0f101e2a08c5e24f934c9
+readonly PANEL_MODULE_SHA256=ccbc4a2ebe029fe65c4df5bef52e3a0d8e781a88cbe856ebca4d76ebea4fa142
 readonly STANDALONE_CURRENT=/opt/0xcaff-codex-web/releases/c3e92f0-20260729-tailnet-startup-r3
 readonly ROUTER_CURRENT=/opt/codex-account-router/releases/codex-account-router-0.2.6-linux-x64
 readonly WEB_SERVICE=codex-web-router.service
@@ -31,11 +32,9 @@ readonly APP_UNIT_SHA256=b3723ecef6a6e1a6153ec0f08f5bf4f890183ed377ab2b27f9d82dc
 readonly QUALIFIED_INDEX_SHA256=5e89e6e9cb38ebb82fde42526a113458d0072e40bd4cd9f10393a320e793bef9
 readonly QUALIFIED_APP_SHA256=e2d356e06763a8287003e5a087acb09a09160a1d6bc8fbf9cecccdfdaf82b6b0
 readonly QUALIFIED_PRELOAD_SHA256=65708a1c2c053568691f6691b76290a6bd07df09ea84ef1186ac77090649fc5a
-readonly PANEL_INDEX_SHA256=4c2a7f7ed127570385e44bb9b44a91b63714e15d24906c4756ea3463bfe246dd
-readonly PANEL_PRELOAD_SHA256=d153ef5adef87db419a7499cd95c01c477d1f5919193398f27f9aed7367047c9
-readonly HYBRID_INDEX_SHA256=da7a4aec1546599c57315729a1963c32fa90a6d32e01152695b0a25e7f2472bf
+readonly STANDALONE_INDEX_SHA256=3f94c5c06f4ffe3a2b8250e0a76c6ad9dc6a23f5033048326f3a3ecfc382ba85
 readonly QUALIFIED_PRELOAD=preload-65708a1c.js
-readonly PANEL_PRELOAD=preload-d153ef5a.js
+readonly PANEL_ASSET=router-account-panel-ccbc4a2e.js
 
 success=0
 successor_created=0
@@ -112,17 +111,12 @@ verify_qualified_assets() {
   [[ "$(sha256 "${root}/scratch/asar/webview/assets/${QUALIFIED_PRELOAD}")" == "$QUALIFIED_PRELOAD_SHA256" ]]
 }
 
-verify_panel_assets() {
+verify_standalone_assets() {
   local root=$1
-  [[ "$(sha256 "${root}/scratch/asar/webview/index.html")" == "$PANEL_INDEX_SHA256" ]]
-  [[ "$(sha256 "${root}/scratch/asar/webview/assets/${PANEL_PRELOAD}")" == "$PANEL_PRELOAD_SHA256" ]]
-}
-
-verify_hybrid_assets() {
-  local root=$1
-  [[ "$(sha256 "${root}/scratch/asar/webview/index.html")" == "$HYBRID_INDEX_SHA256" ]]
+  [[ "$(sha256 "${root}/scratch/asar/webview/index.html")" == "$STANDALONE_INDEX_SHA256" ]]
   [[ "$(sha256 "${root}/scratch/asar/webview/assets/app-initial-BTphDPeq.js")" == "$QUALIFIED_APP_SHA256" ]]
-  [[ "$(sha256 "${root}/scratch/asar/webview/assets/${PANEL_PRELOAD}")" == "$PANEL_PRELOAD_SHA256" ]]
+  [[ "$(sha256 "${root}/scratch/asar/webview/assets/${QUALIFIED_PRELOAD}")" == "$QUALIFIED_PRELOAD_SHA256" ]]
+  [[ "$(sha256 "${root}/scratch/asar/webview/assets/${PANEL_ASSET}")" == "$PANEL_MODULE_SHA256" ]]
 }
 
 restart_8216_web_app() {
@@ -143,7 +137,7 @@ rollback() {
   trap - EXIT
   if [[ "$success" -ne 1 ]]; then
     if [[ "$current_switched" -eq 1 ]]; then
-      local rollback_link="${WEB_PREFIX}/.current-r88-rollback.$$"
+      local rollback_link="${WEB_PREFIX}/.current-r89-rollback.$$"
       ln -s "$current_before" "$rollback_link"
       replace_current_link "$rollback_link" "$CURRENT"
       restart_8216_web_app >/dev/null 2>&1 || true
@@ -179,20 +173,20 @@ current_before=$(readlink -f "$CURRENT") || {
 must unexpected_current test "$current_before" = "$QUALIFIED_SOURCE"
 must qualified_assets_changed verify_qualified_assets "$QUALIFIED_SOURCE"
 must qualified_release_contains_symlinks test -z "$(find "$QUALIFIED_SOURCE" -type l -print -quit)"
-must panel_assets_changed verify_panel_assets "$PANEL_SOURCE"
-must merger_changed test "$(sha256 "$MERGER")" = "$MERGER_SHA256"
+must installer_changed test "$(sha256 "$INSTALLER")" = "$INSTALLER_SHA256"
+must panel_module_changed test "$(sha256 "$PANEL_MODULE")" = "$PANEL_MODULE_SHA256"
 must successor_already_exists test ! -e "$SUCCESSOR"
 
 must successor_create_failed mkdir "$SUCCESSOR"
 successor_created=1
 must successor_copy_failed cp -a --reflink=auto "$QUALIFIED_SOURCE/." "$SUCCESSOR/"
-must panel_merge_failed node "$MERGER" --candidate "$SUCCESSOR" --panel-release "$PANEL_SOURCE"
+must panel_install_failed node "$INSTALLER" --candidate "$SUCCESSOR" --panel-module "$PANEL_MODULE"
 must successor_contains_symlinks test -z "$(find "$SUCCESSOR" -type l -print -quit)"
-must hybrid_assets_changed verify_hybrid_assets "$SUCCESSOR"
+must standalone_assets_changed verify_standalone_assets "$SUCCESSOR"
 must standalone_8215_changed expect_8215_unchanged
 must account_router_changed expect_account_router_unchanged
 
-next_link="${WEB_PREFIX}/.current-r88.$$"
+next_link="${WEB_PREFIX}/.current-r89.$$"
 must current_link_stage_failed ln -s "$SUCCESSOR" "$next_link"
 must current_link_replace_failed replace_current_link "$next_link" "$CURRENT"
 current_switched=1
@@ -214,13 +208,14 @@ must unit_definition_changed expect_units_unchanged
 must pending_daemon_reload expect_no_pending_reload
 must current_link_not_successor test "$(readlink -f "$CURRENT")" = "$SUCCESSOR"
 must successor_contains_symlinks test -z "$(find "$SUCCESSOR" -type l -print -quit)"
-must hybrid_assets_changed verify_hybrid_assets "$SUCCESSOR"
+must standalone_assets_changed verify_standalone_assets "$SUCCESSOR"
 
 success=1
 trap - EXIT
 printf 'deployment_status=success\n'
 printf 'release=%s\n' "$RELEASE_NAME"
 printf 'qualified_app_host_unchanged=true\n'
-printf 'router_panel_preload_merged=true\n'
+printf 'qualified_preload_unchanged=true\n'
+printf 'standalone_router_panel_installed=true\n'
 printf 'account_router_process_unchanged=true\n'
 printf 'standalone_8215_unchanged=true\n'

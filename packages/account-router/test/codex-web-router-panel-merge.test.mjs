@@ -8,13 +8,20 @@ import { brotliDecompressSync, gunzipSync } from "node:zlib";
 import {
   mergeRouterPanelOntoQualifiedRelease,
 } from "../../../integrations/codex-web/merge-router-panel-release.mjs";
+import {
+  installStandaloneRouterPanel,
+} from "../../../integrations/codex-web/install-standalone-router-panel.mjs";
+import {
+  buildManualSwitchRequest as buildStandaloneSwitchRequest,
+  deriveRouterAccountPanelModel as deriveStandalonePanelModel,
+} from "../../../integrations/codex-web/router-account-panel-standalone.js";
 
 const INDEX = "scratch/asar/webview/index.html";
 const ASSETS = "scratch/asar/webview/assets";
 const APP = `${ASSETS}/app-initial-BTphDPeq.js`;
-const R88_DEPLOY = path.resolve(
+const R89_DEPLOY = path.resolve(
   import.meta.dirname,
-  "../../../evidence/M6.9/deploy-router-r88-hybrid-panel.sh",
+  "../../../evidence/M6.9/deploy-router-r89-standalone-panel.sh",
 );
 
 function sha256(value) {
@@ -63,6 +70,7 @@ async function fixture(context) {
   await write(panelRelease, INDEX, panelIndex);
   await write(panelRelease, `${ASSETS}/${panelPreloadName}`, panelPreload);
   return {
+    root,
     candidate,
     panelRelease,
     app,
@@ -131,13 +139,14 @@ test("rejects a panel preload without the bounded router UI contract", async (co
   );
 });
 
-test("R88 deployment pins the hybrid boundary and restarts only routed Web", async () => {
-  const source = await fs.readFile(R88_DEPLOY, "utf8");
+test("R89 deployment preserves both bridge files and restarts only routed Web", async () => {
+  const source = await fs.readFile(R89_DEPLOY, "utf8");
   assert.match(source, /router-r87-materialized-r23/u);
-  assert.match(source, /router-r86/u);
-  assert.match(source, /MERGER_SHA256=81e032da/u);
+  assert.match(source, /INSTALLER_SHA256=b1967a23/u);
+  assert.match(source, /PANEL_MODULE_SHA256=ccbc4a2e/u);
   assert.match(source, /QUALIFIED_APP_SHA256=e2d356e0/u);
-  assert.match(source, /HYBRID_INDEX_SHA256=da7a4aec/u);
+  assert.match(source, /QUALIFIED_PRELOAD_SHA256=65708a1c/u);
+  assert.match(source, /STANDALONE_INDEX_SHA256=3f94c5c0/u);
   assert.match(source, /restart_8216_web_app/u);
   assert.match(source, /expect_8215_unchanged/u);
   assert.match(source, /expect_account_router_unchanged/u);
@@ -145,4 +154,111 @@ test("R88 deployment pins the hybrid boundary and restarts only routed Web", asy
     source,
     /systemctl\s+(?:restart|stop|start)\s+(?:codex-web-upstream|codex-account-router)/u,
   );
+});
+
+test("standalone panel preserves weekly-only and semantic-stream switch guards", () => {
+  const status = {
+    status: "ready",
+    architecture_mode: "LIMITED_MODE",
+    cross_account_e2e_verified: false,
+    active_streams: 1,
+    current_route: {
+      account_alias: "Primary",
+      continuity: "new_backend_session",
+    },
+    accounts: [
+      {
+        alias: "Primary",
+        state: "healthy",
+        enabled: true,
+        weekly_remaining_ratio: 0.75,
+        snapshot_observed_at: null,
+        cooldown_until: null,
+        last_switch_reason: "startup",
+        five_hour_remaining_ratio: 0.2,
+        credential_ref: "must-not-pass",
+      },
+      {
+        alias: "Secondary",
+        state: "auth_expired",
+        enabled: true,
+        weekly_remaining_ratio: null,
+        snapshot_observed_at: null,
+        cooldown_until: null,
+        last_switch_reason: "auth_expired",
+      },
+    ],
+  };
+  const model = deriveStandalonePanelModel(status);
+  assert.equal(model.accounts[0].weeklyLabel, "75%");
+  assert.equal(model.accounts[1].weeklyLabel, "Unavailable");
+  assert.equal(model.accounts.every((account) => account.switchDisabled), true);
+  assert.equal(model.accounts[1].switchDisabledReason, "Active response in progress");
+  assert.doesNotMatch(JSON.stringify(model), /five_hour|credential_ref|must-not-pass/u);
+  assert.throws(
+    () => buildStandaloneSwitchRequest(model.accounts[1]),
+    /manual switch is unavailable/u,
+  );
+});
+
+test("installs the standalone panel without replacing either qualified bridge file", async (context) => {
+  const value = await fixture(context);
+  const panel = Buffer.from([
+    "Router accounts",
+    "/__backend/codex-router/status",
+    "/__backend/codex-router/switch",
+    "Cross-account continuity is not verified",
+    "installRouterAccountPanel",
+    "",
+  ].join("\n"));
+  const panelModule = path.join(value.root, "router-account-panel.js");
+  await fs.writeFile(panelModule, panel, { mode: 0o644 });
+  const contract = {
+    qualified_preload_name: value.contract.qualified_preload_name,
+    panel_name: "router-account-panel-55555555.js",
+    qualified_index_sha256: value.contract.qualified_index_sha256,
+    qualified_app_sha256: value.contract.qualified_app_sha256,
+    qualified_preload_sha256: value.contract.qualified_preload_sha256,
+    qualified_app_version: value.contract.qualified_app_version,
+    panel_sha256: sha256(panel),
+  };
+  const result = await installStandaloneRouterPanel({
+    candidate: value.candidate,
+    panelModule,
+    contract,
+  });
+  const index = await fs.readFile(path.join(value.candidate, INDEX));
+  const installed = await fs.readFile(path.join(value.candidate, ASSETS, result.panel_name));
+  assert.equal(result.qualified_app_unchanged, true);
+  assert.equal(result.qualified_preload_unchanged, true);
+  assert.deepEqual(await fs.readFile(path.join(value.candidate, APP)), value.app);
+  assert.match(index.toString(), new RegExp(value.contract.qualified_preload_name));
+  assert.match(index.toString(), new RegExp(contract.panel_name));
+  assert.deepEqual(installed, panel);
+  assert.deepEqual(gunzipSync(await fs.readFile(`${path.join(value.candidate, ASSETS, result.panel_name)}.gz`)), panel);
+  assert.deepEqual(brotliDecompressSync(await fs.readFile(`${path.join(value.candidate, ASSETS, result.panel_name)}.br`)), panel);
+});
+
+test("standalone panel installer fails before writing when its module hash changes", async (context) => {
+  const value = await fixture(context);
+  const panelModule = path.join(value.root, "router-account-panel.js");
+  await fs.writeFile(panelModule, "changed module\n", { mode: 0o644 });
+  const before = await fs.readFile(path.join(value.candidate, INDEX));
+  await assert.rejects(
+    installStandaloneRouterPanel({
+      candidate: value.candidate,
+      panelModule,
+      contract: {
+        qualified_preload_name: value.contract.qualified_preload_name,
+        panel_name: "router-account-panel-55555555.js",
+        qualified_index_sha256: value.contract.qualified_index_sha256,
+        qualified_app_sha256: value.contract.qualified_app_sha256,
+        qualified_preload_sha256: value.contract.qualified_preload_sha256,
+        qualified_app_version: value.contract.qualified_app_version,
+        panel_sha256: sha256("expected module\n"),
+      },
+    }),
+    /standalone panel install failed at validate_panel_module/u,
+  );
+  assert.deepEqual(await fs.readFile(path.join(value.candidate, INDEX)), before);
 });
