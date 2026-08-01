@@ -1,0 +1,81 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R74",
+  "scope": "Linux x64 development and release qualification only",
+  "implementation_revision": "1cdce0aeb3cce86760bcbcf2dca4e5b61573b5b8",
+  "failure_first": {
+    "attempts": 1,
+    "command": "node --test --test-name-pattern='Linux release CI targets only this host architecture' packages/account-router/test/linux-release.test.mjs",
+    "expected_result": "failed because the previous workflow still used an x64/arm64 matrix"
+  },
+  "local_verification": [
+    {
+      "command": "node --test packages/account-router/test/linux-release.test.mjs",
+      "result": "4/4 passed, including deterministic x64 archive and installed native release verification"
+    },
+    {
+      "command": "umask 0022; node --test packages/account-router/test/deployment-manager.test.mjs",
+      "result": "4/4 passed with the strict CI umask"
+    },
+    {
+      "command": "git diff --check and static arm64 workflow/document scan",
+      "result": "passed; the release workflow and deployment documentation contain no arm64 runner or artifact requirement"
+    },
+    {
+      "command": "node --test packages/account-router/test/security-audit-contract.test.mjs; repository-only scanRepository",
+      "result": "6/6 security policy tests passed; 565 repository files scanned with zero findings"
+    }
+  ],
+  "github_actions": [
+    {
+      "workflow": "Automated test matrix",
+      "run_id": 30689064093,
+      "conclusion": "success"
+    },
+    {
+      "workflow": "Linux headless release",
+      "run_id": 30689064113,
+      "conclusion": "success",
+      "job": "Verify Linux x64",
+      "artifact": "codex-account-router-linux-x64",
+      "arm64_matches_on_run_page": 0
+    },
+    {
+      "workflow": "Security and secret audit",
+      "run_id": 30689064118,
+      "conclusion": "success"
+    },
+    {
+      "workflow": "systemd upgrade and rollback",
+      "run_id": 30689064110,
+      "conclusion": "success"
+    },
+    {
+      "workflow": "systemd least privilege",
+      "run_id": 30689064127,
+      "conclusion": "success"
+    }
+  ],
+  "standalone_8215_read_only_invariants": {
+    "web_pid": 1336830,
+    "web_start_monotonic": 335738476636,
+    "web_effective_unit_sha256": "543ddc71409cc088522e80651955a988cc9f2229e9da29dc8a9107c3def3ea1a",
+    "app_server_pid": 1336828,
+    "app_server_start_monotonic": 335738474212,
+    "app_server_effective_unit_sha256": "ae839d73cd554222d86d7dc920f7a7938eccdab9746ec993f91a47c56c3d7a40",
+    "unchanged": true,
+    "mutation_performed": false
+  },
+  "routed_8216_observation": {
+    "web_pid": 538278,
+    "app_server_pid": 495033,
+    "active_release": "c3e92f0f-20260729-m69-router-r23",
+    "new_candidate_deployed": false
+  },
+  "real_account_configured": false,
+  "account_switch_tested": false,
+  "model_request_sent": false,
+  "seamless_account_continuity_claimed": false,
+  "remaining_blocker": "Activating the qualified 8216-only candidate still requires a root-owned, hash-pinned deployment wrapper; no root password is accepted or used."
+}

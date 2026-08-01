@@ -67,12 +67,13 @@
     "r70_continuation": "a60f7fbfa77c8814d912abfb0c107568d5e8b86e",
     "r71_continuation": "a8e1b7de0a06dac73567135ea377accb97f152f9",
     "r72_continuation": "741908b12adc6a86e3b0ecf781ca9563feaf2835",
+    "r74_continuation": "276f5256914ca4c629b5d0b7bc32573d2934631b",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "e0188a1c521061aa0459cfca692a3951607a0082",
+  "output_revision": "1cdce0aeb3cce86760bcbcf2dca4e5b61573b5b8",
   "workspace_branch": "codex/m6-9-8215-worker",
   "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
   "depends_on": [
@@ -1695,6 +1696,22 @@
     {
       "command": "failure-first browser size bound; two independent Vite Oxc builds and R23-derived candidates; focused browser/pipeline/archive/deploy fixtures; strict matrix and security audit",
       "result": "R72 reduced routed preload identity from 634538 to 361282 bytes and Brotli from 103481 to 79451 bytes; the deterministic overlay fell from 402086 to 313733 bytes; focused 14/14 and strict matrix 335/335 passed; final scan covered 558 files with zero findings; no live startup or response speedup is claimed and deployment was not attempted"
+    },
+    {
+      "command": "node --test --test-name-pattern='Linux release CI targets only this host architecture' packages/account-router/test/linux-release.test.mjs",
+      "result": "R74 sole failure-first attempt failed because the existing GitHub Actions workflow still selected an x64/arm64 runner matrix"
+    },
+    {
+      "command": "node --test packages/account-router/test/linux-release.test.mjs; umask 0022; node --test packages/account-router/test/deployment-manager.test.mjs; git diff --check",
+      "result": "R74 Linux x64 release tests passed 4/4 and deployment-manager tests passed 4/4 under the strict CI umask; workflow and deployment documentation no longer require an arm64 job or artifact"
+    },
+    {
+      "command": "GitHub Actions runs 30689064093, 30689064113, 30689064118, 30689064110 and 30689064127 for 1cdce0aeb3cce86760bcbcf2dca4e5b61573b5b8",
+      "result": "R74 Automated test matrix, Linux x64 release, security audit, systemd upgrade/rollback and systemd least-privilege workflows all completed successfully; the Linux run page contained the x64 job/artifact and zero arm64 matches"
+    },
+    {
+      "command": "umask 0022; node --test packages/account-router/test/security-audit-contract.test.mjs; repository-only scanRepository",
+      "result": "R74 post-state security policy tests passed 6/6 and 565 repository files were scanned with zero findings; no deployed path or credential directory was scanned"
     }
   ],
   "evidence": [
@@ -1925,7 +1942,9 @@
     "evidence/M6.9/router-r69-host-rollback-summary.json",
     "evidence/M6.9/router-r70-reproducible-overlay-summary.json",
     "evidence/M6.9/router-r71-build-pipeline-summary.json",
-    "evidence/M6.9/router-r72-preload-performance-summary.json"
+    "evidence/M6.9/router-r72-preload-performance-summary.json",
+    "evidence/M6.9/router-r73-github-actions-summary.json",
+    "evidence/M6.9/router-r74-linux-x64-only-summary.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -4976,11 +4995,22 @@
       "model_request_sent": false,
       "account_switch_tested": false,
       "stable_startup_speed_claimed": false
+    },
+    "r74_linux_x64_only": {
+      "implementation_revision": "1cdce0aeb3cce86760bcbcf2dca4e5b61573b5b8",
+      "failure_first_attempts": 1,
+      "linux_release_ci_x64_only": true,
+      "github_actions_successful": 5,
+      "github_actions_failed": 0,
+      "standalone_8215_pid_start_and_effective_units_unchanged": true,
+      "routed_8216_release": "c3e92f0f-20260729-m69-router-r23",
+      "deployment_performed": false,
+      "model_request_sent": false,
+      "account_switch_tested": false
     }
   },
   "blockers": [
-    "The R65 browser candidate changes strict-CI-protected paths after the retained GitHub Actions qualification. Because this task forbids push, the checked-in security audit correctly fails closed and the candidate cannot be deployed or represented as qualified.",
-    "R69 now provides an exact 8216-only host deployment script with pinned R67 units, deterministic R68 overlay, approved 8215 pre/post invariants and fixture-proven failed-probe rollback. Activation remains forbidden because strict CI is unqualified and host privilege is unavailable.",
+    "The current x64-only candidate and strict baseline are GitHub Actions-qualified. Activating the existing exact 8216-only rollback deployment remains blocked because the current process has no host privilege; a root-owned, hash-pinned wrapper is required and no root password will be accepted or used.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, real two-binding credential acquisition/restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -5102,10 +5132,11 @@
     "R69 validates host activation and rollback only in isolated temporary roots with command shims. It does not prove the real systemd credential mapping, Tailnet composer, attachment upload or service readiness; production remains R23 and no real model request was sent.",
     "R70 makes the pinned Web overlay reproducible from a manifest-validated staged candidate, but the staged candidate itself still depends on the clean pinned upstream build inputs and local Node dependencies; no live deployment or Tailnet behavior is inferred from archive reproducibility.",
     "R71 makes the clean pinned upstream-to-archive path executable as one bounded pipeline, but it intentionally requires the pinned local upstream checkout, its prepared scratch assets and node_modules plus immutable R23 as inputs; it does not replace strict CI or live 8216 qualification.",
-    "R72 measures deterministic candidate byte reductions only. Browser parsing, usable-screen latency, upload responsiveness and model-response latency remain unmeasured on live 8216 because the candidate is not qualified or deployed.",
+    "R72 measures deterministic candidate byte reductions only. Browser parsing, usable-screen latency, upload responsiveness and model-response latency remain unmeasured on live 8216 because the candidate is not deployed.",
+    "R74 intentionally qualifies only Linux x64 for this server. The release builder retains generic arm64 parsing code for upstream mergeability, but CI, artifacts, deployment documentation and M6.9 acceptance no longer cover or promise arm64.",
     "R28 caps a weekly reset delay at the existing 24-hour circuit maximum, so a farther reset receives a bounded half-open recheck rather than sleeping until the full provider reset time.",
     "The existing local commits 3f8723f, 776f352 and 0b93593 have test evidence but their commit messages omit the test commands required by the current AGENTS.md; history was not rewritten and later commit messages include test commands.",
     "The narrow Mac Peer Relay grant and UDP 40000 listener are configured, but the data plane has no completed handshake and still falls back to DERP. Current 8215 transfer observations are usable but may regress until the double-NAT boundary or a directly reachable VPS relay is addressed."
   ],
-  "updated_at": "2026-08-01T09:25:05+08:00"
+  "updated_at": "2026-08-01T15:09:26+08:00"
 }
