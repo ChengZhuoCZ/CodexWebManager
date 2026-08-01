@@ -81,6 +81,8 @@ jobs:
             if [[ -z "$failures" ]]; then failures="strict matrix exited with status $matrix_status"; fi
             pipeline_phase="$(grep -Eo 'routed Web build pipeline failed at [a-z_]+' "$matrix_log" | sort -u | paste -sd ';' - || true)"
             if [[ -n "$pipeline_phase" ]]; then failures="$failures [$pipeline_phase]"; fi
+            overlay_path="$(grep -Eo 'overlay build failed at [a-z0-9._/-]+' "$matrix_log" | sort -u | paste -sd ';' - || true)"
+            if [[ -n "$overlay_path" ]]; then failures="$failures [$overlay_path]"; fi
             failures="${failures//'%'/'%25'}"
             failures="${failures//$'\r'/'%0D'}"
             failures="${failures//$'\n'/'%0A'}"
