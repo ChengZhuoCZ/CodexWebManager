@@ -1,0 +1,134 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "continuation": "R82",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "test/8216-fixture",
+  "input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
+  "implementation_revision": "b633a8ee878f7a0d7d36909f5a4d52875ccb091c",
+  "objective": "Replace the unobservable infinite 8216 startup loader with an authenticated, fixed-code browser startup diagnostic boundary while preserving 8215, credentials, routing semantics and model traffic boundaries.",
+  "failure_first": {
+    "live_established_8216_connections": 2,
+    "live_config_read_requests": 0,
+    "pre_fix_browser_error_delivery": "local_noop",
+    "new_index_tests_failed_before_implementation": 3,
+    "conclusion": "The real browser reached 8216 transport but stalled before application configuration, and browser startup errors were not observable server-side."
+  },
+  "implementation": {
+    "startup_probe_position": "before_preload",
+    "startup_timeout_ms": 20000,
+    "accepted_diagnostic_codes": 8,
+    "arbitrary_error_text_accepted": false,
+    "url_stack_or_message_uploaded": false,
+    "authentication_required": true,
+    "csrf_required": true,
+    "per_session_duplicate_codes_logged": false,
+    "stalled_loader_replaced_with_fixed_stage_code": true,
+    "archive_files": 12,
+    "archive_bytes": 310503,
+    "archive_sha256": "93957f6db55ae50fd8ddf158e9c228b0017b50d69c75764dc91e627c84654343",
+    "deterministic_rebuilds": 2,
+    "deployment_script": "evidence/M6.9/deploy-router-r82-isolated.sh",
+    "deployment_script_sha256": "17aac8e43cafb65f36395ae17187536cdbc358fe72bc61bbeb5d5713f070da94"
+  },
+  "build_diagnostic": {
+    "initial_failure": "staging rejected group-writable TypeScript output",
+    "root_cause": "the isolated codex shell defaulted to umask 0002",
+    "resolution": "the bounded build ran inside the codex shell with umask 0022",
+    "unsafe_output_accepted": false
+  },
+  "tests": {
+    "failure_first_observed": true,
+    "focused_browser_and_auth": {
+      "tests": 18,
+      "passed": 18,
+      "failed": 0,
+      "skipped": 0
+    },
+    "isolated_activation_and_rollback": {
+      "tests": 7,
+      "passed": 7,
+      "failed": 0,
+      "skipped": 0
+    },
+    "strict_matrix": {
+      "tests": 344,
+      "passed": 344,
+      "failed": 0,
+      "skipped": 0,
+      "unit": 158,
+      "integration": 118,
+      "e2e": 68,
+      "real_account_configured": false,
+      "account_switch_tested": false
+    },
+    "focused_security": {
+      "test_files": 15,
+      "tests": 108,
+      "passed": 108,
+      "failed": 0,
+      "skipped": 0
+    },
+    "repository_scan": {
+      "files_scanned": 579,
+      "findings": 0
+    },
+    "strict_ci_audit": {
+      "passed": false,
+      "reason": "Protected routed Web paths changed after the retained remote qualification and no push is authorized for test/8216-fixture."
+    }
+  },
+  "deployment": {
+    "status": "success",
+    "active_release": "c3e92f0f-20260801-m69-router-r82",
+    "predecessor_release": "c3e92f0f-20260801-m69-router-r81",
+    "account_router_release": "codex-account-router-0.2.6-linux-x64",
+    "rollback_triggered": false,
+    "web_pid": 3585177,
+    "web_start_monotonic": 457072385863,
+    "app_server_pid": 3585170,
+    "app_server_start_monotonic": 457072361218,
+    "account_router_pid": 3585139,
+    "account_router_start_monotonic": 457071664233,
+    "service_restarts_after_activation": 0,
+    "need_daemon_reload": false
+  },
+  "live_verification": {
+    "tailnet_page_status": 200,
+    "startup_probe_status": 200,
+    "startup_probe_count": 1,
+    "startup_probe_before_preload": true,
+    "fixed_codes_present": true,
+    "real_browser_probe_received": false,
+    "real_browser_rendered_composer_verified": false,
+    "real_model_request_sent": false,
+    "account_switch_tested": false
+  },
+  "standalone_8215": {
+    "web_pid": 3522733,
+    "web_start_monotonic": 451372467525,
+    "web_effective_unit_sha256": "a8c8ceab5b354698c288d1e7db500f059f89c5027579ff9ea49bf5cc788bcb0c",
+    "app_server_pid": 3522725,
+    "app_server_start_monotonic": 451372452251,
+    "app_server_effective_unit_sha256": "662de56df5c27359cdd6e567169f28e517727c761c46fb4b7abeb274c21d099e",
+    "mutated": false
+  },
+  "safety": {
+    "real_account_credentials_read_or_recorded": false,
+    "email_or_account_identifier_recorded": false,
+    "second_account_enrolled": false,
+    "real_model_request_sent": false,
+    "real_account_switch_executed": false,
+    "semantic_replay_rules_changed": false,
+    "seamless_continuity_claimed": false,
+    "in_flight_resume_claimed": false
+  },
+  "residual_risks": [
+    "The real browser has not yet loaded the R82 document, so no fixed startup stage code or rendered composer result has been captured.",
+    "An already-open R81 tab must hard-refresh to receive the R82 probe and its 20-second bounded startup result.",
+    "The startup probe identifies a coarse fixed stage only; it intentionally does not collect an exception message, URL, stack or arbitrary browser data.",
+    "The 3.117 MB Brotli and 13.936 MB decoded main bundle remains the largest cold-start transfer and parse cost.",
+    "Real A-to-B switching remains blocked until explicit second-account enrollment authorization is given."
+  ],
+  "updated_at": "2026-08-01T20:09:44+08:00"
+}

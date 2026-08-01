@@ -1750,6 +1750,18 @@
     {
       "command": "R81 rollback deployment; exact live HTML/CSP comparison; trusted Tailnet page/browser-config/startup assets and bounded no-model WebSocket handshake",
       "result": "R81 deployed successfully and all three exact inline startup scripts are now allowed by four pinned CSP hashes with no script unsafe-inline. Page, browser config, preload, main entry and WebSocket startup transport passed; the socket opened in 4.474 ms and its first initialization frame arrived in 6.065 ms in one same-host observation. No model request or account switch ran; real browser-rendered composer remains unverified"
+    },
+    {
+      "command": "failure-first R81 live connection/config-flow observation; authenticated fixed-code startup probe; pinned upstream compile; deterministic 12-file R82 overlay rebuild",
+      "result": "Two real 8216 connections were established but zero config/read requests arrived, while renderer startup errors were locally discarded. Three new index tests failed before implementation; R82 now injects an authenticated CSRF-protected probe before preload, accepts only eight fixed codes, uploads no message/URL/stack and replaces the loader with a fixed stage code after 20 seconds. Focused browser/auth tests passed 18/18"
+    },
+    {
+      "command": "R82 isolated activation/rollback fixtures; umask 0022 complete pinned-fixture matrix; 15 focused security test files; repository-only scanRepository",
+      "result": "Activation/rollback passed 7/7; the strict matrix passed 344/344 with zero failures/skips; focused security passed 108/108; 579 repository files scanned with zero findings. Aggregate strict CI remains fail-closed because protected routed Web paths changed and test/8216-fixture is not authorized for push"
+    },
+    {
+      "command": "R82 rollback deployment; trusted Tailnet HTML and startup-probe probes; post-deployment five-service PID/start/reload/unit-hash verification",
+      "result": "R82 deployed successfully. Tailnet HTML and the authenticated probe returned 200, exactly one probe precedes preload, all three 8216 services are active with zero post-activation restarts and no pending reload, and account-router remains 0.2.6. 8215 retained PID 3522733/3522725, starts 451372467525/451372452251 and both approved effective-unit hashes. No real browser stage code, composer result, model request or account switch is claimed"
     }
   ],
   "evidence": [
@@ -1987,7 +1999,9 @@
     "evidence/M6.9/router-r76-isolated-deploy-candidate-summary.json",
     "evidence/M6.9/router-r80-isolated-deployment-summary.json",
     "evidence/M6.9/deploy-router-r81-isolated.sh",
-    "evidence/M6.9/router-r81-csp-startup-summary.json"
+    "evidence/M6.9/router-r81-csp-startup-summary.json",
+    "evidence/M6.9/deploy-router-r82-isolated.sh",
+    "evidence/M6.9/router-r82-browser-startup-diagnostic-summary.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -5126,10 +5140,32 @@
       "model_request_sent": false,
       "account_switch_tested": false,
       "stable_performance_claimed": false
+    },
+    "r82_browser_startup_diagnostic": {
+      "implementation_revision": "b633a8ee878f7a0d7d36909f5a4d52875ccb091c",
+      "failure_first_index_tests": 3,
+      "accepted_fixed_stage_codes": 8,
+      "startup_timeout_ms": 20000,
+      "arbitrary_browser_error_data_collected": false,
+      "strict_matrix_passed": 344,
+      "focused_security_passed": 108,
+      "repository_files_scanned": 579,
+      "security_findings": 0,
+      "active_web_release": "c3e92f0f-20260801-m69-router-r82",
+      "account_router_release": "codex-account-router-0.2.6-linux-x64",
+      "deployment_status": "success",
+      "live_tailnet_page_status": 200,
+      "live_startup_probe_status": 200,
+      "real_browser_probe_received": false,
+      "browser_rendered_composer_verified": false,
+      "standalone_8215_pid_start_and_effective_units_unchanged": true,
+      "model_request_sent": false,
+      "account_switch_tested": false,
+      "stable_performance_claimed": false
     }
   },
   "blockers": [
-    "R81 is active and its exact CSP, trusted Tailnet HTML/session/startup assets and IPC handshake are verified, but this display-less server has no working browser runner; a real browser-rendered composer remains unverified and an already-open tab must hard-refresh to receive the corrected CSP header.",
+    "R82 is active and its trusted Tailnet HTML plus authenticated fixed-code startup probe are verified, but the real browser has not yet loaded the R82 document. A hard refresh is required before the fixed stage code or rendered composer can be evaluated.",
     "The second user-authorized credential is isolated to standalone 8215. Explicit authorization to enroll it into the router is still required before the real new-request A-to-B E2E, real two-binding credential acquisition/restart verification and provider-level failover proof can run.",
     "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
   ],
@@ -5260,8 +5296,10 @@
     "R80 same-host HTTP and restart measurements are bounded observations only; they do not establish remote Tailnet, DERP or stable end-to-end composer performance.",
     "R81 corrects a verified CSP mismatch that blocked all three pinned inline startup scripts, including the Tailnet telemetry fastpath. The live response now permits those exact hashes without script unsafe-inline, but the display-less server cannot measure real browser usable-screen time and no stable end-to-end speedup is claimed.",
     "R81 leaves the 3.117 MB Brotli and 13.936 MB decoded main bundle unchanged; cold Tailnet transfer and client-side parsing remain the dominant likely startup cost after the CSP repair.",
+    "R82 reports only one of eight fixed startup stage codes through an authenticated CSRF-protected endpoint and deliberately discards exception messages, URLs, stacks and arbitrary browser data. This coarse boundary may require another fixture-only repair after the real browser hard-refreshes.",
+    "R82 replaces a still-present startup loader after 20 seconds with an actionable fixed stage code, but a successful real browser-rendered composer remains unverified and is not claimed.",
     "One predeployment header diagnostic accidentally printed an ephemeral trusted-session Cookie to internal command output. The subsequent 8216 Web restart invalidated all predeployment in-memory sessions; the value was not copied into a file or commit and is not reproduced in evidence.",
     "The protected routed Web paths changed after the last qualified remote strict-CI baseline. Local matrix/security coverage passed, but strict CI remains unqualified because test/8216-fixture was not pushed and no push is authorized for this branch."
   ],
-  "updated_at": "2026-08-01T19:44:49+08:00"
+  "updated_at": "2026-08-01T20:09:44+08:00"
 }
