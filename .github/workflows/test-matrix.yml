@@ -69,8 +69,22 @@ jobs:
           set -euo pipefail
           umask 0022
           install -d -m 0700 artifacts/test-matrix
+          matrix_log="$RUNNER_TEMP/test-matrix-${{ matrix.node-version }}.tap"
+          set +e
           node packages/account-router/scripts/run-test-matrix.mjs \
-            --summary "$PWD/artifacts/test-matrix/node-${{ matrix.node-version }}.json"
+            --summary "$PWD/artifacts/test-matrix/node-${{ matrix.node-version }}.json" \
+            2>&1 | tee "$matrix_log"
+          matrix_status=${PIPESTATUS[0]}
+          set -e
+          if (( matrix_status != 0 )); then
+            failures="$(awk '/^not ok [0-9]+ - / { sub(/^not ok [0-9]+ - /, ""); print; if (++count == 20) exit }' "$matrix_log" | paste -sd ';' -)"
+            if [[ -z "$failures" ]]; then failures="strict matrix exited with status $matrix_status"; fi
+            failures="${failures//'%'/'%25'}"
+            failures="${failures//$'\r'/'%0D'}"
+            failures="${failures//$'\n'/'%0A'}"
+            printf '::error title=Strict matrix failures::%s\n' "$failures"
+            exit "$matrix_status"
+          fi
 
       - name: Verify sanitized matrix summary
         env:
