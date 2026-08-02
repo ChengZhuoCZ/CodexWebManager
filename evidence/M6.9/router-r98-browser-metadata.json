@@ -1,0 +1,112 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "generated_at": "2026-08-02T18:36:53+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "edff365caf2516f863ba824a73fb80eef7b493f4",
+  "implementation_revision": "1a906e19afcf9184d3df3abc7eb62435331f2b1c",
+  "implementation_mode": "clean-room",
+  "result": "done",
+  "incident": {
+    "user_visible_error": "Manual switch was not accepted.",
+    "fresh_r97_browser_reproduction": true,
+    "browser_session_response_status": 200,
+    "browser_switch_response_status": 403,
+    "direct_same_origin_switch_response_status": 200,
+    "router_scheduler_failure": false,
+    "account_eligibility_failure": false,
+    "active_semantic_stream_failure": false
+  },
+  "root_cause": {
+    "component": "trusted Tailnet unsafe-request browser metadata guard",
+    "failure": "The authenticated switch request was rejected when the browser omitted at least one optional Origin or Sec-Fetch-Site metadata header even though the same browser session was valid. Credential-sensitive request capture was not used, so no stronger claim is made about which optional header was absent.",
+    "effect": "The router account panel received HTTP 403 before the switch bridge could reach the healthy account router.",
+    "repair": "Keep the exact session cookie and CSRF token mandatory, reject explicit non-matching Origin or Sec-Fetch-Site values, and accept an omitted optional metadata header for authenticated HTTP requests only. Site-key login and IPC WebSocket origin checks remain strict."
+  },
+  "implementation": {
+    "installer": "integrations/codex-web/patch-r98-browser-session-auth.mjs",
+    "deployment_script": "evidence/M6.9/deploy-router-r98-browser-metadata.sh",
+    "active_web_release": "c3e92f0f-20260802-m69-router-r98-browser-metadata",
+    "predecessor_session_auth_sha256": "e8d447dfad97ddef264d013d67cebeb867588ff1e24bf40193012b32b528a92c",
+    "successor_session_auth_sha256": "7c5d0bc866788ea85f7974a786bf272f24798780b6be73b32969411121f587b6",
+    "csrf_required": true,
+    "explicit_cross_site_rejection_preserved": true,
+    "websocket_origin_contract_changed": false
+  },
+  "tests": [
+    {
+      "command": "node --test codex-web-browser-session-metadata codex-web-router-panel-merge codex-web-status-bridge admin-handler",
+      "passed": 32,
+      "failed": 0,
+      "skipped_external_fixture_tests": 5
+    },
+    {
+      "command": "bash -n R98 deploy; node --check R98 installer; default-contract installer fixture; git diff --check",
+      "passed": true
+    },
+    {
+      "command": "R98 deployment compatibility probes",
+      "omitted_fetch_metadata_with_valid_csrf": 204,
+      "omitted_origin_metadata_with_valid_csrf": 204,
+      "explicit_cross_site_metadata_with_valid_csrf": 403
+    }
+  ],
+  "deployment": {
+    "status": "success",
+    "only_8216_web_restarted": true,
+    "standalone_8215_unchanged": true,
+    "routed_8216_app_server_unchanged": true,
+    "account_router_process_and_release_unchanged": true,
+    "unit_definitions_unchanged": true,
+    "model_request_sent": false,
+    "account_switch_sent_by_deployment": false
+  },
+  "live_manual_switch": {
+    "browser_dom_assertion_completed": true,
+    "secondary_accepted": true,
+    "primary_restore_accepted": true,
+    "final_route": "Primary",
+    "final_active_streams": 0,
+    "continuity": "new_backend_session",
+    "model_request_sent": false,
+    "semantic_stream_replay_attempted": false,
+    "seamless_cross_account_continuity_claimed": false,
+    "in_flight_recovery_claimed": false
+  },
+  "final_services": {
+    "codex_web_router": {
+      "active": true,
+      "pid": 4050376
+    },
+    "codex_web_router_app_server": {
+      "active": true,
+      "pid": 3791302
+    },
+    "account_router": {
+      "active": true,
+      "pid": 3997152,
+      "release": "codex-account-router-0.2.32-linux-x64"
+    },
+    "standalone_8215_web": {
+      "active": true,
+      "pid": 3664557,
+      "release": "c3e92f0-20260729-tailnet-startup-r3"
+    },
+    "standalone_8215_app_server": {
+      "active": true,
+      "pid": 3664550
+    }
+  },
+  "r96_baseline": {
+    "status": "pending",
+    "resume_input_release": "c3e92f0f-20260802-m69-router-r98-browser-metadata",
+    "reason": "R98 changed the deployed browser authentication server module, so a resumed clean-browser baseline must use R98 rather than R97."
+  },
+  "residual_risks": [
+    "Every accepted manual switch starts a new backend session; no previous request, conversation stream, in-flight work or computation is resumed.",
+    "The repair depends on the unguessable CSRF token plus the authenticated SameSite session when optional browser metadata is absent; explicit conflicting metadata remains rejected.",
+    "Optional Statsig telemetry still times out intermittently but did not block the verified composer or manual switch roundtrip.",
+    "R96 startup profiling remains pending and must use R98 as its production input."
+  ]
+}

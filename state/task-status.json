@@ -76,12 +76,13 @@
     "r95_panel_completeness": "ec66cb9ea58dad26941d6516faec1d8d5abc328e",
     "r96_clean_browser_baseline": "168369e5a552260358efbfc04dbfd04a6038ba24",
     "r97_manual_switch_incident": "168369e5a552260358efbfc04dbfd04a6038ba24",
+    "r98_browser_metadata_incident": "edff365caf2516f863ba824a73fb80eef7b493f4",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "a677a97c74a926428974c62e1f6ad524010f6442",
+  "output_revision": "1a906e19afcf9184d3df3abc7eb62435331f2b1c",
   "workspace_branch": "codex/m6-9-8216-r85-handoff",
   "workspace_input_revision": "168369e5a552260358efbfc04dbfd04a6038ba24",
   "depends_on": [
@@ -1860,6 +1861,14 @@
     {
       "command": "final repository-only scanRepository after R97 evidence",
       "result": "610 repository files scanned with zero findings."
+    },
+    {
+      "command": "R98 browser-session metadata, panel, status-bridge and admin-handler regression suite; syntax and deployment guards",
+      "result": "The focused host rerun passed 32 tests with zero failures and five external-fixture skips. The installer default-contract fixture, installer syntax, deployment shell syntax and git diff checks also passed."
+    },
+    {
+      "command": "hash-verified R98 8216 Web-only deployment; browser-rendered Primary-to-Secondary-to-Primary manual route roundtrip; five-service verification",
+      "result": "R98 restarted only routed 8216 Web. The live browser accepted Secondary and the Primary restore without the prior error, final route was Primary with zero active streams, and no model request ran. Standalone 8215, routed App Server, account-router process/release and all unit definitions remained unchanged; all five services were active."
     }
   ],
   "evidence": [
@@ -2116,7 +2125,9 @@
     "evidence/M6.9/deploy-router-r95-manual-switch-display.sh",
     "evidence/M6.9/router-r95-manual-switch-display.json",
     "evidence/M6.9/deploy-router-r97-xhr-switch-repair.sh",
-    "evidence/M6.9/router-r97-xhr-switch-repair.json"
+    "evidence/M6.9/router-r97-xhr-switch-repair.json",
+    "evidence/M6.9/deploy-router-r98-browser-metadata.sh",
+    "evidence/M6.9/router-r98-browser-metadata.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -5515,13 +5526,13 @@
         "M6.8",
         "G-SECRETS"
       ],
-      "expected_result": "Measure the deployed R97 cold-browser network waterfall, transfer and decoded resource sizes, script parsing/execution indicators and first usable-screen stages without changing 8215, 8216 services, router state or private accounts; publish R96 as the post-correctness pre-optimization baseline.",
+      "expected_result": "Measure the deployed R98 cold-browser network waterfall, transfer and decoded resource sizes, script parsing/execution indicators and first usable-screen stages without changing 8215, 8216 services, router state or private accounts; publish R96 as the post-correctness pre-optimization baseline.",
       "production_mutation_authorized": false,
       "model_request_authorized": false,
       "account_switch_authorized": false,
-      "paused_for_r97_correctness_incident": true,
+      "paused_for_r97_correctness_incident": false,
       "partial_r95_observations_accepted_as_baseline": false,
-      "resume_input_release": "c3e92f0f-20260802-m69-router-r97-xhr-switch-repair",
+      "resume_input_release": "c3e92f0f-20260802-m69-router-r98-browser-metadata",
       "status": "pending"
     },
     "r97_manual_switch_incident": {
@@ -5552,6 +5563,38 @@
       "continuity_label": "new_backend_session",
       "cross_account_continuity_claimed": false,
       "post_deployment_browser_dom_assertion_completed": false,
+      "status": "done"
+    },
+    "r98_browser_metadata_incident": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "edff365caf2516f863ba824a73fb80eef7b493f4",
+      "implementation_revision": "1a906e19afcf9184d3df3abc7eb62435331f2b1c",
+      "evidence": "evidence/M6.9/router-r98-browser-metadata.json",
+      "active_web_release": "c3e92f0f-20260802-m69-router-r98-browser-metadata",
+      "active_router_release": "codex-account-router-0.2.32-linux-x64",
+      "root_cause": "authenticated browser switch POST was rejected when at least one optional Origin or Sec-Fetch-Site metadata header was absent despite a valid trusted Tailnet session",
+      "browser_session_response_status": 200,
+      "browser_switch_response_status_before_repair": 403,
+      "direct_same_origin_switch_response_status": 200,
+      "combined_targeted_tests_passed": 32,
+      "combined_targeted_tests_failed": 0,
+      "combined_external_fixture_skips": 5,
+      "manual_secondary_switch_accepted": true,
+      "manual_primary_restore_accepted": true,
+      "final_route_category": "primary",
+      "final_active_streams": 0,
+      "only_routed_8216_web_restarted": true,
+      "standalone_8215_unchanged": true,
+      "routed_8216_app_server_unchanged": true,
+      "account_router_process_and_release_unchanged": true,
+      "csrf_required": true,
+      "explicit_cross_site_rejection_preserved": true,
+      "model_request_sent": false,
+      "semantic_stream_replay_attempted": false,
+      "continuity_label": "new_backend_session",
+      "cross_account_continuity_claimed": false,
+      "post_deployment_browser_dom_assertion_completed": true,
       "status": "done"
     }
   },
@@ -5712,7 +5755,9 @@
     "R97 removes the verified JSON XHR InvalidStateError, but Browser Use blocked the post-deployment direct HTTP DOM assertion under its URL policy. The failure-first test, installed hashes and fresh protected-session roundtrip passed; no policy workaround was attempted.",
     "The user browser must reload once after R97 so its old R95 document and invalidated browser session are discarded.",
     "R97's manual switch roundtrip ends on Primary and proves only a new backend-session route change. It does not resume any prior request, session, stream, in-flight work or computation.",
-    "R96 performance profiling remains pending because the correctness incident changed the deployed panel bytes. Any resumed baseline must use R97 as its input and must not merge partial R95 observations."
+    "R97's strict authenticated HTTP metadata gate rejected the live browser switch request with HTTP 403. R98 keeps the session cookie and CSRF token mandatory, rejects explicit conflicting Origin or Sec-Fetch-Site values, and accepts an omitted optional metadata header only for the already-authenticated HTTP boundary.",
+    "R98's manual switch roundtrip ends on Primary and proves only a new backend-session route change. It does not resume any prior request, session, stream, in-flight work or computation.",
+    "R96 performance profiling remains pending because the correctness incident changed the deployed browser authentication module. Any resumed baseline must use R98 as its input and must not merge partial R95 observations."
   ],
-  "updated_at": "2026-08-02T17:48:46+08:00"
+  "updated_at": "2026-08-02T18:36:53+08:00"
 }
