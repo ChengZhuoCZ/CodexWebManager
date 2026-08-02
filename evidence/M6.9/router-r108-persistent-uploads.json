@@ -1,0 +1,141 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "evidence_id": "R108_PERSISTENT_BROWSER_UPLOADS",
+  "generated_at": "2026-08-03T04:06:39+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "8092e4284f20edfdc68f94bd33cda90df417abc6",
+  "implementation_revision": "d6a631f49e09c058e8c1917c1e5a12cc3ff781b7",
+  "implementation_mode": "clean-room",
+  "problem": {
+    "observed": "Files uploaded through routed 8216 were returned from a codex-web-uploads directory under the process temporary directory and disappeared when the Web process or browser session ended.",
+    "root_cause": "The active R107 server main.js still used mkdtemp(os.tmpdir()) plus part.toBuffer(); the configured CODEX_WEB_UPLOAD_ROOT was not consumed by the active release."
+  },
+  "implementation": {
+    "upload_root": "/var/lib/codex-web-router/uploads",
+    "persistent_mode": "CODEX_WEB_UPLOAD_PERSIST=1",
+    "ownership": "codex8216:codex8216",
+    "directory_mode": "0700",
+    "file_mode": "0600",
+    "streaming": true,
+    "temporary_partial_suffix": ".part",
+    "partial_cleanup_on_failure_or_restart": true,
+    "completed_file_cleanup_on_session_revocation": false,
+    "completed_file_cleanup_on_web_stop": false,
+    "limits": {
+      "per_file_bytes": 26214400,
+      "per_request_bytes": 67108864,
+      "per_request_files": 4,
+      "per_session_bytes": 134217728,
+      "per_session_files": 16,
+      "global_bytes": 268435456,
+      "global_files": 64
+    },
+    "unsafe_retained_entries": "fail_closed",
+    "old_arbitrary_filesystem_static_route_removed": true,
+    "standalone_8215_changed": false
+  },
+  "deployment": {
+    "status": "success",
+    "release": "c3e92f0f-20260803-m69-router-r108-persistent-uploads",
+    "deployment_script_sha256": "4303c1edfcd2a85e855aba66d06b5ace2bbc59e27df7ac04fbd4201cb54a2660",
+    "source_main_sha256": "e6e932f951b3c3aca875775c1e70984e54af707e368e54bb709e143db0970dfc",
+    "successor_main_sha256": "b9f1d11db2145b5a03b77ca8a662d88d2811fb9bba1d23f4be3634eab3ff9292",
+    "upload_store_sha256": "dc4b24079c008dd8517f2715d804fd298d1ab181beea2ae7ebf5a196fa5177fc",
+    "web_dropin_sha256": "cd93a89c323a49b4d80a9a3bfcdc9acd2c96c034a0211cb8b55a123912190eec",
+    "app_dropin_sha256": "da8aa6d1246d8e07daca6cdf3ce27defc110a36df390c85b5187f385a048864b",
+    "web_restarted_for_activation": true,
+    "web_restarted_for_persistence_probe": true,
+    "app_server_restarted": false,
+    "router_restarted": false,
+    "account_manager_restarted": false,
+    "standalone_8215_restarted": false,
+    "loopback_8215_http_status": 200,
+    "loopback_8216_http_status": 200
+  },
+  "live_persistence_probe": {
+    "fixture": "fixed non-sensitive text",
+    "upload_endpoint_succeeded": true,
+    "returned_path_prefix": "/var/lib/codex-web-router/uploads/",
+    "file_owner_and_mode_verified": true,
+    "sha256_unchanged_across_second_web_restart": true,
+    "app_server_mount_namespace_readable": true,
+    "test_file_removed_after_verification": true,
+    "remaining_regular_files_after_cleanup": 0,
+    "upload_error_matches_in_post_deployment_journal": 0
+  },
+  "protected_service_evidence": {
+    "routed_8216_web": {
+      "pid_before": 27476,
+      "pid_after_final_persistence_restart": 46391,
+      "effective_unit_sha256": "f2b1e3850ff70ce52ed0b2ffe21ad893ed3f152b2d2cb11b1c0b9b75310cb925"
+    },
+    "routed_8216_app_server": {
+      "pid_before": 3791302,
+      "pid_after": 3791302,
+      "unchanged": true,
+      "effective_unit_sha256_after_dropin": "97f011bce6a11823db6e6faf19aa97998dbaafe36485698250e703319434665c"
+    },
+    "account_router": {
+      "pid_before": 4191212,
+      "pid_after": 4191212,
+      "unchanged": true,
+      "effective_unit_sha256": "b3a525c67a6ba75fb1cc124be73b866d57614700b2cf2ed2268bec81e2ee9e44"
+    },
+    "account_manager": {
+      "pid_before": 4191355,
+      "pid_after": 4191355,
+      "unchanged": true,
+      "effective_service_unit_sha256": "2d3d7d86e84ee12bd2807c01f8650e4feb50798dad4ee8d6ee9cc9ad6c3f8e8a",
+      "effective_socket_unit_sha256": "73e7c827dbaf0a5e4bafc8d29d48fead8d515c45fac015ac9166698d9ba55dba"
+    },
+    "standalone_8215": {
+      "web_pid_before": 3664557,
+      "web_pid_after": 3664557,
+      "app_server_pid_before": 3664550,
+      "app_server_pid_after": 3664550,
+      "unchanged": true,
+      "web_effective_unit_sha256": "a8c8ceab5b354698c288d1e7db500f059f89c5027579ff9ea49bf5cc788bcb0c",
+      "app_server_effective_unit_sha256": "44037ff3c2d9fafef1f51fda6cc83a64edb2f60472d0cd43b737dfbe2008abc3"
+    }
+  },
+  "qualification": [
+    {
+      "command": "<bundled-node> --test persistent-upload-store, r108-persistent-upload-install and systemd-units",
+      "result": "22 passed, 0 failed, 0 skipped"
+    },
+    {
+      "command": "<bundled-node> --test persistent-upload-store, r108-persistent-upload-install, systemd-units and codex-web-status-bridge",
+      "result": "28 passed, 0 failed, 6 fixture-dependent skips; all R108 direct tests passed without skips"
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r108-persistent-uploads.sh; git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "loadSecurityAuditPolicy plus scanRepository",
+      "result": "657 files scanned with zero findings on the final evidence tree"
+    },
+    {
+      "command": "rollback-capable R108 deployment plus fixed multipart upload, second Web restart, file hash, App Server namespace, service invariant and HTTP probes",
+      "result": "passed; only routed 8216 Web restarted, the persistent test file survived and was then removed"
+    }
+  ],
+  "negative_evidence": {
+    "real_account_state_changed": false,
+    "account_switch_sent": false,
+    "model_request_sent": false,
+    "semantic_stream_replay_attempted": false,
+    "cross_account_continuity_claimed": false,
+    "standalone_8215_changed": false
+  },
+  "residual_risks": [
+    "Files already lost from the old process-private temporary directory could not be migrated.",
+    "Persistent storage intentionally fails closed at 64 files or 256 MiB; an operator cleanup or a future attachment-management UI is required when that bound is reached.",
+    "After a Web restart, completed paths remain readable by the App Server, but old browser-session authorization metadata is not reconstructed; this does not promise that an old in-browser attachment preview URL remains available.",
+    "The live probe used a small text file. PDF and image uploads share the same bounded streaming path but were not separately exercised on the real host.",
+    "Persistent attachment storage does not imply recovery of a running computation, replay after semantic SSE output, or seamless cross-account continuity."
+  ],
+  "task_status": "in_progress"
+}
