@@ -1,0 +1,149 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "generated_at": "2026-08-02T16:08:13+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "ec66cb9ea58dad26941d6516faec1d8d5abc328e",
+  "implementation_revision": "74c13419e2696b89fe4a91c38e2bbc0407de362d",
+  "implementation_mode": "clean-room",
+  "result": "done",
+  "root_cause": {
+    "manual_switch": "The deployed 0.2.6 router could retain a pre-semantic request lease after active semantic streams reached zero, leaving only one usable account and rejecting a safe manual route change with HTTP 409.",
+    "quota_display": "The panel collapsed an absent Weekly observation to Unavailable and rendered cooldown timestamps as one long primary value, so missing data and wrapped data were indistinguishable."
+  },
+  "implementation": {
+    "router_release": "codex-account-router-0.2.32-linux-x64",
+    "router_archive_sha256": "84f9cf065d7ef1f72cd12fc9fb0d4f1f8a7cb9a27a86b895a8118ee45d78f449",
+    "web_release": "c3e92f0f-20260802-m69-router-r95-manual-switch-display",
+    "panel_asset": "router-account-panel-8a0772e9.js",
+    "panel_sha256": "8a0772e986abc68ffa48fe98356f43d27cb8916676ee1fb43664c29ba4626aeb",
+    "deployment_script": "evidence/M6.9/deploy-router-r95-manual-switch-display.sh",
+    "deployment_script_sha256": "237aa0d82c641eda3bcc3e645142f2f557706c0cef311fc81550f61ef05dfc69",
+    "weekly_missing_label": "Not observed yet",
+    "weekly_observed_format": "<percent>% remaining plus a separate UTC observation line",
+    "cooldown_none_label": "None",
+    "cooldown_active_format": "Active plus bounded remaining time and a separate UTC deadline line",
+    "cooldown_elapsed_format": "Elapsed plus a separate UTC end line",
+    "panel_width_pixels": 420,
+    "overflow_safe_value_column": true
+  },
+  "failure_first": {
+    "command": "node --test packages/account-router/test/codex-web-router-panel-merge.test.mjs",
+    "passed": 14,
+    "failed": 1,
+    "failure": "Expected 75% remaining but the predecessor returned 75%."
+  },
+  "tests": [
+    {
+      "command": "node --test packages/account-router/test/codex-web-router-panel-merge.test.mjs",
+      "passed": 15,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "command": "node --test test/admin-handler.test.mjs test/runtime-composition.test.mjs test/runtime-persistence.test.mjs test/scheduler.test.mjs test/codex-web-account-ui.test.mjs test/codex-web-router-panel-merge.test.mjs test/codex-web-status-bridge.test.mjs",
+      "passed": 70,
+      "failed": 0,
+      "skipped_external_fixture_tests": 12,
+      "note": "The same unchanged implementation previously passed the 62-test router, persistence, scheduler, admin and panel subset with zero skips when its external fixture environment was provided."
+    },
+    {
+      "command": "node --test packages/account-router/test/linux-release.test.mjs",
+      "passed": 3,
+      "failed": 0,
+      "skipped_linux_only_on_macos": 1
+    },
+    {
+      "command": "verify-linux-release.mjs against the uploaded 0.2.32 archive on Linux x64",
+      "passed": true,
+      "payload_files": 49,
+      "loopback_admin_bind": true,
+      "loopback_model_bind": true,
+      "synthetic_two_binding_restart": true,
+      "synthetic_weekly_persistence": true,
+      "synthetic_manual_switch_boundary": true,
+      "synthetic_http_sse_presemantic_failover": true,
+      "synthetic_http_sse_postsemantic_no_replay": true,
+      "synthetic_websocket_presemantic_failover": true,
+      "synthetic_websocket_postsemantic_no_replay": true,
+      "bounded_retry_backoff_deadline": true,
+      "real_credentials_present": false,
+      "real_model_request_sent": false
+    },
+    {
+      "command": "15 focused security test files",
+      "tests": 108,
+      "passed": 90,
+      "failed": 0,
+      "skipped_external_fixture_tests": 18
+    },
+    {
+      "command": "scanRepository",
+      "files_scanned": 608,
+      "findings": 0
+    }
+  ],
+  "deployment": {
+    "bounded_rollback_attempts": [
+      "The first attempt rejected cross-platform gzip byte drift before activation.",
+      "Two readiness attempts rejected an incomplete trusted browser-session probe.",
+      "One diagnostic activation proved all three 8216 units and two usable accounts, then rolled back because the public request lacked a trusted browser session."
+    ],
+    "final_status": "success",
+    "only_routed_8216_web_and_router_restarted": true,
+    "routed_8216_app_server_unchanged": true,
+    "standalone_8215_unchanged": true,
+    "all_five_services_active_after_deployment": true
+  },
+  "manual_switch": {
+    "path": "trusted 8216 browser session, same-origin CSRF-protected router switch endpoint",
+    "starting_route": "Secondary",
+    "primary_accepted": true,
+    "primary_status_confirmed": true,
+    "secondary_restore_accepted": true,
+    "final_route": "Secondary",
+    "final_active_streams": 0,
+    "continuity": "new_backend_session",
+    "model_request_sent": false,
+    "semantic_stream_replay_attempted": false,
+    "credential_acceptance_retested": false,
+    "seamless_cross_account_continuity_claimed": false,
+    "in_flight_recovery_claimed": false
+  },
+  "sanitized_live_status": {
+    "standalone_8215_release": "c3e92f0-20260729-tailnet-startup-r3",
+    "routed_8216_web_release": "c3e92f0f-20260802-m69-router-r95-manual-switch-display",
+    "routed_8216_router_release": "codex-account-router-0.2.32-linux-x64",
+    "account_count": 2,
+    "current_route": "Secondary",
+    "active_streams": 0,
+    "weekly_observation_state": {
+      "Primary": "not_observed",
+      "Secondary": "not_observed"
+    },
+    "cooldown_state": {
+      "Primary": "none",
+      "Secondary": "none"
+    }
+  },
+  "browser_observation": {
+    "tailnet_page_loaded": true,
+    "final_tab_preserved": "http://100.95.50.98:8216/?v=r95",
+    "visual_dom_assertion_completed": false,
+    "reason": "The browser-control channel timed out while optional Statsig requests to ab.chatgpt.com were also timing out. Installed asset hashes, local panel-model tests and the exact browser-session switch route were verified independently."
+  },
+  "security_audit": {
+    "aggregate_cli_qualified": false,
+    "reason": "The aggregate audit correctly failed closed because protected routed UI paths changed after the retained remote strict-CI baseline.",
+    "repository_secret_scan_files": 608,
+    "repository_secret_scan_findings": 0
+  },
+  "residual_risks": [
+    "Weekly quota is observation-driven. After the router upgrade neither account had emitted a fresh Weekly observation, so the truthful live label is Not observed yet until a later provider usage event is received.",
+    "The manual roundtrip proves safe route-preference persistence and browser-bridge behavior only. Because no model request was sent, it does not re-prove that either private credential is currently accepted by the provider.",
+    "Direct automated visual extraction did not complete because the browser-control channel timed out; no visual layout claim beyond the tested model, CSS contract and installed asset hashes is made.",
+    "A new strict remote CI qualification is still required for the changed protected UI paths.",
+    "Every accepted switch starts a new backend session; no failed request, prior session, in-flight work or running computation is resumed."
+  ]
+}
