@@ -83,12 +83,13 @@
     "r103_weekly_reset_time": "d394a3527d5efc897ee22696ecee0290b812a20d",
     "r105_native_usage_sync": "f3e5b2d189d1ece97a1f7ef9c6f27e6884b60f92",
     "r106_account_management": "1e343a5c7205d4424b8a9a5283574f3ee5972f54",
+    "r107_device_code_copy": "265fdf0be5f0698bcf213ba868b43f75bb6a1fbc",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "1e343a5c7205d4424b8a9a5283574f3ee5972f54",
+  "output_revision": "265fdf0be5f0698bcf213ba868b43f75bb6a1fbc",
   "workspace_branch": "codex/m6-9-8216-r85-handoff",
   "workspace_input_revision": "168369e5a552260358efbfc04dbfd04a6038ba24",
   "depends_on": [
@@ -1915,6 +1916,22 @@
     {
       "command": "in-app browser R106 first-screen verification",
       "result": "The signed-in Codex composer and Route: Primary rendered. Optional Statsig request timeouts prevented a complete automated profile-menu DOM capture, so a real browser-driven add/delete E2E is not claimed."
+    },
+    {
+      "command": "<bundled-node> --check panel and R107 installer; <bundled-node> --test codex-web-router-panel-merge and r106-account-management-install",
+      "result": "34 tests passed with zero failures. The matrix covers secure Clipboard success, Clipboard rejection followed by the HTTP fallback, invalid-code rejection, complete copy failure, immutable panel replacement and every protected-service deployment guard."
+    },
+    {
+      "command": "bash -n R107 deployment script; git diff --check; loadSecurityAuditPolicy plus scanRepository",
+      "result": "Syntax and diff checks passed; the final repository scan covered 649 files with zero findings after deployment evidence and task status were added."
+    },
+    {
+      "command": "hash-verified R107 Web-only deployment with one Linux gzip mismatch rollback followed by the corrected deployment",
+      "result": "The first attempt rolled back before switching current or restarting a service. The corrected deployment activated R107 and restarted only routed 8216 Web. Standalone 8215, routed App Server, account-router, account-manager service and its Socket retained their PIDs/start times and effective unit hashes."
+    },
+    {
+      "command": "installed R107 static copy markers and protected browser-session HTTP/status verification",
+      "result": "The installed panel matched SHA-256 8324c7ac, contained Copy device authorization code and document.execCommand(copy), and the protected HTML/status paths returned HTTP 200 with two accounts and zero active streams. No authorization, account mutation, switch or model request was started."
     }
   ],
   "evidence": [
@@ -2187,7 +2204,9 @@
     "evidence/M6.9/router-r105-native-usage-sync.json",
     "evidence/M6.9/router-r106-account-management-gate.json",
     "evidence/M6.9/deploy-router-r106-account-management.sh",
-    "evidence/M6.9/router-r106-account-management-deployment.json"
+    "evidence/M6.9/router-r106-account-management-deployment.json",
+    "evidence/M6.9/deploy-router-r107-device-code-copy.sh",
+    "evidence/M6.9/router-r107-device-code-copy.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -5804,6 +5823,32 @@
       "cross_account_continuity_claimed": false,
       "browser_account_add_delete_e2e_verified": false,
       "status": "done"
+    },
+    "r107_device_code_copy": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "7be448eecd272b88f701109352240631fa0e90d8",
+      "implementation_revision": "265fdf0be5f0698bcf213ba868b43f75bb6a1fbc",
+      "evidence": "evidence/M6.9/router-r107-device-code-copy.json",
+      "active_web_release": "c3e92f0f-20260803-m69-router-r107-device-code-copy",
+      "active_router_release": "codex-account-router-0.2.33-linux-x64",
+      "secure_clipboard_path_present": true,
+      "http_copy_fallback_present": true,
+      "copy_value_limited_to_device_code": true,
+      "only_routed_8216_web_restarted": true,
+      "standalone_8215_unchanged": true,
+      "routed_8216_app_server_unchanged": true,
+      "account_router_process_unchanged": true,
+      "account_manager_process_unchanged": true,
+      "observed_route_category": "secondary",
+      "device_authorization_started": false,
+      "account_add_or_remove_sent": false,
+      "account_switch_sent": false,
+      "model_request_sent": false,
+      "semantic_stream_replay_attempted": false,
+      "cross_account_continuity_claimed": false,
+      "real_copy_click_e2e_verified": false,
+      "status": "done"
     }
   },
   "blockers": [],
@@ -5982,7 +6027,11 @@
     "R106 installed the explicitly approved persistent root-run, socket-activated helper with a fixed enroll/remove protocol, private same-owner source boundary, fixed catalog/store paths and fixed account-router restart. Any future protocol, path or group change requires a new least-privilege audit.",
     "The first R106 preflight failure exposed a rollback bug that unnecessarily restarted only the isolated 8216 Router and Web services before any release or unit installation. That restart caused the existing startup policy to select Primary instead of the previously observed Secondary route. The script now avoids preflight restarts and preserves the currently observed valid route.",
     "R106 browser-driven valid device-code enrollment and account deletion remain unexecuted. The deployment qualification intentionally performed no account add/remove, account switch or model request.",
-    "The R106 in-app browser confirmed the signed-in composer and current route, but optional Statsig request timeouts prevented a complete automated profile-menu DOM capture."
+    "The R106 in-app browser confirmed the signed-in composer and current route, but optional Statsig request timeouts prevented a complete automated profile-menu DOM capture.",
+    "R107 adds an HTTP-compatible document.execCommand(copy) fallback because the asynchronous Clipboard API may be unavailable outside a secure context. HTTPS remains preferable and may eventually permit removal of this compatibility path.",
+    "R107 did not start a real device authorization operation, so no real authorization code was generated and the deployed Copy button was not clicked against a live code. Pure copy-path tests and installed-asset checks passed.",
+    "The R107 browser-control DOM capture timed out while optional telemetry requests were pending. The protected browser-session HTML and status paths returned 200, but no additional post-deployment visual DOM claim is made.",
+    "R107 observed Secondary after deployment without sending a switch request; no independent route-transition cause is attributed."
   ],
-  "updated_at": "2026-08-03T01:52:28+08:00"
+  "updated_at": "2026-08-03T03:04:56+08:00"
 }

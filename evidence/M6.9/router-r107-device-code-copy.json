@@ -1,0 +1,120 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "evidence_id": "R107_DEVICE_CODE_COPY",
+  "generated_at": "2026-08-03T03:04:56+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "7be448eecd272b88f701109352240631fa0e90d8",
+  "implementation_revision": "265fdf0be5f0698bcf213ba868b43f75bb6a1fbc",
+  "implementation_mode": "clean-room",
+  "problem": {
+    "observed": "The device-code copy control could not rely on navigator.clipboard when 8216 was opened over HTTP.",
+    "root_cause": "The asynchronous Clipboard API is restricted to secure contexts in the affected browser path, and the panel had no HTTP-compatible fallback."
+  },
+  "implementation": {
+    "secure_context_path": "navigator.clipboard.writeText",
+    "http_fallback_path": "temporary readonly textarea selection plus document.execCommand(copy)",
+    "copied_value_boundary": "uppercase grouped device authorization code only",
+    "copy_success_label": "Copied",
+    "copy_failure_label": "Copy failed",
+    "credential_or_identity_logged": false
+  },
+  "deployment": {
+    "status": "success",
+    "release": "c3e92f0f-20260803-m69-router-r107-device-code-copy",
+    "deployment_script_sha256": "5463b18d710b6a3c5b125ac41095b64c810d8476c06f5df742005ff478dc0cbe",
+    "index_sha256": "9e1c07a125878072ea1112c1401d2541295fe8595e2ae0f21ce041365eba11ef",
+    "panel_sha256": "8324c7accea08eda67fb023abef04ba100093a88f62755e8f0231f1e89f569b8",
+    "copy_button_present_in_installed_asset": true,
+    "legacy_copy_present_in_installed_asset": true,
+    "only_8216_web_restarted": true,
+    "browser_session_html_status": 200,
+    "browser_session_router_status": 200,
+    "configured_accounts": 2,
+    "active_streams": 0,
+    "observed_route_after_deployment": "Secondary",
+    "continuity_label": "new_backend_session"
+  },
+  "protected_service_evidence": {
+    "routed_8216_web": {
+      "pid_before": 4191224,
+      "pid_after": 27476,
+      "restarted_as_planned": true,
+      "effective_unit_sha256": "d69e1316de1411ffed0bbfa60f2a58da83b017f91f25ea856e10e9324e571b61"
+    },
+    "routed_8216_app_server": {
+      "pid_before": 3791302,
+      "pid_after": 3791302,
+      "unchanged": true,
+      "effective_unit_sha256": "b3723ecef6a6e1a6153ec0f08f5bf4f890183ed377ab2b27f9d82dc9fe9eaeef"
+    },
+    "account_router": {
+      "pid_before": 4191212,
+      "pid_after": 4191212,
+      "unchanged": true,
+      "effective_unit_sha256": "b3a525c67a6ba75fb1cc124be73b866d57614700b2cf2ed2268bec81e2ee9e44"
+    },
+    "account_manager": {
+      "pid_before": 4191355,
+      "pid_after": 4191355,
+      "unchanged": true,
+      "effective_service_unit_sha256": "2d3d7d86e84ee12bd2807c01f8650e4feb50798dad4ee8d6ee9cc9ad6c3f8e8a",
+      "effective_socket_unit_sha256": "73e7c827dbaf0a5e4bafc8d29d48fead8d515c45fac015ac9166698d9ba55dba"
+    },
+    "standalone_8215": {
+      "web_pid_before": 3664557,
+      "web_pid_after": 3664557,
+      "app_server_pid_before": 3664550,
+      "app_server_pid_after": 3664550,
+      "unchanged": true,
+      "http_status": 200,
+      "web_effective_unit_sha256": "a8c8ceab5b354698c288d1e7db500f059f89c5027579ff9ea49bf5cc788bcb0c",
+      "app_server_effective_unit_sha256": "44037ff3c2d9fafef1f51fda6cc83a64edb2f60472d0cd43b737dfbe2008abc3"
+    }
+  },
+  "qualification": [
+    {
+      "command": "<bundled-node> --check panel and R107 installer; <bundled-node> --test codex-web-router-panel-merge and r106-account-management-install",
+      "result": "34 passed, 0 failed. The matrix covers Clipboard API success, Clipboard rejection followed by the HTTP fallback, invalid code rejection, complete fallback failure, immutable panel replacement and protected-service deployment guards."
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r107-device-code-copy.sh; git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "loadSecurityAuditPolicy plus scanRepository",
+      "result": "649 files scanned with zero findings after the deployment evidence and task status were added."
+    },
+    {
+      "command": "installed R107 hashes, static copy markers, browser-session status and seven-service invariants",
+      "result": "The installed index and panel matched the pinned hashes; Copy device authorization code and document.execCommand(copy) were present; the protected HTML/status session returned 200; every non-Web PID and unit hash stayed unchanged."
+    }
+  ],
+  "failed_attempts_and_rollback": [
+    {
+      "stage": "successor_compressed_hash_check",
+      "result": "rolled back before current-link switch or service restart",
+      "cause": "macOS and Linux gzip headers produced different hashes; raw and Brotli hashes matched",
+      "standalone_8215_changed": false,
+      "routed_8216_service_restarted": false
+    }
+  ],
+  "negative_evidence": {
+    "device_authorization_started": false,
+    "real_authorization_code_generated": false,
+    "account_enrolled": false,
+    "account_removed": false,
+    "account_switch_sent": false,
+    "model_request_sent": false,
+    "semantic_stream_replay_attempted": false,
+    "cross_account_continuity_claimed": false
+  },
+  "residual_risks": [
+    "A real device-code Copy button click was not executed because qualification intentionally did not start a real account authorization operation.",
+    "The in-app browser control channel timed out while optional telemetry requests were pending; installed asset hashes and protected-session HTTP checks passed, but no post-deployment visual DOM claim is made.",
+    "document.execCommand(copy) is a compatibility fallback for the current HTTP deployment. HTTPS remains the preferred long-term path for the asynchronous Clipboard API.",
+    "The observed route was Secondary after deployment, but no switch request was sent by R107 and no route-transition cause is attributed."
+  ],
+  "task_status": "in_progress"
+}
