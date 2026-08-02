@@ -1,0 +1,111 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "generated_at": "2026-08-02T20:28:00+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "6e96f1ddf06bbf5fc526c159628b48552faf58d5",
+  "implementation_revision": "a2753f80ff7da653feae005590d78115f0eac8d4",
+  "implementation_mode": "clean-room",
+  "result": "done",
+  "incident": {
+    "user_visible_problem": "The router accepted a manual account switch, but the lower-left profile area did not change.",
+    "root_cause": "The lower-left profile control represented the fixed App Server login identity, while the router account panel used an independent routing state source.",
+    "intermediate_r99_observation": "The current-route badge rendered, but the account group did not attach because the upstream accessibility tree inferred a menu role that was not present as a DOM role attribute.",
+    "repair": "Keep the upstream login control intact, add a sanitized current-route badge, locate the open profile menu from stable menuitem descendants, and render the router accounts as native-style menuitemradio controls."
+  },
+  "implementation": {
+    "panel_module": "integrations/codex-web/router-account-panel-standalone.js",
+    "r99_installer": "integrations/codex-web/replace-r99-router-profile-menu.mjs",
+    "r100_installer": "integrations/codex-web/replace-r100-router-profile-menu.mjs",
+    "r99_deployment_script": "evidence/M6.9/deploy-router-r99-profile-menu.sh",
+    "r100_deployment_script": "evidence/M6.9/deploy-router-r100-profile-menu-dom.sh",
+    "active_web_release": "c3e92f0f-20260802-m69-router-r100-profile-menu-dom",
+    "panel_sha256": "559921aef674c12d7f84279c6153d58b8abe0635a64ae6d9ab786499159a3bcd",
+    "right_floating_panel_removed": true,
+    "profile_route_badge_added": true,
+    "profile_menu_account_group_added": true,
+    "exposed_identity_fields": [
+      "validated_route_alias"
+    ],
+    "credential_or_email_copied": false
+  },
+  "tests": [
+    {
+      "command": "<bundled-node> --test packages/account-router/test/codex-web-router-panel-merge.test.mjs packages/account-router/test/codex-web-router-status-bridge.test.mjs packages/account-router/test/admin-handler.test.mjs",
+      "passed": 26,
+      "failed": 0
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r99-profile-menu.sh evidence/M6.9/deploy-router-r100-profile-menu-dom.sh; git diff --check",
+      "passed": true
+    },
+    {
+      "command": "focused changed-file sensitive-pattern scan",
+      "findings": 0
+    }
+  ],
+  "deployment": {
+    "r99_first_attempt": "rolled_back_before_activation because server and workstation zlib produced different gzip byte hashes",
+    "r99_retry": "success after pinning the observed server gzip hashes",
+    "r100": "success",
+    "only_8216_web_restarted": true,
+    "standalone_8215_unchanged": true,
+    "routed_8216_app_server_unchanged": true,
+    "account_router_process_and_release_unchanged": true,
+    "unit_definitions_unchanged": true,
+    "model_request_sent": false,
+    "account_switch_sent_by_deployment": false
+  },
+  "live_browser": {
+    "profile_badge_initial": "Route: Secondary",
+    "profile_menu_group_visible": true,
+    "account_count": 2,
+    "weekly_quota_visible_for_each_account": true,
+    "cooldown_visible_for_each_account": true,
+    "secondary_to_primary_switch_accepted": true,
+    "profile_badge_after_first_switch": "Route: Primary",
+    "primary_to_secondary_restore_accepted": true,
+    "final_profile_badge": "Route: Secondary",
+    "final_route_category": "secondary",
+    "continuity": "new_backend_session",
+    "model_request_sent": false,
+    "semantic_stream_replay_attempted": false,
+    "seamless_cross_account_continuity_claimed": false
+  },
+  "final_services": {
+    "codex_web_router": {
+      "active": true,
+      "pid": 4082883
+    },
+    "codex_web_router_app_server": {
+      "active": true,
+      "pid": 3791302
+    },
+    "account_router": {
+      "active": true,
+      "pid": 3997152,
+      "release": "codex-account-router-0.2.32-linux-x64"
+    },
+    "standalone_8215_web": {
+      "active": true,
+      "pid": 3664557,
+      "release": "c3e92f0-20260729-tailnet-startup-r3"
+    },
+    "standalone_8215_app_server": {
+      "active": true,
+      "pid": 3664550
+    }
+  },
+  "r96_baseline": {
+    "status": "pending",
+    "resume_input_release": "c3e92f0f-20260802-m69-router-r100-profile-menu-dom",
+    "reason": "The deployed front-end surface changed, so the requested clean-browser startup baseline must use R100."
+  },
+  "residual_risks": [
+    "Every accepted manual switch starts a new backend session; no previous request, stream, session, in-flight work or computation is resumed.",
+    "Weekly quota remains observation-driven. A missing observation is displayed as Not observed yet rather than fabricated.",
+    "The profile-menu locator currently relies on stable English upstream menu labels and must fail closed or be adapted if upstream localization changes those labels.",
+    "R96 clean-browser startup profiling remains pending and must use R100 as its production input."
+  ]
+}
