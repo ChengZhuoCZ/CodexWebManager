@@ -44,9 +44,14 @@ import {
   R105_NATIVE_USAGE_DOM_CONTRACT,
 } from "../../../integrations/codex-web/replace-r105-router-native-usage-dom.mjs";
 import {
+  R107_DEVICE_CODE_COPY_CONTRACT,
+  replaceR107DeviceCodeCopy,
+} from "../../../integrations/codex-web/replace-r107-device-code-copy.mjs";
+import {
   buildManualSwitchRequest as buildStandaloneSwitchRequest,
   buildAccountEnrollmentRequest,
   buildAccountRemovalRequest,
+  copyDeviceAuthorizationCode,
   currentRouteIdentity as currentStandaloneRouteIdentity,
   deriveRouterAccountPanelModel as deriveStandalonePanelModel,
   isPrunedNativeMenuLabel,
@@ -92,6 +97,34 @@ test("builds bounded browser account add and delete requests", () => {
     activeStreams: 0,
     accounts: [{ alias: "Research 2", isCurrent: false }],
   }));
+});
+
+test("copies only a bounded device code with an HTTP-safe fallback", async () => {
+  const calls = [];
+  assert.equal(await copyDeviceAuthorizationCode("ABCD-EFGH", {
+    clipboardWrite: async (value) => calls.push(["clipboard", value]),
+    legacyCopy: (value) => { calls.push(["legacy", value]); return true; },
+  }), "clipboard");
+  assert.deepEqual(calls, [["clipboard", "ABCD-EFGH"]]);
+
+  assert.equal(await copyDeviceAuthorizationCode("IJKL-MNOP", {
+    clipboardWrite: async () => { throw new Error("insecure context"); },
+    legacyCopy: (value) => { calls.push(["legacy", value]); return true; },
+  }), "legacy");
+  assert.deepEqual(calls.at(-1), ["legacy", "IJKL-MNOP"]);
+
+  await assert.rejects(copyDeviceAuthorizationCode("person@example.test", {
+    legacyCopy: () => true,
+  }), /code is invalid/u);
+  await assert.rejects(copyDeviceAuthorizationCode("QRST-UVWX", {
+    legacyCopy: () => false,
+  }), /copy failed/u);
+
+  const source = await fs.readFile(STANDALONE_PANEL, "utf8");
+  assert.match(source, /navigator\?\.clipboard/u);
+  assert.match(source, /document\.execCommand\("copy"\)/u);
+  assert.match(source, /Copy device authorization code/u);
+  assert.doesNotMatch(source, /console\.(?:log|info|debug).*userCode/u);
 });
 const R91_DEPLOY = path.resolve(
   import.meta.dirname,
@@ -140,6 +173,10 @@ const R104_DEPLOY = path.resolve(
 const R105_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r105-native-usage-dom.sh",
+);
+const R107_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r107-device-code-copy.sh",
 );
 
 function sha256(value) {
@@ -975,4 +1012,24 @@ test("R105 targets the leaf Weekly label and preserves native Learn more semanti
   assert.match(source, /only_8216_web_restarted=true/u);
   assert.match(source, /model_request_sent=false/u);
   assert.match(source, /account_switch_sent=false/u);
+});
+
+test("R107 pins the HTTP-safe device-code copy panel and protects every non-Web service", async () => {
+  const [panel, deployment] = await Promise.all([
+    fs.readFile(STANDALONE_PANEL),
+    fs.readFile(R107_DEPLOY, "utf8"),
+  ]);
+  assert.equal(R107_DEVICE_CODE_COPY_CONTRACT.replacement_panel_sha256, sha256(panel));
+  assert.equal(R107_DEVICE_CODE_COPY_CONTRACT.predecessor_panel_name, "router-account-panel-6c92b532.js");
+  assert.match(deployment, /router-r106-account-management/u);
+  assert.match(deployment, /router-account-panel-8324c7ac\.js/u);
+  assert.match(deployment, /copy_device_code_fallback=true/u);
+  assert.match(deployment, /standalone_8215_unchanged=true/u);
+  assert.match(deployment, /routed_8216_app_server_unchanged=true/u);
+  assert.match(deployment, /account_router_process_unchanged=true/u);
+  assert.match(deployment, /account_manager_process_unchanged=true/u);
+  assert.doesNotMatch(
+    deployment,
+    /systemctl\s+(?:restart|stop|start)\s+"?\$?(?:APP_SERVICE|ROUTER_SERVICE|MANAGER_SERVICE|MANAGER_SOCKET|STANDALONE_WEB_SERVICE|STANDALONE_APP_SERVICE)/u,
+  );
 });

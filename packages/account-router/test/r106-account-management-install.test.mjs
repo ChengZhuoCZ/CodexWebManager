@@ -100,13 +100,10 @@ test("R106 fails closed before writing when the qualified main or fixed module c
 });
 
 test("R106 panel and deployment are pinned to the approved 8216-only privilege boundary", async () => {
-  const [panel, deployment] = await Promise.all([
-    fs.readFile(PANEL),
-    fs.readFile(DEPLOYMENT, "utf8"),
-  ]);
+  const deployment = await fs.readFile(DEPLOYMENT, "utf8");
   assert.equal(
     R106_ACCOUNT_MANAGEMENT_PANEL_CONTRACT.replacement_panel_sha256,
-    sha256(panel),
+    "6c92b5320a91dcd76508552bb93ab75b1a57cb7dfd98503a5740166ec6cc7b4a",
   );
   assert.equal(
     R106_ACCOUNT_MANAGEMENT_PANEL_CONTRACT.predecessor_panel_name,
@@ -115,6 +112,7 @@ test("R106 panel and deployment are pinned to the approved 8216-only privilege b
   assert.match(deployment, /codex-router-account-manager\.socket/u);
   assert.match(deployment, /probe_fixed_socket_protocol/u);
   assert.match(deployment, /private_store_changed/u);
+  assert.match(deployment, /PANEL_SOURCE_SHA256=6c92b532/u);
   assert.match(deployment, /standalone_8215_unchanged=true/u);
   assert.match(deployment, /routed_8216_app_server_unchanged=true/u);
   assert.doesNotMatch(

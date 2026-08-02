@@ -13,6 +13,7 @@ const PROFILE_BUTTON_SELECTOR = 'button[aria-label="Open profile menu"]';
 const PROFILE_MENU_ITEM_SELECTOR = '[role="menuitem"]';
 const POLL_INTERVAL_MS = 30_000;
 const PRUNED_NATIVE_MENU_LABELS = new Set(["Show pet", "Log out"]);
+const DEVICE_CODE_PATTERN = /^[A-Z0-9]{4}(?:-[A-Z0-9]{4})+$/u;
 
 const ACCOUNT_STATES = new Set([
   "healthy",
@@ -385,6 +386,63 @@ export function isPrunedNativeMenuLabel(value) {
   return typeof value === "string" && PRUNED_NATIVE_MENU_LABELS.has(value.trim());
 }
 
+export async function copyDeviceAuthorizationCode(value, {
+  clipboardWrite,
+  legacyCopy,
+} = {}) {
+  if (typeof value !== "string" || !DEVICE_CODE_PATTERN.test(value)) {
+    throw new Error("device authorization code is invalid");
+  }
+  if (typeof clipboardWrite === "function") {
+    try {
+      await clipboardWrite(value);
+      return "clipboard";
+    } catch {}
+  }
+  if (typeof legacyCopy === "function" && legacyCopy(value) === true) {
+    return "legacy";
+  }
+  throw new Error("device authorization code copy failed");
+}
+
+function legacyDocumentCopy(value) {
+  if (typeof document.execCommand !== "function" || !(document.body instanceof HTMLElement)) {
+    return false;
+  }
+  const input = element("textarea");
+  input.value = value;
+  input.setAttribute("readonly", "");
+  input.setAttribute("aria-hidden", "true");
+  Object.assign(input.style, {
+    position: "absolute",
+    insetInlineStart: "-10000px",
+    top: "0",
+    opacity: "0",
+    pointerEvents: "none",
+  });
+  document.body.append(input);
+  try {
+    input.focus({ preventScroll: true });
+    input.select();
+    input.setSelectionRange(0, input.value.length);
+    return document.execCommand("copy") === true;
+  } catch {
+    return false;
+  } finally {
+    input.remove();
+  }
+}
+
+function copyDeviceCodeFromPage(value) {
+  const clipboard = globalThis.navigator?.clipboard;
+  return copyDeviceAuthorizationCode(value, {
+    clipboardWrite: typeof clipboard?.writeText === "function"
+      ? (text) => clipboard.writeText(text)
+      : undefined,
+    legacyCopy: legacyDocumentCopy,
+  });
+}
+
 function pruneNativeProfileMenuItems(root = document) {
   let removed = 0;
   for (const item of root.querySelectorAll(PROFILE_MENU_ITEM_SELECTOR)) {
@@ -562,7 +620,9 @@ function renderProfileMenu(
     #${MENU_SECTION_ID} .router-management button, #${MENU_SECTION_ID} .router-remove { border: 0; border-radius: 5px;
       padding: 4px 6px; background: color-mix(in srgb, currentColor 9%, transparent); color: inherit; font: inherit; font-size: 10px; }
     #${MENU_SECTION_ID} .router-management button:disabled, #${MENU_SECTION_ID} .router-remove:disabled { opacity: .45; }
-    #${MENU_SECTION_ID} .router-device-code { display: block; margin: 4px 0; font: 600 14px/1.4 ui-monospace, monospace; letter-spacing: .08em; }
+    #${MENU_SECTION_ID} .router-device-code-row { display: flex; align-items: center; gap: 5px; margin: 4px 0; }
+    #${MENU_SECTION_ID} .router-device-code { display: block; min-width: 0; flex: 1; margin: 0;
+      font: 600 14px/1.4 ui-monospace, monospace; letter-spacing: .08em; user-select: all; }
     #${MENU_SECTION_ID} .router-auth-link { color: inherit; text-decoration: underline; }
     #${MENU_SECTION_ID} .router-account-row { display: flex; align-items: center; gap: 2px; }
     #${MENU_SECTION_ID} .router-banner { margin: 0 4px 6px; border-radius: 6px; padding: 6px 8px;
@@ -658,7 +718,33 @@ function renderProfileMenu(
       link.rel = "noopener noreferrer";
       box.append(link);
     }
-    if (management.userCode) box.append(element("code", "router-device-code", management.userCode));
+    if (management.userCode) {
+      const codeRow = element("div", "router-device-code-row");
+      const code = element("code", "router-device-code", management.userCode);
+      const copy = element("button", undefined, "Copy code");
+      copy.type = "button";
+      copy.setAttribute("aria-label", "Copy device authorization code");
+      copy.addEventListener("click", async (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        copy.disabled = true;
+        try {
+          await copyDeviceCodeFromPage(management.userCode);
+          copy.textContent = "Copied";
+        } catch {
+          copy.textContent = "Copy failed";
+        } finally {
+          window.setTimeout(() => {
+            if (copy.isConnected) {
+              copy.disabled = false;
+              copy.textContent = "Copy code";
+            }
+          }, 1_500);
+        }
+      });
+      codeRow.append(code, copy);
+      box.append(codeRow);
+    }
     const cancel = element("button", undefined, "Cancel");
     cancel.type = "button";
     cancel.addEventListener("click", (event) => {
