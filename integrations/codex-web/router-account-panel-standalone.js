@@ -1,6 +1,7 @@
 const STATUS_PATH = "/__backend/codex-router/status";
 const EVENTS_PATH = "/__backend/codex-router/events";
 const SWITCH_PATH = "/__backend/codex-router/switch";
+const QUOTA_REFRESH_PATH = "/__backend/codex-router/quota-refresh";
 const SESSION_PATH = "/__backend/session";
 const MENU_SECTION_ID = "codex-router-account-menu-section";
 const PROFILE_ROUTE_ATTRIBUTE = "data-codex-router-current-route";
@@ -159,14 +160,14 @@ function weeklyPresentation(account) {
   if (account.weekly_remaining_ratio === null) {
     return {
       label: "Not observed yet",
-      detail: "No weekly quota observation is available.",
+      detail: "Refreshed: never",
     };
   }
   return {
     label: `${Math.round(account.weekly_remaining_ratio * 100)}% remaining`,
     detail: account.snapshot_observed_at === null
-      ? "No observation timestamp is available."
-      : `Observed ${utcLabel(account.snapshot_observed_at)}`,
+      ? "Refreshed: unavailable"
+      : `Refreshed ${utcLabel(account.snapshot_observed_at)}`,
   };
 }
 
@@ -261,8 +262,14 @@ function element(name, className, text) {
   return node;
 }
 
-function menuRenderSignature(model, busyAlias, transientMessage) {
-  return JSON.stringify({ accounts: model.accounts, banner: model.banner, busyAlias, transientMessage });
+function menuRenderSignature(model, busyAlias, quotaBusy, transientMessage) {
+  return JSON.stringify({
+    accounts: model.accounts,
+    banner: model.banner,
+    busyAlias,
+    quotaBusy,
+    transientMessage,
+  });
 }
 
 function syncProfileRouteIdentity(identity) {
@@ -321,29 +328,41 @@ function findProfileMenu() {
   return null;
 }
 
-function renderProfileMenu(model, onSwitch, busyAlias = null, transientMessage = null) {
+function renderProfileMenu(
+  model,
+  onSwitch,
+  onQuotaRefresh,
+  busyAlias = null,
+  quotaBusy = false,
+  transientMessage = null,
+) {
   const menu = findProfileMenu();
   if (!(menu instanceof HTMLElement)) return false;
-  const signature = menuRenderSignature(model, busyAlias, transientMessage);
+  const signature = menuRenderSignature(model, busyAlias, quotaBusy, transientMessage);
   const currentSection = menu.querySelector(`#${MENU_SECTION_ID}`);
   if (currentSection instanceof HTMLElement && currentSection.dataset.renderSignature === signature) {
     return true;
   }
   const style = element("style");
   style.textContent = `
-    #${MENU_SECTION_ID} { box-sizing: border-box; min-width: 300px; max-width: 360px;
-      padding: 6px; color: inherit; font: inherit; }
+    #${MENU_SECTION_ID} { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%;
+      padding: 4px 6px 5px; color: inherit; font: inherit; }
     #${MENU_SECTION_ID} * { box-sizing: border-box; }
-    #${MENU_SECTION_ID} .router-separator { height: 1px; margin: 2px -6px 8px;
+    #${MENU_SECTION_ID} .router-separator { height: 1px; margin: 2px -6px 6px;
       background: color-mix(in srgb, currentColor 12%, transparent); }
     #${MENU_SECTION_ID} .router-heading { display: flex; align-items: center; justify-content: space-between;
-      gap: 8px; padding: 2px 6px 6px; font-size: 12px; font-weight: 650; }
-    #${MENU_SECTION_ID} .router-limited { opacity: .58; font-size: 10px; font-weight: 500; }
+      gap: 6px; padding: 1px 6px 4px; font-size: 12px; font-weight: 650; }
+    #${MENU_SECTION_ID} .router-heading-actions { display: inline-flex; align-items: center; gap: 5px; }
+    #${MENU_SECTION_ID} .router-limited { opacity: .58; font-size: 9px; font-weight: 500; }
+    #${MENU_SECTION_ID} .router-refresh { border: 0; border-radius: 5px; padding: 2px 5px;
+      background: transparent; color: inherit; font: inherit; font-size: 10px; line-height: 1.25; }
+    #${MENU_SECTION_ID} .router-refresh:not(:disabled):hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+    #${MENU_SECTION_ID} .router-refresh:disabled { opacity: .5; }
     #${MENU_SECTION_ID} .router-banner { margin: 0 4px 6px; border-radius: 6px; padding: 6px 8px;
       background: color-mix(in srgb, #d97706 16%, transparent); font-size: 11px; }
     #${MENU_SECTION_ID} .router-error { background: color-mix(in srgb, #dc2626 15%, transparent); }
-    #${MENU_SECTION_ID} .router-account { display: flex; width: 100%; min-height: 48px; align-items: center;
-      gap: 8px; border: 0; border-radius: 6px; padding: 6px 8px; background: transparent; color: inherit;
+    #${MENU_SECTION_ID} .router-account { display: flex; width: 100%; min-height: 42px; align-items: center;
+      gap: 7px; border: 0; border-radius: 6px; padding: 5px 7px; background: transparent; color: inherit;
       font: inherit; text-align: left; }
     #${MENU_SECTION_ID} .router-account:not(:disabled):hover { background: color-mix(in srgb, currentColor 8%, transparent); }
     #${MENU_SECTION_ID} .router-account:focus-visible { outline: 2px solid #2563eb; outline-offset: -2px; }
@@ -351,8 +370,8 @@ function renderProfileMenu(model, onSwitch, busyAlias = null, transientMessage =
     #${MENU_SECTION_ID} .router-account-copy { min-width: 0; flex: 1; }
     #${MENU_SECTION_ID} .router-account-title { display: flex; align-items: baseline; gap: 6px; font-weight: 600; }
     #${MENU_SECTION_ID} .router-state { opacity: .62; font-size: 10px; font-weight: 500; }
-    #${MENU_SECTION_ID} .router-account-detail { display: block; margin-top: 2px; opacity: .62;
-      overflow-wrap: anywhere; font-size: 10px; line-height: 1.25; }
+    #${MENU_SECTION_ID} .router-account-detail { display: block; margin-top: 1px; opacity: .62;
+      overflow-wrap: anywhere; font-size: 9px; line-height: 1.25; }
     #${MENU_SECTION_ID} .router-action { flex: none; font-size: 11px; font-weight: 600; }
     #${MENU_SECTION_ID} .router-current { color: #16a34a; }
     #${MENU_SECTION_ID} .router-footnote { margin: 5px 6px 1px; opacity: .55; font-size: 10px; line-height: 1.3; }
@@ -366,10 +385,20 @@ function renderProfileMenu(model, onSwitch, busyAlias = null, transientMessage =
   const separator = element("div", "router-separator");
   separator.setAttribute("role", "separator");
   const heading = element("div", "router-heading");
-  heading.append(
-    element("span", undefined, "Account route"),
-    element("span", "router-limited", "New backend session"),
-  );
+  const headingActions = element("span", "router-heading-actions");
+  headingActions.append(element("span", "router-limited", "New session"));
+  const refreshButton = element("button", "router-refresh", quotaBusy ? "Refreshing…" : "Refresh");
+  refreshButton.type = "button";
+  refreshButton.disabled = quotaBusy;
+  refreshButton.title = "Refresh Primary weekly quota without sending a model request";
+  refreshButton.setAttribute("aria-label", "Refresh Primary weekly quota");
+  refreshButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onQuotaRefresh();
+  });
+  headingActions.append(refreshButton);
+  heading.append(element("span", undefined, "Account route"), headingActions);
   section.append(style, separator, heading);
   if (model.banner) section.append(element("p", "router-banner", model.banner));
   if (transientMessage) section.append(element("p", "router-banner router-error", transientMessage));
@@ -392,7 +421,12 @@ function renderProfileMenu(model, onSwitch, busyAlias = null, transientMessage =
       element(
         "span",
         "router-account-detail",
-        `Weekly ${account.weeklyLabel} · Cooldown ${account.cooldownLabel}`,
+        `Weekly ${account.weeklyLabel}`,
+      ),
+      element(
+        "span",
+        "router-account-detail",
+        `${account.weeklyDetail} · Cooldown ${account.cooldownLabel}`,
       ),
     );
     const action = element(
@@ -484,13 +518,22 @@ export async function installRouterAccountPanel() {
   let profileMenuObserver = null;
   let stopped = false;
   let busyAlias = null;
+  let quotaBusy = false;
+  let quotaRefreshAttempted = false;
   let transientMessage = null;
   let menuRenderQueued = false;
 
   const renderSurfaces = () => {
     if (!model || stopped) return;
     syncProfileRouteIdentity(currentRouteIdentity(model));
-    renderProfileMenu(model, requestSwitch, busyAlias, transientMessage);
+    renderProfileMenu(
+      model,
+      requestSwitch,
+      () => requestQuotaRefresh(true),
+      busyAlias,
+      quotaBusy,
+      transientMessage,
+    );
   };
   const queueSurfaceRender = () => {
     if (menuRenderQueued || stopped) return;
@@ -522,6 +565,41 @@ export async function installRouterAccountPanel() {
     setPanelStage("ready");
     return "enabled";
   };
+  async function requestQuotaRefresh(showFailure) {
+    if (stopped || quotaBusy) return;
+    quotaBusy = true;
+    quotaRefreshAttempted = true;
+    transientMessage = null;
+    renderSurfaces();
+    try {
+      const response = await requestJson(QUOTA_REFRESH_PATH, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+          ...(await browserCsrfHeaders()),
+        },
+        body: "{}",
+      });
+      const body = response.body;
+      if (
+        !response.ok || !isRecord(body) || body.enabled !== true || body.refreshed !== true ||
+        typeof body.account_alias !== "string" ||
+        typeof body.weekly_remaining_ratio !== "number" ||
+        body.weekly_remaining_ratio < 0 || body.weekly_remaining_ratio > 1 ||
+        typeof body.snapshot_observed_at !== "string" ||
+        Number.isNaN(Date.parse(body.snapshot_observed_at))
+      ) {
+        throw new Error("weekly quota refresh failed");
+      }
+      await refresh();
+    } catch {
+      if (showFailure) showError("Weekly quota refresh was not available.");
+    } finally {
+      quotaBusy = false;
+      renderSurfaces();
+    }
+  }
   async function requestSwitch(account) {
     if (stopped || busyAlias !== null) return;
     let body;
@@ -557,6 +635,9 @@ export async function installRouterAccountPanel() {
     if (await refresh() === "disabled") return () => undefined;
   } catch {
     return () => undefined;
+  }
+  if (!quotaRefreshAttempted && model?.accounts.some((account) => account.weeklyLabel === "Not observed yet")) {
+    await requestQuotaRefresh(false);
   }
   if (typeof EventSource === "function") {
     eventSource = new EventSource(EVENTS_PATH);

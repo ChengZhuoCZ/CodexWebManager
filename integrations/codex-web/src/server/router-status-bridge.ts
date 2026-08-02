@@ -1,11 +1,14 @@
-import { constants as fsConstants } from "node:fs";
+import { constants as fsConstants, type Stats } from "node:fs";
 import fs from "node:fs/promises";
+import net from "node:net";
 import path from "node:path";
 import type { FastifyInstance } from "fastify";
+import WebSocket from "ws";
 
 const STATUS_PATH = "/__backend/codex-router/status";
 const EVENTS_PATH = "/__backend/codex-router/events";
 const SWITCH_PATH = "/__backend/codex-router/switch";
+const QUOTA_REFRESH_PATH = "/__backend/codex-router/quota-refresh";
 const TOKEN_PATTERN = /^[A-Za-z0-9._~+/-]+=*$/;
 const CURSOR_PATTERN = /^(?:0|[1-9][0-9]*)$/;
 const ACCOUNT_STATES = new Set([
@@ -31,6 +34,7 @@ const REQUEST_TIMEOUT_MS = 3_000;
 const MAX_STATUS_BYTES = 64 * 1024;
 const MAX_EVENT_BYTES = 16 * 1024;
 const MAX_SWITCH_BYTES = 8 * 1024;
+const MAX_APP_SERVER_BYTES = 64 * 1024;
 const SWITCH_ERRORS = new Set([
   "active_semantic_stream",
   "switch_not_available",
@@ -47,6 +51,16 @@ type BridgeConfig =
       tokenFile: string;
       credentialsDirectory: string | undefined;
     };
+
+type QuotaRefreshConfig =
+  | { enabled: false }
+  | { enabled: true; socketPath: string; accountAlias: string };
+
+type WeeklyQuotaSnapshot = {
+  accountAlias: string;
+  weeklyRemainingRatio: number;
+  observedAt: string;
+};
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === "object" && !Array.isArray(value);
@@ -213,8 +227,50 @@ function loadConfig(environment: NodeJS.ProcessEnv): BridgeConfig {
   };
 }
 
+function loadQuotaRefreshConfig(environment: NodeJS.ProcessEnv): QuotaRefreshConfig {
+  const socketPath = environment.CODEX_UNIX_SOCKET;
+  const accountAlias = environment.CODEX_ROUTER_QUOTA_ACCOUNT_ALIAS;
+  if (accountAlias === undefined) return { enabled: false };
+  if (
+    socketPath === undefined ||
+    !path.isAbsolute(socketPath) ||
+    !socketPath.startsWith(`/run${path.sep}`) ||
+    !socketPath.endsWith(".sock") ||
+    socketPath.includes("\0") ||
+    socketPath.includes("\n") ||
+    socketPath.length > 160
+  ) {
+    throw new Error("codex router quota refresh configuration is invalid");
+  }
+  return {
+    enabled: true,
+    socketPath: path.normalize(socketPath),
+    accountAlias: alias(accountAlias),
+  };
+}
+
+function mergeWeeklyQuotaSnapshot(
+  status: ReturnType<typeof sanitizeStatus>,
+  snapshot: WeeklyQuotaSnapshot | null,
+): ReturnType<typeof sanitizeStatus> {
+  if (snapshot === null) return status;
+  const accounts = status.accounts.map((account) => {
+    if (account.alias !== snapshot.accountAlias) return account;
+    const routerObservedAt = account.snapshot_observed_at === null
+      ? Number.NEGATIVE_INFINITY
+      : Date.parse(account.snapshot_observed_at);
+    if (routerObservedAt > Date.parse(snapshot.observedAt)) return account;
+    return {
+      ...account,
+      weekly_remaining_ratio: snapshot.weeklyRemainingRatio,
+      snapshot_observed_at: snapshot.observedAt,
+    };
+  });
+  return { ...status, accounts };
+}
+
 function assertPrivate(
-  stat: Awaited<ReturnType<typeof fs.stat>>,
+  stat: Stats,
   systemdCredential: boolean,
   directory: boolean,
 ): void {
@@ -360,6 +416,120 @@ async function forwardManualSwitch(
   }
 }
 
+function weeklyQuotaSnapshotFromResult(
+  value: unknown,
+  accountAlias: string,
+  observedAt: string,
+): WeeklyQuotaSnapshot {
+  if (!isRecord(value) || !isRecord(value.rateLimits)) {
+    throw new Error("weekly quota is unavailable");
+  }
+  const windows = [value.rateLimits.primary, value.rateLimits.secondary];
+  const weekly = windows.find(
+    (candidate) =>
+      isRecord(candidate) &&
+      (candidate.windowDurationMins === 10_079 || candidate.windowDurationMins === 10_080),
+  );
+  if (
+    !isRecord(weekly) ||
+    typeof weekly.usedPercent !== "number" ||
+    !Number.isFinite(weekly.usedPercent) ||
+    weekly.usedPercent < 0 ||
+    weekly.usedPercent > 100 ||
+    Number.isNaN(Date.parse(observedAt))
+  ) {
+    throw new Error("weekly quota is unavailable");
+  }
+  return {
+    accountAlias,
+    weeklyRemainingRatio: Math.max(0, Math.min(1, (100 - weekly.usedPercent) / 100)),
+    observedAt,
+  };
+}
+
+async function readWeeklyQuotaSnapshot(
+  config: Extract<QuotaRefreshConfig, { enabled: true }>,
+): Promise<WeeklyQuotaSnapshot> {
+  return new Promise((resolve, reject) => {
+    let settled = false;
+    let initialized = false;
+    const finish = (error: Error | null, value?: WeeklyQuotaSnapshot) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (socket.readyState === WebSocket.OPEN || socket.readyState === WebSocket.CONNECTING) {
+        socket.close();
+      }
+      if (error !== null || value === undefined) reject(error ?? new Error("weekly quota is unavailable"));
+      else resolve(value);
+    };
+    const socket = new WebSocket("ws://localhost/", {
+      createConnection: () => net.createConnection(config.socketPath),
+      maxPayload: MAX_APP_SERVER_BYTES,
+      perMessageDeflate: false,
+    });
+    const timer = setTimeout(
+      () => finish(new Error("weekly quota request timed out")),
+      REQUEST_TIMEOUT_MS,
+    );
+    timer.unref();
+    socket.once("error", () => finish(new Error("weekly quota is unavailable")));
+    socket.once("close", () => finish(new Error("weekly quota is unavailable")));
+    socket.once("open", () => {
+      socket.send(JSON.stringify({
+        id: 1,
+        method: "initialize",
+        params: {
+          clientInfo: {
+            name: "codex_web_quota_refresh",
+            title: "Codex Web quota refresh",
+            version: "0.1.0",
+          },
+          capabilities: { experimentalApi: true },
+        },
+      }));
+    });
+    socket.on("message", (data, isBinary) => {
+      if (isBinary || Buffer.byteLength(data.toString(), "utf8") > MAX_APP_SERVER_BYTES) {
+        finish(new Error("weekly quota is unavailable"));
+        return;
+      }
+      let message: unknown;
+      try {
+        message = JSON.parse(data.toString()) as unknown;
+      } catch {
+        finish(new Error("weekly quota is unavailable"));
+        return;
+      }
+      if (!isRecord(message) || (message.id !== 1 && message.id !== 2)) return;
+      if (Object.hasOwn(message, "error")) {
+        finish(new Error("weekly quota is unavailable"));
+        return;
+      }
+      if (message.id === 1 && !initialized) {
+        initialized = true;
+        socket.send(JSON.stringify({ method: "initialized", params: {} }));
+        socket.send(JSON.stringify({ id: 2, method: "account/rateLimits/read", params: {} }));
+        return;
+      }
+      if (message.id === 2) {
+        try {
+          finish(
+            null,
+            weeklyQuotaSnapshotFromResult(
+              message.result,
+              config.accountAlias,
+              new Date().toISOString(),
+            ),
+          );
+        } catch {
+          finish(new Error("weekly quota is unavailable"));
+        }
+      }
+    });
+  });
+}
+
 async function fetchStatus(config: Extract<BridgeConfig, { enabled: true }>) {
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
@@ -443,14 +613,41 @@ export async function registerRouterStatusBridge(
   environment: NodeJS.ProcessEnv,
 ): Promise<void> {
   const config = loadConfig(environment);
+  const quotaRefreshConfig = loadQuotaRefreshConfig(environment);
+  let quotaSnapshot: WeeklyQuotaSnapshot | null = null;
 
   app.get(STATUS_PATH, async (_request, reply) => {
     reply.header("cache-control", "no-store").header("x-content-type-options", "nosniff");
     if (!config.enabled) return reply.code(404).send({ enabled: false });
     try {
-      return reply.send({ enabled: true, router: await fetchStatus(config) });
+      return reply.send({
+        enabled: true,
+        router: mergeWeeklyQuotaSnapshot(await fetchStatus(config), quotaSnapshot),
+      });
     } catch {
       return reply.code(502).send({ enabled: true, error: "router_status_unavailable" });
+    }
+  });
+
+  app.post(QUOTA_REFRESH_PATH, { bodyLimit: 1024 }, async (request, reply) => {
+    reply.header("cache-control", "no-store").header("x-content-type-options", "nosniff");
+    if (!config.enabled || !quotaRefreshConfig.enabled) {
+      return reply.code(404).send({ enabled: false });
+    }
+    if (!isRecord(request.body) || Object.keys(request.body).length !== 0) {
+      return reply.code(400).send({ enabled: true, error: "invalid_quota_refresh_request" });
+    }
+    try {
+      quotaSnapshot = await readWeeklyQuotaSnapshot(quotaRefreshConfig);
+      return reply.send({
+        enabled: true,
+        refreshed: true,
+        account_alias: quotaSnapshot.accountAlias,
+        weekly_remaining_ratio: quotaSnapshot.weeklyRemainingRatio,
+        snapshot_observed_at: quotaSnapshot.observedAt,
+      });
+    } catch {
+      return reply.code(502).send({ enabled: true, error: "quota_refresh_unavailable" });
     }
   });
 

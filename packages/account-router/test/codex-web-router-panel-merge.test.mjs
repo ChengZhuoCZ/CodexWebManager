@@ -29,6 +29,9 @@ import {
   R100_PROFILE_MENU_CONTRACT,
 } from "../../../integrations/codex-web/replace-r100-router-profile-menu.mjs";
 import {
+  R101_QUOTA_MENU_CONTRACT,
+} from "../../../integrations/codex-web/replace-r101-router-quota-menu.mjs";
+import {
   buildManualSwitchRequest as buildStandaloneSwitchRequest,
   currentRouteIdentity as currentStandaloneRouteIdentity,
   deriveRouterAccountPanelModel as deriveStandalonePanelModel,
@@ -40,6 +43,10 @@ const APP = `${ASSETS}/app-initial-BTphDPeq.js`;
 const STANDALONE_PANEL = path.resolve(
   import.meta.dirname,
   "../../../integrations/codex-web/router-account-panel-standalone.js",
+);
+const ROUTER_STATUS_BRIDGE = path.resolve(
+  import.meta.dirname,
+  "../../../integrations/codex-web/src/server/router-status-bridge.ts",
 );
 const R91_DEPLOY = path.resolve(
   import.meta.dirname,
@@ -68,6 +75,10 @@ const R99_DEPLOY = path.resolve(
 const R100_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r100-profile-menu-dom.sh",
+);
+const R101_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r101-quota-menu.sh",
 );
 
 function sha256(value) {
@@ -237,9 +248,9 @@ test("standalone panel preserves weekly-only and semantic-stream switch guards",
   };
   const model = deriveStandalonePanelModel(status);
   assert.equal(model.accounts[0].weeklyLabel, "75% remaining");
-  assert.equal(model.accounts[0].weeklyDetail, "No observation timestamp is available.");
+  assert.equal(model.accounts[0].weeklyDetail, "Refreshed: unavailable");
   assert.equal(model.accounts[1].weeklyLabel, "Not observed yet");
-  assert.equal(model.accounts[1].weeklyDetail, "No weekly quota observation is available.");
+  assert.equal(model.accounts[1].weeklyDetail, "Refreshed: never");
   assert.equal(model.accounts.every((account) => account.switchDisabled), true);
   assert.equal(model.accounts[1].switchDisabledReason, "Active response in progress");
   assert.doesNotMatch(JSON.stringify(model), /five_hour|credential_ref|must-not-pass/u);
@@ -275,6 +286,24 @@ test("standalone panel exposes only a sanitized current route in the profile men
   assert.match(source, /MutationObserver/u);
   assert.match(source, /profileMenuObserver\?\.disconnect/u);
   assert.doesNotMatch(source, /position:\s*"fixed"/u);
+});
+
+test("profile menu quota UI inherits native width and exposes a bounded read-only refresh", async () => {
+  const panel = await fs.readFile(STANDALONE_PANEL, "utf8");
+  const bridge = await fs.readFile(ROUTER_STATUS_BRIDGE, "utf8");
+  assert.match(panel, /width: 100%; min-width: 0; max-width: 100%/u);
+  assert.doesNotMatch(panel, /min-width: 300px|max-width: 360px/u);
+  assert.match(panel, /min-height: 42px/u);
+  assert.match(panel, /Refreshed \$\{utcLabel\(account\.snapshot_observed_at\)\}/u);
+  assert.match(panel, /Refresh Primary weekly quota/u);
+  assert.match(panel, /\/__backend\/codex-router\/quota-refresh/u);
+  assert.match(panel, /\.\.\.\(await browserCsrfHeaders\(\)\)/u);
+  assert.match(bridge, /account\/rateLimits\/read/u);
+  assert.match(bridge, /CODEX_UNIX_SOCKET/u);
+  assert.match(bridge, /MAX_APP_SERVER_BYTES = 64 \* 1024/u);
+  assert.match(bridge, /weekly\.usedPercent < 0/u);
+  assert.match(bridge, /weekly\.usedPercent > 100/u);
+  assert.doesNotMatch(bridge, /thread\/start|turn\/start|responses\/create/u);
 });
 
 test("standalone panel permits a bounded recovery switch after an auth cooldown elapses", () => {
@@ -694,6 +723,33 @@ test("R100 locates the semantic profile menu without relying on an inferred cont
   assert.match(source, /SUCCESSOR_PANEL_ASSET=router-account-panel-559921ae\.js/u);
   assert.match(source, /gzip -cd/u);
   assert.match(source, /only_8216_web_restarted=true/u);
+  assert.doesNotMatch(
+    source,
+    /systemctl\s+(?:restart|stop|start)\s+(?:codex-web-upstream|codex-web-upstream-app-server|codex-web-router-app-server|codex-account-router)/u,
+  );
+});
+
+test("R101 refreshes Primary quota read-only and restarts only routed Web", async () => {
+  assert.equal(
+    R101_QUOTA_MENU_CONTRACT.predecessor_panel_sha256,
+    R100_PROFILE_MENU_CONTRACT.replacement_panel_sha256,
+  );
+  assert.equal(
+    R101_QUOTA_MENU_CONTRACT.replacement_panel_sha256,
+    "fb575a578aedb851e7892be7b1a98e0fc529352e7fd3199c2947acae5688e468",
+  );
+  const source = await fs.readFile(R101_DEPLOY, "utf8");
+  assert.match(source, /router-r100-profile-menu-dom/u);
+  assert.match(source, /router-r101-quota-menu/u);
+  assert.match(source, /router-account-panel-fb575a57\.js/u);
+  assert.match(source, /router-status-bridge-standalone\.js/u);
+  assert.match(source, /CODEX_ROUTER_QUOTA_ACCOUNT_ALIAS=Primary/u);
+  assert.match(source, /codex-router\/quota-refresh/u);
+  assert.match(source, /primary_weekly_quota_read_only=true/u);
+  assert.match(source, /weekly_quota_refresh_time_available=true/u);
+  assert.match(source, /only_8216_web_restarted=true/u);
+  assert.match(source, /model_request_sent=false/u);
+  assert.match(source, /account_switch_sent=false/u);
   assert.doesNotMatch(
     source,
     /systemctl\s+(?:restart|stop|start)\s+(?:codex-web-upstream|codex-web-upstream-app-server|codex-web-router-app-server|codex-account-router)/u,
