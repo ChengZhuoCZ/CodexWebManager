@@ -1,0 +1,44 @@
+[Unit]
+Description=Narrow privileged 8216 account enrollment and removal helper
+After=codex-account-router.service
+
+[Service]
+Type=simple
+User=root
+Group=codex8216
+LimitCORE=0
+Environment=CODEX_ROUTER_ACCOUNT_AUTH_ROOT=/var/lib/codex-web-router-account-auth
+Environment=CODEX_ROUTER_ADMIN_SOURCE_TOKEN_FILE=/etc/codex-account-router/credentials/admin-token
+ExecStart=/opt/codex-account-router/current/bin/codex-router-account-manager
+StandardOutput=null
+StandardError=journal
+SyslogIdentifier=codex-router-account-manager
+TimeoutStartSec=15s
+TimeoutStopSec=20s
+UMask=0077
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+PrivateMounts=true
+ProtectSystem=strict
+ProtectHome=true
+ProtectHostname=true
+ProtectClock=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectKernelLogs=true
+ProtectControlGroups=true
+ProtectProc=invisible
+ProcSubset=pid
+RestrictSUIDSGID=true
+RestrictNamespaces=true
+LockPersonality=true
+RestrictRealtime=true
+CapabilityBoundingSet=CAP_DAC_READ_SEARCH
+AmbientCapabilities=
+RestrictAddressFamilies=AF_UNIX AF_INET
+IPAddressDeny=any
+IPAddressAllow=localhost
+ReadWritePaths=/etc/codex-account-router /etc/credstore
+ReadOnlyPaths=/etc/codex-account-router/credentials /var/lib/codex-web-router-account-auth
+InaccessiblePaths=/home /root /srv /var/lib/codex-web-router /var/lib/codex-web-router-app-server

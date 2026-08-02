@@ -1,0 +1,12 @@
+[Unit]
+Description=Private 8216 account management socket
+
+[Socket]
+ListenStream=/run/codex-router-account-manager.sock
+SocketUser=root
+SocketGroup=codex8216
+SocketMode=0660
+RemoveOnStop=true
+
+[Install]
+WantedBy=sockets.target

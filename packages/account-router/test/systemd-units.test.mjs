@@ -38,6 +38,11 @@ async function loadUnit(name) {
   return { content, unit: parseUnit(content) };
 }
 
+async function loadIsolatedUnit(name) {
+  const content = await fs.readFile(path.join(systemdRoot, "8216-fixture", name), "utf8");
+  return { content, unit: parseUnit(content) };
+}
+
 function only(unit, key) {
   const values = unit.get(key);
   assert.equal(values?.length, 1, `${key} must appear exactly once`);
@@ -327,6 +332,59 @@ test("routed upstream codex-web uses separate state, socket, and port without to
   assert.doesNotMatch(
     `${appContent}\n${webContent}`,
     /0\.0\.0\.0|\[::\]|(?:Bearer\s+|Authorization=|refresh_token|access_token|sk-[A-Za-z0-9_-]{12,})/i,
+  );
+});
+
+test("8216 account manager is socket-activated and confined to its credential mutation boundary", async () => {
+  const [
+    { content: socketContent, unit: socket },
+    { content: serviceContent, unit: service },
+    { content: webContent, unit: web },
+  ] = await Promise.all([
+    loadIsolatedUnit("codex-router-account-manager.socket"),
+    loadIsolatedUnit("codex-router-account-manager.service"),
+    loadIsolatedUnit("codex-web-router.service"),
+  ]);
+  assert.equal(only(socket, "Socket.ListenStream"), "/run/codex-router-account-manager.sock");
+  assert.equal(only(socket, "Socket.SocketUser"), "root");
+  assert.equal(only(socket, "Socket.SocketGroup"), "codex8216");
+  assert.equal(only(socket, "Socket.SocketMode"), "0660");
+  assert.equal(only(service, "Service.User"), "root");
+  assert.equal(only(service, "Service.Group"), "codex8216");
+  assert.equal(
+    only(service, "Service.ExecStart"),
+    "/opt/codex-account-router/current/bin/codex-router-account-manager",
+  );
+  assert.equal(only(service, "Service.NoNewPrivileges"), "true");
+  assert.equal(only(service, "Service.ProtectSystem"), "strict");
+  assert.equal(only(service, "Service.CapabilityBoundingSet"), "CAP_DAC_READ_SEARCH");
+  assert.equal(only(service, "Service.AmbientCapabilities"), "");
+  assert.equal(only(service, "Service.RestrictAddressFamilies"), "AF_UNIX AF_INET");
+  assert.equal(only(service, "Service.IPAddressDeny"), "any");
+  assert.equal(only(service, "Service.IPAddressAllow"), "localhost");
+  assert.equal(
+    only(service, "Service.ReadWritePaths"),
+    "/etc/codex-account-router /etc/credstore",
+  );
+  assert.equal(
+    only(service, "Service.ReadOnlyPaths"),
+    "/etc/codex-account-router/credentials /var/lib/codex-web-router-account-auth",
+  );
+  assert.ok(web.get("Service.Environment")?.includes(
+    "CODEX_ROUTER_ACCOUNT_MANAGER_SOCKET=/run/codex-router-account-manager.sock",
+  ));
+  assert.ok(web.get("Service.Environment")?.includes(
+    "CODEX_ROUTER_ACCOUNT_AUTH_ROOT=/var/lib/codex-web-router-account-auth",
+  ));
+  assert.equal(
+    only(web, "Service.StateDirectory"),
+    "codex-web-router codex-web-router-account-auth",
+  );
+  assert.match(only(web, "Unit.After"), /codex-router-account-manager\.socket/u);
+  assert.match(only(web, "Unit.Wants"), /codex-router-account-manager\.socket/u);
+  assert.doesNotMatch(
+    `${socketContent}\n${serviceContent}\n${webContent}`,
+    /codex-web-upstream|--port 8215|sudo|\/bin\/(?:ba)?sh/u,
   );
 });
 

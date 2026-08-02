@@ -4,9 +4,12 @@ import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
+import { fileURLToPath, pathToFileURL } from "node:url";
 
 import {
+  assertAuthSourceBoundary,
   createManagerProtocolServer,
+  isDirectManagerInvocation,
   parseManagerRequest,
 } from "../bin/codex-router-account-manager.mjs";
 
@@ -52,6 +55,33 @@ test("manager protocol accepts only bounded public metadata and a private auth p
     { operation: "enroll", source_file: `${root}/x/other.json`, id: "x", alias: "X" },
     { operation: "remove", alias: "X", token: "forbidden" },
   ]) assert.throws(() => parseManagerRequest(value, root));
+});
+
+test("manager accepts only a same-owner private non-symlink auth source", async (context) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "router-account-source-"));
+  const operation = path.join(root, "operation");
+  const authFile = path.join(operation, "auth.json");
+  context.after(() => fs.rm(root, { recursive: true, force: true }));
+  await fs.chmod(root, 0o700);
+  await fs.mkdir(operation, { mode: 0o700 });
+  await fs.writeFile(authFile, "fixture", { mode: 0o600 });
+  await assert.doesNotReject(assertAuthSourceBoundary(root, authFile));
+  await fs.chmod(authFile, 0o640);
+  await assert.rejects(assertAuthSourceBoundary(root, authFile));
+  await fs.chmod(authFile, 0o600);
+  const link = path.join(operation, "linked.json");
+  await fs.symlink(authFile, link);
+  await assert.rejects(assertAuthSourceBoundary(root, link));
+});
+
+test("manager recognizes a symlinked release entrypoint", async (context) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "router-account-manager-entrypoint-"));
+  context.after(() => fs.rm(root, { recursive: true, force: true }));
+  const target = fileURLToPath(new URL("../bin/codex-router-account-manager.mjs", import.meta.url));
+  const link = path.join(root, "codex-router-account-manager.mjs");
+  await fs.symlink(target, link);
+  assert.equal(isDirectManagerInvocation(pathToFileURL(target).href, link), true);
+  assert.equal(isDirectManagerInvocation(pathToFileURL(target).href, ""), false);
 });
 
 test("manager socket returns only a sanitized operation result", async (context) => {

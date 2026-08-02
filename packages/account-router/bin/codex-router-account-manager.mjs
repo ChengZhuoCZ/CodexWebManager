@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
 import { spawn } from "node:child_process";
-import { constants as fsConstants, promises as fs } from "node:fs";
+import { constants as fsConstants, promises as fs, realpathSync } from "node:fs";
 import http from "node:http";
 import net from "node:net";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { createAccountEnrollmentManager } from "../src/account-enrollment.mjs";
 
@@ -48,6 +49,28 @@ function safeSourceFile(value, sourceRoot) {
     throw new Error("account request is invalid");
   }
   return normalized;
+}
+
+export async function assertAuthSourceBoundary(sourceRoot, sourceFile) {
+  const root = await fs.lstat(sourceRoot);
+  const directory = await fs.lstat(path.dirname(sourceFile));
+  const file = await fs.lstat(sourceFile);
+  if (
+    !root.isDirectory() || root.isSymbolicLink() || (root.mode & 0o077) !== 0 ||
+    !directory.isDirectory() || directory.isSymbolicLink() || (directory.mode & 0o077) !== 0 ||
+    !file.isFile() || file.isSymbolicLink() || (file.mode & 0o077) !== 0 ||
+    root.uid === 0 || root.uid !== directory.uid || root.gid !== directory.gid ||
+    root.uid !== file.uid || root.gid !== file.gid
+  ) throw new Error("account source boundary is invalid");
+}
+
+export function isDirectManagerInvocation(moduleUrl, executablePath) {
+  if (typeof executablePath !== "string" || executablePath.length === 0) return false;
+  try {
+    return moduleUrl === pathToFileURL(realpathSync(executablePath)).href;
+  } catch {
+    return false;
+  }
 }
 
 export function parseManagerRequest(value, sourceRoot) {
@@ -262,13 +285,16 @@ async function start() {
   });
   const server = createManagerProtocolServer({
     sourceRoot,
-    enroll: (request) => manager.enroll(request),
+    enroll: async (request) => {
+      await assertAuthSourceBoundary(sourceRoot, request.sourceFile);
+      return manager.enroll(request);
+    },
     remove: (request) => manager.remove(request),
   });
   server.listen({ fd: 3 });
 }
 
-if (import.meta.url === new URL(`file://${process.argv[1]}`).href) {
+if (isDirectManagerInvocation(import.meta.url, process.argv[1])) {
   start().catch(() => {
     process.stderr.write("account manager failed\n");
     process.exitCode = 1;
