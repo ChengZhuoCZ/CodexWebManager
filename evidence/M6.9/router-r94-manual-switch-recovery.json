@@ -1,0 +1,104 @@
+{
+  "task": "M6.9",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "ebb3b87cad3ef23a3ec32e30b3aa1aca202f5ac3",
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "status": "success",
+  "incident": {
+    "user_observation": "The account-panel Switch button was disabled.",
+    "root_cause": "The browser panel treated the historical auth_expired state as permanently disabled even after its bounded cooldown had elapsed, while scheduler readiness already considered the account recovery-eligible.",
+    "first_failure_test": {
+      "tests": 11,
+      "passed": 10,
+      "failed": 1,
+      "expected_failure": "An auth_expired account remained disabled at its exact cooldown boundary."
+    },
+    "protected_manual_switch_probe": {
+      "accepted": true,
+      "continuity": "new_backend_session",
+      "model_request_sent": false
+    }
+  },
+  "implementation": {
+    "recovery_boundary": "cooldown_until is non-null and less than or equal to the injected panel clock",
+    "retained_guards": [
+      "active semantic response",
+      "current route",
+      "disabled account",
+      "quota exhaustion",
+      "unexpired cooldown",
+      "missing recovery boundary",
+      "half-open probe already in progress"
+    ],
+    "replacement_panel": "router-account-panel-ff0f95b4.js",
+    "replacement_panel_sha256": "ff0f95b4f85fe9174661ca47431222af007047facbf2e5e992eb4040f88aef3d",
+    "installer": "integrations/codex-web/replace-standalone-router-panel.mjs",
+    "deployment_script": "evidence/M6.9/deploy-router-r94-manual-switch-recovery.sh"
+  },
+  "verification": {
+    "panel_and_deployment_tests": {
+      "tests": 14,
+      "passed": 14,
+      "failed": 0
+    },
+    "manual_switch_bridge_and_persistence_matrix": {
+      "tests": 62,
+      "passed": 57,
+      "failed": 0,
+      "external_fixture_skips": 5
+    },
+    "typescript_syntax_check_passed": true,
+    "shell_syntax_check_passed": true,
+    "diff_check_passed": true,
+    "targeted_secret_scan_findings": 0
+  },
+  "deployment": {
+    "active_release": "c3e92f0f-20260802-m69-router-r94-manual-switch-recovery",
+    "deployment_status": "success",
+    "only_routed_8216_web_restarted": true,
+    "routed_8216_app_server_unchanged": true,
+    "account_router_process_and_release_unchanged": true,
+    "standalone_8215_unchanged": true,
+    "five_services_active": true,
+    "pending_daemon_reload": false,
+    "model_request_sent": false,
+    "r93_intermediate_deployment": {
+      "service_readiness_passed": true,
+      "evidence_rejected": true,
+      "reason": "Cross-platform gzip bytes differed and an early multi-check shell guard could be masked by a later successful condition.",
+      "superseded_by_fail_closed_r94": true
+    }
+  },
+  "live_panel_model": {
+    "active_streams": 0,
+    "current_route_category": "secondary",
+    "recovery_account_category": "primary",
+    "recovery_account_state": "auth_expired",
+    "recovery_switch_disabled": false,
+    "recovery_switch_disabled_reason": null,
+    "current_route_switch_disabled": true,
+    "current_route_switch_disabled_reason": "Current route"
+  },
+  "browser_verification": {
+    "forced_reload_completed": true,
+    "optional_telemetry_timeout_observed": true,
+    "visual_dom_assertion_completed": false,
+    "reason": "The browser-control channel timed out while extracting the large application DOM after reload.",
+    "visual_success_claimed": false
+  },
+  "safety": {
+    "credential_or_identity_recorded": false,
+    "prompt_or_response_body_recorded": false,
+    "semantic_sse_replay_attempted": false,
+    "in_flight_recovery_claimed": false,
+    "seamless_cross_account_continuity_claimed": false,
+    "manual_switch_scope": "A later new backend session only"
+  },
+  "residual_risks": [
+    "An elapsed auth cooldown permits only a bounded recovery switch. It does not prove that the credential is currently accepted; the next separate new request may classify it auth_expired again and select another eligible account before semantic output.",
+    "The deployed module and live panel model prove that the button is enabled, but browser-control DOM extraction did not complete. The user browser may require one hard refresh to discard the prior index document."
+  ],
+  "observed_at": "2026-08-02T15:03:56+08:00"
+}

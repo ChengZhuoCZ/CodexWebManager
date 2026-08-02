@@ -4,7 +4,12 @@ import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
-import { brotliDecompressSync, gunzipSync } from "node:zlib";
+import {
+  brotliCompressSync,
+  brotliDecompressSync,
+  gunzipSync,
+  gzipSync,
+} from "node:zlib";
 import {
   mergeRouterPanelOntoQualifiedRelease,
 } from "../../../integrations/codex-web/merge-router-panel-release.mjs";
@@ -14,6 +19,9 @@ import {
 import {
   installR87RouterServerBridge,
 } from "../../../integrations/codex-web/install-r87-router-server-bridge.mjs";
+import {
+  replaceStandaloneRouterPanel,
+} from "../../../integrations/codex-web/replace-standalone-router-panel.mjs";
 import {
   buildManualSwitchRequest as buildStandaloneSwitchRequest,
   deriveRouterAccountPanelModel as deriveStandalonePanelModel,
@@ -29,6 +37,10 @@ const R91_DEPLOY = path.resolve(
 const R92_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r92-server-bridge.sh",
+);
+const R94_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r94-manual-switch-recovery.sh",
 );
 
 function sha256(value) {
@@ -208,6 +220,65 @@ test("standalone panel preserves weekly-only and semantic-stream switch guards",
   );
 });
 
+test("standalone panel permits a bounded recovery switch after an auth cooldown elapses", () => {
+  const cooldownUntil = "2026-08-02T06:14:35.460Z";
+  const status = {
+    status: "ready",
+    architecture_mode: "LIMITED_MODE",
+    cross_account_e2e_verified: false,
+    active_streams: 0,
+    current_route: {
+      account_alias: "Secondary",
+      continuity: "new_backend_session",
+    },
+    accounts: [
+      {
+        alias: "Primary",
+        state: "auth_expired",
+        enabled: true,
+        weekly_remaining_ratio: null,
+        snapshot_observed_at: null,
+        cooldown_until: cooldownUntil,
+        last_switch_reason: "auth_expired",
+      },
+      {
+        alias: "Secondary",
+        state: "healthy",
+        enabled: true,
+        weekly_remaining_ratio: null,
+        snapshot_observed_at: null,
+        cooldown_until: null,
+        last_switch_reason: "manual",
+      },
+    ],
+  };
+
+  const stillCooling = deriveStandalonePanelModel(
+    status,
+    Date.parse("2026-08-02T06:14:35.459Z"),
+  );
+  assert.equal(stillCooling.accounts[0].switchDisabled, true);
+  assert.equal(stillCooling.accounts[0].switchDisabledReason, "Authentication expired");
+
+  const recoveryEligible = deriveStandalonePanelModel(
+    status,
+    Date.parse("2026-08-02T06:14:35.460Z"),
+  );
+  assert.equal(recoveryEligible.accounts[0].switchDisabled, false);
+  assert.equal(recoveryEligible.accounts[0].switchDisabledReason, null);
+  assert.deepEqual(buildStandaloneSwitchRequest(recoveryEligible.accounts[0]), {
+    account_alias: "Primary",
+    reason: "manual",
+  });
+
+  const noRecoveryBoundary = deriveStandalonePanelModel({
+    ...status,
+    accounts: [{ ...status.accounts[0], cooldown_until: null }, status.accounts[1]],
+  }, Date.parse("2026-08-02T06:14:35.460Z"));
+  assert.equal(noRecoveryBoundary.accounts[0].switchDisabled, true);
+  assert.equal(noRecoveryBoundary.accounts[0].switchDisabledReason, "Authentication expired");
+});
+
 test("installs the standalone panel without replacing either qualified bridge file", async (context) => {
   const value = await fixture(context);
   const panel = Buffer.from([
@@ -268,6 +339,110 @@ test("standalone panel installer fails before writing when its module hash chang
     /standalone panel install failed at validate_panel_module/u,
   );
   assert.deepEqual(await fs.readFile(path.join(value.candidate, INDEX)), before);
+});
+
+async function panelReplacementFixture(context) {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "m69-panel-replacement-"));
+  context.after(() => fs.rm(root, { recursive: true, force: true }));
+  const candidate = path.join(root, "candidate");
+  const predecessorName = "router-account-panel-11111111.js";
+  const replacementName = "router-account-panel-22222222.js";
+  const preloadName = "preload-33333333.js";
+  const predecessor = Buffer.from("old Router accounts panel\n");
+  const replacement = Buffer.from([
+    "Router accounts",
+    "/__backend/codex-router/status",
+    "/__backend/codex-router/switch",
+    "Cross-account continuity is not verified",
+    "installRouterAccountPanel",
+    "recoveryEligible",
+    "",
+  ].join("\n"));
+  const app = Buffer.from("qualified connect-app-host App Host bridge\n");
+  const preload = Buffer.from("qualified preload\n");
+  const index = Buffer.from([
+    `<script type="module" src="./assets/${preloadName}"></script>`,
+    `<script type="module" src="./assets/${predecessorName}"></script>`,
+    "",
+  ].join("\n"));
+  const predecessorRelative = `${ASSETS}/${predecessorName}`;
+  await write(candidate, INDEX, index);
+  await write(candidate, `${INDEX}.gz`, gzipSync(index));
+  await write(candidate, `${INDEX}.br`, brotliCompressSync(index));
+  await write(candidate, APP, app);
+  await write(candidate, `${ASSETS}/${preloadName}`, preload);
+  await write(candidate, predecessorRelative, predecessor);
+  await write(candidate, `${predecessorRelative}.gz`, gzipSync(predecessor));
+  await write(candidate, `${predecessorRelative}.br`, brotliCompressSync(predecessor));
+  const replacementPath = path.join(root, "replacement.js");
+  await fs.writeFile(replacementPath, replacement, { mode: 0o644 });
+  return {
+    candidate,
+    index,
+    app,
+    preload,
+    predecessor,
+    predecessorName,
+    predecessorRelative,
+    replacement,
+    replacementName,
+    replacementPath,
+    contract: {
+      predecessor_index_sha256: sha256(index),
+      predecessor_panel_name: predecessorName,
+      predecessor_panel_sha256: sha256(predecessor),
+      qualified_app_sha256: sha256(app),
+      qualified_preload_name: preloadName,
+      qualified_preload_sha256: sha256(preload),
+      replacement_panel_name: replacementName,
+      replacement_panel_sha256: sha256(replacement),
+    },
+  };
+}
+
+test("replaces only the standalone panel in an already-qualified release", async (context) => {
+  const value = await panelReplacementFixture(context);
+  const result = await replaceStandaloneRouterPanel({
+    candidate: value.candidate,
+    panelModule: value.replacementPath,
+    contract: value.contract,
+  });
+  const index = await fs.readFile(path.join(value.candidate, INDEX));
+  const replacementRelative = `${ASSETS}/${value.replacementName}`;
+  const replacement = await fs.readFile(path.join(value.candidate, replacementRelative));
+  assert.equal(result.event, "standalone_router_panel_replaced");
+  assert.equal(result.predecessor_panel_removed, true);
+  assert.deepEqual(await fs.readFile(path.join(value.candidate, APP)), value.app);
+  assert.deepEqual(
+    await fs.readFile(path.join(value.candidate, ASSETS, value.contract.qualified_preload_name)),
+    value.preload,
+  );
+  assert.match(index.toString(), new RegExp(value.replacementName, "u"));
+  assert.doesNotMatch(index.toString(), new RegExp(value.predecessorName, "u"));
+  assert.deepEqual(replacement, value.replacement);
+  assert.deepEqual(gunzipSync(await fs.readFile(`${path.join(value.candidate, replacementRelative)}.gz`)), replacement);
+  assert.deepEqual(brotliDecompressSync(await fs.readFile(`${path.join(value.candidate, replacementRelative)}.br`)), replacement);
+  await assert.rejects(fs.access(path.join(value.candidate, value.predecessorRelative)));
+  await assert.rejects(fs.access(path.join(value.candidate, `${value.predecessorRelative}.gz`)));
+  await assert.rejects(fs.access(path.join(value.candidate, `${value.predecessorRelative}.br`)));
+});
+
+test("panel replacement fails before writing when the predecessor panel drifts", async (context) => {
+  const value = await panelReplacementFixture(context);
+  await fs.appendFile(path.join(value.candidate, value.predecessorRelative), "changed\n");
+  const before = await fs.readFile(path.join(value.candidate, INDEX));
+  await assert.rejects(
+    replaceStandaloneRouterPanel({
+      candidate: value.candidate,
+      panelModule: value.replacementPath,
+      contract: value.contract,
+    }),
+    /standalone panel replacement failed at validate_predecessor/u,
+  );
+  assert.deepEqual(await fs.readFile(path.join(value.candidate, INDEX)), before);
+  await assert.rejects(
+    fs.access(path.join(value.candidate, ASSETS, value.replacementName)),
+  );
 });
 
 async function r87ServerFixture(context) {
@@ -368,5 +543,25 @@ test("R92 deploys the R86 server adapters without replacing or restarting protec
   assert.doesNotMatch(
     source,
     /systemctl\s+(?:restart|stop|start)\s+(?:codex-web-upstream|codex-account-router)/u,
+  );
+});
+
+test("R94 replaces only the cooldown-aware panel and restarts only routed Web", async () => {
+  const source = await fs.readFile(R94_DEPLOY, "utf8");
+  assert.match(source, /router-r92-server-bridge/u);
+  assert.match(source, /router-r94-manual-switch-recovery/u);
+  assert.match(source, /PREDECESSOR_INDEX_SHA256=f9116342/u);
+  assert.match(source, /SUCCESSOR_INDEX_SHA256=fc7b9819/u);
+  assert.match(source, /PREDECESSOR_PANEL_SHA256=c4f3be1f/u);
+  assert.match(source, /SUCCESSOR_PANEL_SHA256=ff0f95b4/u);
+  assert.match(source, /SUCCESSOR_INDEX_GZIP_SHA256=593d6423/u);
+  assert.match(source, /SUCCESSOR_PANEL_GZIP_SHA256=72f2a2b1/u);
+  assert.match(source, /expect_8215_unchanged/u);
+  assert.match(source, /expect_protected_8216_processes_unchanged/u);
+  assert.match(source, /\]\] \|\| return 1/u);
+  assert.match(source, /systemctl restart "\$WEB_SERVICE"/u);
+  assert.doesNotMatch(
+    source,
+    /systemctl\s+(?:restart|stop|start)\s+(?:codex-web-upstream|codex-account-router|codex-web-router-app-server)/u,
   );
 });

@@ -139,18 +139,23 @@ function reasonLabel(reason) {
   return reason === null ? "None" : labels[reason];
 }
 
-function switchDisabledReason(account, status) {
+function switchDisabledReason(account, status, nowMilliseconds) {
   if (status.active_streams > 0) return "Active response in progress";
   if (status.current_route?.account_alias === account.alias) return "Current route";
   if (!account.enabled || account.state === "disabled") return "Account disabled";
   if (account.state === "quota_exhausted") return "Quota exhausted";
-  if (account.state === "cooling_down") return "Account cooling down";
-  if (account.state === "auth_expired") return "Authentication expired";
+  const recoveryEligible =
+    account.cooldown_until !== null && Date.parse(account.cooldown_until) <= nowMilliseconds;
+  if (account.state === "cooling_down" && !recoveryEligible) return "Account cooling down";
+  if (account.state === "auth_expired" && !recoveryEligible) return "Authentication expired";
   if (account.state === "half_open") return "Account is probing recovery";
   return null;
 }
 
-export function deriveRouterAccountPanelModel(value) {
+export function deriveRouterAccountPanelModel(value, nowMilliseconds = Date.now()) {
+  if (!Number.isSafeInteger(nowMilliseconds) || nowMilliseconds < 0) {
+    throw new Error("router panel clock is invalid");
+  }
   const status = readRouterStatus(value);
   const enabled = status.accounts.filter((account) => account.enabled);
   const allExhausted =
@@ -164,7 +169,7 @@ export function deriveRouterAccountPanelModel(value) {
         ? "Manual switching is unavailable while a response is streaming."
         : null,
     accounts: Object.freeze(status.accounts.map((account) => {
-      const disabledReason = switchDisabledReason(account, status);
+      const disabledReason = switchDisabledReason(account, status, nowMilliseconds);
       return Object.freeze({
         alias: account.alias,
         state: account.state,

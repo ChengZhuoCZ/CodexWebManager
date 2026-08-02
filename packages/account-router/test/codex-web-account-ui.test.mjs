@@ -115,6 +115,48 @@ integrationTest("disables every manual switch while a semantic stream is active"
   );
 });
 
+integrationTest("enables an auth recovery switch only after its cooldown boundary", async (context) => {
+  const { buildManualSwitchRequest, deriveRouterAccountPanelModel } = await compilePanel(context);
+  const cooldownUntil = "2026-08-02T06:14:35.460Z";
+  const status = statusFixture({
+    currentRoute: { account_alias: "Fixture B", continuity: "new_backend_session" },
+    accounts: [
+      {
+        alias: "Fixture A",
+        state: "auth_expired",
+        enabled: true,
+        weekly_remaining_ratio: null,
+        snapshot_observed_at: null,
+        cooldown_until: cooldownUntil,
+        last_switch_reason: "auth_expired",
+      },
+      {
+        alias: "Fixture B",
+        state: "healthy",
+        enabled: true,
+        weekly_remaining_ratio: null,
+        snapshot_observed_at: null,
+        cooldown_until: null,
+        last_switch_reason: "manual",
+      },
+    ],
+  });
+
+  const before = deriveRouterAccountPanelModel(
+    status,
+    Date.parse("2026-08-02T06:14:35.459Z"),
+  );
+  assert.equal(before.accounts[0].switchDisabledReason, "Authentication expired");
+
+  const atBoundary = deriveRouterAccountPanelModel(status, Date.parse(cooldownUntil));
+  assert.equal(atBoundary.accounts[0].switchDisabled, false);
+  assert.equal(atBoundary.accounts[0].switchDisabledReason, null);
+  assert.deepEqual(buildManualSwitchRequest(atBoundary.accounts[0]), {
+    account_alias: "Fixture A",
+    reason: "manual",
+  });
+});
+
 integrationTest("represents all enabled accounts exhausted explicitly", async (context) => {
   const { deriveRouterAccountPanelModel } = await compilePanel(context);
   const exhausted = ["Fixture A", "Fixture B"].map((alias) => ({
