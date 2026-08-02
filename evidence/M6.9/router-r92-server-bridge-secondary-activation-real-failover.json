@@ -65,6 +65,9 @@
     "final_route_category": "secondary",
     "final_secondary_state": "healthy",
     "router_ready_with_two_accounts_after": true,
+    "temporary_primary_cooldown_after_injection": true,
+    "cooldown_recovered_without_model_request_or_state_edit": true,
+    "two_account_readiness_recovered_at": "2026-08-02T03:17:10Z",
     "r92_web_and_app_server_unchanged": true,
     "standalone_8215_unchanged": true,
     "semantic_stream_replay_attempted": false,
@@ -88,6 +91,10 @@
     {
       "command": "hash-verified rollback deployment, atomic Secondary activation, protected R92 session/status probes, and one body-discarded real initial HTTP/SSE failover request",
       "result": "R92 deployed; two distinct accounts ready; Primary failed before semantic output; Secondary completed; Primary credential restored; protected 8216 Web/App and standalone 8215 invariants passed"
+    },
+    {
+      "command": "read-only bounded readyz polling after the intentional Primary failure cooldown",
+      "result": "usable_accounts recovered naturally from 1 to 2 at 2026-08-02T03:17:10Z without another model request or a circuit-state edit"
     }
   ],
   "residual_risks": [

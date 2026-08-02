@@ -1807,6 +1807,10 @@
     {
       "command": "hash-verified R92 8216-only deployment, fresh user-authorized Secondary atomic activation, protected session/status bridge probes, and one body-discarded real initial HTTP/SSE failover request",
       "result": "The qualified R23 App Host and R86 account panel server adapters are active together. Two distinct private accounts are ready. A request starting on Primary failed before semantic output, automatically selected Secondary and completed once; Primary was restored byte-for-byte. R92 Web/App and standalone 8215 PID/start/unit invariants passed; no identity, credential, prompt or response body was recorded"
+    },
+    {
+      "command": "read-only bounded readyz polling after the intentional Primary failure cooldown",
+      "result": "usable_accounts recovered naturally from 1 to 2 at 2026-08-02T03:17:10Z without another model request or a circuit-state edit"
     }
   ],
   "evidence": [
@@ -5381,6 +5385,10 @@
       "secondary_response_completed": true,
       "primary_credential_restored": true,
       "final_route_category": "secondary",
+      "temporary_primary_cooldown_after_e2e": true,
+      "two_account_readiness_recovered_at": "2026-08-02T03:17:10Z",
+      "recovery_model_request_sent": false,
+      "recovery_state_edited": false,
       "standalone_8215_unchanged": true,
       "routed_8216_web_and_app_server_unchanged_during_e2e": true,
       "prompt_or_response_body_recorded": false,
@@ -5540,5 +5548,5 @@
     "R92 verifies the account panel and protected JSON bridge server-side. Direct visual verification through the in-app browser control channel remained unavailable because that control channel timed out, so no additional browser-render timing claim is made.",
     "R92 leaves both private account bindings available to every trusted Tailnet principal that can reach the routed 8216 site; Tailnet membership and ACLs remain the authorization boundary."
   ],
-  "updated_at": "2026-08-02T11:07:29+08:00"
+  "updated_at": "2026-08-02T11:17:10+08:00"
 }
