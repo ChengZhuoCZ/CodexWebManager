@@ -353,7 +353,7 @@ milestones:
           - Account switching and cross-account continuity remain outside this task
       - id: M6.9
         title: Qualify routed codex-web automatic failover and response latency
-        status: done
+        status: in_progress
         depends_on: [M2.5, M6.8, G-SECRETS]
         acceptance:
           - The standalone upstream site on port 8215 remains active, unchanged and independent throughout the task

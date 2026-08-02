@@ -1,0 +1,114 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "generated_at": "2026-08-02T17:48:46+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "168369e5a552260358efbfc04dbfd04a6038ba24",
+  "implementation_revision": "a677a97c74a926428974c62e1f6ad524010f6442",
+  "implementation_mode": "clean-room",
+  "result": "done",
+  "incident": {
+    "user_visible_error": "Manual switch was not accepted.",
+    "server_router_healthy": true,
+    "accounts_healthy_before_repair": 2,
+    "active_streams_before_repair": 0,
+    "direct_browser_session_switch_before_repair": "accepted",
+    "stale_panel_current_route": "Secondary",
+    "actual_server_current_route_after_direct_reproduction": "Primary",
+    "stale_panel_error": "Router status is temporarily unavailable."
+  },
+  "root_cause": {
+    "component": "standalone router account panel JSON XMLHttpRequest adapter",
+    "failure": "The adapter set XMLHttpRequest.responseType to json, then read responseText when response was null. Browsers throw InvalidStateError because responseText is inaccessible for the json response type.",
+    "effect": "Initial or periodic status refresh could terminate before rendering, and a successful switch could be reported as rejected when the mandatory post-switch refresh threw the same exception.",
+    "router_scheduler_or_account_eligibility_failure": false
+  },
+  "failure_first": {
+    "command": "node --test packages/account-router/test/codex-web-router-panel-merge.test.mjs",
+    "passed": 15,
+    "failed": 1,
+    "assertion": "A JSON XHR panel must not read request.responseText."
+  },
+  "implementation": {
+    "change": "Use only XMLHttpRequest.response for the explicitly configured json response type; invalid or empty JSON continues to fail closed in the existing schema validation.",
+    "panel_asset": "router-account-panel-9db9de1e.js",
+    "panel_sha256": "9db9de1e0f47a36888ef74fb0a30f5bad52ab31768bd96824131bfca80e21ab2",
+    "web_release": "c3e92f0f-20260802-m69-router-r97-xhr-switch-repair",
+    "deployment_script": "evidence/M6.9/deploy-router-r97-xhr-switch-repair.sh",
+    "deployment_script_sha256": "ebbf1a1a393b20218955405c22603903ae149014ca67a80e005da802c63050bb"
+  },
+  "tests": [
+    {
+      "command": "node --test packages/account-router/test/codex-web-router-panel-merge.test.mjs",
+      "passed": 17,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "command": "node --test packages/account-router/test/codex-web-router-panel-merge.test.mjs packages/account-router/test/codex-web-status-bridge.test.mjs packages/account-router/test/admin-handler.test.mjs",
+      "passed": 29,
+      "failed": 0,
+      "skipped_external_fixture_tests": 5
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r97-xhr-switch-repair.sh; node --check panel and installer; git diff --check",
+      "passed": true
+    },
+    {
+      "command": "scanRepository",
+      "files_scanned": 610,
+      "findings": 0
+    }
+  ],
+  "deployment": {
+    "status": "success",
+    "only_8216_web_restarted": true,
+    "standalone_8215_unchanged": true,
+    "routed_8216_app_server_unchanged": true,
+    "account_router_process_and_release_unchanged": true,
+    "unit_definitions_unchanged": true,
+    "pending_daemon_reload": false,
+    "model_request_sent": false,
+    "account_switch_sent_by_deployment": false
+  },
+  "live_manual_switch": {
+    "path": "fresh trusted 8216 browser session with same-origin CSRF protection",
+    "secondary_accepted": true,
+    "primary_restore_accepted": true,
+    "final_route": "Primary",
+    "final_active_streams": 0,
+    "continuity": "new_backend_session",
+    "model_request_sent": false,
+    "semantic_stream_replay_attempted": false,
+    "seamless_cross_account_continuity_claimed": false,
+    "in_flight_recovery_claimed": false
+  },
+  "sanitized_live_status": {
+    "all_five_services_active": true,
+    "standalone_8215_release": "c3e92f0-20260729-tailnet-startup-r3",
+    "routed_8216_web_release": "c3e92f0f-20260802-m69-router-r97-xhr-switch-repair",
+    "routed_8216_router_release": "codex-account-router-0.2.32-linux-x64",
+    "account_count": 2,
+    "current_route": "Primary",
+    "active_streams": 0
+  },
+  "browser_observation": {
+    "pre_repair_console_exception_observed": true,
+    "exception_type": "InvalidStateError",
+    "exception_source": "router account panel JSON XHR load handler",
+    "post_deployment_dom_read_completed": false,
+    "reason": "After the service restart, Browser Use blocked further direct HTTP page inspection under its URL policy. No alternate browser surface or policy workaround was attempted.",
+    "final_tab_preserved_for_user": true
+  },
+  "r96_baseline": {
+    "status": "pending",
+    "reason": "The requested clean-browser performance baseline was interrupted by this correctness incident. R97 changed the deployed panel bytes, so partial R95 timing observations are not a valid post-repair baseline and were not recorded as R96 results."
+  },
+  "residual_risks": [
+    "The browser-control policy prevented an automated post-deployment DOM assertion on the direct HTTP page; the failure-first XHR test, installed asset hashes and fresh protected session switch roundtrip passed independently.",
+    "The user browser must reload once so the old R95 document and invalidated pre-restart session are replaced by R97.",
+    "Every accepted switch starts a new backend session; no prior session, failed request, semantic stream, in-flight work or running computation is resumed.",
+    "R96 startup profiling remains pending and must use R97 as its new production input if the user resumes it."
+  ]
+}
