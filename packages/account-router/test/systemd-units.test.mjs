@@ -476,6 +476,46 @@ test("PrivateTmp services share attachments only through the explicit private up
   );
 });
 
+test("isolated 8216 opts into persistent uploads without changing standalone services", async () => {
+  const fixtureRoot = path.join(systemdRoot, "8216-fixture");
+  const [web, app] = await Promise.all([
+    fs.readFile(
+      path.join(
+        fixtureRoot,
+        "codex-web-router.service.d",
+        "upload-persistence.conf",
+      ),
+      "utf8",
+    ),
+    fs.readFile(
+      path.join(
+        fixtureRoot,
+        "codex-web-router-app-server.service.d",
+        "upload-persistence.conf",
+      ),
+      "utf8",
+    ),
+  ]);
+  assert.match(
+    web,
+    /^Environment=CODEX_WEB_UPLOAD_ROOT=\/var\/lib\/codex-web-router\/uploads$/m,
+  );
+  assert.match(web, /^Environment=CODEX_WEB_UPLOAD_PERSIST=1$/m);
+  assert.match(
+    web,
+    /^ExecStartPre=\/usr\/bin\/install -d -m 0700 \/var\/lib\/codex-web-router\/uploads$/m,
+  );
+  assert.match(
+    web,
+    /^ReadWritePaths=\/var\/lib\/codex-web-router\/uploads$/m,
+  );
+  assert.match(
+    app,
+    /^ReadOnlyPaths=\/var\/lib\/codex-web-router\/uploads$/m,
+  );
+  assert.doesNotMatch(`${web}\n${app}`, /codex-web-upstream|8215|\/tmp(?:\/|$)/);
+});
+
 test("native systemd workflow provisions the browser credential without exposing its value", async () => {
   const workflow = await fs.readFile(
     path.resolve(repositoryRoot, ".github/workflows/systemd-units.yml"),

@@ -385,6 +385,45 @@ integrationTest("browser upload store streams into a private shared root and cle
   assert.deepEqual(await fs.readdir(store.root), []);
 });
 
+integrationTest("browser upload store preserves opted-in persistent files across session revocation and restart", async (context) => {
+  const prepared = await preparePatchedServer(context);
+  const sharedRoot = await fs.mkdtemp(path.join(os.tmpdir(), "m6-9-persistent-uploads-"));
+  context.after(() => fs.rm(sharedRoot, { recursive: true, force: true }));
+  await fs.chmod(sharedRoot, 0o700);
+  const { BROWSER_UPLOAD_LIMITS, BrowserUploadStore } = await import(
+    pathToFileURL(
+      path.join(
+        prepared.temporaryRoot,
+        "src",
+        "server",
+        "browser-upload-store.js",
+      ),
+    ).href
+  );
+  const environment = {
+    CODEX_WEB_UPLOAD_ROOT: sharedRoot,
+    CODEX_WEB_UPLOAD_PERSIST: "1",
+  };
+  const firstStore = await BrowserUploadStore.create(environment);
+  assert.equal(firstStore.root, await fs.realpath(sharedRoot));
+  const upload = await firstStore.write(
+    "session-a",
+    Readable.from([Buffer.from("persistent fixture")]),
+    "text/plain",
+    BROWSER_UPLOAD_LIMITS.requestBytes,
+  );
+  assert.equal(path.dirname(upload.path), await fs.realpath(sharedRoot));
+  await firstStore.removeSession("session-a");
+  assert.equal(await fs.readFile(upload.path, "utf8"), "persistent fixture");
+  assert.equal(firstStore.find(upload.path, "session-a"), null);
+  await firstStore.close();
+  assert.equal(await fs.readFile(upload.path, "utf8"), "persistent fixture");
+
+  const secondStore = await BrowserUploadStore.create(environment);
+  await secondStore.close();
+  assert.equal(await fs.readFile(upload.path, "utf8"), "persistent fixture");
+});
+
 integrationTest("browser upload store fails closed on unsafe stale instance directories", async (context) => {
   const prepared = await preparePatchedServer(context);
   const sharedRoot = await fs.mkdtemp(path.join(os.tmpdir(), "m6-3-unsafe-stale-"));

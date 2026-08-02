@@ -1,11 +1,13 @@
-import { randomUUID } from "node:crypto";
-import { createWriteStream } from "node:fs";
-import fs from "node:fs/promises";
-import path from "node:path";
-import { Transform, type Readable } from "node:stream";
-import { pipeline } from "node:stream/promises";
+"use strict";
 
-export const BROWSER_UPLOAD_LIMITS = Object.freeze({
+const { randomUUID } = require("node:crypto");
+const { createWriteStream } = require("node:fs");
+const fs = require("node:fs/promises");
+const path = require("node:path");
+const { Transform } = require("node:stream");
+const { pipeline } = require("node:stream/promises");
+
+const BROWSER_UPLOAD_LIMITS = Object.freeze({
   fileBytes: 25 * 1024 * 1024,
   requestBytes: 64 * 1024 * 1024,
   requestFiles: 4,
@@ -15,19 +17,10 @@ export const BROWSER_UPLOAD_LIMITS = Object.freeze({
   globalFiles: 64,
 });
 
-export type BrowserUploadMetadata = {
-  contentType: string;
-  path: string;
-  sessionId: string;
-  size: number;
-};
-
-type Usage = {
-  bytes: number;
-  files: number;
-  reservedBytes: number;
-  reservedFiles: number;
-};
+const COMPLETED_NAME =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u;
+const PARTIAL_NAME =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.part$/u;
 
 class BrowserUploadLimitError extends Error {
   constructor() {
@@ -37,17 +30,13 @@ class BrowserUploadLimitError extends Error {
 }
 
 class ByteLimitTransform extends Transform {
-  bytes = 0;
-
-  constructor(private readonly maximumBytes: number) {
+  constructor(maximumBytes) {
     super();
+    this.maximumBytes = maximumBytes;
+    this.bytes = 0;
   }
 
-  override _transform(
-    chunk: Buffer | string,
-    encoding: BufferEncoding,
-    callback: (error?: Error | null, data?: Buffer | string) => void,
-  ): void {
+  _transform(chunk, encoding, callback) {
     const length = Buffer.isBuffer(chunk)
       ? chunk.length
       : Buffer.byteLength(chunk, encoding);
@@ -60,7 +49,7 @@ class ByteLimitTransform extends Transform {
   }
 }
 
-function emptyUsage(): Usage {
+function emptyUsage() {
   return {
     bytes: 0,
     files: 0,
@@ -69,8 +58,8 @@ function emptyUsage(): Usage {
   };
 }
 
-function safeUploadContentType(contentType: string): string {
-  const normalized = contentType.trim().toLowerCase();
+function safeUploadContentType(contentType) {
+  const normalized = String(contentType ?? "").trim().toLowerCase();
   return new Set([
     "application/pdf",
     "image/gif",
@@ -83,7 +72,7 @@ function safeUploadContentType(contentType: string): string {
     : "application/octet-stream";
 }
 
-function isWithinRoot(root: string, candidate: string): boolean {
+function isWithinRoot(root, candidate) {
   const relative = path.relative(root, candidate);
   return (
     relative !== "" &&
@@ -93,7 +82,7 @@ function isWithinRoot(root: string, candidate: string): boolean {
   );
 }
 
-export function isBrowserUploadLimitError(error: unknown): boolean {
+function isBrowserUploadLimitError(error) {
   if (error instanceof BrowserUploadLimitError) {
     return true;
   }
@@ -107,23 +96,18 @@ export function isBrowserUploadLimitError(error: unknown): boolean {
   ]).has(String(error.code));
 }
 
-export class BrowserUploadStore {
-  readonly root: string;
-
-  private readonly files = new Map<string, BrowserUploadMetadata>();
-  private readonly globalUsage = emptyUsage();
-  private readonly inFlight = new Map<string, Set<AbortController>>();
-  private readonly revokedSessions = new Set<string>();
-  private readonly sessionUsage = new Map<string, Usage>();
-
-  private constructor(
-    root: string,
-    private readonly persistFiles: boolean,
-  ) {
+class BrowserUploadStore {
+  constructor(root, persistFiles) {
     this.root = root;
+    this.persistFiles = persistFiles;
+    this.files = new Map();
+    this.globalUsage = emptyUsage();
+    this.inFlight = new Map();
+    this.revokedSessions = new Set();
+    this.sessionUsage = new Map();
   }
 
-  static async create(environment: NodeJS.ProcessEnv): Promise<BrowserUploadStore> {
+  static async create(environment) {
     const configuredRoot = environment.CODEX_WEB_UPLOAD_ROOT?.trim();
     if (
       !configuredRoot ||
@@ -150,6 +134,7 @@ export class BrowserUploadStore {
     ) {
       throw new Error("codex web upload root is not private");
     }
+
     const persistFiles = environment.CODEX_WEB_UPLOAD_PERSIST?.trim() === "1";
     if (persistFiles) {
       let retainedBytes = 0;
@@ -157,25 +142,17 @@ export class BrowserUploadStore {
       for (const entry of await fs.readdir(sharedRoot, { withFileTypes: true })) {
         const retainedPath = path.join(sharedRoot, entry.name);
         const retainedStat = await fs.lstat(retainedPath);
-        const completedName =
-          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/u.test(
-            entry.name,
-          );
-        const partialName =
-          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.part$/u.test(
-            entry.name,
-          );
         if (
           !entry.isFile() ||
           retainedStat.isSymbolicLink() ||
           (retainedStat.mode & 0o077) !== 0 ||
           (typeof process.getuid === "function" &&
             retainedStat.uid !== process.getuid()) ||
-          (!completedName && !partialName)
+          (!COMPLETED_NAME.test(entry.name) && !PARTIAL_NAME.test(entry.name))
         ) {
           throw new Error("persistent browser upload root contains an unsafe entry");
         }
-        if (partialName) {
+        if (PARTIAL_NAME.test(entry.name)) {
           await fs.rm(retainedPath, { force: true });
           continue;
         }
@@ -193,8 +170,9 @@ export class BrowserUploadStore {
       store.globalUsage.files = retainedFiles;
       return store;
     }
+
     for (const entry of await fs.readdir(sharedRoot, { withFileTypes: true })) {
-      if (!/^codex-web-[A-Za-z0-9]{6}$/.test(entry.name)) {
+      if (!/^codex-web-[A-Za-z0-9]{6}$/u.test(entry.name)) {
         continue;
       }
       const stalePath = path.join(sharedRoot, entry.name);
@@ -210,19 +188,12 @@ export class BrowserUploadStore {
       }
       await fs.rm(stalePath, { recursive: true, force: true });
     }
-    const instanceRoot = await fs.mkdtemp(
-      path.join(sharedRoot, "codex-web-"),
-    );
+    const instanceRoot = await fs.mkdtemp(path.join(sharedRoot, "codex-web-"));
     await fs.chmod(instanceRoot, 0o700);
     return new BrowserUploadStore(instanceRoot, false);
   }
 
-  async write(
-    sessionId: string,
-    source: Readable,
-    contentType: string,
-    maximumBytes: number,
-  ): Promise<BrowserUploadMetadata> {
+  async write(sessionId, source, contentType, maximumBytes) {
     if (this.revokedSessions.has(sessionId)) {
       throw new Error("browser upload session is unavailable");
     }
@@ -238,9 +209,7 @@ export class BrowserUploadStore {
       this.sessionUsage.set(sessionId, session);
     }
     const sessionRemaining = Math.min(
-      BROWSER_UPLOAD_LIMITS.sessionBytes -
-        session.bytes -
-        session.reservedBytes,
+      BROWSER_UPLOAD_LIMITS.sessionBytes - session.bytes - session.reservedBytes,
       BROWSER_UPLOAD_LIMITS.globalBytes -
         this.globalUsage.bytes -
         this.globalUsage.reservedBytes,
@@ -248,8 +217,7 @@ export class BrowserUploadStore {
     const reservationBytes = Math.min(boundedMaximum, sessionRemaining);
     if (
       reservationBytes <= 0 ||
-      session.files + session.reservedFiles >=
-        BROWSER_UPLOAD_LIMITS.sessionFiles ||
+      session.files + session.reservedFiles >= BROWSER_UPLOAD_LIMITS.sessionFiles ||
       this.globalUsage.files + this.globalUsage.reservedFiles >=
         BROWSER_UPLOAD_LIMITS.globalFiles
     ) {
@@ -260,33 +228,25 @@ export class BrowserUploadStore {
     session.reservedFiles += 1;
     this.globalUsage.reservedBytes += reservationBytes;
     this.globalUsage.reservedFiles += 1;
-
     const finalPath = path.join(this.root, randomUUID());
     const partialPath = `${finalPath}.part`;
     const counter = new ByteLimitTransform(reservationBytes);
     const controller = new AbortController();
-    const sessionControllers =
-      this.inFlight.get(sessionId) ?? new Set<AbortController>();
+    const sessionControllers = this.inFlight.get(sessionId) ?? new Set();
     sessionControllers.add(controller);
     this.inFlight.set(sessionId, sessionControllers);
-    let metadata: BrowserUploadMetadata | null = null;
+    let metadata = null;
     try {
       await pipeline(
         source,
         counter,
-        createWriteStream(partialPath, {
-          flags: "wx",
-          mode: 0o600,
-        }),
+        createWriteStream(partialPath, { flags: "wx", mode: 0o600 }),
         { signal: controller.signal },
       );
       if (this.revokedSessions.has(sessionId)) {
         throw new Error("browser upload session is unavailable");
       }
       await fs.rename(partialPath, finalPath);
-      if (this.revokedSessions.has(sessionId)) {
-        throw new Error("browser upload session is unavailable");
-      }
       metadata = {
         contentType: safeUploadContentType(contentType),
         path: finalPath,
@@ -323,7 +283,7 @@ export class BrowserUploadStore {
     }
   }
 
-  find(pathname: string, sessionId: string): BrowserUploadMetadata | null {
+  find(pathname, sessionId) {
     const resolved = path.resolve(pathname);
     if (!isWithinRoot(this.root, resolved)) {
       return null;
@@ -332,8 +292,8 @@ export class BrowserUploadStore {
     return metadata?.sessionId === sessionId ? metadata : null;
   }
 
-  async removePaths(sessionId: string, paths: readonly string[]): Promise<void> {
-    const removals: string[] = [];
+  async removePaths(sessionId, paths) {
+    const removals = [];
     for (const pathname of paths) {
       const metadata = this.files.get(pathname);
       if (metadata?.sessionId !== sessionId) {
@@ -348,7 +308,7 @@ export class BrowserUploadStore {
     );
   }
 
-  async removeSession(sessionId: string): Promise<void> {
+  async removeSession(sessionId) {
     this.revokedSessions.add(sessionId);
     for (const controller of this.inFlight.get(sessionId) ?? []) {
       controller.abort();
@@ -370,7 +330,7 @@ export class BrowserUploadStore {
     }
   }
 
-  async close(): Promise<void> {
+  async close() {
     for (const controllers of this.inFlight.values()) {
       for (const controller of controllers) {
         controller.abort();
@@ -386,13 +346,13 @@ export class BrowserUploadStore {
     }
   }
 
-  private release(metadata: BrowserUploadMetadata): void {
+  release(metadata) {
     this.globalUsage.bytes -= metadata.size;
     this.globalUsage.files -= 1;
     this.releaseSession(metadata);
   }
 
-  private releaseSession(metadata: BrowserUploadMetadata): void {
+  releaseSession(metadata) {
     const session = this.sessionUsage.get(metadata.sessionId);
     if (session === undefined) {
       return;
@@ -409,3 +369,9 @@ export class BrowserUploadStore {
     }
   }
 }
+
+module.exports = {
+  BROWSER_UPLOAD_LIMITS,
+  BrowserUploadStore,
+  isBrowserUploadLimitError,
+};
