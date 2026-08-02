@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "generated_at": "2026-08-03T00:00:06+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "f3e5b2d189d1ece97a1f7ef9c6f27e6884b60f92",
+  "implementation_revision": "a126225f7a8522d60dc0f2bcdbed7da219c9bb71",
+  "implementation_mode": "clean-room",
+  "result": "done",
+  "implementation": {
+    "active_web_release": "c3e92f0f-20260802-m69-router-r105-native-usage-dom",
+    "native_usage_badge_tracks_current_route": true,
+    "native_weekly_value_tracks_current_route": true,
+    "native_weekly_reset_tracks_current_route": true,
+    "native_refresh_time_tracks_current_route": true,
+    "fixed_app_host_identity_unchanged": true,
+    "cross_account_continuity_claimed": false
+  },
+  "tests": [
+    {
+      "command": "<bundled-node> --test packages/account-router/test/codex-web-router-panel-merge.test.mjs",
+      "passed": 27,
+      "failed": 0
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r104-native-usage-sync.sh && bash -n evidence/M6.9/deploy-router-r105-native-usage-dom.sh && git diff --check",
+      "result": "pass"
+    },
+    {
+      "command": "hash-verified R104 and R105 8216 Web-only deployments",
+      "result": "pass",
+      "only_8216_web_restarted": true,
+      "model_request_sent": false,
+      "deployment_account_switch_sent": false
+    },
+    {
+      "command": "in-app browser native Usage remaining DOM and route-switch verification",
+      "result": "pass",
+      "secondary_observation": "Weekly 100%; reset unavailable; refreshed 08-02 09:00 UTC",
+      "primary_observation": "Weekly 44%; reset 08-08 04:34 UTC; refreshed 08-02 15:54 UTC",
+      "final_observation": "Secondary",
+      "links_inside_router_usage_sync": 0,
+      "native_learn_more_items": 1,
+      "manual_primary_switch_requests_sent": 1,
+      "manual_secondary_restore_requests_sent": 0,
+      "model_request_sent": false
+    }
+  ],
+  "deployment": {
+    "status": "success",
+    "only_8216_web_restarted": true,
+    "standalone_8215_unchanged": true,
+    "routed_8216_app_server_unchanged": true,
+    "account_router_process_and_release_unchanged": true,
+    "final_route_category": "secondary",
+    "cross_account_e2e_verified": false
+  },
+  "final_services": {
+    "codex_web_router_pid": 4147879,
+    "codex_web_router_app_server_pid": 3791302,
+    "account_router_pid": 3997152,
+    "standalone_8215_web_pid": 3664557,
+    "standalone_8215_app_server_pid": 3664550,
+    "all_active": true
+  },
+  "r96_baseline": {
+    "status": "pending",
+    "resume_input_release": "c3e92f0f-20260802-m69-router-r105-native-usage-dom"
+  },
+  "residual_risks": [
+    "The native Usage adapter depends on the current upstream English Usage remaining label and its Weekly DOM structure; a future upstream localization or menu rewrite must fail closed or receive a new bounded adapter.",
+    "The fixed App Server login identity remains unchanged. The displayed route alias describes the model router route and does not impersonate a different signed-in profile.",
+    "The verification sent one manual Secondary-to-Primary route request without a model request. The route was observed back on Secondary before an explicit restore request was sent; the UI synchronized both observed states, but the independent actor or scheduler transition was not attributed.",
+    "A manual switch starts a new backend session. It does not migrate, replay, resume or restore a prior request, stream, backend session, in-flight work or computation.",
+    "R96 clean-browser startup profiling remains pending and must use R105."
+  ]
+}

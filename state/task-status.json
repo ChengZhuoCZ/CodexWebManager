@@ -81,12 +81,13 @@
     "r101_primary_quota_refresh": "86bee108d1f2a8c60ce7a5e536fa87f9e13e58a9",
     "r102_native_menu_size": "d96d0670faf77adde8d72d25be970dd7536c41a2",
     "r103_weekly_reset_time": "d394a3527d5efc897ee22696ecee0290b812a20d",
+    "r105_native_usage_sync": "f3e5b2d189d1ece97a1f7ef9c6f27e6884b60f92",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "885e95dd2b90e13ea8ed6fa747837d142d7133bb",
+  "output_revision": "a126225f7a8522d60dc0f2bcdbed7da219c9bb71",
   "workspace_branch": "codex/m6-9-8216-r85-handoff",
   "workspace_input_revision": "168369e5a552260358efbfc04dbfd04a6038ba24",
   "depends_on": [
@@ -1889,6 +1890,14 @@
     {
       "command": "R103 profile-menu regression, pinned codex-web TypeScript compile, live read-only Weekly reset-time bridge fixture and hash-verified Web-only deployment",
       "result": "The profile-menu suite passed 24/24. The pinned bridge compiled and returned sanitized Weekly remaining, reset and observation timestamps without a model request. R103 deployed successfully; only routed 8216 Web restarted, while standalone 8215, routed App Server and account-router process/release remained unchanged."
+    },
+    {
+      "command": "R104/R105 native Usage sync regression, deployment syntax and immutable Web-only releases",
+      "result": "The final profile-menu suite passed 27/27. Both deployment scripts passed bash syntax and hash guards. R104 exposed the route-aware data but browser inspection found inherited Learn more link semantics; R105 corrected the leaf Weekly DOM boundary. Only routed 8216 Web restarted for each release; 8215, routed App Server and account-router stayed unchanged."
+    },
+    {
+      "command": "in-app browser R105 Secondary/Primary native Usage synchronization verification",
+      "result": "The native Usage badge, Weekly value, reset and refreshed time followed both observed routes. Secondary showed 100% with unavailable reset, Primary showed 44% with its reset and refreshed timestamps, the sync container had zero links, and the original Learn more item remained. One Primary manual route request and zero model requests were sent; final observed route was Secondary."
     }
   ],
   "evidence": [
@@ -2155,7 +2164,10 @@
     "evidence/M6.9/deploy-router-r102-native-size.sh",
     "evidence/M6.9/router-r102-native-size-primary-quota.json",
     "evidence/M6.9/deploy-router-r103-reset-time.sh",
-    "evidence/M6.9/router-r103-weekly-reset-time.json"
+    "evidence/M6.9/router-r103-weekly-reset-time.json",
+    "evidence/M6.9/deploy-router-r104-native-usage-sync.sh",
+    "evidence/M6.9/deploy-router-r105-native-usage-dom.sh",
+    "evidence/M6.9/router-r105-native-usage-sync.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -5703,6 +5715,33 @@
       "cross_account_continuity_claimed": false,
       "r96_clean_browser_baseline_input": "c3e92f0f-20260802-m69-router-r103-reset-time",
       "status": "done"
+    },
+    "r105_native_usage_sync": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "f3e5b2d189d1ece97a1f7ef9c6f27e6884b60f92",
+      "implementation_revision": "a126225f7a8522d60dc0f2bcdbed7da219c9bb71",
+      "evidence": "evidence/M6.9/router-r105-native-usage-sync.json",
+      "active_web_release": "c3e92f0f-20260802-m69-router-r105-native-usage-dom",
+      "active_router_release": "codex-account-router-0.2.32-linux-x64",
+      "native_usage_badge_tracks_current_route": true,
+      "native_weekly_value_tracks_current_route": true,
+      "native_weekly_reset_tracks_current_route": true,
+      "native_refresh_time_tracks_current_route": true,
+      "links_inside_router_usage_sync": 0,
+      "native_learn_more_items": 1,
+      "fixed_app_host_identity_unchanged": true,
+      "only_routed_8216_web_restarted": true,
+      "standalone_8215_unchanged": true,
+      "routed_8216_app_server_unchanged": true,
+      "account_router_process_and_release_unchanged": true,
+      "final_route_category": "secondary",
+      "model_request_sent": false,
+      "semantic_stream_replay_attempted": false,
+      "cross_account_e2e_verified": false,
+      "cross_account_continuity_claimed": false,
+      "r96_clean_browser_baseline_input": "c3e92f0f-20260802-m69-router-r105-native-usage-dom",
+      "status": "done"
     }
   },
   "blockers": [],
@@ -5864,7 +5903,7 @@
     "R97's manual switch roundtrip ends on Primary and proves only a new backend-session route change. It does not resume any prior request, session, stream, in-flight work or computation.",
     "R97's strict authenticated HTTP metadata gate rejected the live browser switch request with HTTP 403. R98 keeps the session cookie and CSRF token mandatory, rejects explicit conflicting Origin or Sec-Fetch-Site values, and accepts an omitted optional metadata header only for the already-authenticated HTTP boundary.",
     "R98's manual switch roundtrip ends on Primary and proves only a new backend-session route change. It does not resume any prior request, session, stream, in-flight work or computation.",
-    "R96 performance profiling remains pending because the correctness and profile-menu work changed the deployed browser surface. Any resumed baseline must use R103 as its input and must not merge partial R95, R100 or R102 observations.",
+    "R96 performance profiling remains pending because the correctness and profile-menu work changed the deployed browser surface. Any resumed baseline must use R105 as its input and must not merge partial R95, R100, R102, R103 or R104 observations.",
     "R100 exposes only validated router aliases in the upstream profile control and profile menu. It does not replace or impersonate the fixed App Server login identity.",
     "R100's profile-menu locator uses stable English upstream menu labels. A future upstream localization or menu rewrite must fail closed or receive a new bounded adapter.",
     "R100's manual switch roundtrip restored the deployment-entry Secondary route and proves only a new backend-session route change. It does not resume any prior request, session, stream, in-flight work or computation.",
@@ -5872,7 +5911,11 @@
     "R101's display snapshot does not mutate account-router scheduler state. Scheduler quota state remains observation-driven by upstream codex.rate_limits events, while the existing bounded pre-semantic failure path remains responsible for failover.",
     "R101's configured Primary alias must remain aligned with the fixed isolated App Server credential used by 8216.",
     "R102 fits the account surface into the existing upstream profile-menu width, but its locator still depends on stable English upstream menu labels and requires a bounded adapter if upstream localization or structure changes.",
-    "R103 exposes the provider-reported Weekly reset timestamp as read-only display metadata. It does not guarantee the provider will refresh at that instant and it does not alter cooldown, scheduler or routing state."
+    "R103 exposes the provider-reported Weekly reset timestamp as read-only display metadata. It does not guarantee the provider will refresh at that instant and it does not alter cooldown, scheduler or routing state.",
+    "R105's native Usage adapter depends on the current upstream English Usage remaining label and its Weekly DOM structure; a future upstream localization or menu rewrite must fail closed or receive a new bounded adapter.",
+    "R105 leaves the fixed App Server login identity unchanged. The displayed route alias describes the model router route and does not impersonate a different signed-in profile.",
+    "The R105 browser verification sent one manual Secondary-to-Primary route request without a model request. The route was observed back on Secondary before an explicit restore request was sent; the UI synchronized both observed states, but the independent actor or scheduler transition was not attributed.",
+    "An R105 manual switch starts a new backend session. It does not migrate, replay, resume or restore a prior request, stream, backend session, in-flight work or computation."
   ],
-  "updated_at": "2026-08-02T22:03:26+08:00"
+  "updated_at": "2026-08-03T00:00:06+08:00"
 }
