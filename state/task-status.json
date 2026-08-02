@@ -80,12 +80,13 @@
     "r100_profile_menu": "6e96f1ddf06bbf5fc526c159628b48552faf58d5",
     "r101_primary_quota_refresh": "86bee108d1f2a8c60ce7a5e536fa87f9e13e58a9",
     "r102_native_menu_size": "d96d0670faf77adde8d72d25be970dd7536c41a2",
+    "r103_weekly_reset_time": "d394a3527d5efc897ee22696ecee0290b812a20d",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "e44628cf624aaf4f5ee72b1d1cc8591d92b8e539",
+  "output_revision": "885e95dd2b90e13ea8ed6fa747837d142d7133bb",
   "workspace_branch": "codex/m6-9-8216-r85-handoff",
   "workspace_input_revision": "168369e5a552260358efbfc04dbfd04a6038ba24",
   "depends_on": [
@@ -1884,6 +1885,10 @@
     {
       "command": "in-app browser R102 profile-menu visual, dimension and manual quota-refresh verification",
       "result": "The document reached complete with router panel stage ready. The 251 px account section inherited the 259 px upstream menu, used min-width 0 and max-width 100%, displayed two accounts with Weekly, Cooldown and minute-resolution refresh timestamps, and a manual read-only refresh advanced Primary's timestamp."
+    },
+    {
+      "command": "R103 profile-menu regression, pinned codex-web TypeScript compile, live read-only Weekly reset-time bridge fixture and hash-verified Web-only deployment",
+      "result": "The profile-menu suite passed 24/24. The pinned bridge compiled and returned sanitized Weekly remaining, reset and observation timestamps without a model request. R103 deployed successfully; only routed 8216 Web restarted, while standalone 8215, routed App Server and account-router process/release remained unchanged."
     }
   ],
   "evidence": [
@@ -2148,7 +2153,9 @@
     "evidence/M6.9/router-r100-profile-menu.json",
     "evidence/M6.9/deploy-router-r101-quota-menu.sh",
     "evidence/M6.9/deploy-router-r102-native-size.sh",
-    "evidence/M6.9/router-r102-native-size-primary-quota.json"
+    "evidence/M6.9/router-r102-native-size-primary-quota.json",
+    "evidence/M6.9/deploy-router-r103-reset-time.sh",
+    "evidence/M6.9/router-r103-weekly-reset-time.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -5671,6 +5678,31 @@
       "cross_account_continuity_claimed": false,
       "r96_clean_browser_baseline_input": "c3e92f0f-20260802-m69-router-r102-native-size",
       "status": "done"
+    },
+    "r103_weekly_reset_time": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "d394a3527d5efc897ee22696ecee0290b812a20d",
+      "implementation_revision": "885e95dd2b90e13ea8ed6fa747837d142d7133bb",
+      "evidence": "evidence/M6.9/router-r103-weekly-reset-time.json",
+      "active_web_release": "c3e92f0f-20260802-m69-router-r103-reset-time",
+      "active_router_release": "codex-account-router-0.2.32-linux-x64",
+      "primary_weekly_quota_visible": true,
+      "weekly_reset_time_visible": true,
+      "weekly_observation_time_visible": true,
+      "full_quota_response_exposed": false,
+      "only_routed_8216_web_restarted": true,
+      "standalone_8215_unchanged": true,
+      "routed_8216_app_server_unchanged": true,
+      "account_router_process_and_release_unchanged": true,
+      "final_route_category": "secondary",
+      "model_request_sent": false,
+      "account_switch_sent": false,
+      "semantic_stream_replay_attempted": false,
+      "cross_account_e2e_verified": false,
+      "cross_account_continuity_claimed": false,
+      "r96_clean_browser_baseline_input": "c3e92f0f-20260802-m69-router-r103-reset-time",
+      "status": "done"
     }
   },
   "blockers": [],
@@ -5832,14 +5864,15 @@
     "R97's manual switch roundtrip ends on Primary and proves only a new backend-session route change. It does not resume any prior request, session, stream, in-flight work or computation.",
     "R97's strict authenticated HTTP metadata gate rejected the live browser switch request with HTTP 403. R98 keeps the session cookie and CSRF token mandatory, rejects explicit conflicting Origin or Sec-Fetch-Site values, and accepts an omitted optional metadata header only for the already-authenticated HTTP boundary.",
     "R98's manual switch roundtrip ends on Primary and proves only a new backend-session route change. It does not resume any prior request, session, stream, in-flight work or computation.",
-    "R96 performance profiling remains pending because the correctness and profile-menu work changed the deployed browser surface. Any resumed baseline must use R102 as its input and must not merge partial R95 or R100 observations.",
+    "R96 performance profiling remains pending because the correctness and profile-menu work changed the deployed browser surface. Any resumed baseline must use R103 as its input and must not merge partial R95, R100 or R102 observations.",
     "R100 exposes only validated router aliases in the upstream profile control and profile menu. It does not replace or impersonate the fixed App Server login identity.",
     "R100's profile-menu locator uses stable English upstream menu labels. A future upstream localization or menu rewrite must fail closed or receive a new bounded adapter.",
     "R100's manual switch roundtrip restored the deployment-entry Secondary route and proves only a new backend-session route change. It does not resume any prior request, session, stream, in-flight work or computation.",
     "R101's read-only Primary Weekly snapshot is cached only in the 8216 Web process. Browser startup or the Refresh control repopulates it after a Web restart; an unavailable App Server socket fails closed after the bounded deadline without fabricating a value.",
     "R101's display snapshot does not mutate account-router scheduler state. Scheduler quota state remains observation-driven by upstream codex.rate_limits events, while the existing bounded pre-semantic failure path remains responsible for failover.",
     "R101's configured Primary alias must remain aligned with the fixed isolated App Server credential used by 8216.",
-    "R102 fits the account surface into the existing upstream profile-menu width, but its locator still depends on stable English upstream menu labels and requires a bounded adapter if upstream localization or structure changes."
+    "R102 fits the account surface into the existing upstream profile-menu width, but its locator still depends on stable English upstream menu labels and requires a bounded adapter if upstream localization or structure changes.",
+    "R103 exposes the provider-reported Weekly reset timestamp as read-only display metadata. It does not guarantee the provider will refresh at that instant and it does not alter cooldown, scheduler or routing state."
   ],
-  "updated_at": "2026-08-02T21:31:20+08:00"
+  "updated_at": "2026-08-02T22:03:26+08:00"
 }

@@ -1,0 +1,67 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "generated_at": "2026-08-02T22:03:26+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "d394a35",
+  "implementation_revision": "885e95dd2b90e13ea8ed6fa747837d142d7133bb",
+  "implementation_mode": "clean-room",
+  "result": "done",
+  "implementation": {
+    "active_web_release": "c3e92f0f-20260802-m69-router-r103-reset-time",
+    "quota_rpc": "account/rateLimits/read",
+    "weekly_remaining_ratio_exposed": true,
+    "weekly_reset_timestamp_exposed": true,
+    "snapshot_observed_timestamp_exposed": true,
+    "full_quota_response_exposed": false,
+    "model_request_sent": false,
+    "account_switch_sent": false
+  },
+  "tests": [
+    {
+      "command": "<bundled-node> --test packages/account-router/test/codex-web-router-panel-merge.test.mjs",
+      "passed": 24,
+      "failed": 0
+    },
+    {
+      "command": "pinned codex-web tsconfig compile and live read-only reset-time bridge fixture",
+      "result": "pass",
+      "weekly_quota_available": true,
+      "weekly_reset_time_available": true,
+      "observation_time_available": true,
+      "model_request_sent": false
+    },
+    {
+      "command": "node --check panel and compiled bridge; bash -n R103 deploy; git diff --check",
+      "result": "pass"
+    }
+  ],
+  "deployment": {
+    "status": "success",
+    "only_8216_web_restarted": true,
+    "standalone_8215_unchanged": true,
+    "routed_8216_app_server_unchanged": true,
+    "account_router_process_and_release_unchanged": true,
+    "final_route_category": "secondary",
+    "active_streams": 0,
+    "cross_account_e2e_verified": false
+  },
+  "final_services": {
+    "codex_web_router_pid": 4117403,
+    "codex_web_router_app_server_pid": 3791302,
+    "account_router_pid": 3997152,
+    "standalone_8215_web_pid": 3664557,
+    "standalone_8215_app_server_pid": 3664550
+  },
+  "r96_baseline": {
+    "status": "pending",
+    "resume_input_release": "c3e92f0f-20260802-m69-router-r103-reset-time"
+  },
+  "residual_risks": [
+    "The read-only display snapshot is cached in the 8216 Web process and is repopulated by startup or manual Refresh after a Web restart.",
+    "The display snapshot does not mutate account-router scheduler state; scheduler quota state remains observation-driven by upstream codex.rate_limits events.",
+    "Cross-account continuity remains unverified and is not claimed.",
+    "R96 clean-browser startup profiling remains pending and must use R103."
+  ]
+}
