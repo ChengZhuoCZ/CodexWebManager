@@ -1,0 +1,119 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "evidence_id": "R106_ACCOUNT_MANAGEMENT_DEPLOYMENT",
+  "generated_at": "2026-08-03T01:52:28+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "8dd84002ede2b57c61895713092ec063bf1ea2b1",
+  "account_surface_revision": "3fe0caad2c89e7dd9e7a6823211ef7c679f13a5e",
+  "implementation_revision": "1e343a5c7205d4424b8a9a5283574f3ee5972f54",
+  "implementation_mode": "clean-room",
+  "approval": {
+    "explicit": true,
+    "scope": "Install a persistent socket-activated root helper on 8216 that can only mutate the account-router catalog and credential store and restart account-router; it must not execute arbitrary root commands or affect 8215."
+  },
+  "deployment": {
+    "status": "success",
+    "target": "100.95.50.98:8216",
+    "web_release": "c3e92f0f-20260803-m69-router-r106-account-management",
+    "router_release": "codex-account-router-0.2.33-linux-x64",
+    "deployment_script_sha256": "cdcf8a6b3bb10f798e976cda998d302b363f17ad0e8298972f39399c9da08b9a",
+    "router_archive_sha256": "081cf1a659e9618007cea4dbb020256450a36f1ba54f9d3a440c0f23b24d21f0",
+    "socket_activated": true,
+    "socket_enabled": true,
+    "socket_path": "/run/codex-router-account-manager.sock",
+    "socket_acl": "root:codex8216:660",
+    "protocol_operations": [
+      "enroll",
+      "remove"
+    ],
+    "arbitrary_command_execution": false,
+    "fixed_restart_target": "codex-account-router.service",
+    "account_catalog_path": "/etc/codex-account-router/accounts.json",
+    "credential_store_path": "/etc/credstore",
+    "source_auth_root": "/var/lib/codex-web-router-account-auth",
+    "account_store_unchanged_during_qualification": true,
+    "private_credential_inventories_unchanged_during_qualification": true,
+    "current_route_after_deployment": "Primary"
+  },
+  "installed_unit_evidence": {
+    "web_fragment_sha256": "1daaa9b821875713d72dd61eedf6639258aa1ed9e362df058e7ca1ee1fc8e328",
+    "manager_service_fragment_sha256": "9da7880a383eaa5f4057eb523a267fda4b6aafa0a0de0361745a608ac7a1671b",
+    "manager_socket_fragment_sha256": "29aecb37ec655eb4c3499f400f48bc80944ccfd02ef317cf4832e449046fd53e",
+    "web_pid_after": 4191224,
+    "router_pid_after": 4191212,
+    "manager_pid_after": 4191355,
+    "routed_app_server_pid_after": 3791302
+  },
+  "standalone_8215_invariant": {
+    "unchanged": true,
+    "web_pid": 3664557,
+    "app_server_pid": 3664550,
+    "web_effective_unit_sha256": "a8c8ceab5b354698c288d1e7db500f059f89c5027579ff9ea49bf5cc788bcb0c",
+    "app_server_effective_unit_sha256": "44037ff3c2d9fafef1f51fda6cc83a64edb2f60472d0cd43b737dfbe2008abc3"
+  },
+  "qualification": [
+    {
+      "command": "<bundled-node> --check manager/installers/compiled module; <bundled-node> --test account-manager-protocol account-enrollment systemd-units r106-account-management-install linux-release; bash -n deployment script; git diff --check",
+      "result": "35 passed, 0 failed, 1 installed-native systemd-only skip; all syntax and diff checks passed in the approved host-command environment."
+    },
+    {
+      "command": "loadSecurityAuditPolicy plus scanRepository",
+      "result": "646 repository files scanned; 0 findings."
+    },
+    {
+      "command": "hash-verified R106 rollback-capable deployment and non-mutating protocol/readiness probes",
+      "result": "Deployment succeeded; helper socket and service were active; the malformed fixed-protocol probe returned only account_operation_failed; the account catalog and both private credential inventories remained unchanged."
+    },
+    {
+      "command": "in-app browser load of http://100.95.50.98:8216/?v=r106-account-management",
+      "result": "The signed-in Codex composer and Route: Primary were visible. Profile-menu DOM extraction timed out while optional Statsig requests retried, so no complete browser-rendered add/delete assertion is claimed."
+    }
+  ],
+  "failed_attempts_and_rollback": [
+    {
+      "stage": "preflight_systemd_verify",
+      "result": "failed and rolled back before installing a release or unit",
+      "cause": "systemd verification ran before the new router binary existed; an unset-snapshot rollback defect unnecessarily restarted the isolated 8216 router and Web services",
+      "credential_store_changed": false,
+      "standalone_8215_changed": false
+    },
+    {
+      "stage": "socket_activation_parent_directory",
+      "result": "failed and rolled back to R105 and router 0.2.32",
+      "cause": "the first socket path used a parent directory that was not traversable by codex8216",
+      "credential_store_changed": false,
+      "standalone_8215_changed": false
+    },
+    {
+      "stage": "symlinked_manager_entrypoint",
+      "result": "failed and rolled back to R105 and router 0.2.32",
+      "cause": "direct-entrypoint detection did not initially resolve the current-release symlink",
+      "credential_store_changed": false,
+      "standalone_8215_changed": false
+    }
+  ],
+  "route_incident": {
+    "observed": true,
+    "description": "The first failed preflight's unnecessary isolated-router restart caused the existing startup selection policy to choose Primary instead of the previously observed Secondary route. No switch endpoint, account operation or model request was used. The corrected deployment snapshots and preserves whichever valid route is current."
+  },
+  "negative_evidence": {
+    "account_enrolled": false,
+    "account_removed": false,
+    "account_switch_sent": false,
+    "model_request_sent": false,
+    "semantic_stream_replay_attempted": false,
+    "credential_or_identity_logged": false,
+    "full_quota_response_logged": false,
+    "cross_account_continuity_claimed": false,
+    "in_flight_recovery_claimed": false
+  },
+  "residual_risks": [
+    "The valid browser-driven device-code enrollment and delete paths have not been executed against real credentials after deployment.",
+    "The in-app browser confirmed the signed-in composer and current route, but optional Statsig timeouts prevented a complete automated profile-menu DOM capture.",
+    "The helper is intentionally root-run. Its client surface is limited to a root-owned Unix socket, strict JSON enroll/remove requests, private same-owner source files, fixed catalog/store paths and a fixed account-router restart; this boundary must be re-audited if any path, group or protocol changes.",
+    "Account switching starts a new backend session. Cross-account seamless continuity, request replay and in-flight computation recovery remain unverified and are not claimed."
+  ],
+  "task_status": "in_progress"
+}
