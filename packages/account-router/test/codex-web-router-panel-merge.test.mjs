@@ -38,9 +38,16 @@ import {
   R103_RESET_TIME_CONTRACT,
 } from "../../../integrations/codex-web/replace-r103-router-reset-time.mjs";
 import {
+  R104_NATIVE_USAGE_SYNC_CONTRACT,
+} from "../../../integrations/codex-web/replace-r104-router-native-usage-sync.mjs";
+import {
+  R105_NATIVE_USAGE_DOM_CONTRACT,
+} from "../../../integrations/codex-web/replace-r105-router-native-usage-dom.mjs";
+import {
   buildManualSwitchRequest as buildStandaloneSwitchRequest,
   currentRouteIdentity as currentStandaloneRouteIdentity,
   deriveRouterAccountPanelModel as deriveStandalonePanelModel,
+  nativeUsagePresentation as standaloneNativeUsagePresentation,
 } from "../../../integrations/codex-web/router-account-panel-standalone.js";
 
 const INDEX = "scratch/asar/webview/index.html";
@@ -93,6 +100,14 @@ const R102_DEPLOY = path.resolve(
 const R103_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r103-reset-time.sh",
+);
+const R104_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r104-native-usage-sync.sh",
+);
+const R105_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r105-native-usage-dom.sh",
 );
 
 function sha256(value) {
@@ -303,6 +318,54 @@ test("standalone panel exposes only a sanitized current route in the profile men
   assert.match(source, /MutationObserver/u);
   assert.match(source, /profileMenuObserver\?\.disconnect/u);
   assert.doesNotMatch(source, /position:\s*"fixed"/u);
+});
+
+test("native Usage remaining presentation follows the sanitized current router route", () => {
+  const secondary = standaloneNativeUsagePresentation({
+    accounts: [
+      {
+        alias: "Primary",
+        isCurrent: false,
+        weeklyLabel: "45% remaining",
+        weeklyResetDetail: "Resets 2026-08-08 04:34 UTC",
+        weeklyDetail: "Refreshed 2026-08-02 14:02 UTC",
+        credential_ref: "must-not-pass",
+      },
+      {
+        alias: "Secondary",
+        isCurrent: true,
+        weeklyLabel: "100% remaining",
+        weeklyResetDetail: "Resets: unavailable",
+        weeklyDetail: "Refreshed 2026-08-02 09:00 UTC",
+        credential_ref: "must-not-pass",
+      },
+    ],
+  });
+  assert.deepEqual(secondary, {
+    alias: "Secondary",
+    badgeLabel: "Secondary",
+    weeklyLabel: "Weekly · Secondary",
+    weeklyValue: "100%",
+    resetValue: "Reset unavailable",
+    refreshedValue: "08-02 09:00 UTC",
+  });
+  assert.doesNotMatch(JSON.stringify(secondary), /credential_ref|must-not-pass/u);
+
+  const primary = standaloneNativeUsagePresentation({
+    accounts: [
+      {
+        alias: "Primary",
+        isCurrent: true,
+        weeklyLabel: "45% remaining",
+        weeklyResetDetail: "Resets 2026-08-08 04:34 UTC",
+        weeklyDetail: "Refreshed 2026-08-02 14:02 UTC",
+      },
+    ],
+  });
+  assert.equal(primary?.weeklyLabel, "Weekly · Primary");
+  assert.equal(primary?.weeklyValue, "45%");
+  assert.equal(primary?.resetValue, "Reset 08-08 04:34 UTC");
+  assert.equal(primary?.refreshedValue, "08-02 14:02 UTC");
 });
 
 test("profile menu quota UI inherits native width and exposes a bounded read-only refresh", async () => {
@@ -826,4 +889,58 @@ test("R103 exposes Weekly reset and observation times without model traffic", as
     source,
     /systemctl\s+(?:restart|stop|start)\s+(?:codex-web-upstream|codex-web-upstream-app-server|codex-web-router-app-server|codex-account-router)/u,
   );
+});
+
+test("R104 synchronizes native Usage remaining with the current router route only", async () => {
+  assert.equal(
+    R104_NATIVE_USAGE_SYNC_CONTRACT.predecessor_panel_sha256,
+    R103_RESET_TIME_CONTRACT.replacement_panel_sha256,
+  );
+  assert.equal(
+    R104_NATIVE_USAGE_SYNC_CONTRACT.replacement_panel_sha256,
+    "f9d5a01a6b5c535c3d2f3bcb047464eed7f6d3a9da81977aa2356276de0be3fc",
+  );
+  const panel = await fs.readFile(STANDALONE_PANEL, "utf8");
+  assert.match(panel, /data-codex-router-native-usage-sync/u);
+  assert.match(panel, /Current model route/u);
+  assert.match(panel, /Weekly · \$\{alias\}/u);
+  assert.match(panel, /Refreshed/u);
+  assert.match(panel, /restoreNativeUsageSurfaces/u);
+  const source = await fs.readFile(R104_DEPLOY, "utf8");
+  assert.match(source, /router-r103-reset-time/u);
+  assert.match(source, /router-r104-native-usage-sync/u);
+  assert.match(source, /router-account-panel-f9d5a01a\.js/u);
+  assert.match(source, /native_usage_tracks_current_router_route=true/u);
+  assert.match(source, /fixed_app_host_identity_unchanged=true/u);
+  assert.match(source, /only_8216_web_restarted=true/u);
+  assert.match(source, /model_request_sent=false/u);
+  assert.match(source, /account_switch_sent=false/u);
+  assert.doesNotMatch(
+    source,
+    /systemctl\s+(?:restart|stop|start)\s+(?:codex-web-upstream|codex-web-upstream-app-server|codex-web-router-app-server|codex-account-router)/u,
+  );
+});
+
+test("R105 targets the leaf Weekly label and preserves native Learn more semantics", async () => {
+  assert.equal(
+    R105_NATIVE_USAGE_DOM_CONTRACT.predecessor_panel_sha256,
+    R104_NATIVE_USAGE_SYNC_CONTRACT.replacement_panel_sha256,
+  );
+  assert.equal(
+    R105_NATIVE_USAGE_DOM_CONTRACT.replacement_panel_sha256,
+    "673d9a21fce3b64cea49605958d0d92fd7c4d1974f5f1e3415126a2b6d1f6214",
+  );
+  const panel = await fs.readFile(STANDALONE_PANEL, "utf8");
+  assert.match(
+    panel,
+    /node\.children\.length === 0 && node\.textContent\?\.trim\(\) === "Weekly"/u,
+  );
+  const source = await fs.readFile(R105_DEPLOY, "utf8");
+  assert.match(source, /router-r104-native-usage-sync/u);
+  assert.match(source, /router-r105-native-usage-dom/u);
+  assert.match(source, /router-account-panel-673d9a21\.js/u);
+  assert.match(source, /native_usage_values_are_not_help_links=true/u);
+  assert.match(source, /only_8216_web_restarted=true/u);
+  assert.match(source, /model_request_sent=false/u);
+  assert.match(source, /account_switch_sent=false/u);
 });

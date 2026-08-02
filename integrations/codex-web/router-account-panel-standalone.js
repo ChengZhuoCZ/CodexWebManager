@@ -5,6 +5,9 @@ const QUOTA_REFRESH_PATH = "/__backend/codex-router/quota-refresh";
 const SESSION_PATH = "/__backend/session";
 const MENU_SECTION_ID = "codex-router-account-menu-section";
 const PROFILE_ROUTE_ATTRIBUTE = "data-codex-router-current-route";
+const NATIVE_USAGE_BADGE_ATTRIBUTE = "data-codex-router-native-usage-badge";
+const NATIVE_USAGE_SYNC_ATTRIBUTE = "data-codex-router-native-usage-sync";
+const NATIVE_USAGE_ORIGINAL_ATTRIBUTE = "data-codex-router-native-usage-original";
 const PROFILE_BUTTON_SELECTOR = 'button[aria-label="Open profile menu"]';
 const PROFILE_MENU_ITEM_SELECTOR = '[role="menuitem"]';
 const POLL_INTERVAL_MS = 30_000;
@@ -261,6 +264,45 @@ export function currentRouteIdentity(model) {
   return Object.freeze({ alias, label: `Route: ${alias}` });
 }
 
+function compactUtcLabel(timestamp) {
+  if (timestamp === null) return "Unavailable";
+  return utcLabel(timestamp).replace(/^\d{4}-/u, "");
+}
+
+export function nativeUsagePresentation(model) {
+  if (!isRecord(model) || !Array.isArray(model.accounts)) {
+    throw new Error("router panel model is invalid");
+  }
+  const current = model.accounts.find(
+    (account) => isRecord(account) && account.isCurrent === true,
+  );
+  if (current === undefined) return null;
+  const alias = readAlias(current.alias);
+  const weeklyValue = typeof current.weeklyLabel === "string"
+    ? current.weeklyLabel.replace(" remaining", "").replace("Not observed yet", "Unavailable")
+    : "Unavailable";
+  const resetTimestamp = typeof current.weeklyResetDetail === "string" &&
+      current.weeklyResetDetail.startsWith("Resets ")
+    ? current.weeklyResetDetail.slice("Resets ".length)
+    : null;
+  const refreshedTimestamp = typeof current.weeklyDetail === "string" &&
+      current.weeklyDetail.startsWith("Refreshed ")
+    ? current.weeklyDetail.slice("Refreshed ".length)
+    : null;
+  return Object.freeze({
+    alias,
+    badgeLabel: alias,
+    weeklyLabel: `Weekly · ${alias}`,
+    weeklyValue,
+    resetValue: resetTimestamp === null
+      ? "Reset unavailable"
+      : `Reset ${compactUtcLabel(resetTimestamp)}`,
+    refreshedValue: refreshedTimestamp === null
+      ? "Unavailable"
+      : compactUtcLabel(refreshedTimestamp),
+  });
+}
+
 function element(name, className, text) {
   const node = document.createElement(name);
   if (className) node.className = className;
@@ -308,14 +350,118 @@ function syncProfileRouteIdentity(identity) {
   }
 }
 
+function findUsageMenuItem(root = document) {
+  return [...root.querySelectorAll(PROFILE_MENU_ITEM_SELECTOR)].find(
+    (item) => item.textContent?.trim().startsWith("Usage remaining"),
+  ) ?? null;
+}
+
+function nativeUsageRow(template, label, values) {
+  const row = template.cloneNode(false);
+  row.removeAttribute(NATIVE_USAGE_ORIGINAL_ATTRIBUTE);
+  delete row.dataset.routerOriginalDisplay;
+  row.style.display = template.dataset.routerOriginalDisplay ?? "";
+  const leftTemplate = template.children[0];
+  const rightTemplate = template.children[1];
+  const left = leftTemplate instanceof HTMLElement
+    ? leftTemplate.cloneNode(false)
+    : element("span");
+  const right = rightTemplate instanceof HTMLElement
+    ? rightTemplate.cloneNode(false)
+    : element("span");
+  const leftValue = element("span", "shrink-0", label);
+  left.append(leftValue);
+  values.forEach((value, index) => {
+    if (index > 0) {
+      const separator = element("span", "shrink-0", "·");
+      separator.setAttribute("aria-hidden", "true");
+      right.append(separator);
+    }
+    right.append(element("span", "shrink-0", value));
+  });
+  row.append(left, right);
+  return row;
+}
+
+function restoreNativeUsageSurfaces() {
+  document.querySelectorAll(`[${NATIVE_USAGE_BADGE_ATTRIBUTE}]`).forEach((node) => node.remove());
+  document.querySelectorAll(`[${NATIVE_USAGE_SYNC_ATTRIBUTE}]`).forEach((node) => node.remove());
+  document.querySelectorAll(`[${NATIVE_USAGE_ORIGINAL_ATTRIBUTE}]`).forEach((node) => {
+    if (!(node instanceof HTMLElement)) return;
+    node.style.display = node.dataset.routerOriginalDisplay ?? "";
+    delete node.dataset.routerOriginalDisplay;
+    node.removeAttribute(NATIVE_USAGE_ORIGINAL_ATTRIBUTE);
+  });
+}
+
+function syncNativeUsageSurface(model) {
+  const presentation = nativeUsagePresentation(model);
+  const usageItem = findUsageMenuItem();
+  if (!(usageItem instanceof HTMLElement) || presentation === null) return false;
+
+  const itemRow = usageItem.firstElementChild;
+  if (itemRow instanceof HTMLElement) {
+    let badge = usageItem.querySelector(`[${NATIVE_USAGE_BADGE_ATTRIBUTE}]`);
+    if (!(badge instanceof HTMLElement)) {
+      badge = element("span");
+      badge.setAttribute(NATIVE_USAGE_BADGE_ATTRIBUTE, "");
+      badge.setAttribute("aria-hidden", "true");
+      Object.assign(badge.style, {
+        marginInlineStart: "auto",
+        marginInlineEnd: "4px",
+        fontSize: "10px",
+        fontWeight: "600",
+        opacity: ".62",
+        whiteSpace: "nowrap",
+      });
+      itemRow.insertBefore(badge, itemRow.lastElementChild);
+    }
+    if (badge.textContent !== presentation.badgeLabel) {
+      badge.textContent = presentation.badgeLabel;
+    }
+  }
+
+  const expansion = usageItem.nextElementSibling;
+  if (!(expansion instanceof HTMLElement)) return true;
+  let originalRow = expansion.querySelector(`[${NATIVE_USAGE_ORIGINAL_ATTRIBUTE}]`);
+  if (!(originalRow instanceof HTMLElement)) {
+    const weeklyLabel = [...expansion.querySelectorAll("span")].find(
+      (node) => node.children.length === 0 && node.textContent?.trim() === "Weekly",
+    );
+    const candidate = weeklyLabel?.parentElement?.parentElement;
+    if (!(candidate instanceof HTMLElement) || candidate.children.length < 2) return true;
+    originalRow = candidate;
+    originalRow.setAttribute(NATIVE_USAGE_ORIGINAL_ATTRIBUTE, "");
+    originalRow.dataset.routerOriginalDisplay = originalRow.style.display;
+    originalRow.style.display = "none";
+  }
+  const signature = JSON.stringify(presentation);
+  const current = expansion.querySelector(`[${NATIVE_USAGE_SYNC_ATTRIBUTE}]`);
+  if (current instanceof HTMLElement && current.dataset.renderSignature === signature) return true;
+
+  const sync = element("div");
+  sync.setAttribute(NATIVE_USAGE_SYNC_ATTRIBUTE, "");
+  sync.dataset.renderSignature = signature;
+  sync.setAttribute("aria-label", `Current model route ${presentation.alias}`);
+  sync.append(
+    nativeUsageRow(
+      originalRow,
+      presentation.weeklyLabel,
+      [presentation.weeklyValue, presentation.resetValue],
+    ),
+    nativeUsageRow(originalRow, "Refreshed", [presentation.refreshedValue]),
+  );
+  if (current instanceof HTMLElement) current.replaceWith(sync);
+  else originalRow.insertAdjacentElement("afterend", sync);
+  return true;
+}
+
 function findProfileMenu() {
   const profileButton = document.querySelector(PROFILE_BUTTON_SELECTOR);
   if (!(profileButton instanceof HTMLElement) || profileButton.getAttribute("aria-expanded") !== "true") {
     return null;
   }
-  const usageItem = [...document.querySelectorAll(PROFILE_MENU_ITEM_SELECTOR)].find(
-    (item) => item.textContent?.trim() === "Usage remaining",
-  );
+  const usageItem = findUsageMenuItem();
   if (!(usageItem instanceof HTMLElement)) return null;
   let candidate = usageItem.parentElement;
   while (candidate && candidate !== document.body) {
@@ -323,7 +469,7 @@ function findProfileMenu() {
       (item) => item.textContent?.trim() ?? "",
     );
     if (
-      itemLabels.includes("Usage remaining") &&
+      itemLabels.some((label) => label.startsWith("Usage remaining")) &&
       itemLabels.some((label) => label.startsWith("Settings")) &&
       itemLabels.includes("Log out")
     ) {
@@ -537,6 +683,7 @@ export async function installRouterAccountPanel() {
   const renderSurfaces = () => {
     if (!model || stopped) return;
     syncProfileRouteIdentity(currentRouteIdentity(model));
+    syncNativeUsageSurface(model);
     renderProfileMenu(
       model,
       requestSwitch,
@@ -675,6 +822,7 @@ export async function installRouterAccountPanel() {
     if (pollTimer !== null) window.clearInterval(pollTimer);
     document.getElementById(MENU_SECTION_ID)?.remove();
     document.querySelectorAll(`[${PROFILE_ROUTE_ATTRIBUTE}]`).forEach((badge) => badge.remove());
+    restoreNativeUsageSurfaces();
     installedCleanup = null;
   };
   window.addEventListener("beforeunload", installedCleanup, { once: true });
