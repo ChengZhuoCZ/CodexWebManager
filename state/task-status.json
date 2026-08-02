@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M6.9",
-  "status": "blocked",
+  "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-SKIP-M6.2-SOAK",
@@ -70,14 +70,15 @@
     "r74_continuation": "276f5256914ca4c629b5d0b7bc32573d2934631b",
     "r75_continuation": "be83872b8b6a51c248c93e23318adf524e8822f2",
     "r76_continuation": "4a6d98fe7189400f973fefcaf4d8599d0cbd8ef3",
+    "r92_continuation": "dcacf67adcdd8ad5b38da1041209865120cd0dff",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "f9c26727e3e42bd8fba5131bf2edbfb35f73c565",
-  "workspace_branch": "test/8216-fixture",
-  "workspace_input_revision": "73c342da334e3d5f37aa24f686959913d7d20c56",
+  "output_revision": "dcacf67adcdd8ad5b38da1041209865120cd0dff",
+  "workspace_branch": "codex/m6-9-8216-r85-handoff",
+  "workspace_input_revision": "1937ada586a602cf8be8f8f8177eb3ebd05d6529",
   "depends_on": [
     "M2.5",
     "M6.8",
@@ -1798,6 +1799,14 @@
     {
       "command": "R85 rollback deployment; five-service PID/start/reload/unit-hash checks; bounded fresh-profile Firefox render probe without Cookie/account-data access",
       "result": "R85 deployed successfully. All three 8216 services are active with zero restarts and no pending reload; account-router remains 0.2.6. A fresh isolated Firefox removed the loader in 1561 ms with bridge object, codexRoot present and no diag_v2 error. This proves startup rendering only, not a real composer, attachment, model request or switch. 8215 retained both approved PID/start/unit hashes"
+    },
+    {
+      "command": "<bundled-node> --check integrations/codex-web/install-r87-router-server-bridge.mjs; <bundled-node> --test codex-web-router-panel-merge, account-enrollment, HTTP/SSE failover, runtime composition/persistence, WebSocket failover and failure-injection matrix; bash -n three R92 scripts; git diff --check",
+      "result": "R92 focused suite passed 69/69 with no failures or skips in the host network environment; the first sandboxed invocation passed 18 file-only tests and its remaining 51 loopback fixtures failed uniformly with listen EPERM, then passed unchanged after the required network permission was applied; syntax and diff checks passed"
+    },
+    {
+      "command": "hash-verified R92 8216-only deployment, fresh user-authorized Secondary atomic activation, protected session/status bridge probes, and one body-discarded real initial HTTP/SSE failover request",
+      "result": "The qualified R23 App Host and R86 account panel server adapters are active together. Two distinct private accounts are ready. A request starting on Primary failed before semantic output, automatically selected Secondary and completed once; Primary was restored byte-for-byte. R92 Web/App and standalone 8215 PID/start/unit invariants passed; no identity, credential, prompt or response body was recorded"
     }
   ],
   "evidence": [
@@ -2044,7 +2053,11 @@
     "evidence/M6.9/deploy-router-r85-isolated.sh",
     "evidence/M6.9/router-r85-startup-stage-summary.json",
     "evidence/M6.9/deploy-router-r87-materialized-r23.sh",
-    "evidence/M6.9/router-r87-materialized-r23-recovery.json"
+    "evidence/M6.9/router-r87-materialized-r23-recovery.json",
+    "evidence/M6.9/deploy-router-r92-server-bridge.sh",
+    "evidence/M6.9/activate-secondary-credential-r92.sh",
+    "evidence/M6.9/run-r92-real-presemantic-failover.sh",
+    "evidence/M6.9/router-r92-server-bridge-secondary-activation-real-failover.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -5345,12 +5358,40 @@
       "account_switch_tested": false,
       "semantic_replay_attempted": false,
       "cross_account_continuity_claimed": false
+    },
+    "r92_server_bridge_secondary_activation_real_failover": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "1937ada586a602cf8be8f8f8177eb3ebd05d6529",
+      "implementation_revision": "dcacf67adcdd8ad5b38da1041209865120cd0dff",
+      "dependencies": ["M2.5", "M6.8", "G-SECRETS"],
+      "expected_result": "Preserve the complete R23 App Host while restoring the account panel server bridge, atomically activate a fresh distinct Secondary binding, and prove a real initial-request automatic failover before semantic output without touching 8215 or claiming continuity.",
+      "active_web_release": "c3e92f0f-20260802-m69-router-r92-server-bridge",
+      "active_router_release": "codex-account-router-0.2.6-linux-x64",
+      "evidence": "evidence/M6.9/router-r92-server-bridge-secondary-activation-real-failover.json",
+      "focused_tests_passed": 69,
+      "focused_tests_failed": 0,
+      "focused_tests_skipped": 0,
+      "private_accounts_ready": 2,
+      "fresh_secondary_distinct_from_primary": true,
+      "fresh_secondary_distinct_from_expired_binding": true,
+      "real_initial_request_e2e_qualified": true,
+      "primary_failed_before_semantic_output": true,
+      "automatic_secondary_selection": true,
+      "secondary_response_completed": true,
+      "primary_credential_restored": true,
+      "final_route_category": "secondary",
+      "standalone_8215_unchanged": true,
+      "routed_8216_web_and_app_server_unchanged_during_e2e": true,
+      "prompt_or_response_body_recorded": false,
+      "semantic_stream_replay_attempted": false,
+      "continuity_label": "new_backend_session",
+      "cross_account_continuity_claimed": false,
+      "in_flight_recovery_claimed": false,
+      "status": "done"
     }
   },
-  "blockers": [
-    "The user-authorized second credential has been atomically enrolled, but its first real pre-semantic acquisition was classified auth_expired. A fresh distinct private device authorization is required before the real new-request A-to-B E2E may be retried.",
-    "The narrow Peer Relay grant is valid, but the current Mac relay listener is behind two NAT layers and UDP 40000 is not reachable. A user-authorized double-port-forward or an authorized directly reachable VPS relay is required for a non-DERP 8215 data path."
-  ],
+  "blockers": [],
   "residual_risks": [
     "Cross-account continuity remains unverified and is not claimed.",
     "Pre-fix codex-web-router journal records may contain upstream IPC bodies or response headers. Per-unit deletion is unavailable without vacuuming unrelated system logs; retention and access must be handled operationally.",
@@ -5490,11 +5531,14 @@
     "The complete public 539 MB scratch download stalled after 123 MB and was boundedly aborted. R85 was therefore built as the existing 15-file overlay and still inherits predecessor static-asset symlinks to the 8215 installation; full 8216 asset materialization remains required.",
     "The aggregate security CLI remains fail-closed because protected routed Web paths changed after the retained strict-CI qualification. Direct focused security passed 108/108 and the repository scan found zero findings, but this is not a replacement for a newly qualified strict matrix.",
     "No real composer interaction, attachment upload, model request, second-account enrollment or real A-to-B switch was performed for R85.",
-    "R87 confirms private atomic enrollment and an eligible primary routed request, but the second private credential was classified auth_expired before semantic output. M6.9 remains blocked; no real provider A-to-B success, cross-account continuity, or in-flight recovery is claimed.",
+    "R87's expired Secondary binding was superseded by the fresh user-authorized R92 binding; the historical failed attempt remains recorded, but it is no longer an active M6.9 blocker.",
     "R86 deploys only a cache-versioned static App Host initializer repair. Its post-deployment service/readiness evidence did not prove a user browser's composer and was superseded by the R87 startup recovery.",
     "R87 restores the previously browser-qualified R23 App Host bridge in a fully materialized routed release. The in-app browser verified a signed-in composer, but no attachment upload, model request or account switch was performed.",
     "The in-app browser reported timeouts to optional Statsig telemetry while the 8216 document reached complete and rendered its composer. This did not block the verified main UI but may continue to produce non-fatal client diagnostics.",
-    "R87 does not establish seamless cross-account continuity or recovery of an in-flight computation."
+    "R87 does not establish seamless cross-account continuity or recovery of an in-flight computation.",
+    "R92 qualifies one real independent initial-request Primary-to-Secondary failover before semantic HTTP/SSE output. It does not migrate an existing backend session, replay a continuation, resume an in-flight computation, or establish seamless cross-account continuity.",
+    "R92 verifies the account panel and protected JSON bridge server-side. Direct visual verification through the in-app browser control channel remained unavailable because that control channel timed out, so no additional browser-render timing claim is made.",
+    "R92 leaves both private account bindings available to every trusted Tailnet principal that can reach the routed 8216 site; Tailnet membership and ACLs remain the authorization boundary."
   ],
-  "updated_at": "2026-08-02T03:25:00+08:00"
+  "updated_at": "2026-08-02T11:07:29+08:00"
 }
