@@ -565,6 +565,18 @@ function sameOriginFetch(request: FastifyRequest): boolean {
   return request.headers["sec-fetch-site"] === "same-origin";
 }
 
+function authenticatedRequestMetadataCompatible(
+  request: FastifyRequest,
+  publicOrigin: URL,
+): boolean {
+  const origin = request.headers.origin;
+  const fetchSite = request.headers["sec-fetch-site"];
+  return (
+    (origin === undefined || origin === publicOrigin.origin) &&
+    (fetchSite === undefined || fetchSite === "same-origin")
+  );
+}
+
 function setSecurityHeaders(
   reply: FastifyReply,
   publicOrigin: URL,
@@ -1196,8 +1208,7 @@ export async function registerBrowserSessionAuth(
     reply.raw.once("finish", releaseResponse);
     if (
       isUnsafeMethod(request.method) &&
-      (!requestOriginMatches(request, config.publicOrigin) ||
-        !sameOriginFetch(request) ||
+      (!authenticatedRequestMetadataCompatible(request, config.publicOrigin) ||
         !validCsrfHeader(request, session))
     ) {
       return reply.code(403).send({ error: "request_forbidden" });

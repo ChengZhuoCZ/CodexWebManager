@@ -75,8 +75,11 @@ runtime path; the systemd units provision this boundary without exposing it as a
 directory.
 
 The browser receives only an `HttpOnly`, `SameSite=Strict` session cookie. Unsafe HTTP requests
-also require a session CSRF token, and the IPC WebSocket requires the exact origin, cookie, host,
-and `codex-ipc.v1` subprotocol. In site-key mode, a new login revokes the previous browser session.
+also require a session CSRF token. Explicit cross-origin `Origin` or `Sec-Fetch-Site` metadata is
+rejected, while a browser that omits either optional metadata header remains compatible only when
+its session cookie and unguessable CSRF token are both valid. The IPC WebSocket still requires the
+exact origin, cookie, host, and `codex-ipc.v1` subprotocol. In site-key mode, a new login revokes the
+previous browser session.
 Trusted Tailnet mode creates a bounded set of up to 64 independent browser sessions when a
 top-level HTML page is requested; it does not bypass CSRF, Host/Origin, renderer-message, workspace,
 or WebSocket checks. The health endpoint remains unauthenticated.

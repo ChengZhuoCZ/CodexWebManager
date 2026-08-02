@@ -1077,6 +1077,52 @@ integrationTest(
     });
     assert.equal(acceptedWrite.status, 200);
 
+    const acceptedWithoutFetchMetadata = await httpRequest(
+      fixture.origin,
+      "/write",
+      {
+        method: "POST",
+        headers: {
+          host: new URL(publicOrigin).host,
+          origin: publicOrigin,
+          cookie,
+          "x-codex-csrf": sessionBody.csrfToken,
+        },
+      },
+    );
+    assert.equal(acceptedWithoutFetchMetadata.status, 200);
+
+    const acceptedWithoutOriginMetadata = await httpRequest(
+      fixture.origin,
+      "/write",
+      {
+        method: "POST",
+        headers: {
+          host: new URL(publicOrigin).host,
+          "sec-fetch-site": "same-origin",
+          cookie,
+          "x-codex-csrf": sessionBody.csrfToken,
+        },
+      },
+    );
+    assert.equal(acceptedWithoutOriginMetadata.status, 200);
+
+    const rejectedExplicitCrossSiteMetadata = await httpRequest(
+      fixture.origin,
+      "/write",
+      {
+        method: "POST",
+        headers: {
+          host: new URL(publicOrigin).host,
+          origin: publicOrigin,
+          "sec-fetch-site": "cross-site",
+          cookie,
+          "x-codex-csrf": sessionBody.csrfToken,
+        },
+      },
+    );
+    assert.equal(rejectedExplicitCrossSiteMetadata.status, 403);
+
     const endpoint =
       `${fixture.origin.replace("http:", "ws:")}/__backend/ipc`;
     assert.equal(
