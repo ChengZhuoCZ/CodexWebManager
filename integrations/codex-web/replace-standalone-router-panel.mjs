@@ -26,8 +26,8 @@ export const PINNED_PANEL_REPLACEMENT_CONTRACT = Object.freeze({
   qualified_app_sha256: "e2d356e06763a8287003e5a087acb09a09160a1d6bc8fbf9cecccdfdaf82b6b0",
   qualified_preload_name: "preload-65708a1c.js",
   qualified_preload_sha256: "65708a1c2c053568691f6691b76290a6bd07df09ea84ef1186ac77090649fc5a",
-  replacement_panel_name: "router-account-panel-ff0f95b4.js",
-  replacement_panel_sha256: "ff0f95b4f85fe9174661ca47431222af007047facbf2e5e992eb4040f88aef3d",
+  replacement_panel_name: "router-account-panel-8a0772e9.js",
+  replacement_panel_sha256: "8a0772e986abc68ffa48fe98356f43d27cb8916676ee1fb43664c29ba4626aeb",
 });
 
 function sha256(value) {

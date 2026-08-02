@@ -67,7 +67,9 @@ export type RouterAccountPanelItem = {
   state: AccountState;
   stateLabel: string;
   weeklyLabel: string;
+  weeklyDetail: string;
   cooldownLabel: string;
+  cooldownDetail: string | null;
   lastSwitchLabel: string;
   isCurrent: boolean;
   switchDisabled: boolean;
@@ -188,8 +190,50 @@ function reasonLabel(reason: SwitchReason | null): string {
   return reason === null ? "None" : labels[reason];
 }
 
-function ratioLabel(value: number | null): string {
-  return value === null ? "Unavailable" : `${Math.round(value * 100)}%`;
+function utcLabel(timestamp: string): string {
+  return new Date(timestamp).toISOString().replace("T", " ").replace(/\.\d{3}Z$/u, " UTC");
+}
+
+function remainingLabel(milliseconds: number): string {
+  const minutes = Math.max(1, Math.ceil(milliseconds / 60_000));
+  const hours = Math.floor(minutes / 60);
+  const remainder = minutes % 60;
+  if (hours === 0) return `${minutes}m remaining`;
+  if (remainder === 0) return `${hours}h remaining`;
+  return `${hours}h ${remainder}m remaining`;
+}
+
+function weeklyPresentation(account: RouterAccountStatus): { label: string; detail: string } {
+  if (account.weekly_remaining_ratio === null) {
+    return {
+      label: "Not observed yet",
+      detail: "No weekly quota observation is available.",
+    };
+  }
+  return {
+    label: `${Math.round(account.weekly_remaining_ratio * 100)}% remaining`,
+    detail: account.snapshot_observed_at === null
+      ? "No observation timestamp is available."
+      : `Observed ${utcLabel(account.snapshot_observed_at)}`,
+  };
+}
+
+function cooldownPresentation(
+  account: RouterAccountStatus,
+  nowMilliseconds: number,
+): { label: string; detail: string | null } {
+  if (account.cooldown_until === null) return { label: "None", detail: null };
+  const cooldownMilliseconds = Date.parse(account.cooldown_until);
+  if (cooldownMilliseconds <= nowMilliseconds) {
+    return {
+      label: "Elapsed",
+      detail: `Ended ${utcLabel(account.cooldown_until)}`,
+    };
+  }
+  return {
+    label: `Active · ${remainingLabel(cooldownMilliseconds - nowMilliseconds)}`,
+    detail: `Until ${utcLabel(account.cooldown_until)}`,
+  };
 }
 
 function switchDisabledReason(
@@ -233,13 +277,16 @@ export function deriveRouterAccountPanelModel(
     accounts: Object.freeze(
       status.accounts.map((account) => {
         const disabledReason = switchDisabledReason(account, status, nowMilliseconds);
+        const weekly = weeklyPresentation(account);
+        const cooldown = cooldownPresentation(account, nowMilliseconds);
         return Object.freeze({
           alias: account.alias,
           state: account.state,
           stateLabel: titleCase(account.state),
-          weeklyLabel: ratioLabel(account.weekly_remaining_ratio),
-          cooldownLabel:
-            account.cooldown_until === null ? "None" : `Until ${account.cooldown_until}`,
+          weeklyLabel: weekly.label,
+          weeklyDetail: weekly.detail,
+          cooldownLabel: cooldown.label,
+          cooldownDetail: cooldown.detail,
           lastSwitchLabel: reasonLabel(account.last_switch_reason),
           isCurrent: status.current_route?.account_alias === account.alias,
           switchDisabled: disabledReason !== null,
@@ -268,9 +315,12 @@ function element<K extends keyof HTMLElementTagNameMap>(
   return node;
 }
 
-function detailRow(label: string, value: string): HTMLElement {
+function detailRow(label: string, value: string, detail: string | null = null): HTMLElement {
   const row = element("div", "detail-row");
-  row.append(element("dt", undefined, label), element("dd", undefined, value));
+  const description = element("dd");
+  description.append(element("span", "value-main", value));
+  if (detail !== null) description.append(element("span", "value-detail", detail));
+  row.append(element("dt", undefined, label), description);
   return row;
 }
 
@@ -285,7 +335,7 @@ function renderPanel(
   style.textContent = `
     :host { color-scheme: light dark; }
     * { box-sizing: border-box; }
-    .panel { width: min(360px, calc(100vw - 24px)); max-height: min(620px, calc(100vh - 24px)); overflow: auto;
+    .panel { width: min(420px, calc(100vw - 24px)); max-height: min(620px, calc(100vh - 24px)); overflow: auto;
       border: 1px solid color-mix(in srgb, CanvasText 18%, transparent); border-radius: 12px;
       background: color-mix(in srgb, Canvas 96%, transparent); color: CanvasText;
       box-shadow: 0 12px 32px rgb(0 0 0 / 20%); font: 13px/1.35 system-ui, sans-serif; }
@@ -300,9 +350,12 @@ function renderPanel(
     .state { border-radius: 999px; padding: 2px 7px; background: color-mix(in srgb, CanvasText 9%, transparent); font-size: 11px; }
     .current { color: #15803d; font-size: 11px; font-weight: 650; }
     dl { margin: 8px 0; }
-    .detail-row { display: grid; grid-template-columns: 1fr 1.2fr; gap: 8px; padding: 2px 0; }
+    .detail-row { display: grid; grid-template-columns: minmax(96px, auto) minmax(0, 1fr); gap: 10px; padding: 3px 0; }
     dt { color: color-mix(in srgb, CanvasText 65%, transparent); }
-    dd { margin: 0; text-align: right; overflow-wrap: anywhere; }
+    dd { min-width: 0; margin: 0; text-align: right; }
+    .value-main, .value-detail { display: block; overflow-wrap: anywhere; }
+    .value-main { font-weight: 550; }
+    .value-detail { margin-top: 1px; color: color-mix(in srgb, CanvasText 62%, transparent); font-size: 11px; }
     button { width: 100%; border: 0; border-radius: 7px; padding: 7px 9px; background: #2563eb; color: white; font: inherit; font-weight: 650; }
     button:disabled { cursor: not-allowed; opacity: .55; }
     .footnote { margin: 9px 2px 1px; color: color-mix(in srgb, CanvasText 65%, transparent); font-size: 11px; }
@@ -325,8 +378,8 @@ function renderPanel(
     if (account.isCurrent) head.append(element("span", "current", "Current"));
     const description = element("dl");
     description.append(
-      detailRow("Weekly quota", account.weeklyLabel),
-      detailRow("Cooldown", account.cooldownLabel),
+      detailRow("Weekly quota", account.weeklyLabel, account.weeklyDetail),
+      detailRow("Cooldown", account.cooldownLabel, account.cooldownDetail),
       detailRow("Last switch", account.lastSwitchLabel),
     );
     const button = element("button", undefined, account.isCurrent ? "Current route" : "Switch");

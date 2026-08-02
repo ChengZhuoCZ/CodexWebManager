@@ -42,6 +42,10 @@ const R94_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r94-manual-switch-recovery.sh",
 );
+const R95_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r95-manual-switch-display.sh",
+);
 
 function sha256(value) {
   return createHash("sha256").update(value).digest("hex");
@@ -209,8 +213,10 @@ test("standalone panel preserves weekly-only and semantic-stream switch guards",
     ],
   };
   const model = deriveStandalonePanelModel(status);
-  assert.equal(model.accounts[0].weeklyLabel, "75%");
-  assert.equal(model.accounts[1].weeklyLabel, "Unavailable");
+  assert.equal(model.accounts[0].weeklyLabel, "75% remaining");
+  assert.equal(model.accounts[0].weeklyDetail, "No observation timestamp is available.");
+  assert.equal(model.accounts[1].weeklyLabel, "Not observed yet");
+  assert.equal(model.accounts[1].weeklyDetail, "No weekly quota observation is available.");
   assert.equal(model.accounts.every((account) => account.switchDisabled), true);
   assert.equal(model.accounts[1].switchDisabledReason, "Active response in progress");
   assert.doesNotMatch(JSON.stringify(model), /five_hour|credential_ref|must-not-pass/u);
@@ -563,5 +569,21 @@ test("R94 replaces only the cooldown-aware panel and restarts only routed Web", 
   assert.doesNotMatch(
     source,
     /systemctl\s+(?:restart|stop|start)\s+(?:codex-web-upstream|codex-account-router|codex-web-router-app-server)/u,
+  );
+});
+
+test("R95 upgrades only the isolated router and panel, then restores the secondary route", async () => {
+  const source = await fs.readFile(R95_DEPLOY, "utf8");
+  assert.match(source, /codex-account-router-0\.2\.32-linux-x64/u);
+  assert.match(source, /router-r95-manual-switch-display/u);
+  assert.match(source, /manual_switch_roundtrip/u);
+  assert.match(source, /switch_alias Primary primary/u);
+  assert.match(source, /switch_alias Secondary secondary/u);
+  assert.match(source, /continuity=new_backend_session/u);
+  assert.match(source, /model_request_sent=false/u);
+  assert.match(source, /expect_protected_services_unchanged/u);
+  assert.doesNotMatch(
+    source,
+    /systemctl\s+(?:restart|stop|start)\s+(?:codex-web-upstream|codex-web-upstream-app-server|codex-web-router-app-server)/u,
   );
 });

@@ -91,12 +91,38 @@ integrationTest("derives weekly-only quota display while ignoring the legacy fiv
   assert.equal(model.allExhausted, false);
   assert.equal(model.accounts[0].alias, "Fixture A");
   assert.equal(Object.hasOwn(model.accounts[0], "fiveHourLabel"), false);
-  assert.equal(model.accounts[0].weeklyLabel, "Unavailable");
+  assert.equal(model.accounts[0].weeklyLabel, "Not observed yet");
+  assert.equal(model.accounts[0].weeklyDetail, "No weekly quota observation is available.");
   assert.equal(model.accounts[0].cooldownLabel, "None");
+  assert.equal(model.accounts[0].cooldownDetail, null);
   assert.equal(model.accounts[0].lastSwitchLabel, "Startup");
-  assert.equal(model.accounts[1].cooldownLabel, "Until 2026-07-16T01:00:00.000Z");
+  assert.equal(model.accounts[1].weeklyLabel, "50% remaining");
+  assert.equal(model.accounts[1].weeklyDetail, "Observed 2026-07-16 00:00:00 UTC");
+  assert.equal(model.accounts[1].cooldownLabel, "Elapsed");
+  assert.equal(model.accounts[1].cooldownDetail, "Ended 2026-07-16 01:00:00 UTC");
   assert.equal(model.accounts[1].lastSwitchLabel, "Rate limited");
   assert.doesNotMatch(JSON.stringify(model), /must-not-pass|credential_ref|token/i);
+});
+
+integrationTest("shows a complete active cooldown without overflowing the primary value", async (context) => {
+  const { deriveRouterAccountPanelModel } = await compilePanel(context);
+  const status = statusFixture({
+    accounts: [{
+      alias: "Fixture A",
+      state: "cooling_down",
+      enabled: true,
+      weekly_remaining_ratio: 1,
+      snapshot_observed_at: "2026-07-16T00:00:00.000Z",
+      cooldown_until: "2026-07-16T01:00:00.000Z",
+      last_switch_reason: "rate_limited",
+    }],
+  });
+  const model = deriveRouterAccountPanelModel(status, Date.parse("2026-07-16T00:45:00.000Z"));
+
+  assert.equal(model.accounts[0].weeklyLabel, "100% remaining");
+  assert.equal(model.accounts[0].weeklyDetail, "Observed 2026-07-16 00:00:00 UTC");
+  assert.equal(model.accounts[0].cooldownLabel, "Active · 15m remaining");
+  assert.equal(model.accounts[0].cooldownDetail, "Until 2026-07-16 01:00:00 UTC");
 });
 
 integrationTest("disables every manual switch while a semantic stream is active", async (context) => {
