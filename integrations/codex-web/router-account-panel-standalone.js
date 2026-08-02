@@ -144,7 +144,7 @@ function reasonLabel(reason) {
 }
 
 function utcLabel(timestamp) {
-  return new Date(timestamp).toISOString().replace("T", " ").replace(/\.\d{3}Z$/u, " UTC");
+  return new Date(timestamp).toISOString().replace("T", " ").replace(/:\d{2}\.\d{3}Z$/u, " UTC");
 }
 
 function remainingLabel(milliseconds) {
@@ -371,7 +371,7 @@ function renderProfileMenu(
     #${MENU_SECTION_ID} .router-account-title { display: flex; align-items: baseline; gap: 6px; font-weight: 600; }
     #${MENU_SECTION_ID} .router-state { opacity: .62; font-size: 10px; font-weight: 500; }
     #${MENU_SECTION_ID} .router-account-detail { display: block; margin-top: 1px; opacity: .62;
-      overflow-wrap: anywhere; font-size: 9px; line-height: 1.25; }
+      overflow-wrap: anywhere; font-size: 10px; line-height: 1.25; }
     #${MENU_SECTION_ID} .router-action { flex: none; font-size: 11px; font-weight: 600; }
     #${MENU_SECTION_ID} .router-current { color: #16a34a; }
     #${MENU_SECTION_ID} .router-footnote { margin: 5px 6px 1px; opacity: .55; font-size: 10px; line-height: 1.3; }
@@ -421,12 +421,12 @@ function renderProfileMenu(
       element(
         "span",
         "router-account-detail",
-        `Weekly ${account.weeklyLabel}`,
+        `Weekly ${account.weeklyLabel.replace(" remaining", "")} · Cooldown ${account.cooldownLabel}`,
       ),
       element(
         "span",
         "router-account-detail",
-        `${account.weeklyDetail} · Cooldown ${account.cooldownLabel}`,
+        account.weeklyDetail,
       ),
     );
     const action = element(

@@ -32,6 +32,9 @@ import {
   R101_QUOTA_MENU_CONTRACT,
 } from "../../../integrations/codex-web/replace-r101-router-quota-menu.mjs";
 import {
+  R102_NATIVE_SIZE_CONTRACT,
+} from "../../../integrations/codex-web/replace-r102-router-native-size.mjs";
+import {
   buildManualSwitchRequest as buildStandaloneSwitchRequest,
   currentRouteIdentity as currentStandaloneRouteIdentity,
   deriveRouterAccountPanelModel as deriveStandalonePanelModel,
@@ -79,6 +82,10 @@ const R100_DEPLOY = path.resolve(
 const R101_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r101-quota-menu.sh",
+);
+const R102_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r102-native-size.sh",
 );
 
 function sha256(value) {
@@ -294,6 +301,8 @@ test("profile menu quota UI inherits native width and exposes a bounded read-onl
   assert.match(panel, /width: 100%; min-width: 0; max-width: 100%/u);
   assert.doesNotMatch(panel, /min-width: 300px|max-width: 360px/u);
   assert.match(panel, /min-height: 42px/u);
+  assert.match(panel, /font-size: 10px; line-height: 1\.25/u);
+  assert.match(panel, /weeklyLabel\.replace\(" remaining", ""\)/u);
   assert.match(panel, /Refreshed \$\{utcLabel\(account\.snapshot_observed_at\)\}/u);
   assert.match(panel, /Refresh Primary weekly quota/u);
   assert.match(panel, /\/__backend\/codex-router\/quota-refresh/u);
@@ -747,6 +756,30 @@ test("R101 refreshes Primary quota read-only and restarts only routed Web", asyn
   assert.match(source, /codex-router\/quota-refresh/u);
   assert.match(source, /primary_weekly_quota_read_only=true/u);
   assert.match(source, /weekly_quota_refresh_time_available=true/u);
+  assert.match(source, /only_8216_web_restarted=true/u);
+  assert.match(source, /model_request_sent=false/u);
+  assert.match(source, /account_switch_sent=false/u);
+  assert.doesNotMatch(
+    source,
+    /systemctl\s+(?:restart|stop|start)\s+(?:codex-web-upstream|codex-web-upstream-app-server|codex-web-router-app-server|codex-account-router)/u,
+  );
+});
+
+test("R102 compacts timestamps into the native menu and preserves the R101 quota bridge", async () => {
+  assert.equal(
+    R102_NATIVE_SIZE_CONTRACT.predecessor_panel_sha256,
+    R101_QUOTA_MENU_CONTRACT.replacement_panel_sha256,
+  );
+  assert.equal(
+    R102_NATIVE_SIZE_CONTRACT.replacement_panel_sha256,
+    "131a636e367e5c2e94958bc293e73738a17b2fea2a8d05af07c8dc78bd98c098",
+  );
+  const source = await fs.readFile(R102_DEPLOY, "utf8");
+  assert.match(source, /router-r101-quota-menu/u);
+  assert.match(source, /router-r102-native-size/u);
+  assert.match(source, /router-account-panel-131a636e\.js/u);
+  assert.match(source, /SOURCE_ROUTER_BRIDGE_SHA256=ac5c1f13/u);
+  assert.match(source, /quota-refresh/u);
   assert.match(source, /only_8216_web_restarted=true/u);
   assert.match(source, /model_request_sent=false/u);
   assert.match(source, /account_switch_sent=false/u);
