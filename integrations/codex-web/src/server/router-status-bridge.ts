@@ -59,6 +59,7 @@ type QuotaRefreshConfig =
 type WeeklyQuotaSnapshot = {
   accountAlias: string;
   weeklyRemainingRatio: number;
+  weeklyResetsAt: string | null;
   observedAt: string;
 };
 
@@ -125,6 +126,9 @@ function sanitizeStatus(value: unknown) {
       enabled: account.enabled,
       five_hour_remaining_ratio: nullableRatio(account.five_hour_remaining_ratio),
       weekly_remaining_ratio: nullableRatio(account.weekly_remaining_ratio),
+      weekly_resets_at: account.weekly_resets_at === undefined
+        ? null
+        : nullableTimestamp(account.weekly_resets_at),
       snapshot_observed_at: nullableTimestamp(account.snapshot_observed_at),
       cooldown_until: nullableTimestamp(account.cooldown_until),
       last_switch_reason: account.last_switch_reason,
@@ -263,6 +267,7 @@ function mergeWeeklyQuotaSnapshot(
     return {
       ...account,
       weekly_remaining_ratio: snapshot.weeklyRemainingRatio,
+      weekly_resets_at: snapshot.weeklyResetsAt,
       snapshot_observed_at: snapshot.observedAt,
     };
   });
@@ -440,9 +445,22 @@ function weeklyQuotaSnapshotFromResult(
   ) {
     throw new Error("weekly quota is unavailable");
   }
+  let weeklyResetsAt: string | null = null;
+  if (weekly.resetsAt !== null && weekly.resetsAt !== undefined) {
+    if (
+      typeof weekly.resetsAt !== "number" ||
+      !Number.isSafeInteger(weekly.resetsAt) ||
+      weekly.resetsAt < 0 ||
+      weekly.resetsAt > 4_102_444_800
+    ) {
+      throw new Error("weekly quota is unavailable");
+    }
+    weeklyResetsAt = new Date(weekly.resetsAt * 1000).toISOString();
+  }
   return {
     accountAlias,
     weeklyRemainingRatio: Math.max(0, Math.min(1, (100 - weekly.usedPercent) / 100)),
+    weeklyResetsAt,
     observedAt,
   };
 }
@@ -644,6 +662,7 @@ export async function registerRouterStatusBridge(
         refreshed: true,
         account_alias: quotaSnapshot.accountAlias,
         weekly_remaining_ratio: quotaSnapshot.weeklyRemainingRatio,
+        weekly_resets_at: quotaSnapshot.weeklyResetsAt,
         snapshot_observed_at: quotaSnapshot.observedAt,
       });
     } catch {

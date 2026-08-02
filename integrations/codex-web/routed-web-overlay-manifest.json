@@ -6,7 +6,7 @@
     { "path": "src/server/browser-ipc-router.js", "sha256": "1a4badf9386656c9b917476410863cdb599ccaf666dae2476e4dc7566014e870" },
     { "path": "src/server/browser-session-auth.js", "sha256": "e8d447dfad97ddef264d013d67cebeb867588ff1e24bf40193012b32b528a92c" },
     { "path": "src/server/browser-upload-store.js", "sha256": "0ea86e37d585a7d91ab0a6a6de803059f3f1e883b5f8c954d269f41bff17e834" },
-    { "path": "src/server/router-status-bridge.js", "sha256": "ac5c1f13c23df530de59a4d396f1b6faeab0f7f9d6d57c1aa1d1a2b7500fc69e" },
+    { "path": "src/server/router-status-bridge.js", "sha256": "cec53389f8893f9ac2cf821dc2ac3a51b0d7fdd1537a3b32aba137e429515e62" },
     { "path": "scratch/asar/webview/index.html", "sha256": "58065cc870f6280a2d7c91ce2ae0d87df2bad9e303b0fc9ce30ced431195b2c4" },
     { "path": "scratch/asar/webview/index.html.gz", "sha256": "f83d1f84260f5a7c161a68d37baf941f713b70ee16537d5ecbf13dcce3c612cd" },
     { "path": "scratch/asar/webview/index.html.br", "sha256": "7cab7ab9218311595c6103ee3565e882a4f5cadf00c532f4823b87a92d415ccf" },

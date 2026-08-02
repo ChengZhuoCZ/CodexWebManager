@@ -35,6 +35,9 @@ import {
   R102_NATIVE_SIZE_CONTRACT,
 } from "../../../integrations/codex-web/replace-r102-router-native-size.mjs";
 import {
+  R103_RESET_TIME_CONTRACT,
+} from "../../../integrations/codex-web/replace-r103-router-reset-time.mjs";
+import {
   buildManualSwitchRequest as buildStandaloneSwitchRequest,
   currentRouteIdentity as currentStandaloneRouteIdentity,
   deriveRouterAccountPanelModel as deriveStandalonePanelModel,
@@ -86,6 +89,10 @@ const R101_DEPLOY = path.resolve(
 const R102_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r102-native-size.sh",
+);
+const R103_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r103-reset-time.sh",
 );
 
 function sha256(value) {
@@ -236,6 +243,7 @@ test("standalone panel preserves weekly-only and semantic-stream switch guards",
         state: "healthy",
         enabled: true,
         weekly_remaining_ratio: 0.75,
+        weekly_resets_at: "2026-08-08T00:00:00.000Z",
         snapshot_observed_at: null,
         cooldown_until: null,
         last_switch_reason: "startup",
@@ -256,8 +264,10 @@ test("standalone panel preserves weekly-only and semantic-stream switch guards",
   const model = deriveStandalonePanelModel(status);
   assert.equal(model.accounts[0].weeklyLabel, "75% remaining");
   assert.equal(model.accounts[0].weeklyDetail, "Refreshed: unavailable");
+  assert.equal(model.accounts[0].weeklyResetDetail, "Resets 2026-08-08 00:00 UTC");
   assert.equal(model.accounts[1].weeklyLabel, "Not observed yet");
   assert.equal(model.accounts[1].weeklyDetail, "Refreshed: never");
+  assert.equal(model.accounts[1].weeklyResetDetail, "Resets: unavailable");
   assert.equal(model.accounts.every((account) => account.switchDisabled), true);
   assert.equal(model.accounts[1].switchDisabledReason, "Active response in progress");
   assert.doesNotMatch(JSON.stringify(model), /five_hour|credential_ref|must-not-pass/u);
@@ -304,6 +314,7 @@ test("profile menu quota UI inherits native width and exposes a bounded read-onl
   assert.match(panel, /font-size: 10px; line-height: 1\.25/u);
   assert.match(panel, /weeklyLabel\.replace\(" remaining", ""\)/u);
   assert.match(panel, /Refreshed \$\{utcLabel\(account\.snapshot_observed_at\)\}/u);
+  assert.match(panel, /Resets \$\{utcLabel\(account\.weekly_resets_at\)\}/u);
   assert.match(panel, /Refresh Primary weekly quota/u);
   assert.match(panel, /\/__backend\/codex-router\/quota-refresh/u);
   assert.match(panel, /\.\.\.\(await browserCsrfHeaders\(\)\)/u);
@@ -312,6 +323,8 @@ test("profile menu quota UI inherits native width and exposes a bounded read-onl
   assert.match(bridge, /MAX_APP_SERVER_BYTES = 64 \* 1024/u);
   assert.match(bridge, /weekly\.usedPercent < 0/u);
   assert.match(bridge, /weekly\.usedPercent > 100/u);
+  assert.match(bridge, /weekly\.resetsAt > 4_102_444_800/u);
+  assert.match(bridge, /weekly_resets_at: quotaSnapshot\.weeklyResetsAt/u);
   assert.doesNotMatch(bridge, /thread\/start|turn\/start|responses\/create/u);
 });
 
@@ -780,6 +793,32 @@ test("R102 compacts timestamps into the native menu and preserves the R101 quota
   assert.match(source, /router-account-panel-131a636e\.js/u);
   assert.match(source, /SOURCE_ROUTER_BRIDGE_SHA256=ac5c1f13/u);
   assert.match(source, /quota-refresh/u);
+  assert.match(source, /only_8216_web_restarted=true/u);
+  assert.match(source, /model_request_sent=false/u);
+  assert.match(source, /account_switch_sent=false/u);
+  assert.doesNotMatch(
+    source,
+    /systemctl\s+(?:restart|stop|start)\s+(?:codex-web-upstream|codex-web-upstream-app-server|codex-web-router-app-server|codex-account-router)/u,
+  );
+});
+
+test("R103 exposes Weekly reset and observation times without model traffic", async () => {
+  assert.equal(
+    R103_RESET_TIME_CONTRACT.predecessor_panel_sha256,
+    R102_NATIVE_SIZE_CONTRACT.replacement_panel_sha256,
+  );
+  assert.equal(
+    R103_RESET_TIME_CONTRACT.replacement_panel_sha256,
+    "051747e79df1eda7dbf937ec5b930a7a30aafb97bbafb2a8df09442987fc92cc",
+  );
+  const source = await fs.readFile(R103_DEPLOY, "utf8");
+  assert.match(source, /router-r102-native-size/u);
+  assert.match(source, /router-r103-reset-time/u);
+  assert.match(source, /router-account-panel-051747e7\.js/u);
+  assert.match(source, /SOURCE_ROUTER_BRIDGE_SHA256=ac5c1f13/u);
+  assert.match(source, /SUCCESSOR_ROUTER_BRIDGE_SHA256=cec53389/u);
+  assert.match(source, /weekly_resets_at/u);
+  assert.match(source, /weekly_quota_reset_time_available=true/u);
   assert.match(source, /only_8216_web_restarted=true/u);
   assert.match(source, /model_request_sent=false/u);
   assert.match(source, /account_switch_sent=false/u);

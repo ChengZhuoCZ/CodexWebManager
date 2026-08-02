@@ -108,6 +108,7 @@ function readRouterStatus(value) {
       state: candidate.state,
       enabled: candidate.enabled,
       weekly_remaining_ratio: readRatio(candidate.weekly_remaining_ratio),
+      weekly_resets_at: readTimestamp(candidate.weekly_resets_at ?? null),
       snapshot_observed_at: readTimestamp(candidate.snapshot_observed_at),
       cooldown_until: readTimestamp(candidate.cooldown_until),
       last_switch_reason: candidate.last_switch_reason,
@@ -161,6 +162,7 @@ function weeklyPresentation(account) {
     return {
       label: "Not observed yet",
       detail: "Refreshed: never",
+      resetDetail: "Resets: unavailable",
     };
   }
   return {
@@ -168,6 +170,9 @@ function weeklyPresentation(account) {
     detail: account.snapshot_observed_at === null
       ? "Refreshed: unavailable"
       : `Refreshed ${utcLabel(account.snapshot_observed_at)}`,
+    resetDetail: account.weekly_resets_at === null
+      ? "Resets: unavailable"
+      : `Resets ${utcLabel(account.weekly_resets_at)}`,
   };
 }
 
@@ -225,6 +230,7 @@ export function deriveRouterAccountPanelModel(value, nowMilliseconds = Date.now(
         stateLabel: titleCase(account.state),
         weeklyLabel: weekly.label,
         weeklyDetail: weekly.detail,
+        weeklyResetDetail: weekly.resetDetail,
         cooldownLabel: cooldown.label,
         cooldownDetail: cooldown.detail,
         lastSwitchLabel: reasonLabel(account.last_switch_reason),
@@ -426,6 +432,11 @@ function renderProfileMenu(
       element(
         "span",
         "router-account-detail",
+        account.weeklyResetDetail,
+      ),
+      element(
+        "span",
+        "router-account-detail",
         account.weeklyDetail,
       ),
     );
@@ -587,6 +598,9 @@ export async function installRouterAccountPanel() {
         typeof body.account_alias !== "string" ||
         typeof body.weekly_remaining_ratio !== "number" ||
         body.weekly_remaining_ratio < 0 || body.weekly_remaining_ratio > 1 ||
+        (body.weekly_resets_at !== null &&
+          (typeof body.weekly_resets_at !== "string" ||
+            Number.isNaN(Date.parse(body.weekly_resets_at)))) ||
         typeof body.snapshot_observed_at !== "string" ||
         Number.isNaN(Date.parse(body.snapshot_observed_at))
       ) {
