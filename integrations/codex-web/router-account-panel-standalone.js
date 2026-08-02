@@ -349,18 +349,10 @@ function requestJson(url, { method = "GET", headers = {}, body = null } = {}) {
       request.setRequestHeader(name, value);
     }
     request.addEventListener("load", () => {
-      let responseBody = request.response;
-      if (responseBody === null && typeof request.responseText === "string") {
-        try {
-          responseBody = JSON.parse(request.responseText);
-        } catch {
-          responseBody = null;
-        }
-      }
       resolve({
         ok: request.status >= 200 && request.status < 300,
         status: request.status,
-        body: responseBody,
+        body: request.response,
       });
     }, { once: true });
     request.addEventListener("error", () => {

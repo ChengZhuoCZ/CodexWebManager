@@ -30,6 +30,10 @@ import {
 const INDEX = "scratch/asar/webview/index.html";
 const ASSETS = "scratch/asar/webview/assets";
 const APP = `${ASSETS}/app-initial-BTphDPeq.js`;
+const STANDALONE_PANEL = path.resolve(
+  import.meta.dirname,
+  "../../../integrations/codex-web/router-account-panel-standalone.js",
+);
 const R91_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r91-standalone-panel.sh",
@@ -45,6 +49,10 @@ const R94_DEPLOY = path.resolve(
 const R95_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r95-manual-switch-display.sh",
+);
+const R97_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r97-xhr-switch-repair.sh",
 );
 
 function sha256(value) {
@@ -224,6 +232,12 @@ test("standalone panel preserves weekly-only and semantic-stream switch guards",
     () => buildStandaloneSwitchRequest(model.accounts[1]),
     /manual switch is unavailable/u,
   );
+});
+
+test("standalone JSON XHR never reads responseText for a json response type", async () => {
+  const source = await fs.readFile(STANDALONE_PANEL, "utf8");
+  assert.match(source, /request\.responseType = "json"/u);
+  assert.doesNotMatch(source, /request\.responseText/u);
 });
 
 test("standalone panel permits a bounded recovery switch after an auth cooldown elapses", () => {
@@ -585,5 +599,20 @@ test("R95 upgrades only the isolated router and panel, then restores the seconda
   assert.doesNotMatch(
     source,
     /systemctl\s+(?:restart|stop|start)\s+(?:codex-web-upstream|codex-web-upstream-app-server|codex-web-router-app-server)/u,
+  );
+});
+
+test("R97 replaces only the broken JSON XHR panel and restarts routed Web", async () => {
+  const source = await fs.readFile(R97_DEPLOY, "utf8");
+  assert.match(source, /router-r97-xhr-switch-repair/u);
+  assert.match(source, /EXPECTED_CURRENT=.*router-r95-manual-switch-display/u);
+  assert.match(source, /PANEL_SOURCE_SHA256=9db9de1e/u);
+  assert.match(source, /only_8216_web_restarted=true/u);
+  assert.match(source, /model_request_sent=false/u);
+  assert.match(source, /account_switch_sent=false/u);
+  assert.match(source, /verify_protected/u);
+  assert.doesNotMatch(
+    source,
+    /systemctl\s+(?:restart|stop|start)\s+(?:codex-web-upstream|codex-web-upstream-app-server|codex-web-router-app-server|codex-account-router)/u,
   );
 });
