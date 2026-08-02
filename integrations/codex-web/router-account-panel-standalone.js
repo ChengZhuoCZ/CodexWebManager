@@ -2,7 +2,10 @@ const STATUS_PATH = "/__backend/codex-router/status";
 const EVENTS_PATH = "/__backend/codex-router/events";
 const SWITCH_PATH = "/__backend/codex-router/switch";
 const SESSION_PATH = "/__backend/session";
-const PANEL_ID = "codex-router-account-panel";
+const MENU_SECTION_ID = "codex-router-account-menu-section";
+const PROFILE_ROUTE_ATTRIBUTE = "data-codex-router-current-route";
+const PROFILE_BUTTON_SELECTOR = 'button[aria-label="Open profile menu"]';
+const PROFILE_MENU_ITEM_SELECTOR = '[role="menuitem"]';
 const POLL_INTERVAL_MS = 30_000;
 
 const ACCOUNT_STATES = new Set([
@@ -239,6 +242,18 @@ export function buildManualSwitchRequest(account) {
   return Object.freeze({ account_alias: readAlias(account.alias), reason: "manual" });
 }
 
+export function currentRouteIdentity(model) {
+  if (!isRecord(model) || !Array.isArray(model.accounts)) {
+    throw new Error("router panel model is invalid");
+  }
+  const current = model.accounts.find(
+    (account) => isRecord(account) && account.isCurrent === true,
+  );
+  if (current === undefined) return null;
+  const alias = readAlias(current.alias);
+  return Object.freeze({ alias, label: `Route: ${alias}` });
+}
+
 function element(name, className, text) {
   const node = document.createElement(name);
   if (className) node.className = className;
@@ -246,98 +261,157 @@ function element(name, className, text) {
   return node;
 }
 
-function detailRow(label, value, detail = null) {
-  const row = element("div", "detail-row");
-  const description = element("dd");
-  description.append(element("span", "value-main", value));
-  if (detail !== null) description.append(element("span", "value-detail", detail));
-  row.append(element("dt", undefined, label), description);
-  return row;
+function menuRenderSignature(model, busyAlias, transientMessage) {
+  return JSON.stringify({ accounts: model.accounts, banner: model.banner, busyAlias, transientMessage });
 }
 
-function renderPanel(root, model, onSwitch, busyAlias = null, transientMessage = null) {
+function syncProfileRouteIdentity(identity) {
+  for (const button of document.querySelectorAll(PROFILE_BUTTON_SELECTOR)) {
+    if (!(button instanceof HTMLElement)) continue;
+    let badge = button.querySelector(`[${PROFILE_ROUTE_ATTRIBUTE}]`);
+    if (identity === null) {
+      badge?.remove();
+      continue;
+    }
+    if (!(badge instanceof HTMLElement)) {
+      badge = element("span");
+      badge.setAttribute(PROFILE_ROUTE_ATTRIBUTE, "");
+      badge.setAttribute("aria-hidden", "true");
+      Object.assign(badge.style, {
+        display: "inline-flex",
+        alignItems: "center",
+        marginInlineStart: "6px",
+        borderRadius: "999px",
+        padding: "1px 6px",
+        fontSize: "11px",
+        fontWeight: "600",
+        lineHeight: "1.4",
+        whiteSpace: "nowrap",
+        background: "color-mix(in srgb, currentColor 12%, transparent)",
+      });
+      button.append(badge);
+    }
+    if (badge.textContent !== identity.label) badge.textContent = identity.label;
+  }
+}
+
+function findProfileMenu() {
+  const profileButton = document.querySelector(PROFILE_BUTTON_SELECTOR);
+  if (!(profileButton instanceof HTMLElement) || profileButton.getAttribute("aria-expanded") !== "true") {
+    return null;
+  }
+  const usageItem = [...document.querySelectorAll(PROFILE_MENU_ITEM_SELECTOR)].find(
+    (item) => item.textContent?.trim() === "Usage remaining",
+  );
+  if (!(usageItem instanceof HTMLElement)) return null;
+  let candidate = usageItem.parentElement;
+  while (candidate && candidate !== document.body) {
+    const itemLabels = [...candidate.querySelectorAll(PROFILE_MENU_ITEM_SELECTOR)].map(
+      (item) => item.textContent?.trim() ?? "",
+    );
+    if (
+      itemLabels.includes("Usage remaining") &&
+      itemLabels.some((label) => label.startsWith("Settings")) &&
+      itemLabels.includes("Log out")
+    ) {
+      return candidate;
+    }
+    candidate = candidate.parentElement;
+  }
+  return null;
+}
+
+function renderProfileMenu(model, onSwitch, busyAlias = null, transientMessage = null) {
+  const menu = findProfileMenu();
+  if (!(menu instanceof HTMLElement)) return false;
+  const signature = menuRenderSignature(model, busyAlias, transientMessage);
+  const currentSection = menu.querySelector(`#${MENU_SECTION_ID}`);
+  if (currentSection instanceof HTMLElement && currentSection.dataset.renderSignature === signature) {
+    return true;
+  }
   const style = element("style");
   style.textContent = `
-    :host { color-scheme: light dark; }
-    * { box-sizing: border-box; }
-    .panel { width: min(420px, calc(100vw - 24px)); max-height: min(620px, calc(100vh - 24px)); overflow: auto;
-      border: 1px solid color-mix(in srgb, CanvasText 18%, transparent); border-radius: 12px;
-      background: color-mix(in srgb, Canvas 96%, transparent); color: CanvasText;
-      box-shadow: 0 12px 32px rgb(0 0 0 / 20%); font: 13px/1.35 system-ui, sans-serif; }
-    summary { cursor: pointer; padding: 10px 12px; font-weight: 650; user-select: none; }
-    .content { border-top: 1px solid color-mix(in srgb, CanvasText 12%, transparent); padding: 10px; }
-    .banner { margin: 0 0 8px; border-radius: 8px; padding: 8px; background: color-mix(in srgb, #d97706 18%, Canvas); }
-    .error { background: color-mix(in srgb, #dc2626 16%, Canvas); }
-    .account { border: 1px solid color-mix(in srgb, CanvasText 12%, transparent); border-radius: 9px; padding: 9px; }
-    .account + .account { margin-top: 8px; }
-    .account-head { display: flex; align-items: center; gap: 7px; }
-    .alias { flex: 1; min-width: 0; overflow-wrap: anywhere; font-weight: 650; }
-    .state { border-radius: 999px; padding: 2px 7px; background: color-mix(in srgb, CanvasText 9%, transparent); font-size: 11px; }
-    .current { color: #15803d; font-size: 11px; font-weight: 650; }
-    dl { margin: 8px 0; }
-    .detail-row { display: grid; grid-template-columns: minmax(96px, auto) minmax(0, 1fr); gap: 10px; padding: 3px 0; }
-    dt { color: color-mix(in srgb, CanvasText 65%, transparent); }
-    dd { min-width: 0; margin: 0; text-align: right; }
-    .value-main, .value-detail { display: block; overflow-wrap: anywhere; }
-    .value-main { font-weight: 550; }
-    .value-detail { margin-top: 1px; color: color-mix(in srgb, CanvasText 62%, transparent); font-size: 11px; }
-    button { width: 100%; border: 0; border-radius: 7px; padding: 7px 9px; background: #2563eb; color: white; font: inherit; font-weight: 650; }
-    button:disabled { cursor: not-allowed; opacity: .55; }
-    .footnote { margin: 9px 2px 1px; color: color-mix(in srgb, CanvasText 65%, transparent); font-size: 11px; }
+    #${MENU_SECTION_ID} { box-sizing: border-box; min-width: 300px; max-width: 360px;
+      padding: 6px; color: inherit; font: inherit; }
+    #${MENU_SECTION_ID} * { box-sizing: border-box; }
+    #${MENU_SECTION_ID} .router-separator { height: 1px; margin: 2px -6px 8px;
+      background: color-mix(in srgb, currentColor 12%, transparent); }
+    #${MENU_SECTION_ID} .router-heading { display: flex; align-items: center; justify-content: space-between;
+      gap: 8px; padding: 2px 6px 6px; font-size: 12px; font-weight: 650; }
+    #${MENU_SECTION_ID} .router-limited { opacity: .58; font-size: 10px; font-weight: 500; }
+    #${MENU_SECTION_ID} .router-banner { margin: 0 4px 6px; border-radius: 6px; padding: 6px 8px;
+      background: color-mix(in srgb, #d97706 16%, transparent); font-size: 11px; }
+    #${MENU_SECTION_ID} .router-error { background: color-mix(in srgb, #dc2626 15%, transparent); }
+    #${MENU_SECTION_ID} .router-account { display: flex; width: 100%; min-height: 48px; align-items: center;
+      gap: 8px; border: 0; border-radius: 6px; padding: 6px 8px; background: transparent; color: inherit;
+      font: inherit; text-align: left; }
+    #${MENU_SECTION_ID} .router-account:not(:disabled):hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+    #${MENU_SECTION_ID} .router-account:focus-visible { outline: 2px solid #2563eb; outline-offset: -2px; }
+    #${MENU_SECTION_ID} .router-account:disabled { cursor: default; opacity: .72; }
+    #${MENU_SECTION_ID} .router-account-copy { min-width: 0; flex: 1; }
+    #${MENU_SECTION_ID} .router-account-title { display: flex; align-items: baseline; gap: 6px; font-weight: 600; }
+    #${MENU_SECTION_ID} .router-state { opacity: .62; font-size: 10px; font-weight: 500; }
+    #${MENU_SECTION_ID} .router-account-detail { display: block; margin-top: 2px; opacity: .62;
+      overflow-wrap: anywhere; font-size: 10px; line-height: 1.25; }
+    #${MENU_SECTION_ID} .router-action { flex: none; font-size: 11px; font-weight: 600; }
+    #${MENU_SECTION_ID} .router-current { color: #16a34a; }
+    #${MENU_SECTION_ID} .router-footnote { margin: 5px 6px 1px; opacity: .55; font-size: 10px; line-height: 1.3; }
   `;
-  const details = element("details", "panel");
-  details.open = true;
-  details.dataset.routerPanelReady = "true";
-  details.append(element("summary", undefined, `Router accounts (${model.accounts.length})`));
-  const content = element("div", "content");
-  if (model.banner) content.append(element("p", "banner", model.banner));
-  if (transientMessage) content.append(element("p", "banner error", transientMessage));
+  const section = element("div");
+  section.id = MENU_SECTION_ID;
+  section.dataset.routerPanelReady = "true";
+  section.dataset.renderSignature = signature;
+  section.setAttribute("role", "group");
+  section.setAttribute("aria-label", `Account route (${model.accounts.length})`);
+  const separator = element("div", "router-separator");
+  separator.setAttribute("role", "separator");
+  const heading = element("div", "router-heading");
+  heading.append(
+    element("span", undefined, "Account route"),
+    element("span", "router-limited", "New backend session"),
+  );
+  section.append(style, separator, heading);
+  if (model.banner) section.append(element("p", "router-banner", model.banner));
+  if (transientMessage) section.append(element("p", "router-banner router-error", transientMessage));
   for (const account of model.accounts) {
-    const card = element("section", "account");
-    card.dataset.accountAlias = account.alias;
-    const head = element("div", "account-head");
-    head.append(
-      element("span", "alias", account.alias),
-      element("span", "state", account.stateLabel),
-    );
-    if (account.isCurrent) head.append(element("span", "current", "Current"));
-    const description = element("dl");
-    description.append(
-      detailRow("Weekly quota", account.weeklyLabel, account.weeklyDetail),
-      detailRow("Cooldown", account.cooldownLabel, account.cooldownDetail),
-      detailRow("Last switch", account.lastSwitchLabel),
-    );
-    const button = element("button", undefined, account.isCurrent ? "Current route" : "Switch");
+    const button = element("button", "router-account");
     button.type = "button";
-    button.disabled = account.switchDisabled || busyAlias !== null;
+    button.setAttribute("role", "menuitemradio");
+    button.setAttribute("aria-checked", String(account.isCurrent));
     button.dataset.switchAlias = account.alias;
+    button.disabled = account.switchDisabled || busyAlias !== null;
     button.title = account.switchDisabledReason ?? "Start a new backend session on this account";
-    button.addEventListener("click", () => onSwitch(account));
-    card.append(head, description, button);
-    content.append(card);
+    const copy = element("span", "router-account-copy");
+    const title = element("span", "router-account-title");
+    title.append(
+      element("span", undefined, account.alias),
+      element("span", "router-state", account.stateLabel),
+    );
+    copy.append(
+      title,
+      element(
+        "span",
+        "router-account-detail",
+        `Weekly ${account.weeklyLabel} · Cooldown ${account.cooldownLabel}`,
+      ),
+    );
+    const action = element(
+      "span",
+      `router-action${account.isCurrent ? " router-current" : ""}`,
+      account.isCurrent ? "Current" : busyAlias === account.alias ? "Switching…" : "Switch",
+    );
+    button.append(copy, action);
+    button.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onSwitch(account);
+    });
+    section.append(button);
   }
-  content.append(element(
-    "p",
-    "footnote",
-    "Switching starts a new backend session. Cross-account continuity is not verified.",
-  ));
-  details.append(content);
-  root.replaceChildren(style, details);
-}
-
-function appendHost() {
-  const host = element("aside");
-  host.id = PANEL_ID;
-  host.setAttribute("aria-label", "Router account status");
-  Object.assign(host.style, {
-    position: "fixed",
-    right: "12px",
-    top: "12px",
-    zIndex: "2147483000",
-  });
-  const root = host.attachShadow({ mode: "open" });
-  document.body.append(host);
-  return { host, root };
+  section.append(element("p", "router-footnote", "Cross-account continuity is not verified."));
+  if (currentSection instanceof HTMLElement) currentSection.replaceWith(section);
+  else menu.append(section);
+  return true;
 }
 
 function requestJson(url, { method = "GET", headers = {}, body = null } = {}) {
@@ -404,22 +478,31 @@ export async function installRouterAccountPanel() {
   if (installedCleanup) return installedCleanup;
   await domReady();
   setPanelStage("dom_ready");
-  let host = null;
-  let root = null;
   let model = null;
   let eventSource = null;
   let pollTimer = null;
+  let profileMenuObserver = null;
   let stopped = false;
   let busyAlias = null;
   let transientMessage = null;
+  let menuRenderQueued = false;
 
-  const ensureHost = () => {
-    if (!host || !root) ({ host, root } = appendHost());
-    return root;
+  const renderSurfaces = () => {
+    if (!model || stopped) return;
+    syncProfileRouteIdentity(currentRouteIdentity(model));
+    renderProfileMenu(model, requestSwitch, busyAlias, transientMessage);
+  };
+  const queueSurfaceRender = () => {
+    if (menuRenderQueued || stopped) return;
+    menuRenderQueued = true;
+    queueMicrotask(() => {
+      menuRenderQueued = false;
+      renderSurfaces();
+    });
   };
   const showError = (message) => {
     transientMessage = message;
-    if (model) renderPanel(ensureHost(), model, requestSwitch, busyAlias, transientMessage);
+    renderSurfaces();
   };
   const refresh = async () => {
     setPanelStage("status_request");
@@ -435,7 +518,7 @@ export async function installRouterAccountPanel() {
     }
     model = deriveRouterAccountPanelModel(body.router);
     transientMessage = null;
-    renderPanel(ensureHost(), model, requestSwitch, busyAlias, transientMessage);
+    renderSurfaces();
     setPanelStage("ready");
     return "enabled";
   };
@@ -449,7 +532,7 @@ export async function installRouterAccountPanel() {
     }
     busyAlias = account.alias;
     transientMessage = null;
-    if (model) renderPanel(ensureHost(), model, requestSwitch, busyAlias, transientMessage);
+    renderSurfaces();
     try {
       const response = await requestJson(SWITCH_PATH, {
         method: "POST",
@@ -466,7 +549,7 @@ export async function installRouterAccountPanel() {
       showError("Manual switch was not accepted.");
     } finally {
       busyAlias = null;
-      if (model) renderPanel(ensureHost(), model, requestSwitch, busyAlias, transientMessage);
+      renderSurfaces();
     }
   }
 
@@ -484,12 +567,19 @@ export async function installRouterAccountPanel() {
   pollTimer = window.setInterval(() => {
     refresh().catch(() => showError("Router status is temporarily unavailable."));
   }, POLL_INTERVAL_MS);
+  if (typeof MutationObserver === "function") {
+    profileMenuObserver = new MutationObserver(queueSurfaceRender);
+    profileMenuObserver.observe(document.body, { childList: true, subtree: true });
+    queueSurfaceRender();
+  }
   installedCleanup = () => {
     if (stopped) return;
     stopped = true;
     eventSource?.close();
+    profileMenuObserver?.disconnect();
     if (pollTimer !== null) window.clearInterval(pollTimer);
-    host?.remove();
+    document.getElementById(MENU_SECTION_ID)?.remove();
+    document.querySelectorAll(`[${PROFILE_ROUTE_ATTRIBUTE}]`).forEach((badge) => badge.remove());
     installedCleanup = null;
   };
   window.addEventListener("beforeunload", installedCleanup, { once: true });

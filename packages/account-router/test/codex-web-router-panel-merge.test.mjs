@@ -23,7 +23,14 @@ import {
   replaceStandaloneRouterPanel,
 } from "../../../integrations/codex-web/replace-standalone-router-panel.mjs";
 import {
+  R99_PROFILE_MENU_CONTRACT,
+} from "../../../integrations/codex-web/replace-r99-router-profile-menu.mjs";
+import {
+  R100_PROFILE_MENU_CONTRACT,
+} from "../../../integrations/codex-web/replace-r100-router-profile-menu.mjs";
+import {
   buildManualSwitchRequest as buildStandaloneSwitchRequest,
+  currentRouteIdentity as currentStandaloneRouteIdentity,
   deriveRouterAccountPanelModel as deriveStandalonePanelModel,
 } from "../../../integrations/codex-web/router-account-panel-standalone.js";
 
@@ -53,6 +60,14 @@ const R95_DEPLOY = path.resolve(
 const R97_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r97-xhr-switch-repair.sh",
+);
+const R99_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r99-profile-menu.sh",
+);
+const R100_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r100-profile-menu-dom.sh",
 );
 
 function sha256(value) {
@@ -238,6 +253,28 @@ test("standalone JSON XHR never reads responseText for a json response type", as
   const source = await fs.readFile(STANDALONE_PANEL, "utf8");
   assert.match(source, /request\.responseType = "json"/u);
   assert.doesNotMatch(source, /request\.responseText/u);
+});
+
+test("standalone panel exposes only a sanitized current route in the profile menu", async () => {
+  const identity = currentStandaloneRouteIdentity({
+    accounts: [
+      { alias: "Primary", isCurrent: false, credential_ref: "must-not-pass" },
+      { alias: "Secondary", isCurrent: true, credential_ref: "must-not-pass" },
+    ],
+  });
+  assert.deepEqual(identity, { alias: "Secondary", label: "Route: Secondary" });
+  assert.doesNotMatch(JSON.stringify(identity), /credential_ref|must-not-pass/u);
+
+  const source = await fs.readFile(STANDALONE_PANEL, "utf8");
+  assert.match(source, /button\[aria-label="Open profile menu"\]/u);
+  assert.match(source, /\[role="menuitem"\]/u);
+  assert.match(source, /aria-expanded/u);
+  assert.match(source, /Usage remaining/u);
+  assert.match(source, /role", "menuitemradio"/u);
+  assert.match(source, /Account route/u);
+  assert.match(source, /MutationObserver/u);
+  assert.match(source, /profileMenuObserver\?\.disconnect/u);
+  assert.doesNotMatch(source, /position:\s*"fixed"/u);
 });
 
 test("standalone panel permits a bounded recovery switch after an auth cooldown elapses", () => {
@@ -611,6 +648,52 @@ test("R97 replaces only the broken JSON XHR panel and restarts routed Web", asyn
   assert.match(source, /model_request_sent=false/u);
   assert.match(source, /account_switch_sent=false/u);
   assert.match(source, /verify_protected/u);
+  assert.doesNotMatch(
+    source,
+    /systemctl\s+(?:restart|stop|start)\s+(?:codex-web-upstream|codex-web-upstream-app-server|codex-web-router-app-server|codex-account-router)/u,
+  );
+});
+
+test("R99 moves the sanitized router surface into the profile menu and restarts only routed Web", async () => {
+  assert.equal(
+    R99_PROFILE_MENU_CONTRACT.predecessor_panel_sha256,
+    "9db9de1e0f47a36888ef74fb0a30f5bad52ab31768bd96824131bfca80e21ab2",
+  );
+  assert.equal(
+    R99_PROFILE_MENU_CONTRACT.replacement_panel_sha256,
+    "d562ebb2617c2dd5abee9dc9933275eb6f2ece54f8612b41959de725574fdfbe",
+  );
+  const source = await fs.readFile(R99_DEPLOY, "utf8");
+  assert.match(source, /router-r98-browser-metadata/u);
+  assert.match(source, /router-r99-profile-menu/u);
+  assert.match(source, /SUCCESSOR_INDEX_SHA256=4d2a99f1/u);
+  assert.match(source, /SUCCESSOR_PANEL_ASSET=router-account-panel-d562ebb2\.js/u);
+  assert.match(source, /only_8216_web_restarted=true/u);
+  assert.match(source, /model_request_sent=false/u);
+  assert.match(source, /account_switch_sent=false/u);
+  assert.match(source, /verify_protected/u);
+  assert.doesNotMatch(
+    source,
+    /systemctl\s+(?:restart|stop|start)\s+(?:codex-web-upstream|codex-web-upstream-app-server|codex-web-router-app-server|codex-account-router)/u,
+  );
+});
+
+test("R100 locates the semantic profile menu without relying on an inferred container role", async () => {
+  assert.equal(
+    R100_PROFILE_MENU_CONTRACT.predecessor_panel_sha256,
+    R99_PROFILE_MENU_CONTRACT.replacement_panel_sha256,
+  );
+  assert.equal(
+    R100_PROFILE_MENU_CONTRACT.replacement_panel_sha256,
+    "559921aef674c12d7f84279c6153d58b8abe0635a64ae6d9ab786499159a3bcd",
+  );
+  const source = await fs.readFile(R100_DEPLOY, "utf8");
+  assert.match(source, /router-r99-profile-menu/u);
+  assert.match(source, /router-r100-profile-menu-dom/u);
+  assert.match(source, /SUCCESSOR_INDEX_SHA256=3d868b8b/u);
+  assert.match(source, /SUCCESSOR_PANEL_ASSET=router-account-panel-559921ae\.js/u);
+  assert.match(source, /gzip -cd/u);
+  assert.match(source, /only_8216_web_restarted=true/u);
   assert.doesNotMatch(
     source,
     /systemctl\s+(?:restart|stop|start)\s+(?:codex-web-upstream|codex-web-upstream-app-server|codex-web-router-app-server|codex-account-router)/u,

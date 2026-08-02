@@ -176,8 +176,10 @@ export async function replaceStandaloneRouterPanel({
       throw new Error("replacement panel changed");
     }
     const replacementText = decodeUtf8(replacement);
+    if (!["Router accounts", "Account route"].some((marker) => replacementText.includes(marker))) {
+      throw new Error("replacement panel contract changed");
+    }
     for (const marker of [
-      "Router accounts",
       "/__backend/codex-router/status",
       "/__backend/codex-router/switch",
       "Cross-account continuity is not verified",
