@@ -1,0 +1,127 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "generated_at": "2026-08-02T21:31:20+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "86bee108d1f2a8c60ce7a5e536fa87f9e13e58a9",
+  "implementation_revisions": [
+    "d96d067",
+    "e44628c"
+  ],
+  "implementation_mode": "clean-room",
+  "result": "done",
+  "request": {
+    "native_profile_menu_size": true,
+    "primary_weekly_quota_read": true,
+    "weekly_quota_refresh_time_visible": true
+  },
+  "implementation": {
+    "quota_rpc": "account/rateLimits/read",
+    "transport": "existing isolated 8216 App Server Unix Socket",
+    "model_request_sent": false,
+    "full_quota_response_exposed_to_browser": false,
+    "browser_fields": [
+      "validated account alias",
+      "weekly remaining ratio",
+      "snapshot observed timestamp"
+    ],
+    "request_timeout_ms": 3000,
+    "maximum_app_server_message_bytes": 65536,
+    "profile_menu_width_policy": "inherit the existing upstream menu width",
+    "timestamp_format": "YYYY-MM-DD HH:mm UTC",
+    "manual_refresh_available": true,
+    "automatic_missing_snapshot_refresh": true
+  },
+  "tests": [
+    {
+      "command": "<bundled-node> --test packages/account-router/test/codex-web-router-panel-merge.test.mjs",
+      "passed": 23,
+      "failed": 0
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/codex-web-status-bridge.test.mjs packages/account-router/test/codex-web-browser-auth.test.mjs",
+      "passed": 7,
+      "failed": 0,
+      "skipped_external_fixtures": 11
+    },
+    {
+      "command": "pinned codex-web tsconfig TypeScript compile plus isolated read-only quota bridge fixture",
+      "result": "pass",
+      "primary_weekly_available": true,
+      "refresh_time_available": true,
+      "model_request_sent": false
+    },
+    {
+      "command": "node --check panel and compiled server bridge; bash -n R101/R102 deployment scripts; git diff --check",
+      "result": "pass"
+    }
+  ],
+  "deployment": {
+    "r101_release": "c3e92f0f-20260802-m69-router-r101-quota-menu",
+    "r102_release": "c3e92f0f-20260802-m69-router-r102-native-size",
+    "r101_status": "success",
+    "r102_status": "success",
+    "only_8216_web_restarted": true,
+    "standalone_8215_unchanged": true,
+    "routed_8216_app_server_unchanged": true,
+    "account_router_process_and_release_unchanged": true,
+    "account_switch_sent": false,
+    "model_request_sent": false
+  },
+  "live_browser": {
+    "document_ready_state": "complete",
+    "router_panel_stage": "ready",
+    "profile_menu_width_px": 259,
+    "router_section_width_px": 251,
+    "router_section_min_width": "0px",
+    "router_section_max_width": "100%",
+    "account_row_height_px": 61,
+    "account_count": 2,
+    "primary_weekly_quota_visible": true,
+    "primary_refresh_time_visible": true,
+    "manual_refresh_advanced_timestamp": true,
+    "final_route_category": "secondary",
+    "active_streams": 0,
+    "cross_account_e2e_verified": false,
+    "semantic_stream_replay_attempted": false
+  },
+  "final_services": {
+    "codex_web_router": {
+      "active": true,
+      "pid": 4107279,
+      "release": "c3e92f0f-20260802-m69-router-r102-native-size"
+    },
+    "codex_web_router_app_server": {
+      "active": true,
+      "pid": 3791302
+    },
+    "account_router": {
+      "active": true,
+      "pid": 3997152,
+      "release": "codex-account-router-0.2.32-linux-x64"
+    },
+    "standalone_8215_web": {
+      "active": true,
+      "pid": 3664557
+    },
+    "standalone_8215_app_server": {
+      "active": true,
+      "pid": 3664550
+    }
+  },
+  "r96_baseline": {
+    "status": "pending",
+    "resume_input_release": "c3e92f0f-20260802-m69-router-r102-native-size",
+    "reason": "The deployed profile-menu surface changed, so the requested clean-browser startup baseline must use R102."
+  },
+  "residual_risks": [
+    "The read-only Primary snapshot is cached only in the 8216 Web process. Browser startup or the Refresh control repopulates it after a Web restart.",
+    "This display snapshot does not mutate the account-router scheduler. Scheduler quota state remains observation-driven by upstream codex.rate_limits events, while pre-semantic provider failures remain bounded by the existing failover path.",
+    "The configured Primary alias must remain aligned with the fixed isolated App Server credential used by 8216.",
+    "Quota refresh depends on the existing App Server Unix Socket and fails closed after the bounded deadline without fabricating a percentage.",
+    "Every accepted manual switch starts a new backend session; no previous request, stream, session, in-flight work or computation is resumed.",
+    "Cross-account continuity remains unverified and is not claimed.",
+    "R96 clean-browser startup profiling remains pending and must use R102 as its production input."
+  ]
+}
