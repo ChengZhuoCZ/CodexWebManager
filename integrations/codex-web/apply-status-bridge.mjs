@@ -13,6 +13,12 @@ const EXPECTED_FILES_SHA256 = "5459233ca620920dbbd18c4f01e6d89b3a3910d717600f794
 const EXPECTED_VITE_SHA256 = "ddcd625927e3f831b33eac0d25aa39e3223424d71d712ba083daf10ca0ed4e4a";
 const integrationDirectory = fileURLToPath(new URL(".", import.meta.url));
 const serverOverlaySource = path.join(integrationDirectory, "src", "server", "router-status-bridge.ts");
+const accountManagementOverlaySource = path.join(
+  integrationDirectory,
+  "src",
+  "server",
+  "router-account-management.ts",
+);
 const browserOverlaySource = path.join(integrationDirectory, "src", "browser", "router-account-panel.ts");
 const browserAuthOverlaySource = path.join(
   integrationDirectory,
@@ -204,6 +210,12 @@ async function applyStatusBridgeLocked({ codexWebRoot, revision = null } = {}) {
   const filesPath = path.join(codexWebRoot, "src", "browser", "files.ts");
   const vitePath = path.join(codexWebRoot, "vite.browser.config.ts");
   const targetServerOverlay = path.join(codexWebRoot, "src", "server", "router-status-bridge.ts");
+  const targetAccountManagementOverlay = path.join(
+    codexWebRoot,
+    "src",
+    "server",
+    "router-account-management.ts",
+  );
   const targetBrowserOverlay = path.join(codexWebRoot, "src", "browser", "router-account-panel.ts");
   const targetBrowserAuthOverlay = path.join(
     codexWebRoot,
@@ -271,7 +283,7 @@ async function applyStatusBridgeLocked({ codexWebRoot, revision = null } = {}) {
   patchedMain = replaceOnce(
     patchedMain,
     importAnchor,
-    `${importAnchor}\nimport { BrowserIpcRouter } from "./browser-ipc-router";\nimport { registerBrowserSessionAuth } from "./browser-session-auth";\nimport { BROWSER_UPLOAD_LIMITS, BrowserUploadStore, isBrowserUploadLimitError } from "./browser-upload-store";\nimport { registerRouterStatusBridge } from "./router-status-bridge";`,
+    `${importAnchor}\nimport { BrowserIpcRouter } from "./browser-ipc-router";\nimport { registerRouterAccountManagement } from "./router-account-management";\nimport { registerBrowserSessionAuth } from "./browser-session-auth";\nimport { BROWSER_UPLOAD_LIMITS, BrowserUploadStore, isBrowserUploadLimitError } from "./browser-upload-store";\nimport { registerRouterStatusBridge } from "./router-status-bridge";`,
     "server import",
   );
   patchedMain = replaceOnce(
@@ -300,7 +312,8 @@ async function applyStatusBridgeLocked({ codexWebRoot, revision = null } = {}) {
     unbindUploadCleanup();
     await browserUploadStore.close();
   });
-  await registerRouterStatusBridge(app, process.env);`,
+  await registerRouterStatusBridge(app, process.env);
+  await registerRouterAccountManagement(app, process.env);`,
     "server registration",
   );
   patchedMain = replaceOnce(
@@ -1463,6 +1476,7 @@ async function handleLocalBrowserMessage(
 
   const overlayCopies = [
     [serverOverlaySource, targetServerOverlay],
+    [accountManagementOverlaySource, targetAccountManagementOverlay],
     [browserOverlaySource, targetBrowserOverlay],
     [browserAuthOverlaySource, targetBrowserAuthOverlay],
     [browserSessionOverlaySource, targetBrowserSessionOverlay],

@@ -199,6 +199,7 @@ main().catch(() => { process.stderr.write("fixture bridge failed\\n"); process.e
   assert.equal(build.status, 0, `${build.stdout}\n${build.stderr}`);
   const patchedMain = await fs.readFile(path.join(temporaryRoot, "src", "server", "main.ts"), "utf8");
   assert.match(patchedMain, /registerRouterStatusBridge/);
+  assert.match(patchedMain, /registerRouterAccountManagement/);
   assert.match(patchedMain, /BrowserUploadStore\.create/);
   assert.match(patchedMain, /browserSessionAuth\.onSessionRevoked/);
   assert.match(patchedMain, /preload\.js\?v=m6-8-startup-chat-r8/);
@@ -284,6 +285,7 @@ main().catch(() => { process.stderr.write("fixture bridge failed\\n"); process.e
   await fs.access(path.join(temporaryRoot, "src", "browser", "browser-session.ts"));
   await fs.access(path.join(temporaryRoot, "src", "browser", "browser-message-policy.ts"));
   await fs.access(path.join(temporaryRoot, "src", "server", "browser-ipc-router.ts"));
+  await fs.access(path.join(temporaryRoot, "src", "server", "router-account-management.ts"));
   await fs.access(path.join(temporaryRoot, "src", "server", "browser-session-auth.ts"));
   await fs.access(path.join(temporaryRoot, "src", "server", "browser-upload-store.ts"));
   return {

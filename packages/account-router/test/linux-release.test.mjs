@@ -78,6 +78,7 @@ test("builds a byte-reproducible x64 Linux archive without desktop dependencies"
   const archivedPaths = entries.map((entry) => entry.path);
   assert.ok(archivedPaths.includes(`${root}/bin/codex-account-router`));
   assert.ok(archivedPaths.includes(`${root}/bin/codex-router-account`));
+  assert.ok(archivedPaths.includes(`${root}/bin/codex-router-account-manager`));
   assert.ok(archivedPaths.includes(`${root}/bin/codex-router-cli`));
   assert.ok(archivedPaths.includes(`${root}/bin/codex-stack-deploy`));
   assert.ok(archivedPaths.includes(`${root}/install.sh`));
@@ -90,6 +91,7 @@ test("builds a byte-reproducible x64 Linux archive without desktop dependencies"
   for (const executablePath of [
     `${root}/bin/codex-account-router`,
     `${root}/bin/codex-router-account`,
+    `${root}/bin/codex-router-account-manager`,
     `${root}/bin/codex-router-cli`,
     `${root}/bin/codex-stack-deploy`,
     `${root}/install.sh`,

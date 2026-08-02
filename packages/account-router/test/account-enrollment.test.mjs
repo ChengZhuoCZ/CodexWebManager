@@ -155,6 +155,26 @@ test("rejects unsafe sources and duplicate public bindings before changing servi
   assert.deepEqual(await fs.readdir(setup.credentialStoreDirectory), []);
 });
 
+test("enrollment fails closed when a semantic stream makes mutation unsafe", async (context) => {
+  const setup = await fixture(context);
+  let restarts = 0;
+  const manager = createAccountEnrollmentManager({
+    accountsFile: setup.accountsFile,
+    credentialStoreDirectory: setup.credentialStoreDirectory,
+    restartRouter: async () => { restarts += 1; },
+    routerReady: async () => true,
+    accountEnrollmentAllowed: async () => false,
+  });
+  const original = await fs.readFile(setup.accountsFile);
+  await assert.rejects(
+    manager.enroll({ ...enrollment(), sourceFile: setup.sourceFile }),
+    /account enrollment failed/,
+  );
+  assert.equal(restarts, 0);
+  assert.deepEqual(await fs.readFile(setup.accountsFile), original);
+  assert.deepEqual(await fs.readdir(setup.credentialStoreDirectory), []);
+});
+
 test("rolls back both files when the restarted router does not become ready", async (context) => {
   const setup = await fixture(context);
   const readiness = [false, true];
@@ -177,6 +197,101 @@ test("rolls back both files when the restarted router does not become ready", as
   assert.equal(restarts, 2);
   assert.deepEqual(await fs.readFile(setup.accountsFile), original);
   assert.deepEqual(await fs.readdir(setup.credentialStoreDirectory), []);
+});
+
+test("atomically removes a non-current account and erases its credential after readiness", async (context) => {
+  const setup = await fixture(context);
+  const secondaryCredential = path.join(
+    setup.credentialStoreDirectory,
+    "codex-account-router.auth.secondary",
+  );
+  const accounts = initialAccounts();
+  accounts.accounts.push({
+    id: "secondary",
+    alias: "Secondary",
+    enabled: true,
+    priority: 90,
+    max_concurrency: 1,
+    provider: "openai-codex",
+    secret_provider: "codex-auth",
+    credential_ref: "codex-account-router.auth.secondary",
+  });
+  await fs.writeFile(setup.accountsFile, `${JSON.stringify(accounts, null, 2)}\n`, { mode: 0o600 });
+  await fs.writeFile(secondaryCredential, JSON.stringify(fixtureAuth()), { mode: 0o600 });
+  let restarts = 0;
+  const manager = createAccountEnrollmentManager({
+    accountsFile: setup.accountsFile,
+    credentialStoreDirectory: setup.credentialStoreDirectory,
+    restartRouter: async () => { restarts += 1; },
+    routerReady: async () => true,
+    accountRemovalAllowed: async (account) => account.alias === "Secondary",
+  });
+
+  assert.deepEqual(await manager.remove({ alias: "Secondary" }), {
+    event: "router_account_removed",
+    configured_accounts: 1,
+    credentials_exposed: false,
+  });
+  assert.equal(restarts, 1);
+  assert.deepEqual(JSON.parse(await fs.readFile(setup.accountsFile, "utf8")), initialAccounts());
+  await assert.rejects(fs.stat(secondaryCredential), { code: "ENOENT" });
+  assert.deepEqual(await fs.readdir(setup.credentialStoreDirectory), []);
+});
+
+test("removal rejects current, last and unknown accounts before changing state", async (context) => {
+  const setup = await fixture(context);
+  let restarts = 0;
+  const manager = createAccountEnrollmentManager({
+    accountsFile: setup.accountsFile,
+    credentialStoreDirectory: setup.credentialStoreDirectory,
+    restartRouter: async () => { restarts += 1; },
+    routerReady: async () => true,
+    accountRemovalAllowed: async () => false,
+  });
+  const original = await fs.readFile(setup.accountsFile);
+  await assert.rejects(manager.remove({ alias: "Primary" }), /account removal failed/);
+  await assert.rejects(manager.remove({ alias: "Missing" }), /account removal failed/);
+  assert.equal(restarts, 0);
+  assert.deepEqual(await fs.readFile(setup.accountsFile), original);
+});
+
+test("removal restores configuration and credential when readiness fails", async (context) => {
+  const setup = await fixture(context);
+  const secondaryCredential = path.join(
+    setup.credentialStoreDirectory,
+    "codex-account-router.auth.secondary",
+  );
+  const accounts = initialAccounts();
+  accounts.accounts.push({
+    id: "secondary",
+    alias: "Secondary",
+    enabled: true,
+    priority: 90,
+    max_concurrency: 1,
+    provider: "openai-codex",
+    secret_provider: "codex-auth",
+    credential_ref: "codex-account-router.auth.secondary",
+  });
+  await fs.writeFile(setup.accountsFile, `${JSON.stringify(accounts, null, 2)}\n`, { mode: 0o600 });
+  await fs.writeFile(secondaryCredential, JSON.stringify(fixtureAuth()), { mode: 0o600 });
+  const original = await fs.readFile(setup.accountsFile);
+  const readiness = [false, true];
+  let restarts = 0;
+  const manager = createAccountEnrollmentManager({
+    accountsFile: setup.accountsFile,
+    credentialStoreDirectory: setup.credentialStoreDirectory,
+    restartRouter: async () => { restarts += 1; },
+    routerReady: async () => readiness.shift() ?? true,
+    accountRemovalAllowed: async () => true,
+  });
+
+  await assert.rejects(manager.remove({ alias: "Secondary" }), /account removal failed/);
+  assert.equal(restarts, 2);
+  assert.deepEqual(await fs.readFile(setup.accountsFile), original);
+  assert.equal((await fs.stat(secondaryCredential)).mode & 0o777, 0o600);
+  assert.deepEqual(await fs.readdir(setup.credentialStoreDirectory), [
+    "codex-account-router.auth.secondary",
+  ]);
 });
 
 test("account CLI accepts only public metadata and a private source path", () => {

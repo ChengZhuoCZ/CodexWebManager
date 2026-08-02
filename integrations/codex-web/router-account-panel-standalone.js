@@ -2,6 +2,7 @@ const STATUS_PATH = "/__backend/codex-router/status";
 const EVENTS_PATH = "/__backend/codex-router/events";
 const SWITCH_PATH = "/__backend/codex-router/switch";
 const QUOTA_REFRESH_PATH = "/__backend/codex-router/quota-refresh";
+const ACCOUNT_AUTH_PATH = "/__backend/codex-router/accounts/device-auth";
 const SESSION_PATH = "/__backend/session";
 const MENU_SECTION_ID = "codex-router-account-menu-section";
 const PROFILE_ROUTE_ATTRIBUTE = "data-codex-router-current-route";
@@ -11,6 +12,7 @@ const NATIVE_USAGE_ORIGINAL_ATTRIBUTE = "data-codex-router-native-usage-original
 const PROFILE_BUTTON_SELECTOR = 'button[aria-label="Open profile menu"]';
 const PROFILE_MENU_ITEM_SELECTOR = '[role="menuitem"]';
 const POLL_INTERVAL_MS = 30_000;
+const PRUNED_NATIVE_MENU_LABELS = new Set(["Show pet", "Log out"]);
 
 const ACCOUNT_STATES = new Set([
   "healthy",
@@ -252,6 +254,28 @@ export function buildManualSwitchRequest(account) {
   return Object.freeze({ account_alias: readAlias(account.alias), reason: "manual" });
 }
 
+export function buildAccountEnrollmentRequest(value) {
+  const alias = readAlias(value);
+  if (!/^[A-Za-z0-9][A-Za-z0-9 ._-]{0,63}$/u.test(alias) || alias.includes("@")) {
+    throw new Error("account alias is invalid");
+  }
+  return Object.freeze({ alias });
+}
+
+export function buildAccountRemovalRequest(alias, model) {
+  const safe = readAlias(alias);
+  if (
+    !isRecord(model) || !Array.isArray(model.accounts) ||
+    !Number.isSafeInteger(model.activeStreams) || model.activeStreams > 0 ||
+    model.accounts.length <= 1 ||
+    model.accounts.some((account) => isRecord(account) && account.alias === safe && account.isCurrent)
+  ) throw new Error("account removal is unavailable");
+  if (!model.accounts.some((account) => isRecord(account) && account.alias === safe)) {
+    throw new Error("account removal is unavailable");
+  }
+  return Object.freeze({ confirm_alias: safe });
+}
+
 export function currentRouteIdentity(model) {
   if (!isRecord(model) || !Array.isArray(model.accounts)) {
     throw new Error("router panel model is invalid");
@@ -310,13 +334,14 @@ function element(name, className, text) {
   return node;
 }
 
-function menuRenderSignature(model, busyAlias, quotaBusy, transientMessage) {
+function menuRenderSignature(model, busyAlias, quotaBusy, transientMessage, management) {
   return JSON.stringify({
     accounts: model.accounts,
     banner: model.banner,
     busyAlias,
     quotaBusy,
     transientMessage,
+    management,
   });
 }
 
@@ -354,6 +379,20 @@ function findUsageMenuItem(root = document) {
   return [...root.querySelectorAll(PROFILE_MENU_ITEM_SELECTOR)].find(
     (item) => item.textContent?.trim().startsWith("Usage remaining"),
   ) ?? null;
+}
+
+export function isPrunedNativeMenuLabel(value) {
+  return typeof value === "string" && PRUNED_NATIVE_MENU_LABELS.has(value.trim());
+}
+
+function pruneNativeProfileMenuItems(root = document) {
+  let removed = 0;
+  for (const item of root.querySelectorAll(PROFILE_MENU_ITEM_SELECTOR)) {
+    if (!isPrunedNativeMenuLabel(item.textContent ?? "")) continue;
+    item.remove();
+    removed += 1;
+  }
+  return removed;
 }
 
 function nativeUsageRow(template, label, values) {
@@ -470,8 +509,7 @@ function findProfileMenu() {
     );
     if (
       itemLabels.some((label) => label.startsWith("Usage remaining")) &&
-      itemLabels.some((label) => label.startsWith("Settings")) &&
-      itemLabels.includes("Log out")
+      itemLabels.some((label) => label.startsWith("Settings"))
     ) {
       return candidate;
     }
@@ -484,13 +522,19 @@ function renderProfileMenu(
   model,
   onSwitch,
   onQuotaRefresh,
+  onBeginAdd,
+  onSubmitAdd,
+  onCancelManagement,
+  onBeginRemove,
+  onConfirmRemove,
   busyAlias = null,
   quotaBusy = false,
   transientMessage = null,
+  management = { mode: "idle" },
 ) {
   const menu = findProfileMenu();
   if (!(menu instanceof HTMLElement)) return false;
-  const signature = menuRenderSignature(model, busyAlias, quotaBusy, transientMessage);
+  const signature = menuRenderSignature(model, busyAlias, quotaBusy, transientMessage, management);
   const currentSection = menu.querySelector(`#${MENU_SECTION_ID}`);
   if (currentSection instanceof HTMLElement && currentSection.dataset.renderSignature === signature) {
     return true;
@@ -510,10 +554,21 @@ function renderProfileMenu(
       background: transparent; color: inherit; font: inherit; font-size: 10px; line-height: 1.25; }
     #${MENU_SECTION_ID} .router-refresh:not(:disabled):hover { background: color-mix(in srgb, currentColor 8%, transparent); }
     #${MENU_SECTION_ID} .router-refresh:disabled { opacity: .5; }
+    #${MENU_SECTION_ID} .router-management { margin: 2px 4px 6px; border-radius: 6px; padding: 7px;
+      background: color-mix(in srgb, currentColor 6%, transparent); font-size: 11px; }
+    #${MENU_SECTION_ID} .router-management-row { display: flex; align-items: center; gap: 5px; }
+    #${MENU_SECTION_ID} .router-management input { min-width: 0; flex: 1; border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+      border-radius: 5px; padding: 5px 6px; background: transparent; color: inherit; font: inherit; }
+    #${MENU_SECTION_ID} .router-management button, #${MENU_SECTION_ID} .router-remove { border: 0; border-radius: 5px;
+      padding: 4px 6px; background: color-mix(in srgb, currentColor 9%, transparent); color: inherit; font: inherit; font-size: 10px; }
+    #${MENU_SECTION_ID} .router-management button:disabled, #${MENU_SECTION_ID} .router-remove:disabled { opacity: .45; }
+    #${MENU_SECTION_ID} .router-device-code { display: block; margin: 4px 0; font: 600 14px/1.4 ui-monospace, monospace; letter-spacing: .08em; }
+    #${MENU_SECTION_ID} .router-auth-link { color: inherit; text-decoration: underline; }
+    #${MENU_SECTION_ID} .router-account-row { display: flex; align-items: center; gap: 2px; }
     #${MENU_SECTION_ID} .router-banner { margin: 0 4px 6px; border-radius: 6px; padding: 6px 8px;
       background: color-mix(in srgb, #d97706 16%, transparent); font-size: 11px; }
     #${MENU_SECTION_ID} .router-error { background: color-mix(in srgb, #dc2626 15%, transparent); }
-    #${MENU_SECTION_ID} .router-account { display: flex; width: 100%; min-height: 42px; align-items: center;
+    #${MENU_SECTION_ID} .router-account { display: flex; min-width: 0; flex: 1; min-height: 42px; align-items: center;
       gap: 7px; border: 0; border-radius: 6px; padding: 5px 7px; background: transparent; color: inherit;
       font: inherit; text-align: left; }
     #${MENU_SECTION_ID} .router-account:not(:disabled):hover { background: color-mix(in srgb, currentColor 8%, transparent); }
@@ -539,6 +594,17 @@ function renderProfileMenu(
   const heading = element("div", "router-heading");
   const headingActions = element("span", "router-heading-actions");
   headingActions.append(element("span", "router-limited", "New session"));
+  const addButton = element("button", "router-refresh", "Add");
+  addButton.type = "button";
+  addButton.disabled = model.activeStreams > 0 || management.mode !== "idle";
+  addButton.title = model.activeStreams > 0
+    ? "Wait for the active response to finish"
+    : "Add an account with OpenAI device authorization";
+  addButton.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    onBeginAdd();
+  });
   const refreshButton = element("button", "router-refresh", quotaBusy ? "Refreshing…" : "Refresh");
   refreshButton.type = "button";
   refreshButton.disabled = quotaBusy;
@@ -549,12 +615,85 @@ function renderProfileMenu(
     event.stopPropagation();
     onQuotaRefresh();
   });
-  headingActions.append(refreshButton);
+  headingActions.append(addButton, refreshButton);
   heading.append(element("span", undefined, "Account route"), headingActions);
   section.append(style, separator, heading);
   if (model.banner) section.append(element("p", "router-banner", model.banner));
   if (transientMessage) section.append(element("p", "router-banner router-error", transientMessage));
+  if (management.mode === "add_alias") {
+    const form = element("form", "router-management");
+    const row = element("div", "router-management-row");
+    const input = element("input");
+    input.name = "account_alias";
+    input.maxLength = 64;
+    input.placeholder = "Account name";
+    input.setAttribute("aria-label", "New account name");
+    const submit = element("button", undefined, "Authorize");
+    submit.type = "submit";
+    const cancel = element("button", undefined, "Cancel");
+    cancel.type = "button";
+    cancel.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onCancelManagement();
+    });
+    row.append(input, submit, cancel);
+    form.append(row);
+    form.addEventListener("submit", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onSubmitAdd(input.value);
+    });
+    section.append(form);
+    queueMicrotask(() => input.focus());
+  } else if (new Set(["starting", "waiting", "installing"]).has(management.mode)) {
+    const box = element("div", "router-management");
+    box.append(element("div", undefined, management.mode === "installing"
+      ? "Authorization received. Installing account…"
+      : "Authorize this account in your browser:"));
+    if (management.verificationUrl) {
+      const link = element("a", "router-auth-link", management.verificationUrl);
+      link.href = management.verificationUrl;
+      link.target = "_blank";
+      link.rel = "noopener noreferrer";
+      box.append(link);
+    }
+    if (management.userCode) box.append(element("code", "router-device-code", management.userCode));
+    const cancel = element("button", undefined, "Cancel");
+    cancel.type = "button";
+    cancel.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onCancelManagement();
+    });
+    box.append(cancel);
+    section.append(box);
+  } else if (management.mode === "remove_confirm") {
+    const box = element("div", "router-management");
+    box.append(element("div", undefined, `Remove ${management.alias}? Its stored credential will be erased.`));
+    const row = element("div", "router-management-row");
+    const confirm = element("button", undefined, `Delete ${management.alias}`);
+    confirm.type = "button";
+    confirm.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onConfirmRemove(management.alias);
+    });
+    const cancel = element("button", undefined, "Cancel");
+    cancel.type = "button";
+    cancel.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onCancelManagement();
+    });
+    row.append(confirm, cancel);
+    box.append(row);
+    section.append(box);
+  } else if (management.mode === "remove_working") {
+    section.append(element("div", "router-management", `Deleting ${management.alias}…`));
+  }
   for (const account of model.accounts) {
+    const row = element("div", "router-account-row");
     const button = element("button", "router-account");
     button.type = "button";
     button.setAttribute("role", "menuitemradio");
@@ -597,7 +736,24 @@ function renderProfileMenu(
       event.stopPropagation();
       onSwitch(account);
     });
-    section.append(button);
+    const remove = element("button", "router-remove", "Delete");
+    remove.type = "button";
+    remove.disabled = model.accounts.length <= 1 || account.isCurrent || model.activeStreams > 0 || management.mode !== "idle";
+    remove.title = model.accounts.length <= 1
+      ? "The last account cannot be deleted"
+      : account.isCurrent
+        ? "Switch away before deleting this account"
+        : model.activeStreams > 0
+          ? "Wait for the active response to finish"
+          : `Delete ${account.alias}`;
+    remove.setAttribute("aria-label", `Delete ${account.alias}`);
+    remove.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      onBeginRemove(account.alias);
+    });
+    row.append(button, remove);
+    section.append(row);
   }
   section.append(element("p", "router-footnote", "Cross-account continuity is not verified."));
   if (currentSection instanceof HTMLElement) currentSection.replaceWith(section);
@@ -678,19 +834,28 @@ export async function installRouterAccountPanel() {
   let quotaBusy = false;
   let quotaRefreshAttempted = false;
   let transientMessage = null;
+  let management = { mode: "idle" };
+  let managementPollTimer = null;
   let menuRenderQueued = false;
 
   const renderSurfaces = () => {
     if (!model || stopped) return;
+    pruneNativeProfileMenuItems();
     syncProfileRouteIdentity(currentRouteIdentity(model));
     syncNativeUsageSurface(model);
     renderProfileMenu(
       model,
       requestSwitch,
       () => requestQuotaRefresh(true),
+      beginAdd,
+      submitAdd,
+      cancelManagement,
+      beginRemove,
+      confirmRemove,
       busyAlias,
       quotaBusy,
       transientMessage,
+      management,
     );
   };
   const queueSurfaceRender = () => {
@@ -791,6 +956,145 @@ export async function installRouterAccountPanel() {
       renderSurfaces();
     }
   }
+  function clearManagementPoll() {
+    if (managementPollTimer !== null) {
+      window.clearTimeout(managementPollTimer);
+      managementPollTimer = null;
+    }
+  }
+  function beginAdd() {
+    if (stopped || management.mode !== "idle" || model?.activeStreams > 0) return;
+    management = { mode: "add_alias" };
+    transientMessage = null;
+    renderSurfaces();
+  }
+  async function submitAdd(rawAlias) {
+    if (stopped || management.mode !== "add_alias") return;
+    let requestBody;
+    try {
+      requestBody = buildAccountEnrollmentRequest(rawAlias);
+    } catch {
+      showError("Use a short account name without an email address.");
+      return;
+    }
+    const { alias } = requestBody;
+    management = { mode: "starting", alias, operationId: null, verificationUrl: null, userCode: null };
+    transientMessage = null;
+    renderSurfaces();
+    try {
+      const response = await requestJson(ACCOUNT_AUTH_PATH, {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+          ...(await browserCsrfHeaders()),
+        },
+        body: JSON.stringify(requestBody),
+      });
+      const body = response.body;
+      if (
+        response.status !== 202 || !isRecord(body) || body.enabled !== true ||
+        typeof body.operation_id !== "string" || !/^[a-f0-9]{32}$/u.test(body.operation_id)
+      ) throw new Error("device authorization failed");
+      management = {
+        mode: body.phase === "waiting" ? "waiting" : "starting",
+        alias,
+        operationId: body.operation_id,
+        verificationUrl: typeof body.verification_url === "string" ? body.verification_url : null,
+        userCode: typeof body.user_code === "string" ? body.user_code : null,
+      };
+      renderSurfaces();
+      managementPollTimer = window.setTimeout(pollDeviceAuth, 750);
+    } catch {
+      management = { mode: "idle" };
+      showError("Account authorization could not be started.");
+    }
+  }
+  async function pollDeviceAuth() {
+    managementPollTimer = null;
+    const operationId = management.operationId;
+    if (stopped || typeof operationId !== "string") return;
+    try {
+      const response = await requestJson(`${ACCOUNT_AUTH_PATH}/${operationId}`, {
+        headers: { accept: "application/json" },
+      });
+      const body = response.body;
+      if (!response.ok || !isRecord(body) || body.enabled !== true || body.operation_id !== operationId) {
+        throw new Error("device authorization status failed");
+      }
+      if (body.phase === "complete") {
+        management = { mode: "idle" };
+        await refresh();
+        return;
+      }
+      if (body.phase === "failed" || body.phase === "cancelled") {
+        management = { mode: "idle" };
+        showError(body.phase === "failed" ? "Account authorization failed." : "Account authorization cancelled.");
+        return;
+      }
+      if (!new Set(["starting", "waiting", "installing"]).has(body.phase)) {
+        throw new Error("device authorization status failed");
+      }
+      management = {
+        ...management,
+        mode: body.phase,
+        verificationUrl: typeof body.verification_url === "string" ? body.verification_url : null,
+        userCode: typeof body.user_code === "string" ? body.user_code : null,
+      };
+      renderSurfaces();
+      managementPollTimer = window.setTimeout(pollDeviceAuth, 1_000);
+    } catch {
+      management = { mode: "idle" };
+      showError("Account authorization status is unavailable.");
+    }
+  }
+  async function cancelManagement() {
+    clearManagementPoll();
+    const operationId = management.operationId;
+    management = { mode: "idle" };
+    renderSurfaces();
+    if (typeof operationId !== "string") return;
+    try {
+      await requestJson(`${ACCOUNT_AUTH_PATH}/${operationId}`, {
+        method: "DELETE",
+        headers: { accept: "application/json", ...(await browserCsrfHeaders()) },
+      });
+    } catch {}
+  }
+  function beginRemove(alias) {
+    if (
+      stopped || management.mode !== "idle" || model?.activeStreams > 0 ||
+      model?.accounts.length <= 1 || model?.accounts.some((account) => account.alias === alias && account.isCurrent)
+    ) return;
+    management = { mode: "remove_confirm", alias };
+    transientMessage = null;
+    renderSurfaces();
+  }
+  async function confirmRemove(alias) {
+    if (stopped || management.mode !== "remove_confirm" || management.alias !== alias) return;
+    management = { mode: "remove_working", alias };
+    renderSurfaces();
+    try {
+      const requestBody = buildAccountRemovalRequest(alias, model);
+      const response = await requestJson(`/__backend/codex-router/accounts/${encodeURIComponent(alias)}`, {
+        method: "DELETE",
+        headers: {
+          "content-type": "application/json",
+          accept: "application/json",
+          ...(await browserCsrfHeaders()),
+        },
+        body: JSON.stringify(requestBody),
+      });
+      if (!response.ok || !isRecord(response.body) || response.body.removed !== true) {
+        throw new Error("account removal rejected");
+      }
+      management = { mode: "idle" };
+      await refresh();
+    } catch {
+      management = { mode: "idle" };
+      showError("Account deletion was rejected.");
+    }
+  }
 
   try {
     if (await refresh() === "disabled") return () => undefined;
@@ -817,6 +1121,7 @@ export async function installRouterAccountPanel() {
   installedCleanup = () => {
     if (stopped) return;
     stopped = true;
+    clearManagementPoll();
     eventSource?.close();
     profileMenuObserver?.disconnect();
     if (pollTimer !== null) window.clearInterval(pollTimer);

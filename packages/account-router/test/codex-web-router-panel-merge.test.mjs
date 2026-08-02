@@ -45,8 +45,11 @@ import {
 } from "../../../integrations/codex-web/replace-r105-router-native-usage-dom.mjs";
 import {
   buildManualSwitchRequest as buildStandaloneSwitchRequest,
+  buildAccountEnrollmentRequest,
+  buildAccountRemovalRequest,
   currentRouteIdentity as currentStandaloneRouteIdentity,
   deriveRouterAccountPanelModel as deriveStandalonePanelModel,
+  isPrunedNativeMenuLabel,
   nativeUsagePresentation as standaloneNativeUsagePresentation,
 } from "../../../integrations/codex-web/router-account-panel-standalone.js";
 
@@ -61,6 +64,35 @@ const ROUTER_STATUS_BRIDGE = path.resolve(
   import.meta.dirname,
   "../../../integrations/codex-web/src/server/router-status-bridge.ts",
 );
+
+test("removes only the native pet and logout menu entries", () => {
+  assert.equal(isPrunedNativeMenuLabel("Show pet"), true);
+  assert.equal(isPrunedNativeMenuLabel(" Log out "), true);
+  assert.equal(isPrunedNativeMenuLabel("Settings"), false);
+  assert.equal(isPrunedNativeMenuLabel("Usage remaining"), false);
+  assert.equal(isPrunedNativeMenuLabel("Delete Secondary"), false);
+});
+
+test("builds bounded browser account add and delete requests", () => {
+  assert.deepEqual(buildAccountEnrollmentRequest("Research 2"), { alias: "Research 2" });
+  assert.throws(() => buildAccountEnrollmentRequest("person@example.test"));
+  const model = {
+    activeStreams: 0,
+    accounts: [
+      { alias: "Primary", isCurrent: true },
+      { alias: "Research 2", isCurrent: false },
+    ],
+  };
+  assert.deepEqual(buildAccountRemovalRequest("Research 2", model), {
+    confirm_alias: "Research 2",
+  });
+  assert.throws(() => buildAccountRemovalRequest("Primary", model));
+  assert.throws(() => buildAccountRemovalRequest("Research 2", { ...model, activeStreams: 1 }));
+  assert.throws(() => buildAccountRemovalRequest("Research 2", {
+    activeStreams: 0,
+    accounts: [{ alias: "Research 2", isCurrent: false }],
+  }));
+});
 const R91_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r91-standalone-panel.sh",

@@ -176,11 +176,40 @@ function stableDocument(document, definition) {
   }, null, 2)}\n`, "utf8");
 }
 
+function stableDocumentWithout(document, accountId) {
+  return Buffer.from(`${JSON.stringify({
+    version: 1,
+    accounts: document.accounts.filter((account) => account.id !== accountId),
+  }, null, 2)}\n`, "utf8");
+}
+
+async function moveCredentialAside(directory, reference) {
+  const source = path.join(directory, reference);
+  const backup = path.join(directory, `.${reference}.${randomUUID()}.removed`);
+  const handle = await fs.open(
+    source,
+    fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0),
+  );
+  try {
+    const stat = await handle.stat();
+    if (!stat.isFile() || stat.size < 1 || stat.size > MAX_DOCUMENT_BYTES || (stat.mode & 0o077) !== 0) {
+      throw new Error("credential boundary is invalid");
+    }
+  } finally {
+    await handle.close();
+  }
+  await fs.rename(source, backup);
+  await syncDirectory(directory);
+  return { source, backup };
+}
+
 export function createAccountEnrollmentManager({
   accountsFile,
   credentialStoreDirectory,
   restartRouter,
   routerReady,
+  accountEnrollmentAllowed = async () => true,
+  accountRemovalAllowed = async () => false,
   credentialUid = typeof process.getuid === "function" ? process.getuid() : 0,
   credentialGid = typeof process.getgid === "function" ? process.getgid() : 0,
 } = {}) {
@@ -188,6 +217,8 @@ export function createAccountEnrollmentManager({
   const credentialDirectory = assertAbsolutePath(credentialStoreDirectory);
   const restart = assertFunction(restartRouter);
   const ready = assertFunction(routerReady);
+  const enrollmentAllowed = assertFunction(accountEnrollmentAllowed);
+  const removalAllowed = assertFunction(accountRemovalAllowed);
 
   return Object.freeze({
     async enroll({ sourceFile, id, alias, priority = 0, maxConcurrency = 1 } = {}) {
@@ -213,6 +244,9 @@ export function createAccountEnrollmentManager({
         const document = parseAccounts(original.bytes);
         const definition = accountDefinition({ id, alias, priority, maxConcurrency });
         normalizeAccountDefinition(definition);
+        if (await enrollmentAllowed(Object.freeze({ id: definition.id, alias: definition.alias })) !== true) {
+          throw new Error("account enrollment is not currently allowed");
+        }
         if (
           document.accounts.some((account) =>
             account.id === definition.id ||
@@ -263,6 +297,84 @@ export function createAccountEnrollmentManager({
           await ready(parseAccounts(original.bytes).accounts.length).catch(() => false);
         }
         throw new Error("account enrollment failed");
+      } finally {
+        if (lockHandle !== undefined) {
+          await lockHandle.close().catch(() => {});
+          await fs.rm(lockPath, { force: true }).catch(() => {});
+          await syncDirectory(path.dirname(configPath)).catch(() => {});
+        }
+      }
+    },
+    async remove({ alias } = {}) {
+      let original;
+      let credential;
+      let configurationInstalled = false;
+      let restartAttempted = false;
+      let lockHandle;
+      const lockPath = path.join(path.dirname(configPath), ".account-enrollment.lock");
+      try {
+        if (typeof alias !== "string" || !SAFE_ALIAS_PATTERN.test(alias) || alias.includes("@")) {
+          throw new Error("account alias is invalid");
+        }
+        await assertPrivateCredentialDirectory(credentialDirectory, credentialUid);
+        lockHandle = await fs.open(
+          lockPath,
+          fsConstants.O_WRONLY | fsConstants.O_CREAT | fsConstants.O_EXCL,
+          0o600,
+        );
+        original = await readBoundedRegularFile(configPath, {
+          requireNoGroupOtherWrites: true,
+        });
+        const document = parseAccounts(original.bytes);
+        if (document.accounts.length <= 1) throw new Error("last account cannot be removed");
+        const definition = document.accounts.find((account) => account.alias === alias);
+        if (definition === undefined) throw new Error("account binding is unavailable");
+        if (await removalAllowed(Object.freeze({ id: definition.id, alias: definition.alias })) !== true) {
+          throw new Error("account removal is not currently allowed");
+        }
+
+        const currentBytes = await fs.readFile(configPath);
+        if (!currentBytes.equals(original.bytes)) {
+          throw new Error("accounts configuration changed concurrently");
+        }
+
+        credential = await moveCredentialAside(
+          credentialDirectory,
+          definition.credential_ref,
+        );
+        configurationInstalled = true;
+        await replaceConfiguration(
+          configPath,
+          stableDocumentWithout(document, definition.id),
+          original.stat,
+        );
+
+        restartAttempted = true;
+        await restart();
+        if (await ready(document.accounts.length - 1) !== true) {
+          throw new Error("router readiness failed");
+        }
+        await fs.rm(credential.backup);
+        await syncDirectory(credentialDirectory);
+        credential = undefined;
+        return Object.freeze({
+          event: "router_account_removed",
+          configured_accounts: document.accounts.length - 1,
+          credentials_exposed: false,
+        });
+      } catch {
+        if (configurationInstalled && original !== undefined) {
+          await replaceConfiguration(configPath, original.bytes, original.stat).catch(() => {});
+        }
+        if (credential !== undefined) {
+          await fs.rename(credential.backup, credential.source).catch(() => {});
+          await syncDirectory(credentialDirectory).catch(() => {});
+        }
+        if (restartAttempted && original !== undefined) {
+          await restart().catch(() => {});
+          await ready(parseAccounts(original.bytes).accounts.length).catch(() => false);
+        }
+        throw new Error("account removal failed");
       } finally {
         if (lockHandle !== undefined) {
           await lockHandle.close().catch(() => {});

@@ -12,6 +12,7 @@
   },
   "bin": {
     "codex-router-account": "./bin/codex-router-account.mjs",
+    "codex-router-account-manager": "./bin/codex-router-account-manager.mjs",
     "codex-stack-deploy": "./bin/codex-stack-deploy.mjs",
     "codex-router-cli": "./bin/codex-router-cli.mjs"
   },
