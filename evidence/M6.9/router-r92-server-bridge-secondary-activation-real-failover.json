@@ -1,0 +1,100 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "implementation_mode": "clean-room",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "1937ada586a602cf8be8f8f8177eb3ebd05d6529",
+  "dependencies": [
+    "M2.5",
+    "M6.8",
+    "G-SECRETS"
+  ],
+  "objective": "Preserve the complete qualified R23 App Host bridge, restore the R86 router account server adapters, activate one freshly user-authorized distinct Secondary credential, and qualify a real initial-request automatic failover before semantic output without recording private identity or response data.",
+  "r92_server_bridge": {
+    "input_release": "c3e92f0f-20260802-m69-router-r91-standalone-panel",
+    "output_release": "c3e92f0f-20260802-m69-router-r92-server-bridge",
+    "installer_sha256": "71d6d741d6bcbe6ffbe2aa403627b815c706126ee32ae300639e8b8864515bf5",
+    "deployment_script_sha256": "f7ff4f705d1cf73b5605efedeaadab0aeccf61567a6981890e596c7a25b1998b",
+    "qualified_r23_app_host_preserved": true,
+    "r86_browser_session_adapter_installed": true,
+    "r86_router_status_adapter_installed": true,
+    "standalone_router_panel_preserved": true,
+    "protected_status_route_returned_json": true,
+    "deployed": true,
+    "routed_web_and_app_server_restarted": true,
+    "account_router_process_unchanged_during_web_deployment": true,
+    "standalone_8215_unchanged": true
+  },
+  "secondary_activation": {
+    "activation_script_sha256": "28a6f99a1ac9589b931faf3d588a6bae1010b60b54a5b62f19380302b168bb51",
+    "user_authorized_device_login_completed": true,
+    "fresh_identity_distinct_from_primary": true,
+    "fresh_identity_distinct_from_expired_secondary": true,
+    "credential_replaced_atomically": true,
+    "credential_values_or_identities_recorded": false,
+    "router_ready_with_two_accounts": true,
+    "r92_web_and_app_server_unchanged": true,
+    "standalone_8215_unchanged": true,
+    "failed_activation_attempts": [
+      {
+        "boundary": "preflight",
+        "reason": "installed credential parser path was incomplete",
+        "mutation_performed": false
+      },
+      {
+        "boundary": "readiness",
+        "reason": "the prior auth-expired circuit cooldown had not reached its recorded boundary",
+        "replacement_rolled_back": true
+      }
+    ]
+  },
+  "authorized_real_initial_request_e2e": {
+    "test_script_sha256": "0e2bfd885650eee8749b57cba23abe5c8638c083a713b289a70366ad81d6efd0",
+    "real_accounts_used": true,
+    "initial_route_category": "primary",
+    "request_had_previous_response_id": false,
+    "primary_failure_before_semantic_output": true,
+    "automatic_secondary_selection": true,
+    "secondary_http_status": 200,
+    "secondary_sse_completion_observed": true,
+    "prompt_body_recorded": false,
+    "response_body_recorded": false,
+    "credential_or_identity_recorded": false,
+    "primary_credential_restored_byte_for_byte": true,
+    "final_route_category": "secondary",
+    "final_secondary_state": "healthy",
+    "router_ready_with_two_accounts_after": true,
+    "r92_web_and_app_server_unchanged": true,
+    "standalone_8215_unchanged": true,
+    "semantic_stream_replay_attempted": false,
+    "continuity_label": "new_backend_session",
+    "cross_account_continuity_claimed": false,
+    "in_flight_recovery_claimed": false
+  },
+  "tests": [
+    {
+      "command": "<bundled-node> --check integrations/codex-web/install-r87-router-server-bridge.mjs",
+      "result": "passed"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/codex-web-router-panel-merge.test.mjs packages/account-router/test/account-enrollment.test.mjs packages/account-router/test/failover-proxy.test.mjs packages/account-router/test/runtime-composition.test.mjs packages/account-router/test/runtime-persistence.test.mjs packages/account-router/test/websocket-failover.test.mjs packages/account-router/test/failure-injection-matrix.test.mjs",
+      "result": "69 passed, 0 failed, 0 skipped in the host network environment; the first sandboxed invocation passed 18 file-only tests and had 51 uniform listen EPERM fixture failures"
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r92-server-bridge.sh evidence/M6.9/activate-secondary-credential-r92.sh evidence/M6.9/run-r92-real-presemantic-failover.sh && git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "hash-verified rollback deployment, atomic Secondary activation, protected R92 session/status probes, and one body-discarded real initial HTTP/SSE failover request",
+      "result": "R92 deployed; two distinct accounts ready; Primary failed before semantic output; Secondary completed; Primary credential restored; protected 8216 Web/App and standalone 8215 invariants passed"
+    }
+  ],
+  "residual_risks": [
+    "The real E2E qualifies a new independent request only; it does not migrate a backend session, replay after semantic output, resume an in-flight computation, or prove seamless cross-account continuity.",
+    "The account panel and protected JSON bridge were verified server-side. Direct visual verification through the in-app browser control channel remained unavailable because that control channel timed out; this is not treated as a page failure.",
+    "A trusted Tailnet principal that can reach port 8216 can use both configured account bindings and the routed workspace authority.",
+    "Model and startup latency evidence remains bounded to prior M6.9 observations and is not a stable performance guarantee."
+  ],
+  "recorded_at": "2026-08-02T11:07:29+08:00"
+}

@@ -12,6 +12,9 @@ import {
   installStandaloneRouterPanel,
 } from "../../../integrations/codex-web/install-standalone-router-panel.mjs";
 import {
+  installR87RouterServerBridge,
+} from "../../../integrations/codex-web/install-r87-router-server-bridge.mjs";
+import {
   buildManualSwitchRequest as buildStandaloneSwitchRequest,
   deriveRouterAccountPanelModel as deriveStandalonePanelModel,
 } from "../../../integrations/codex-web/router-account-panel-standalone.js";
@@ -22,6 +25,10 @@ const APP = `${ASSETS}/app-initial-BTphDPeq.js`;
 const R91_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r91-standalone-panel.sh",
+);
+const R92_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r92-server-bridge.sh",
 );
 
 function sha256(value) {
@@ -261,4 +268,105 @@ test("standalone panel installer fails before writing when its module hash chang
     /standalone panel install failed at validate_panel_module/u,
   );
   assert.deepEqual(await fs.readFile(path.join(value.candidate, INDEX)), before);
+});
+
+async function r87ServerFixture(context) {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "m69-r87-server-bridge-"));
+  context.after(() => fs.rm(root, { recursive: true, force: true }));
+  const candidate = path.join(root, "candidate");
+  const main = Buffer.from([
+    'const module_1 = require("./module");',
+    "class WebSocketMessagePort {}",
+    "async function startIpcBridgeServer() {",
+    '    const app = (0, fastify_1.default)({ logger: false });',
+    '    if (message.type === "ipc-renderer-post-message") return;',
+    "}",
+    "",
+  ].join("\n"));
+  const sessionAuth = Buffer.from("exports.registerBrowserSessionAuth = async () => {};\n");
+  const routerBridge = Buffer.from("exports.registerRouterStatusBridge = async () => {};\n");
+  const sessionAuthPath = path.join(root, "browser-session-auth.js");
+  const routerBridgePath = path.join(root, "router-status-bridge.js");
+  await write(candidate, "src/server/main.js", main);
+  await fs.writeFile(sessionAuthPath, sessionAuth, { mode: 0o644 });
+  await fs.writeFile(routerBridgePath, routerBridge, { mode: 0o644 });
+  return {
+    candidate,
+    main,
+    sessionAuth,
+    routerBridge,
+    sessionAuthPath,
+    routerBridgePath,
+    contract: {
+      qualified_main_sha256: sha256(main),
+      session_auth_sha256: sha256(sessionAuth),
+      router_bridge_sha256: sha256(routerBridge),
+    },
+  };
+}
+
+test("adds only browser session and router status bridges to the qualified R23 server", async (context) => {
+  const value = await r87ServerFixture(context);
+  const result = await installR87RouterServerBridge({
+    candidate: value.candidate,
+    sessionAuth: value.sessionAuthPath,
+    routerBridge: value.routerBridgePath,
+    contract: value.contract,
+  });
+  const main = await fs.readFile(path.join(value.candidate, "src/server/main.js"), "utf8");
+  assert.equal(result.event, "r87_router_server_bridge_installed");
+  assert.equal(result.qualified_app_host_preserved, true);
+  assert.match(main, /class WebSocketMessagePort/u);
+  assert.match(main, /message\.type === "ipc-renderer-post-message"/u);
+  assert.match(main, /registerBrowserSessionAuth\)\(app, process\.env\)/u);
+  assert.match(main, /registerRouterStatusBridge\)\(app, process\.env\)/u);
+  assert.deepEqual(
+    await fs.readFile(path.join(value.candidate, "src/server/browser-session-auth.js")),
+    value.sessionAuth,
+  );
+  assert.deepEqual(
+    await fs.readFile(path.join(value.candidate, "src/server/router-status-bridge.js")),
+    value.routerBridge,
+  );
+});
+
+test("R87 server bridge installer fails closed before writing when App Host changes", async (context) => {
+  const value = await r87ServerFixture(context);
+  await fs.appendFile(path.join(value.candidate, "src/server/main.js"), "unexpected\n");
+  const changed = await fs.readFile(path.join(value.candidate, "src/server/main.js"));
+  await assert.rejects(
+    installR87RouterServerBridge({
+      candidate: value.candidate,
+      sessionAuth: value.sessionAuthPath,
+      routerBridge: value.routerBridgePath,
+      contract: value.contract,
+    }),
+    /R87 server bridge install failed at validate_qualified_main/u,
+  );
+  await assert.rejects(
+    fs.access(path.join(value.candidate, "src/server/browser-session-auth.js")),
+  );
+  await assert.rejects(
+    fs.access(path.join(value.candidate, "src/server/router-status-bridge.js")),
+  );
+  assert.deepEqual(await fs.readFile(path.join(value.candidate, "src/server/main.js")), changed);
+});
+
+test("R92 deploys the R86 server adapters without replacing or restarting protected services", async () => {
+  const source = await fs.readFile(R92_DEPLOY, "utf8");
+  assert.match(source, /router-r91-standalone-panel/u);
+  assert.match(source, /router-r86/u);
+  assert.match(source, /QUALIFIED_MAIN_SHA256=103d8dbc/u);
+  assert.match(source, /INSTALLED_MAIN_SHA256=ea69e94c/u);
+  assert.match(source, /SESSION_AUTH_SHA256=e8d447df/u);
+  assert.match(source, /ROUTER_BRIDGE_SHA256=185cf83a/u);
+  assert.match(source, /class WebSocketMessagePort/u);
+  assert.match(source, /ipc-renderer-post-message/u);
+  assert.match(source, /expect_8215_unchanged/u);
+  assert.match(source, /expect_account_router_unchanged/u);
+  assert.match(source, /restart_8216_web_app/u);
+  assert.doesNotMatch(
+    source,
+    /systemctl\s+(?:restart|stop|start)\s+(?:codex-web-upstream|codex-account-router)/u,
+  );
 });
