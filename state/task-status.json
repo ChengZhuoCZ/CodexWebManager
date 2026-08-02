@@ -5742,9 +5742,29 @@
       "cross_account_continuity_claimed": false,
       "r96_clean_browser_baseline_input": "c3e92f0f-20260802-m69-router-r105-native-usage-dom",
       "status": "done"
+    },
+    "r106_account_management_gate": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "11c98a20d5b96e7f48e06ffecba9622719d03153",
+      "implementation_revision": "3fe0caad2c89e7dd9e7a6823211ef7c679f13a5e",
+      "evidence": "evidence/M6.9/router-r106-account-management-gate.json",
+      "active_web_release": "c3e92f0f-20260802-m69-router-r105-native-usage-dom",
+      "native_menu_pruning_implemented": true,
+      "device_auth_account_add_implemented": true,
+      "atomic_account_delete_implemented": true,
+      "privileged_helper_installed": false,
+      "production_changed": false,
+      "standalone_8215_unchanged": true,
+      "model_request_sent": false,
+      "account_switch_sent": false,
+      "cross_account_continuity_claimed": false,
+      "status": "blocked"
     }
   },
-  "blockers": [],
+  "blockers": [
+    "R106 requires explicit user approval before installing a persistent root-run, socket-activated account helper with narrowly scoped write access to the router catalog and credential store."
+  ],
   "residual_risks": [
     "Cross-account continuity remains unverified and is not claimed.",
     "Pre-fix codex-web-router journal records may contain upstream IPC bodies or response headers. Per-unit deletion is unavailable without vacuuming unrelated system logs; retention and access must be handled operationally.",
@@ -5915,7 +5935,9 @@
     "R105's native Usage adapter depends on the current upstream English Usage remaining label and its Weekly DOM structure; a future upstream localization or menu rewrite must fail closed or receive a new bounded adapter.",
     "R105 leaves the fixed App Server login identity unchanged. The displayed route alias describes the model router route and does not impersonate a different signed-in profile.",
     "The R105 browser verification sent one manual Secondary-to-Primary route request without a model request. The route was observed back on Secondary before an explicit restore request was sent; the UI synchronized both observed states, but the independent actor or scheduler transition was not attributed.",
-    "An R105 manual switch starts a new backend session. It does not migrate, replay, resume or restore a prior request, stream, backend session, in-flight work or computation."
+    "An R105 manual switch starts a new backend session. It does not migrate, replay, resume or restore a prior request, stream, backend session, in-flight work or computation.",
+    "R106 can remove the reachable native Show pet and Log out menu entries, but both strings remain embedded in the immutable 13.936 MB upstream main bundle; no startup transfer reduction is claimed and the server-side session revocation capability is retained.",
+    "R106 browser account add/delete remains undeployed until the user explicitly approves a persistent root-run, socket-activated helper with narrowly scoped catalog and credential-store write access."
   ],
-  "updated_at": "2026-08-03T00:00:06+08:00"
+  "updated_at": "2026-08-03T00:39:04+08:00"
 }

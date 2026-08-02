@@ -1,0 +1,85 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "status": "blocked_pending_explicit_privilege_approval",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "11c98a20d5b96e7f48e06ffecba9622719d03153",
+  "implementation_revision": "3fe0caad2c89e7dd9e7a6823211ef7c679f13a5e",
+  "active_8216_release": "c3e92f0f-20260802-m69-router-r105-native-usage-dom",
+  "resource_experiment": {
+    "decoded_main_bytes": 13936387,
+    "main_contains_show_pet": true,
+    "main_contains_log_out": true,
+    "optional_profile_chunk_bytes": 101814,
+    "optional_profile_chunk_contains_show_pet": true,
+    "optional_profile_chunk_is_startup_preloaded": false,
+    "safe_independent_logout_asset_found": false,
+    "conclusion": "Removing optional files would not reduce the verified startup preload set and would break reachable native code. The bounded adapter removes the two native menu entries while retaining the server-side session revocation boundary. No startup transfer reduction is claimed."
+  },
+  "implemented_but_not_deployed": {
+    "native_menu_entries_removed": [
+      "Show pet",
+      "Log out"
+    ],
+    "session_revocation_endpoint_retained": true,
+    "device_authorization_uses_password": false,
+    "device_authorization_uses_browser_code": true,
+    "account_alias_rejects_email_addresses": true,
+    "credential_output_exposed_to_browser": false,
+    "delete_current_account_rejected": true,
+    "delete_last_account_rejected": true,
+    "mutation_during_active_stream_rejected": true,
+    "credential_delete_is_atomic_with_router_readiness": true
+  },
+  "tests": [
+    {
+      "command": "<bundled-node> --test packages/account-router/test/account-enrollment.test.mjs",
+      "result": "9 passed"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/account-manager-protocol.test.mjs",
+      "result": "3 passed with a temporary Unix socket"
+    },
+    {
+      "command": "<bundled-node> --test --test-name-pattern='native pet|bounded browser account' packages/account-router/test/codex-web-router-panel-merge.test.mjs",
+      "result": "2 passed"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/linux-release.test.mjs",
+      "result": "3 passed, 1 intentionally skipped"
+    },
+    {
+      "command": "server temporary TypeScript 6 strict noEmit check for router-account-management.ts",
+      "result": "passed"
+    },
+    {
+      "command": "<bundled-node> --test account-enrollment, router-panel-merge, codex-web-status-bridge and linux-release suites",
+      "result": "47 passed, 6 environment-gated tests intentionally skipped"
+    },
+    {
+      "command": "loadSecurityAuditPolicy + scanRepository",
+      "result": "0 secret findings"
+    }
+  ],
+  "production_changes": {
+    "repository_committed": true,
+    "account_manager_installed": false,
+    "systemd_units_changed": false,
+    "8216_restarted": false,
+    "8215_changed": false,
+    "account_added": false,
+    "account_removed": false,
+    "model_request_sent": false,
+    "account_switch_sent": false
+  },
+  "blocker": {
+    "reason": "Enabling browser add/delete requires a new root-run, socket-activated helper with write access limited to the router catalog and credential store. The managed security policy requires the user to explicitly approve this persistent privilege boundary after disclosure.",
+    "approval_required": true
+  },
+  "residual_risks": [
+    "Show pet and Log out remain present in the immutable upstream main bundle bytes; the adapter removes their reachable native menu entries but does not claim a smaller startup transfer.",
+    "The account management implementation is not usable until the narrow privileged helper and isolated 8216 unit changes are explicitly approved, installed and fully tested.",
+    "Cross-account continuity remains unverified and is not claimed."
+  ]
+}
