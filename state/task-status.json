@@ -1,7 +1,7 @@
 {
   "project": "codex-web-auto-account-switch",
   "current_task": "M6.9",
-  "status": "in_progress",
+  "status": "done",
   "implementation_mode": "clean-room",
   "architecture_mode": "LIMITED_MODE",
   "execution_exception": "EX-SKIP-M6.2-SOAK",
@@ -72,12 +72,13 @@
     "r76_continuation": "4a6d98fe7189400f973fefcaf4d8599d0cbd8ef3",
     "r92_continuation": "dcacf67adcdd8ad5b38da1041209865120cd0dff",
     "r93_continuation": "ebb3b87cad3ef23a3ec32e30b3aa1aca202f5ac3",
+    "r94_manual_switch_recovery": "d4bd82bb80e607c625383f8ce266df2185383197",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "dcacf67adcdd8ad5b38da1041209865120cd0dff",
+  "output_revision": "d4bd82bb80e607c625383f8ce266df2185383197",
   "workspace_branch": "codex/m6-9-8216-r85-handoff",
   "workspace_input_revision": "ebb3b87cad3ef23a3ec32e30b3aa1aca202f5ac3",
   "depends_on": [
@@ -1812,6 +1813,18 @@
     {
       "command": "read-only bounded readyz polling after the intentional Primary failure cooldown",
       "result": "usable_accounts recovered naturally from 1 to 2 at 2026-08-02T03:17:10Z without another model request or a circuit-state edit"
+    },
+    {
+      "command": "failure-first cooldown-boundary panel regression; <bundled-node> --test packages/account-router/test/codex-web-router-panel-merge.test.mjs; bash -n R94 deploy; TypeScript syntax and git diff checks",
+      "result": "The pre-fix suite passed 10/11 and failed exactly because auth_expired stayed disabled at the elapsed cooldown boundary. The repaired panel/deployment suite passed 14/14; shell, TypeScript syntax and diff checks passed."
+    },
+    {
+      "command": "<bundled-node> --test admin-handler, runtime-composition, runtime-persistence, codex-web-router-panel-merge and codex-web-status-bridge",
+      "result": "62 tests: 57 passed, 0 failed and 5 external-fixture skips. Manual next-request switching, active-stream rejection, atomic persistence, same-origin bridge contracts and the cooldown-aware standalone panel passed."
+    },
+    {
+      "command": "hash-verified R94 8216-only deployment and live installed-panel evaluation against protected sanitized status",
+      "result": "R94 deployed successfully after rejecting the intermediate R93 evidence guard. Only routed 8216 Web restarted; 8215, routed App Server and account-router process/release remained unchanged. The live non-current auth_expired account had switchDisabled=false after cooldown; no model request was sent."
     }
   ],
   "evidence": [
@@ -2062,7 +2075,9 @@
     "evidence/M6.9/deploy-router-r92-server-bridge.sh",
     "evidence/M6.9/activate-secondary-credential-r92.sh",
     "evidence/M6.9/run-r92-real-presemantic-failover.sh",
-    "evidence/M6.9/router-r92-server-bridge-secondary-activation-real-failover.json"
+    "evidence/M6.9/router-r92-server-bridge-secondary-activation-real-failover.json",
+    "evidence/M6.9/deploy-router-r94-manual-switch-recovery.sh",
+    "evidence/M6.9/router-r94-manual-switch-recovery.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -5398,6 +5413,33 @@
       "cross_account_continuity_claimed": false,
       "in_flight_recovery_claimed": false,
       "status": "done"
+    },
+    "r94_manual_switch_recovery": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "ebb3b87cad3ef23a3ec32e30b3aa1aca202f5ac3",
+      "implementation_revision": "d4bd82bb80e607c625383f8ce266df2185383197",
+      "evidence": "evidence/M6.9/router-r94-manual-switch-recovery.json",
+      "active_web_release": "c3e92f0f-20260802-m69-router-r94-manual-switch-recovery",
+      "first_failure_tests_passed": 10,
+      "first_failure_tests_failed": 1,
+      "repaired_panel_tests_passed": 14,
+      "manual_switch_bridge_and_persistence_passed": 57,
+      "manual_switch_bridge_and_persistence_failed": 0,
+      "manual_switch_bridge_and_persistence_external_fixture_skips": 5,
+      "live_recovery_account_switch_disabled": false,
+      "live_current_route_switch_disabled": true,
+      "only_routed_8216_web_restarted": true,
+      "routed_8216_app_server_unchanged": true,
+      "account_router_process_and_release_unchanged": true,
+      "standalone_8215_unchanged": true,
+      "model_request_sent": false,
+      "semantic_stream_replay_attempted": false,
+      "continuity_label": "new_backend_session",
+      "cross_account_continuity_claimed": false,
+      "browser_forced_reload_completed": true,
+      "browser_dom_assertion_completed": false,
+      "status": "done"
     }
   },
   "blockers": [],
@@ -5547,7 +5589,9 @@
     "R87 does not establish seamless cross-account continuity or recovery of an in-flight computation.",
     "R92 qualifies one real independent initial-request Primary-to-Secondary failover before semantic HTTP/SSE output. It does not migrate an existing backend session, replay a continuation, resume an in-flight computation, or establish seamless cross-account continuity.",
     "R92 verifies the account panel and protected JSON bridge server-side. Direct visual verification through the in-app browser control channel remained unavailable because that control channel timed out, so no additional browser-render timing claim is made.",
-    "R92 leaves both private account bindings available to every trusted Tailnet principal that can reach the routed 8216 site; Tailnet membership and ACLs remain the authorization boundary."
+    "R92 leaves both private account bindings available to every trusted Tailnet principal that can reach the routed 8216 site; Tailnet membership and ACLs remain the authorization boundary.",
+    "R94 makes an elapsed auth cooldown eligible for a manual recovery switch, but this does not prove the credential is accepted. The next separate new request may classify it auth_expired again and select another eligible account before semantic output.",
+    "The R94 browser forced reload completed, but the browser-control channel timed out while extracting the large application DOM. The deployed module and live panel model prove switchDisabled=false; a browser-rendered click remains a user-visible confirmation rather than a claimed automated visual result."
   ],
-  "updated_at": "2026-08-02T11:17:10+08:00"
+  "updated_at": "2026-08-02T15:03:56+08:00"
 }
