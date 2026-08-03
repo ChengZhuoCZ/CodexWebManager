@@ -199,7 +199,7 @@ export function createNativeIdentitySyncController({
   return Object.freeze({ start, stop, triggerEvent, triggerFallback });
 }
 
-export function createSanitizedIdentitySyncLogger(write = (line) => process.stdout.write(line)) {
+export function createSanitizedIdentitySyncLogger(write = (line) => process.stderr.write(line)) {
   const output = requiredCallback(write, "native identity telemetry output");
   return (record) => {
     if (
