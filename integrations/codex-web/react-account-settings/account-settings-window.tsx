@@ -1,7 +1,6 @@
 import React, {
   FormEvent,
   useEffect,
-  useMemo,
   useRef,
   useState,
   useSyncExternalStore,
@@ -456,20 +455,20 @@ function nativeMenuClassName(menu: HTMLElement): string {
   const item = menu.querySelector(PROFILE_MENU_ITEM_SELECTOR);
   return item instanceof HTMLElement && typeof item.className === "string"
     ? item.className
-    : "flex w-full cursor-default items-center gap-2 rounded-md px-2 py-2 text-sm outline-none hover:bg-token-bg-secondary";
+    : "no-drag text-token-foreground outline-hidden rounded-lg px-[var(--padding-row-x)] py-[var(--padding-row-y)] text-sm group hover:bg-token-list-hover-background focus:bg-token-list-hover-background cursor-interaction";
 }
 
-function RouteIcon(): React.ReactElement {
+function RouteIcon({ className }: { className?: string }): React.ReactElement {
   return (
-    <svg aria-hidden="true" fill="none" height="20" viewBox="0 0 20 20" width="20">
+    <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 20 20">
       <path d="M4 6.5h10.5m0 0-2.75-2.75M14.5 6.5l-2.75 2.75M16 13.5H5.5m0 0 2.75 2.75M5.5 13.5l2.75-2.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
     </svg>
   );
 }
 
-function ChevronRightIcon(): React.ReactElement {
+function ChevronRightIcon({ className }: { className?: string }): React.ReactElement {
   return (
-    <svg aria-hidden="true" fill="none" height="18" viewBox="0 0 18 18" width="18">
+    <svg aria-hidden="true" className={className} fill="none" viewBox="0 0 18 18">
       <path d="m6.75 3.75 5.25 5.25-5.25 5.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
     </svg>
   );
@@ -485,43 +484,30 @@ function AccountSettingsApp(): React.ReactElement {
   const menu = useNativeProfileMenu();
   const { controller, snapshot } = useAccountController();
   const [open, setOpen] = useState(false);
-  const menuClassName = useMemo(() => menu ? nativeMenuClassName(menu) : "", [menu]);
+  const menuClassName = menu ? nativeMenuClassName(menu) : "";
   const routeAlias = currentRouteAlias(snapshot);
   return (
     <>
       {menu ? createPortal(
-        <button
+        <div
           aria-label={snapshot.label}
           aria-haspopup="dialog"
           className={menuClassName}
           data-router-account-menu-entry="true"
-          data-router-account-menu-layout="native-row"
+          data-router-account-menu-layout="native-contract"
           onClick={() => setOpen(true)}
           role="menuitem"
-          style={{
-            alignItems: "center",
-            boxSizing: "border-box",
-            cursor: "default",
-            display: "flex",
-            flexDirection: "row",
-            fontSize: 14,
-            gap: 10,
-            justifyContent: "flex-start",
-            lineHeight: "20px",
-            minHeight: 40,
-            padding: "8px 10px",
-            textAlign: "left",
-            width: "100%",
-          }}
           tabIndex={-1}
-          title={snapshot.label}
-          type="button"
         >
-          <span className="flex h-5 w-5 shrink-0 items-center justify-center text-token-text-secondary"><RouteIcon /></span>
-          <span className="min-w-0 flex-1 truncate text-token-text-primary">Account route</span>
-          <span className="max-w-24 shrink-0 truncate text-token-text-secondary">{routeAlias}</span>
-          <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center text-token-text-tertiary"><ChevronRightIcon /></span>
-        </button>,
+          <div className="flex flex-col">
+            <div className="flex w-full items-center gap-1.5">
+              <RouteIcon className="icon-xs shrink-0 opacity-75 group-focus:opacity-100 group-hover:opacity-100" />
+              <span className="flex-1 min-w-0 truncate">Account route</span>
+              <span className="ml-2 shrink-0 text-xs text-token-description-foreground">{routeAlias}</span>
+              <ChevronRightIcon className="icon-xs shrink-0 opacity-75 group-focus:opacity-100 group-hover:opacity-100" />
+            </div>
+          </div>
+        </div>,
         menu,
       ) : null}
       {open ? <AccountSettingsDialog controller={controller} onClose={() => setOpen(false)} snapshot={snapshot} /> : null}

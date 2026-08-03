@@ -75,6 +75,9 @@ import {
   replaceR121NativeMenuRow,
 } from "../../../integrations/codex-web/replace-r121-native-menu-row.mjs";
 import {
+  replaceR122NativeMenuContract,
+} from "../../../integrations/codex-web/replace-r122-native-menu-contract.mjs";
+import {
   atomicWrite,
   r118ControllerSource,
 } from "../../../integrations/codex-web/replace-r118-native-identity-sync.mjs";
@@ -116,6 +119,10 @@ const REACT_ACCOUNT_PRELOAD = path.resolve(
 const REACT_ACCOUNT_PRELOAD_R121 = path.resolve(
   import.meta.dirname,
   "../../../integrations/codex-web/react-account-settings/preload-r121.js",
+);
+const REACT_ACCOUNT_PRELOAD_R122 = path.resolve(
+  import.meta.dirname,
+  "../../../integrations/codex-web/react-account-settings/preload-r122.js",
 );
 const ROUTER_STATUS_BRIDGE = path.resolve(
   import.meta.dirname,
@@ -221,23 +228,28 @@ test("R116 owns the account window in React and portals only one entry into the 
   assert.doesNotMatch(controllerSource, /positionNativeEntry/u);
 });
 
-test("R121 renders the account launcher as one native horizontal menu row", async () => {
+test("R122 follows the upstream native menu item structure and typography contract", async () => {
   const [reactSource, builtPreload] = await Promise.all([
     fs.readFile(REACT_ACCOUNT_SETTINGS, "utf8"),
-    fs.readFile(REACT_ACCOUNT_PRELOAD_R121),
+    fs.readFile(REACT_ACCOUNT_PRELOAD_R122),
   ]);
-  assert.match(reactSource, /data-router-account-menu-layout="native-row"/u);
-  assert.match(reactSource, /flexDirection: "row"/u);
-  assert.match(reactSource, /justifyContent: "flex-start"/u);
-  assert.match(reactSource, /minHeight: 40/u);
-  assert.match(reactSource, /padding: "8px 10px"/u);
+  assert.match(reactSource, /data-router-account-menu-layout="native-contract"/u);
+  assert.match(reactSource, /className="flex flex-col"/u);
+  assert.match(reactSource, /className="flex w-full items-center gap-1\.5"/u);
+  assert.match(reactSource, /className="flex-1 min-w-0 truncate">Account route/u);
+  assert.match(reactSource, /ml-2 shrink-0 text-xs text-token-description-foreground/u);
+  assert.match(reactSource, /icon-xs shrink-0 opacity-75 group-focus:opacity-100 group-hover:opacity-100/u);
   assert.match(reactSource, /function RouteIcon/u);
   assert.match(reactSource, /function ChevronRightIcon/u);
-  assert.match(reactSource, />Account route</u);
   assert.match(reactSource, /currentRouteAlias\(snapshot\)/u);
+  assert.doesNotMatch(reactSource, /fontSize: 14/u);
+  assert.doesNotMatch(reactSource, /gap: 10/u);
+  assert.doesNotMatch(reactSource, /minHeight: 40/u);
+  assert.doesNotMatch(reactSource, /padding: "8px 10px"/u);
+  assert.doesNotMatch(reactSource, /title=\{snapshot\.label\}/u);
   assert.doesNotMatch(reactSource, />⇄</u);
   assert.doesNotMatch(reactSource, />›</u);
-  assert.equal(sha256(builtPreload), "e9339fb81b42e829904b96e06374d4d04c56be32ada333659935ed0c051db3f2");
+  assert.equal(sha256(builtPreload), "ba57f3d68765fd06d0830c8d1bae5d01c35b02835f71624607733dd869d82dfb");
   assert.match(builtPreload.toString("utf8"), /data-router-account-menu-layout/u);
 });
 
@@ -295,6 +307,60 @@ test("R121 replaces only the React preload and keeps the native controller bound
   await assert.rejects(fs.access(`${path.join(assets, oldName)}.br`));
 });
 
+test("R122 replaces only the React preload while preserving native account boundaries", async (context) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "m69-r122-native-contract-"));
+  context.after(() => fs.rm(root, { recursive: true, force: true }));
+  const candidate = path.join(root, "candidate");
+  const assets = path.join(candidate, ASSETS);
+  const oldName = "preload-old.js";
+  const newName = "preload-new.js";
+  const controllerName = "router-account-controller.js";
+  const index = Buffer.from(`<script type="module" src="./assets/${controllerName}"></script>\n<script type="module" src="./assets/${oldName}"></script>\n`);
+  const oldPreload = Buffer.from("old approximate menu preload\n");
+  const newPreload = Buffer.from("new upstream-native menu contract preload\n");
+  const controller = Buffer.from("native account controller\n");
+  const statusBridge = Buffer.from("status bridge\n");
+  const accountManagement = Buffer.from("account management\n");
+  const preloadSource = path.join(root, "preload-r122.js");
+  const contract = {
+    predecessor_index_sha256: sha256(index),
+    predecessor_preload_name: oldName,
+    predecessor_preload_sha256: sha256(oldPreload),
+    controller_name: controllerName,
+    controller_sha256: sha256(controller),
+    status_bridge_sha256: sha256(statusBridge),
+    account_management_sha256: sha256(accountManagement),
+    successor_preload_name: newName,
+    successor_preload_sha256: sha256(newPreload),
+  };
+  await Promise.all([
+    write(candidate, INDEX, index),
+    write(candidate, `${INDEX}.gz`, gzipSync(index)),
+    write(candidate, `${INDEX}.br`, brotliCompressSync(index)),
+    write(candidate, `${ASSETS}/${oldName}`, oldPreload),
+    write(candidate, `${ASSETS}/${oldName}.gz`, gzipSync(oldPreload)),
+    write(candidate, `${ASSETS}/${oldName}.br`, brotliCompressSync(oldPreload)),
+    write(candidate, `${ASSETS}/${controllerName}`, controller),
+    write(candidate, "src/server/router-status-bridge.js", statusBridge),
+    write(candidate, "src/server/router-account-management.js", accountManagement),
+    fs.writeFile(preloadSource, newPreload, { mode: 0o644 }),
+  ]);
+  const result = await replaceR122NativeMenuContract({ candidate, reactPreload: preloadSource, contract });
+  const nextIndex = await fs.readFile(path.join(candidate, INDEX));
+  const nextPreload = await fs.readFile(path.join(assets, newName));
+  assert.equal(result.event, "r122_native_menu_contract_replaced");
+  assert.equal(result.native_menu_layout, "native-contract");
+  assert.match(nextIndex.toString("utf8"), new RegExp(newName, "u"));
+  assert.doesNotMatch(nextIndex.toString("utf8"), new RegExp(oldName, "u"));
+  assert.deepEqual(nextPreload, newPreload);
+  assert.deepEqual(await fs.readFile(path.join(assets, controllerName)), controller);
+  assert.deepEqual(gunzipSync(await fs.readFile(`${path.join(assets, newName)}.gz`)), newPreload);
+  assert.deepEqual(brotliDecompressSync(await fs.readFile(`${path.join(assets, newName)}.br`)), newPreload);
+  await assert.rejects(fs.access(path.join(assets, oldName)));
+  await assert.rejects(fs.access(`${path.join(assets, oldName)}.gz`));
+  await assert.rejects(fs.access(`${path.join(assets, oldName)}.br`));
+});
+
 test("R116 replaces the Shadow DOM surface and restarts only routed Web", async () => {
   const [controller, preload, deployment] = await Promise.all([
     fs.readFile(REACT_ACCOUNT_CONTROLLER),
@@ -330,6 +396,25 @@ test("R121 deploys the native menu row by restarting only routed 8216 Web", asyn
   assert.match(deployment, /router-r121-native-menu-row/u);
   assert.match(deployment, /preload-e9339fb8\.js/u);
   assert.match(deployment, /native_menu_layout=native-row/u);
+  assert.match(deployment, /standalone_8215_unchanged=true/u);
+  assert.match(deployment, /routed_8216_app_server_unchanged=true/u);
+  assert.match(deployment, /account_router_unchanged=true/u);
+  assert.match(deployment, /only_8216_web_restarted=true/u);
+  assert.match(deployment, /model_request_sent=false/u);
+  assert.match(deployment, /account_switch_sent=false/u);
+  assert.match(deployment, /systemctl restart "\$WEB_SERVICE"/u);
+  assert.doesNotMatch(
+    deployment,
+    /systemctl\s+(?:restart|stop|start)\s+"?\$?(?:APP_SERVICE|ROUTER_SERVICE|MANAGER_SERVICE|MANAGER_SOCKET|STANDALONE_WEB_SERVICE|STANDALONE_APP_SERVICE)/u,
+  );
+});
+
+test("R122 deploys the upstream native menu contract by restarting only routed 8216 Web", async () => {
+  const deployment = await fs.readFile(R122_DEPLOY, "utf8");
+  assert.match(deployment, /router-r121-native-menu-row/u);
+  assert.match(deployment, /router-r122-native-menu-contract/u);
+  assert.match(deployment, /preload-ba57f3d6\.js/u);
+  assert.match(deployment, /native_menu_layout=native-contract/u);
   assert.match(deployment, /standalone_8215_unchanged=true/u);
   assert.match(deployment, /routed_8216_app_server_unchanged=true/u);
   assert.match(deployment, /account_router_unchanged=true/u);
@@ -471,6 +556,10 @@ const R116_DEPLOY = path.resolve(
 const R121_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r121-native-menu-row.sh",
+);
+const R122_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r122-native-menu-contract.sh",
 );
 
 function sha256(value) {
