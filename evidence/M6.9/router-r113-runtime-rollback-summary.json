@@ -1,0 +1,56 @@
+{
+  "task": "M6.9",
+  "incident": "R113 routed Web startup stall",
+  "reported_at": "2026-08-03T14:44:44+08:00",
+  "input_commit": "e95d90d32d7e1b764ea1766188fc672efab5c6d3",
+  "implementation_mode": "clean-room",
+  "diagnosis": {
+    "all_related_units_active": true,
+    "ports_8215_8216_and_router_listening": true,
+    "available_memory_gib": 52,
+    "r113_web_cpu_percent_observed": 15.2,
+    "appview_rpc_disconnect_observed": true,
+    "app_server_model_refresh_timeouts_observed": true,
+    "unauthenticated_json_status": 401,
+    "note": "The HTTP 401 was expected for a non-HTML request without a browser session and was not treated as the startup failure."
+  },
+  "rollback": {
+    "status": "success",
+    "from_release": "c3e92f0f-20260803-m69-router-r113-native-sidebar-launcher",
+    "to_release": "c3e92f0f-20260803-m69-router-r112-visible-bootstrap-launcher",
+    "standalone_8215_unchanged": true,
+    "routed_8216_app_server_unchanged": true,
+    "account_router_process_unchanged": true,
+    "account_manager_process_unchanged": true,
+    "only_8216_web_restarted": true,
+    "model_request_sent": false,
+    "account_switch_sent": false,
+    "semantic_output_replay_attempted": false
+  },
+  "recovery_verification": {
+    "fresh_html_session_status": 200,
+    "authenticated_router_status": 200,
+    "sanitized_account_count_at_least_two": true,
+    "continuity_marker": "new_backend_session",
+    "r112_panel_sha256": "8a5b36594e6fd0c1dce9601d02ddefaa2ba0dc52a14babc2e3d9bd90fee1487d",
+    "r112_web_cpu_percent_observed": 1.4,
+    "session_cookie_printed": false
+  },
+  "repository_validation": {
+    "jq_documents_valid": true,
+    "git_diff_check": "pass",
+    "security_scan_files": 674,
+    "security_scan_findings": 0
+  },
+  "assessment": [
+    "The R113 native-footer DOM insertion correlated with sustained Web CPU and AppView reconnect churn.",
+    "The immediate Web-only rollback reduced observed Web CPU and restored fresh document and protected status requests.",
+    "This bounded observation is sufficient to reject R113 as the active release, but it does not isolate one browser-side mutation as the sole cause."
+  ],
+  "residual_risks": [
+    "R112 restores the independent lower-left launcher, so the requested native sidebar integration is not active.",
+    "A browser tab holding the pre-restart WebSocket and session must open a new document after rollback.",
+    "A future native integration must avoid inserting persistent nodes into the upstream React-owned footer subtree and must include a runtime CPU/reconnect acceptance gate.",
+    "No real model request or account switch was sent. Switching starts a new backend session and does not resume or replay semantic output."
+  ]
+}
