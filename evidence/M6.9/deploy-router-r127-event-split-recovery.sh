@@ -119,7 +119,7 @@ wait_stack_ready() {
     if expect_active "$ROUTER_SERVICE" && expect_active "$MANAGER_SERVICE" && expect_active "$MANAGER_SOCKET" &&
        expect_active "$APP_SERVICE" && expect_active "$WEB_SERVICE" &&
        test -S /run/codex-web-router-app-server/app-server.sock &&
-       curl --noproxy '*' -fsS --max-time 2 -H 'Host: 100.95.50.98:8216' http://127.0.0.1:8216/healthz >/dev/null; then
+       curl --noproxy '*' -fsS --max-time 2 -H 'Host: 100.95.50.98:8216' http://127.0.0.1:8216/__backend/healthz >/dev/null; then
       ready=1; break
     fi
     sleep 0.25
