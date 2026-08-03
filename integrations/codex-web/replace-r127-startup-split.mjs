@@ -16,7 +16,6 @@ export const R127_STARTUP_SPLIT_CONTRACT = Object.freeze({
   predecessor_preload_sha256: "a5d77090e59391561d3920b92db798e93ae985492fac8a6fd5401397d236afd9",
   predecessor_server: Object.freeze({
     "main.js": "b9f1d11db2145b5a03b77ca8a662d88d2811fb9bba1d23f4be3634eab3ff9292",
-    "browser-ipc-router.js": "1a4badf9386656c9b917476410863cdb599ccaf666dae2476e4dc7566014e870",
     "browser-upload-store.js": "dc4b24079c008dd8517f2715d804fd298d1ab181beea2ae7ebf5a196fa5177fc",
     "browser-session-auth.js": "7c5d0bc866788ea85f7974a786bf272f24798780b6be73b32969411121f587b6",
     "router-status-bridge.js": "30a7a21262e168269fd9be386a091310723b12b59e2e1c546a152ad836fdfce8",
