@@ -6,6 +6,7 @@
       "id": "unit",
       "test_files": [
         "test/account-enrollment.test.mjs",
+        "test/account-manager-protocol.test.mjs",
         "test/accounts.test.mjs",
         "test/admin-auth.test.mjs",
         "test/admin-contracts.test.mjs",
@@ -18,6 +19,8 @@
         "test/failover-fixtures.test.mjs",
         "test/failover-state-machine.test.mjs",
         "test/model-catalog-cache.test.mjs",
+        "test/native-account-rebinding.test.mjs",
+        "test/persistent-upload-store.test.mjs",
         "test/proxy-routes.test.mjs",
         "test/quota-snapshot.test.mjs",
         "test/redaction.test.mjs",
@@ -59,14 +62,18 @@
         "test/codex-web-browser-auth.test.mjs",
         "test/codex-web-browser-ipc-router.test.mjs",
         "test/codex-web-browser-policy.test.mjs",
+        "test/codex-web-browser-session-metadata.test.mjs",
         "test/codex-web-build-pipeline.test.mjs",
         "test/codex-web-host-deploy.test.mjs",
         "test/codex-web-integration.test.mjs",
         "test/codex-web-overlay-build.test.mjs",
         "test/codex-web-routed-release.test.mjs",
+        "test/codex-web-router-panel-merge.test.mjs",
         "test/codex-web-status-bridge.test.mjs",
         "test/deployment-manager.test.mjs",
         "test/linux-release.test.mjs",
+        "test/r106-account-management-install.test.mjs",
+        "test/r108-persistent-upload-install.test.mjs",
         "test/soak-contract.test.mjs"
       ]
     }

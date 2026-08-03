@@ -3,6 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
+exports.forwardManualSwitch = forwardManualSwitch;
 exports.registerRouterStatusBridge = registerRouterStatusBridge;
 const node_fs_1 = require("node:fs");
 const promises_1 = __importDefault(require("node:fs/promises"));
@@ -39,13 +40,6 @@ const MAX_STATUS_BYTES = 64 * 1024;
 const MAX_EVENT_BYTES = 16 * 1024;
 const MAX_SWITCH_BYTES = 8 * 1024;
 const MAX_APP_SERVER_BYTES = 64 * 1024;
-const SWITCH_ERRORS = new Set([
-    "active_semantic_stream",
-    "switch_not_available",
-    "switch_rejected",
-    "switch_target_mismatch",
-    "switch_state_rejected",
-]);
 function isRecord(value) {
     return value !== null && typeof value === "object" && !Array.isArray(value);
 }
@@ -187,11 +181,21 @@ function loadConfig(environment) {
             throw new Error("codex router status bridge configuration is invalid");
         }
     }
+    const managerSocket = environment.CODEX_ROUTER_ACCOUNT_MANAGER_SOCKET;
+    if (managerSocket !== undefined &&
+        managerSocket !== "/run/codex-router-account-manager.sock")
+        throw new Error("codex router status bridge configuration is invalid");
+    const restartWeb = environment.CODEX_ROUTER_RESTART_WEB_AFTER_SWITCH;
+    if (restartWeb !== undefined && restartWeb !== "1") {
+        throw new Error("codex router status bridge configuration is invalid");
+    }
     return {
         enabled: true,
         adminOrigin: origin.origin,
         tokenFile,
         credentialsDirectory,
+        managerSocket: managerSocket === undefined ? undefined : node_path_1.default.normalize(managerSocket),
+        restartWebAfterSwitch: restartWeb === "1",
     };
 }
 function loadQuotaRefreshConfig(environment) {
@@ -313,55 +317,75 @@ function manualSwitchBody(value) {
     }
     return { account_alias: alias(value.account_alias), reason: "manual" };
 }
-async function forwardManualSwitch(config, requestBody) {
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
-    timer.unref();
-    try {
-        const response = await withAdminToken(config.tokenFile, config.credentialsDirectory, (token) => fetch(`${config.adminOrigin}/v1/switch`, {
-            method: "POST",
-            headers: {
-                accept: "application/json",
-                authorization: `Bearer ${token}`,
-                "content-type": "application/json",
-            },
-            body: JSON.stringify(requestBody),
-            signal: controller.signal,
-        }));
-        if (!/^application\/json(?:\s*;|$)/i.test(response.headers.get("content-type") ?? "")) {
-            throw new Error("router switch response is unavailable");
-        }
-        const body = JSON.parse(await boundedText(response, MAX_SWITCH_BYTES));
-        if (response.status === 200) {
-            if (!isRecord(body) ||
-                body.accepted !== true ||
-                body.account_alias !== requestBody.account_alias ||
-                body.continuity !== "new_backend_session" ||
-                body.architecture_mode !== "LIMITED_MODE") {
-                throw new Error("router switch response is invalid");
+function managerRequest(socketPath, value) {
+    return new Promise((resolve, reject) => {
+        let settled = false;
+        let length = 0;
+        const chunks = [];
+        const finish = (error, result) => {
+            if (settled)
+                return;
+            settled = true;
+            socket.destroy();
+            if (error !== null || result === undefined)
+                reject(error ?? new Error("account manager failed"));
+            else
+                resolve(result);
+        };
+        const socket = node_net_1.default.createConnection(socketPath);
+        socket.setTimeout(125_000, () => finish(new Error("account manager timed out")));
+        socket.once("error", () => finish(new Error("account manager failed")));
+        socket.once("connect", () => socket.end(`${JSON.stringify(value)}\n`));
+        socket.on("data", (chunk) => {
+            const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
+            length += bytes.length;
+            if (length > MAX_SWITCH_BYTES) {
+                finish(new Error("account manager failed"));
+                return;
             }
-            return {
-                statusCode: 200,
-                payload: {
-                    enabled: true,
-                    accepted: true,
-                    account_alias: requestBody.account_alias,
-                    continuity: "new_backend_session",
-                    architecture_mode: "LIMITED_MODE",
-                },
-            };
-        }
-        if (response.status === 409 &&
-            isRecord(body) &&
-            typeof body.error === "string" &&
-            SWITCH_ERRORS.has(body.error)) {
-            return { statusCode: 409, payload: { enabled: true, error: body.error } };
-        }
-        throw new Error("router switch response is unavailable");
+            chunks.push(bytes);
+        });
+        socket.once("end", () => {
+            try {
+                const body = JSON.parse(Buffer.concat(chunks).toString("utf8"));
+                if (!isRecord(body))
+                    throw new Error("account manager failed");
+                finish(null, body);
+            }
+            catch {
+                finish(new Error("account manager failed"));
+            }
+        });
+    });
+}
+async function forwardManualSwitch(config, requestBody) {
+    if (config.managerSocket === undefined)
+        throw new Error("account manager is unavailable");
+    const body = await managerRequest(config.managerSocket, {
+        operation: "switch",
+        alias: requestBody.account_alias,
+    });
+    if (body.ok === false && body.error === "account_operation_failed") {
+        return { statusCode: 409, payload: { enabled: true, error: "switch_rejected" } };
     }
-    finally {
-        clearTimeout(timer);
-    }
+    if (body.ok !== true || body.event !== "router_account_switched" ||
+        body.credentials_exposed !== false || !Number.isSafeInteger(body.configured_accounts) ||
+        body.account_alias !== requestBody.account_alias || body.continuity !== "new_backend_session" ||
+        body.architecture_mode !== "LIMITED_MODE" || body.native_identity_rebound !== true ||
+        body.web_restart_required !== true)
+        throw new Error("router switch response is invalid");
+    return {
+        statusCode: 200,
+        payload: {
+            enabled: true,
+            accepted: true,
+            account_alias: requestBody.account_alias,
+            continuity: "new_backend_session",
+            architecture_mode: "LIMITED_MODE",
+            native_identity_rebound: true,
+            web_restart_required: true,
+        },
+    };
 }
 function weeklyQuotaSnapshotFromResult(value, accountAlias, observedAt) {
     if (!isRecord(value) || !isRecord(value.rateLimits)) {
@@ -557,6 +581,9 @@ async function registerRouterStatusBridge(app, environment) {
     const config = loadConfig(environment);
     const quotaRefreshConfig = loadQuotaRefreshConfig(environment);
     let quotaSnapshot = null;
+    if (config.enabled && config.managerSocket !== undefined) {
+        void managerRequest(config.managerSocket, { operation: "observe" }).catch(() => undefined);
+    }
     app.get(STATUS_PATH, async (_request, reply) => {
         reply.header("cache-control", "no-store").header("x-content-type-options", "nosniff");
         if (!config.enabled)
@@ -661,6 +688,12 @@ async function registerRouterStatusBridge(app, environment) {
         }
         try {
             const result = await forwardManualSwitch(config, body);
+            if (config.restartWebAfterSwitch && result.payload.web_restart_required === true) {
+                reply.raw.once("finish", () => {
+                    const timer = setTimeout(() => process.exit(0), 100);
+                    timer.unref();
+                });
+            }
             return reply.code(result.statusCode).send(result.payload);
         }
         catch {

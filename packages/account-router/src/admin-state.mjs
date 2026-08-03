@@ -103,6 +103,7 @@ export function createAdminState({
     });
   }
   let activeStreams = 0;
+  let activeRequests = 0;
   let currentRoute;
   if (initialCurrentAccountId === null) {
     currentRoute = null;
@@ -135,6 +136,9 @@ export function createAdminState({
     get activeStreams() {
       return activeStreams;
     },
+    get activeRequests() {
+      return activeRequests;
+    },
     listAccounts,
     snapshot() {
       const accounts = listAccounts();
@@ -149,6 +153,7 @@ export function createAdminState({
         architecture_mode: "LIMITED_MODE",
         cross_account_e2e_verified: false,
         active_streams: activeStreams,
+        active_requests: activeRequests,
         current_route: currentRoute,
         accounts,
       });
@@ -158,6 +163,12 @@ export function createAdminState({
         throw new Error("active stream count must be an integer from 0 through 1000000");
       }
       activeStreams = value;
+    },
+    setActiveRequests(value) {
+      if (!Number.isSafeInteger(value) || value < 0 || value > 1_000_000) {
+        throw new Error("active request count must be an integer from 0 through 1000000");
+      }
+      activeRequests = value;
     },
     updateAccountStatus(accountId, updates) {
       requireAccount(accountId);

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { spawn, spawnSync } from "node:child_process";
 import { promises as fs } from "node:fs";
 import http from "node:http";
+import net from "node:net";
 import os from "node:os";
 import path from "node:path";
 import { Readable } from "node:stream";
@@ -587,17 +588,6 @@ integrationTest("same-origin bridge exposes only sanitized status and switch eve
       response.end(`id: 9\nevent: router.switch\ndata: ${JSON.stringify(data)}\n\n`);
       return;
     }
-    if (request.url === "/v1/switch") {
-      let body = "";
-      for await (const chunk of request) body += chunk.toString("utf8");
-      observation.body = JSON.parse(body);
-      response.writeHead(409, { "content-type": "application/json" });
-      response.end(JSON.stringify({
-        error: "active_semantic_stream",
-        credential_ref: "must-not-pass",
-      }));
-      return;
-    }
     response.writeHead(404).end();
   });
   await new Promise((resolve, reject) => {
@@ -630,12 +620,12 @@ integrationTest("same-origin bridge exposes only sanitized status and switch eve
   const manualSwitch = await fetch(`${origin}/__backend/codex-router/switch`, {
     method: "POST",
     headers: { "content-type": "application/json" },
-    body: JSON.stringify({ account_alias: "Fixture B", reason: "manual" }),
+    body: JSON.stringify({ account_alias: "Fixture Busy", reason: "manual" }),
   });
-  assert.equal(manualSwitch.status, 409);
+  assert.equal(manualSwitch.status, 502);
   assert.deepEqual(await manualSwitch.json(), {
     enabled: true,
-    error: "active_semantic_stream",
+    error: "router_switch_unavailable",
   });
   const malformedSwitch = await fetch(`${origin}/__backend/codex-router/switch`, {
     method: "POST",
@@ -654,12 +644,77 @@ integrationTest("same-origin bridge exposes only sanitized status and switch eve
   assert.deepEqual(observed, [
     { path: "/v1/status", authorizationMatches: true, cursor: null },
     { path: "/v1/events", authorizationMatches: true, cursor: "8" },
+  ]);
+});
+
+integrationTest("manual switch accepts only a sanitized native-identity transaction result", async (context) => {
+  const prepared = await preparePatchedServer(context);
+  const { forwardManualSwitch } = await import(
+    pathToFileURL(path.join(prepared.temporaryRoot, "src/server/router-status-bridge.js")).href
+  );
+  const directory = await fs.mkdtemp(path.join(os.tmpdir(), "m6-9-managed-switch-"));
+  const socketPath = path.join(directory, "manager.sock");
+  context.after(() => fs.rm(directory, { recursive: true, force: true }));
+  const observed = [];
+  const manager = net.createServer((socket) => {
+    let buffer = "";
+    socket.on("data", (chunk) => {
+      buffer += chunk.toString("utf8");
+      if (!buffer.endsWith("\n")) return;
+      const request = JSON.parse(buffer);
+      observed.push(request);
+      if (request.alias === "Fixture Busy") {
+        socket.end('{"ok":false,"error":"account_operation_failed"}\n');
+        return;
+      }
+      socket.end(`${JSON.stringify({
+        ok: true,
+        event: "router_account_switched",
+        configured_accounts: 2,
+        credentials_exposed: false,
+        account_alias: request.alias,
+        continuity: "new_backend_session",
+        architecture_mode: "LIMITED_MODE",
+        native_identity_rebound: true,
+        web_restart_required: true,
+      })}\n`);
+    });
+  });
+  await new Promise((resolve, reject) => {
+    manager.once("error", reject);
+    manager.listen(socketPath, resolve);
+  });
+  context.after(() => new Promise((resolve) => manager.close(resolve)));
+  const config = {
+    enabled: true,
+    adminOrigin: "http://127.0.0.1:1",
+    tokenFile: "/unused",
+    credentialsDirectory: undefined,
+    managerSocket: socketPath,
+    restartWebAfterSwitch: false,
+  };
+  assert.deepEqual(
+    await forwardManualSwitch(config, { account_alias: "Fixture Busy", reason: "manual" }),
+    { statusCode: 409, payload: { enabled: true, error: "switch_rejected" } },
+  );
+  assert.deepEqual(
+    await forwardManualSwitch(config, { account_alias: "Fixture B", reason: "manual" }),
     {
-      path: "/v1/switch",
-      authorizationMatches: true,
-      cursor: null,
-      body: { account_alias: "Fixture B", reason: "manual" },
+      statusCode: 200,
+      payload: {
+        enabled: true,
+        accepted: true,
+        account_alias: "Fixture B",
+        continuity: "new_backend_session",
+        architecture_mode: "LIMITED_MODE",
+        native_identity_rebound: true,
+        web_restart_required: true,
+      },
     },
+  );
+  assert.deepEqual(observed, [
+    { operation: "switch", alias: "Fixture Busy" },
+    { operation: "switch", alias: "Fixture B" },
   ]);
 });
 

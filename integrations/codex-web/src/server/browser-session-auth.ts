@@ -3,7 +3,7 @@ import {
   randomBytes,
   timingSafeEqual,
 } from "node:crypto";
-import { constants as fsConstants } from "node:fs";
+import { constants as fsConstants, type Stats } from "node:fs";
 import fs from "node:fs/promises";
 import type { IncomingMessage } from "node:http";
 import type { ServerResponse } from "node:http";
@@ -316,7 +316,7 @@ function parseTrustedTailnetAccess(
 }
 
 function assertPrivate(
-  stat: Awaited<ReturnType<typeof fs.stat>>,
+  stat: Stats,
   systemdCredential: boolean,
   directory: boolean,
 ): void {

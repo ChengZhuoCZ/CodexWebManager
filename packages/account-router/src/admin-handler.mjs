@@ -206,7 +206,7 @@ export function createAdminHandler({
       sendJson(request, response, 405, { error: "method_not_allowed" }, { allow: "POST" });
       return;
     }
-    if (state.activeStreams > 0) {
+    if (state.activeStreams > 0 || state.activeRequests > 0) {
       request.resume();
       sendJson(request, response, 409, { error: "active_semantic_stream" });
       return;

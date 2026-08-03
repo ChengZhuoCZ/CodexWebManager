@@ -1,5 +1,5 @@
 [Unit]
-Description=Narrow privileged 8216 account enrollment and removal helper
+Description=Narrow privileged 8216 account and native identity synchronization helper
 After=codex-account-router.service
 
 [Service]
@@ -34,11 +34,11 @@ RestrictSUIDSGID=true
 RestrictNamespaces=true
 LockPersonality=true
 RestrictRealtime=true
-CapabilityBoundingSet=CAP_DAC_READ_SEARCH
+CapabilityBoundingSet=CAP_CHOWN CAP_DAC_READ_SEARCH
 AmbientCapabilities=
 RestrictAddressFamilies=AF_UNIX AF_INET
 IPAddressDeny=any
 IPAddressAllow=localhost
 ReadWritePaths=/etc/codex-account-router /etc/credstore
-ReadOnlyPaths=/etc/codex-account-router/credentials /var/lib/codex-web-router-account-auth
+ReadOnlyPaths=/etc/codex-account-router/credentials/admin-token /var/lib/codex-web-router-account-auth
 InaccessiblePaths=/home /root /srv /var/lib/codex-web-router /var/lib/codex-web-router-app-server

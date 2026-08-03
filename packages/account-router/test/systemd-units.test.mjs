@@ -357,7 +357,10 @@ test("8216 account manager is socket-activated and confined to its credential mu
   );
   assert.equal(only(service, "Service.NoNewPrivileges"), "true");
   assert.equal(only(service, "Service.ProtectSystem"), "strict");
-  assert.equal(only(service, "Service.CapabilityBoundingSet"), "CAP_DAC_READ_SEARCH");
+  assert.equal(
+    only(service, "Service.CapabilityBoundingSet"),
+    "CAP_CHOWN CAP_DAC_READ_SEARCH",
+  );
   assert.equal(only(service, "Service.AmbientCapabilities"), "");
   assert.equal(only(service, "Service.RestrictAddressFamilies"), "AF_UNIX AF_INET");
   assert.equal(only(service, "Service.IPAddressDeny"), "any");
@@ -368,7 +371,7 @@ test("8216 account manager is socket-activated and confined to its credential mu
   );
   assert.equal(
     only(service, "Service.ReadOnlyPaths"),
-    "/etc/codex-account-router/credentials /var/lib/codex-web-router-account-auth",
+    "/etc/codex-account-router/credentials/admin-token /var/lib/codex-web-router-account-auth",
   );
   assert.ok(web.get("Service.Environment")?.includes(
     "CODEX_ROUTER_ACCOUNT_MANAGER_SOCKET=/run/codex-router-account-manager.sock",
@@ -376,6 +379,11 @@ test("8216 account manager is socket-activated and confined to its credential mu
   assert.ok(web.get("Service.Environment")?.includes(
     "CODEX_ROUTER_ACCOUNT_AUTH_ROOT=/var/lib/codex-web-router-account-auth",
   ));
+  assert.ok(web.get("Service.Environment")?.includes(
+    "CODEX_ROUTER_RESTART_WEB_AFTER_SWITCH=1",
+  ));
+  assert.equal(only(web, "Service.Restart"), "always");
+  assert.equal(only(web, "Service.RestartSec"), "1s");
   assert.equal(
     only(web, "Service.StateDirectory"),
     "codex-web-router codex-web-router-account-auth",
@@ -386,6 +394,25 @@ test("8216 account manager is socket-activated and confined to its credential mu
     `${socketContent}\n${serviceContent}\n${webContent}`,
     /codex-web-upstream|--port 8215|sudo|\/bin\/(?:ba)?sh/u,
   );
+  assert.doesNotMatch(serviceContent, /ExecStart=.*(?:\$\{|\$\(|%[iInNpPjJf])/u);
+  const managerSource = await fs.readFile(
+    path.join(repositoryRoot, "packages/account-router/bin/codex-router-account-manager.mjs"),
+    "utf8",
+  );
+  assert.match(managerSource, /APP_SERVER_CREDENTIAL_FILE = "\/etc\/codex-account-router\/credentials\/app-server-auth\.json"/u);
+  assert.match(managerSource, /APP_SERVER_SERVICE = "codex-web-router-app-server\.service"/u);
+  assert.match(managerSource, /WEB_SERVICE = "codex-web-router\.service"/u);
+  assert.match(managerSource, /`restart:\$\{SERVICE\}`/u);
+  assert.match(managerSource, /`stop:\$\{APP_SERVER_SERVICE\}`/u);
+  assert.match(managerSource, /`start:\$\{APP_SERVER_SERVICE\}`/u);
+  assert.match(managerSource, /`is-active:\$\{APP_SERVER_SERVICE\}`/u);
+  assert.match(managerSource, /`restart:\$\{WEB_SERVICE\}`/u);
+  assert.equal((managerSource.match(/active_requests === 0/gu) ?? []).length, 2);
+  assert.doesNotMatch(
+    managerSource,
+    /new Set\(\["start", "stop", "restart", "is-active"\]\)/u,
+  );
+  assert.doesNotMatch(managerSource, /spawn\([^\n]+request\.(?:alias|operation)/u);
 });
 
 test("codex-web is loopback-only and proxies stdio to the supervised Unix socket", async () => {

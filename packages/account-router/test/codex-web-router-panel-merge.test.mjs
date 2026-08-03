@@ -72,6 +72,9 @@ import {
   R116_REACT_ACCOUNT_SETTINGS_CONTRACT,
 } from "../../../integrations/codex-web/replace-r116-react-account-settings.mjs";
 import {
+  r118ControllerSource,
+} from "../../../integrations/codex-web/replace-r118-native-identity-sync.mjs";
+import {
   accountSurfaceVisibility,
   createAccountSurfaceState,
   reduceAccountSurfaceState,
@@ -237,6 +240,19 @@ test("R116 replaces the Shadow DOM surface and restarts only routed Web", async 
     deployment,
     /systemctl\s+(?:restart|stop|start)\s+"?\$?(?:APP_SERVICE|ROUTER_SERVICE|MANAGER_SERVICE|MANAGER_SOCKET|STANDALONE_WEB_SERVICE|STANDALONE_APP_SERVICE)/u,
   );
+});
+
+test("R118 requires a completed native identity transaction before reloading a new backend session", async () => {
+  const original = await fs.readFile(REACT_ACCOUNT_CONTROLLER, "utf8");
+  const source = r118ControllerSource(original);
+  assert.match(source, /native_identity_rebound !== true/u);
+  assert.match(source, /web_restart_required !== true/u);
+  assert.match(source, /continuity !== "new_backend_session"/u);
+  assert.match(source, /Starting a new backend session/u);
+  assert.match(source, /window\.location\.reload\(\)/u);
+  assert.equal(source.match(/window\.location\.reload\(\)/gu)?.length, 1);
+  assert.doesNotMatch(original, /native_identity_rebound/u);
+  assert.throws(() => r118ControllerSource(source), /anchor is unavailable/u);
 });
 
 test("owns the account surface outside the upstream React tree", async () => {

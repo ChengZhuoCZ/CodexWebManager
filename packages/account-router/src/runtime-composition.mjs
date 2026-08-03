@@ -268,6 +268,11 @@ export function createRuntimeComposition({
     initialCurrentAccountId: currentAccountId,
   });
   const activeRequests = new Map(publicAccounts.map(({ id }) => [id, 0]));
+  const publishActiveRequests = () => {
+    adminState.setActiveRequests(
+      [...activeRequests.values()].reduce((total, value) => total + value, 0),
+    );
+  };
   const lastUnavailableReason = new Map();
   const probeTokens = new Map();
   let activeSemanticStreams = 0;
@@ -778,6 +783,7 @@ export function createRuntimeComposition({
         throw new Error("runtime route state is unavailable");
       }
       activeRequests.set(accountId, activeRequests.get(accountId) + 1);
+      publishActiveRequests();
       let released = false;
       return {
         accountId,
@@ -791,6 +797,7 @@ export function createRuntimeComposition({
           released = true;
           secretLease.dispose();
           activeRequests.set(accountId, Math.max(0, activeRequests.get(accountId) - 1));
+          publishActiveRequests();
           const activeProbe = probeTokens.get(accountId);
           if (circuitLease.probe && activeProbe === circuitLease.probe_token) {
             circuitBreaker.recordSuccess(accountId, { probeToken: circuitLease.probe_token });
@@ -813,7 +820,9 @@ export function createRuntimeComposition({
   }
 
   async function handleSwitchRequest({ accountAlias }, { signal = null } = {}) {
-    if (activeSemanticStreams > 0) return Object.freeze({ accepted: false });
+    if (activeSemanticStreams > 0 || [...activeRequests.values()].some((value) => value > 0)) {
+      return Object.freeze({ accepted: false });
+    }
     const toAccountId = adminState.findAccountIdByAlias(accountAlias);
     if (toAccountId === null || toAccountId === currentAccountId) {
       return Object.freeze({ accepted: false });
@@ -822,7 +831,9 @@ export function createRuntimeComposition({
     await awaitWithAbort(pendingRoutingPersistence, signal);
     throwIfAborted(signal);
     if (routingPersistenceFailure !== null) throw persistenceUnavailable();
-    if (activeSemanticStreams > 0) return Object.freeze({ accepted: false });
+    if (activeSemanticStreams > 0 || [...activeRequests.values()].some((value) => value > 0)) {
+      return Object.freeze({ accepted: false });
+    }
     const decision = await scheduledDecision(
       new Set(),
       toAccountId,
@@ -834,7 +845,9 @@ export function createRuntimeComposition({
     ) {
       return Object.freeze({ accepted: false });
     }
-    if (activeSemanticStreams > 0) return Object.freeze({ accepted: false });
+    if (activeSemanticStreams > 0 || [...activeRequests.values()].some((value) => value > 0)) {
+      return Object.freeze({ accepted: false });
+    }
     const fromAccountId = currentAccountId;
     const semanticStreamRace = new Error("manual switch semantic stream race");
     try {

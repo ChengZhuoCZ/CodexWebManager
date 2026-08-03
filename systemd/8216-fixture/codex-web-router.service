@@ -18,6 +18,7 @@ Environment=CODEX_UNIX_SOCKET=/run/codex-web-router-app-server/app-server.sock
 Environment=CODEX_ROUTER_ADMIN_ORIGIN=http://127.0.0.1:18318
 Environment=CODEX_ROUTER_ADMIN_TOKEN_FILE=%d/router-admin-token
 Environment=CODEX_ROUTER_ACCOUNT_MANAGER_SOCKET=/run/codex-router-account-manager.sock
+Environment=CODEX_ROUTER_RESTART_WEB_AFTER_SWITCH=1
 Environment=CODEX_ROUTER_ACCOUNT_AUTH_ROOT=/var/lib/codex-web-router-account-auth
 Environment=CODEX_WEB_PUBLIC_ORIGIN=http://100.95.50.98:8216
 Environment=CODEX_WEB_TRUSTED_TAILNET_ACCESS=1
@@ -26,8 +27,8 @@ Environment=CODEX_WEB_WORKSPACE_ROOTS=/srv/codex-workspaces/CodexWebManager-8216
 Environment=CODEX_WEB_UPLOAD_ROOT=/run/codex-web-router-browser-uploads
 LoadCredential=router-admin-token:/etc/codex-account-router/credentials/admin-token
 ExecStart=/usr/bin/node /opt/0xcaff-codex-web-router/current/src/server/main.js --host 127.0.0.1 --port 8216
-Restart=on-failure
-RestartSec=3s
+Restart=always
+RestartSec=1s
 TimeoutStopSec=20s
 KillSignal=SIGTERM
 UMask=0077

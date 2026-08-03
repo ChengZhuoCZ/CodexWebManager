@@ -36,6 +36,7 @@ test("returns sanitized account status and explicit LIMITED_MODE state", () => {
   assert.equal(snapshot.architecture_mode, "LIMITED_MODE");
   assert.equal(snapshot.cross_account_e2e_verified, false);
   assert.equal(snapshot.active_streams, 0);
+  assert.equal(snapshot.active_requests, 0);
   assert.equal(snapshot.current_route, null);
   assert.deepEqual(snapshot.accounts.map(({ alias, state: accountState }) => [alias, accountState]), [
     ["Fixture A", "unknown"],
@@ -69,9 +70,11 @@ test("updates bounded runtime fields without exposing account IDs or credential 
     last_switch_reason: "startup",
   });
   state.setActiveStreams(2);
+  state.setActiveRequests(1);
   const snapshot = state.snapshot();
   assert.equal(snapshot.status, "ready");
   assert.equal(snapshot.active_streams, 2);
+  assert.equal(snapshot.active_requests, 1);
   assert.equal(snapshot.accounts[0].state, "healthy");
   assert.equal(snapshot.accounts[0].five_hour_remaining_ratio, 0.5);
   assert.equal(snapshot.accounts[0].id, undefined);
@@ -117,6 +120,7 @@ test("rejects unsafe account state, stream counts, routes, and switch reasons", 
     /initial current account/,
   );
   assert.throws(() => state.setActiveStreams(-1), /active stream/);
+  assert.throws(() => state.setActiveRequests(-1), /active request/);
   assert.throws(() => state.updateAccountStatus("missing", { state: "healthy" }), /unknown account/);
   assert.throws(() => state.updateAccountStatus("account-a", { state: "invented" }), /account state/);
   assert.throws(

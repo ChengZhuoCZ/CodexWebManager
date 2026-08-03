@@ -49,11 +49,20 @@ test("manager protocol accepts only bounded public metadata and a private auth p
     operation: "remove",
     alias: "Research 2",
   });
+  assert.deepEqual(parseManagerRequest({ operation: "switch", alias: "Research 2" }, root), {
+    operation: "switch",
+    alias: "Research 2",
+  });
+  assert.deepEqual(parseManagerRequest({ operation: "observe" }, root), {
+    operation: "observe",
+  });
   for (const value of [
     { operation: "enroll", source_file: "/tmp/auth.json", id: "x", alias: "X" },
     { operation: "enroll", source_file: `${root}/x/auth.json`, id: "x", alias: "person@example.test" },
     { operation: "enroll", source_file: `${root}/x/other.json`, id: "x", alias: "X" },
     { operation: "remove", alias: "X", token: "forbidden" },
+    { operation: "switch", alias: "X", command: "systemctl restart anything" },
+    { operation: "observe", alias: "X" },
   ]) assert.throws(() => parseManagerRequest(value, root));
 });
 
@@ -99,6 +108,20 @@ test("manager socket returns only a sanitized operation result", async (context)
       calls.push(value);
       return { event: "router_account_removed", configured_accounts: 2 };
     },
+    switchAccount: async (value) => {
+      calls.push(value);
+      return {
+        event: "router_account_switched",
+        configured_accounts: 3,
+        account_alias: value.alias,
+        native_identity_rebound: true,
+        web_restart_required: true,
+      };
+    },
+    observe: async (value) => {
+      calls.push(value);
+      return { event: "router_account_observer_ready", configured_accounts: 3 };
+    },
   });
   await new Promise((resolve, reject) => {
     server.once("error", reject);
@@ -113,6 +136,8 @@ test("manager socket returns only a sanitized operation result", async (context)
     alias: "Research 2",
   });
   const removed = await request(socketPath, { operation: "remove", alias: "Research 2" });
+  const switched = await request(socketPath, { operation: "switch", alias: "Research 2" });
+  const observed = await request(socketPath, { operation: "observe" });
   assert.deepEqual(enrolled, {
     ok: true,
     event: "router_account_enrolled",
@@ -125,7 +150,24 @@ test("manager socket returns only a sanitized operation result", async (context)
     configured_accounts: 2,
     credentials_exposed: false,
   });
-  assert.equal(calls.length, 2);
+  assert.deepEqual(switched, {
+    ok: true,
+    event: "router_account_switched",
+    configured_accounts: 3,
+    credentials_exposed: false,
+    account_alias: "Research 2",
+    continuity: "new_backend_session",
+    architecture_mode: "LIMITED_MODE",
+    native_identity_rebound: true,
+    web_restart_required: true,
+  });
+  assert.deepEqual(observed, {
+    ok: true,
+    event: "router_account_observer_ready",
+    configured_accounts: 3,
+    credentials_exposed: false,
+  });
+  assert.equal(calls.length, 4);
 });
 
 test("manager socket fails closed for malformed and oversized requests", async (context) => {
@@ -136,6 +178,8 @@ test("manager socket fails closed for malformed and oversized requests", async (
     sourceRoot: root,
     enroll: async () => { throw new Error("must not run"); },
     remove: async () => { throw new Error("must not run"); },
+    switchAccount: async () => { throw new Error("must not run"); },
+    observe: async () => { throw new Error("must not run"); },
   });
   await new Promise((resolve, reject) => {
     server.once("error", reject);

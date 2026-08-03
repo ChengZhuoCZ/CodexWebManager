@@ -1455,7 +1455,7 @@ test("acknowledges a manual preference only after private route persistence comp
   });
 });
 
-test("rolls back a persisted manual candidate if a semantic stream starts before acknowledgement", async (context) => {
+test("rejects a manual switch while a pre-semantic model request is active", async (context) => {
   let announceUpstreamRequest;
   let triggerSemantic;
   let finishStream;
@@ -1541,7 +1541,19 @@ test("rolls back a persisted manual candidate if a semantic stream starts before
       body: '{"account_alias":"Fixture B","reason":"manual"}',
     },
   );
-  await candidateSaveStarted;
+  const switchResponse = await switchResponsePromise;
+  assert.equal(switchResponse.status, 409);
+  assert.deepEqual(await switchResponse.json(), { error: "active_semantic_stream" });
+  assert.equal(saveCalls, 1);
+  assert.deepEqual(savedRoutes, [{
+    current_account_id: "fixture-account-a",
+    preferred_account_id: null,
+  }]);
+  assert.deepEqual((await adminStatus(runtime)).current_route, {
+    account_alias: "Fixture A",
+    continuity: "new_backend_session",
+  });
+
   triggerSemantic();
   const modelResponse = await modelResponsePromise;
   assert.equal(modelResponse.status, 200);
@@ -1550,24 +1562,11 @@ test("rolls back a persisted manual candidate if a semantic stream starts before
   assert.equal(firstChunk.done, false);
   assert.equal((await adminStatus(runtime)).active_streams, 1);
 
-  releaseCandidateSave();
-  const switchResponse = await switchResponsePromise;
-  assert.equal(switchResponse.status, 409);
-  assert.deepEqual(await switchResponse.json(), { error: "switch_rejected" });
-  assert.deepEqual(savedRoutes.at(-1), {
-    current_account_id: "fixture-account-a",
-    preferred_account_id: null,
-  });
-  assert.deepEqual((await adminStatus(runtime)).current_route, {
-    account_alias: "Fixture A",
-    continuity: "new_backend_session",
-  });
-
   finishStream();
   while (!(await reader.read()).done) {}
 });
 
-test("rejects a manual candidate before commit when a semantic stream wins the persistence race", async (context) => {
+test("does not open a manual route persistence transaction during an active request", async (context) => {
   let announceUpstreamRequest;
   let triggerSemantic;
   let finishStream;
@@ -1672,7 +1671,16 @@ test("rejects a manual candidate before commit when a semantic stream wins the p
       body: '{"account_alias":"Fixture B","reason":"manual"}',
     },
   );
-  await candidateSaveStarted;
+  const switchResponse = await switchResponsePromise;
+  assert.equal(switchResponse.status, 409);
+  assert.deepEqual(await switchResponse.json(), { error: "active_semantic_stream" });
+  assert.equal(candidateRejectedBeforeCommit, false);
+  assert.equal(saveCalls, 1);
+  assert.deepEqual(committedRoutes, [{
+    current_account_id: "fixture-account-a",
+    preferred_account_id: null,
+  }]);
+
   triggerSemantic();
   const modelResponse = await modelResponsePromise;
   assert.equal(modelResponse.status, 200);
@@ -1681,22 +1689,6 @@ test("rejects a manual candidate before commit when a semantic stream wins the p
   assert.equal(firstChunk.done, false);
   assert.equal((await adminStatus(runtime)).active_streams, 1);
 
-  releaseCandidateSave();
-  const switchSettledWithinBound = await Promise.race([
-    switchResponsePromise.then(() => true),
-    rollbackSaveStarted.then(() => false),
-    new Promise((resolve) => setTimeout(() => resolve(false), 250)),
-  ]);
-  assert.equal(switchSettledWithinBound, true);
-  const switchResponse = await switchResponsePromise;
-  assert.equal(switchResponse.status, 409);
-  assert.deepEqual(await switchResponse.json(), { error: "switch_rejected" });
-  assert.equal(candidateRejectedBeforeCommit, true);
-  assert.equal(saveCalls, 2);
-  assert.deepEqual(committedRoutes, [{
-    current_account_id: "fixture-account-a",
-    preferred_account_id: null,
-  }]);
   assert.equal(
     (await fetch(`http://127.0.0.1:${runtime.addresses.admin.port}/readyz`)).status,
     200,

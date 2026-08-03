@@ -276,34 +276,17 @@ test("restores units and current when the isolated 8216 probe fails", async (con
   await assert.rejects(fs.access(path.join(value.root, "opt/0xcaff-codex-web-router/releases/c3e92f0f-20260801-m69-router-r69")));
 });
 
-test("isolated deployment activates the routed Web candidate and restarts only the 8216 stack", async (context) => {
+test("historical R85 deployment fails closed after the current 8216 unit contract changes", async (context) => {
   const value = await isolatedFixture(context, { healthy: true });
   const isolationBefore = await Promise.all(
     Object.values(value.isolationFiles).map((file) => fs.readFile(file)),
   );
   const result = deployIsolated(value);
-  assert.equal(result.status, 0, `${result.stdout}\n${result.stderr}`);
-  assert.match(result.stdout, /deployment_status=success/);
-  assert.match(
+  assert.notEqual(result.status, 0, `${result.stdout}\n${result.stderr}`);
+  assert.match(`${result.stdout}\n${result.stderr}`, /web_unit_source_hash_mismatch/);
+  assert.equal(
     await fs.readlink(path.join(value.root, "opt/0xcaff-codex-web-router/current")),
-    /router-r85$/,
-  );
-  assert.equal(
-    await fs.readFile(
-      path.join(value.root, "opt/0xcaff-codex-web-router/current/src/server/electron/index.js"),
-      "utf8",
-    ),
-    "stable predecessor electron shim\n",
-  );
-  const log = await fs.readFile(value.commandLog, "utf8");
-  assert.match(log, /daemon-reload/);
-  assert.match(log, /restart codex-account-router\.service/);
-  assert.match(log, /restart codex-web-router-app-server\.service/);
-  assert.match(log, /restart codex-web-router\.service/);
-  assert.doesNotMatch(log, /(?:restart|stop|start) codex-web-upstream/);
-  assert.equal(
-    await fs.readlink(path.join(value.root, "opt/codex-account-router/current")),
-    "releases/codex-account-router-0.2.6-linux-x64",
+    "releases/previous",
   );
   assert.deepEqual(
     await Promise.all(Object.values(value.isolationFiles).map((file) => fs.readFile(file))),
