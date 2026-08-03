@@ -1,0 +1,20 @@
+{
+  "schema_version": 1,
+  "files": [
+    { "path": "src/server/main.js", "sha256": "2fc7eb749c58400c2b5d28484ef637a5ef6361d7cc85a771b0fbde684e51384a" },
+    { "path": "src/server/module.js", "sha256": "45c56e45751dce9a0eb39a152ae556828490e58a015ffbf812690e7df270600f" },
+    { "path": "src/server/browser-ipc-router.js", "sha256": "1a4badf9386656c9b917476410863cdb599ccaf666dae2476e4dc7566014e870" },
+    { "path": "src/server/browser-session-auth.js", "sha256": "7c5d0bc866788ea85f7974a786bf272f24798780b6be73b32969411121f587b6" },
+    { "path": "src/server/browser-upload-store.js", "sha256": "deac24ed35f40f40b5167d6fd011c3c1905faa13418af07d86fb5cffc8ceff8f" },
+    { "path": "src/server/router-status-bridge.js", "sha256": "121cee06d33e013c80235b0a5fd967841b82bd491da630ebb0d89a3362848dcd" },
+    { "path": "scratch/asar/webview/index.html", "sha256": "97e9e3d89c15a5eca67462a448202b6db887e03799442719697a702b9d9d7aed" },
+    { "path": "scratch/asar/webview/index.html.gz", "sha256": "851d3cfde4c755f053ecb2814bef933a4d5b31f5f390c55e4478cf1b7cc17843" },
+    { "path": "scratch/asar/webview/index.html.br", "sha256": "a4a79c1e3042245c66d18c690d9b203207c87822b8ce6ef01ffef5eac6089a7e" },
+    { "path": "scratch/asar/webview/assets/preload-d153ef5a.js", "sha256": "d153ef5adef87db419a7499cd95c01c477d1f5919193398f27f9aed7367047c9" },
+    { "path": "scratch/asar/webview/assets/preload-d153ef5a.js.gz", "sha256": "f9804e9deed5a2c9764089c9bd3133602537bacae359d43da1b145cc1cef5094" },
+    { "path": "scratch/asar/webview/assets/preload-d153ef5a.js.br", "sha256": "5cbb982bd41de80e354fb9ea5f30af5884c47ff666e69a998dc1a7d3ca85ae58" },
+    { "path": "scratch/asar/webview/assets/app-initial-BTphDPeq.js", "sha256": "47393763b9f8b45150fd0a80ef983d668f553d6da3629a2645f143d7b7dbd89c" },
+    { "path": "scratch/asar/webview/assets/app-initial-BTphDPeq.js.gz", "sha256": "ba8ecae927b49ca48e14540afb0a0b80a46f04aa0ea0dc347505f212f23b2d8c" },
+    { "path": "scratch/asar/webview/assets/app-initial-BTphDPeq.js.br", "sha256": "53e20c6008b11688d2b61e86abf16070071cb05fce53761502c5deb74955cffb" }
+  ]
+}

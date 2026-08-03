@@ -1,10 +1,10 @@
 import assert from "node:assert/strict";
-import { spawnSync } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import test from "node:test";
 import { fileURLToPath } from "node:url";
+import { buildRoutedWebPipeline } from "../../../integrations/codex-web/build-routed-web-pipeline.mjs";
 
 const upstream = process.env.M6_3_CODEX_WEB_ROOT;
 const integrationTest = upstream && path.isAbsolute(upstream) ? test : test.skip;
@@ -20,22 +20,20 @@ integrationTest("rebuilds the exact routed Web overlay from the clean pinned ups
     new URL("./fixtures/routed-web-previous", import.meta.url),
   );
   assert.ok(path.isAbsolute(previous));
-  const execution = spawnSync(process.execPath, [
-    path.resolve(import.meta.dirname, "../../../integrations/codex-web/build-routed-web-pipeline.mjs"),
+  const manifest = JSON.parse(await fs.readFile(
+    new URL("./fixtures/routed-web-overlay-manifest.json", import.meta.url),
+    "utf8",
+  ));
+  const result = await buildRoutedWebPipeline({
     upstream,
     previous,
     workRoot,
-    path.join(root, "candidate"),
-    path.join(root, "overlay.tar.gz"),
-  ], {
-    encoding: "utf8",
-    timeout: 120_000,
-    env: { PATH: process.env.PATH },
+    candidate: path.join(root, "candidate"),
+    output: path.join(root, "overlay.tar.gz"),
+    manifest,
   });
-  assert.equal(execution.status, 0, execution.stderr);
-  const result = JSON.parse(execution.stdout);
-  assert.equal(result.archive_sha256, "2fd59e23736b17d37f6109d97e6abdda65e20b16762035e5324723ce7b91d830");
-  assert.equal(result.archive_bytes, 11915006);
+  assert.equal(result.archive_sha256, "c72a118b35bd03c0d28602b6c19756c51e0b845dc272ef3ad8a02387bedd15db");
+  assert.equal(result.archive_bytes, 314538);
   assert.equal(result.files, 15);
   assert.equal(result.upstream_revision, "888692f7d885118c6a92bbaf60cf2121f5947adf");
   assert.equal(result.real_model_request_sent, false);

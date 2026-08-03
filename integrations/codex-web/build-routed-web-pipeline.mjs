@@ -30,6 +30,31 @@ const PINNED_BROWSER_INPUTS = Object.freeze([
     bytes: 13748,
     sha256: "a3eb9db8ca315ee8f301e5f26f02bab9c609907bd0a47989bfb961d8ecd181d7",
   }),
+  Object.freeze({
+    path: "scratch/asar/webview/assets/index-LQUNCOO3.js",
+    bytes: 134,
+    sha256: "b1fc633834753b07e268a5f854d482e22ef7a5299cbd883cd5522ea06e4fc6f6",
+  }),
+  Object.freeze({
+    path: "scratch/asar/webview/assets/fixture-chat.js",
+    bytes: 38,
+    sha256: "ba31df83bc1aa4d158d360f4370ab1f067715d884541b738667915dc9db3ad27",
+  }),
+  Object.freeze({
+    path: "scratch/asar/webview/assets/fixture-chat.css",
+    bytes: 37,
+    sha256: "8570fa773ac9aa1afd27426fbfb7cd19257e2ccf1f4be811af7520190e6c5516",
+  }),
+  Object.freeze({
+    path: "scratch/asar/webview/assets/modulepreload-polyfill-D8LKdSkT.js",
+    bytes: 57,
+    sha256: "f5dca7a85f9ada9859729b844519bc6775a5bb7b1baf92af950c09064e628e07",
+  }),
+  Object.freeze({
+    path: "scratch/asar/webview/assets/rolldown-runtime-Czos8NxU.js",
+    bytes: 71,
+    sha256: "f0a6ba133f37da20617dbe0d36c2d7b5822d374101242c6a863aa4142f1b5e0e",
+  }),
 ]);
 const PINNED_BROWSER_OUTPUTS = Object.freeze([
   Object.freeze({
@@ -53,7 +78,7 @@ function run(executable, argumentsList, options = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(executable, argumentsList, {
       cwd: options.cwd,
-      env: { PATH: process.env.PATH ?? "" },
+      env: { PATH: process.env.PATH ?? "", TMPDIR: os.tmpdir() },
       stdio: ["ignore", "ignore", "ignore"],
     });
     const timer = setTimeout(() => {
@@ -109,7 +134,14 @@ async function installPinnedBrowserFiles(buildRoot, inputs) {
   }
 }
 
-export async function buildRoutedWebPipeline({ upstream, previous, workRoot, candidate, output } = {}) {
+export async function buildRoutedWebPipeline({
+  upstream,
+  previous,
+  workRoot,
+  candidate,
+  output,
+  manifest = null,
+} = {}) {
   let workCreated = false;
   let candidateCreated = false;
   let phase = "validate";
@@ -176,8 +208,14 @@ export async function buildRoutedWebPipeline({ upstream, previous, workRoot, can
     });
     candidateCreated = true;
     phase = "build_archive";
-    const manifest = JSON.parse(await fs.readFile(MANIFEST_PATH, "utf8"));
-    const overlay = await buildRoutedWebOverlay({ candidate: candidateRoot, output: outputFile, manifest });
+    const overlayManifest = manifest === null
+      ? JSON.parse(await fs.readFile(MANIFEST_PATH, "utf8"))
+      : manifest;
+    const overlay = await buildRoutedWebOverlay({
+      candidate: candidateRoot,
+      output: outputFile,
+      manifest: overlayManifest,
+    });
     return Object.freeze({
       ...overlay,
       upstream_revision: revisionProcess,
