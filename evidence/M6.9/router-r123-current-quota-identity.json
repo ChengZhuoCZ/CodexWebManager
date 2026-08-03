@@ -1,0 +1,99 @@
+{
+  "task": "M6.9",
+  "continuation": "R123 current native App Server quota identity",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "903af71a2ffd10cd8194d4b2bcb86976606c9364",
+  "implementation_revision": "b7ed97ccbbbf6c3fa62f1662296e1a9fb48048bf",
+  "implementation_mode": "clean-room",
+  "diagnosis": {
+    "router_route": "Secondary",
+    "native_app_server_credential_alias": "Secondary",
+    "configured_quota_alias_before_fix": "Primary",
+    "pre_fix_no_model_quota_response_alias": "Primary",
+    "pre_fix_no_model_weekly_remaining_ratio": 0.88,
+    "root_cause": "The Web quota bridge labelled account/rateLimits/read with a static Primary alias instead of the native App Server credential identity.",
+    "credentials_exposed": false,
+    "model_request_sent": false,
+    "account_switch_sent": false
+  },
+  "implementation": {
+    "router_version": "0.2.37",
+    "manager_observe_returns_public_current_alias": true,
+    "identity_derived_from_unique_credential_match": true,
+    "quota_read_requires_idle_router": true,
+    "identity_verified_before_and_after_quota_read": true,
+    "route_and_native_identity_must_match": true,
+    "unverified_current_quota_is_redacted": true,
+    "static_quota_alias_is_not_used_for_labelling": true,
+    "refresh_label_targets_current_account": true,
+    "arbitrary_root_command_execution": false
+  },
+  "artifact": {
+    "path": "/private/tmp/m69-r123-artifacts/codex-account-router-0.2.37-linux-x64.tar.gz",
+    "sha256": "6bcd5e9cd0582d2b5aa30861ace2c2ca979cfaa559a1030b9c79805a9e20eb23",
+    "transformer_sha256": "73c9e40e88d864d04c1296290385e544de40186d9df2acfbeeacbaeb806af0ed",
+    "status_bridge_sha256": "30a7a21262e168269fd9be386a091310723b12b59e2e1c546a152ad836fdfce8"
+  },
+  "tests": [
+    {
+      "command": "node --check native rebinding, manager, R123 transformer and standalone bridge; node --test focused rebinding, manager protocol, Linux release and Web merge tests",
+      "result": "pass"
+    },
+    {
+      "command": "M4_2_CODEX_WEB_ROOT=/private/tmp/codex-web-pin-888 node --test packages/account-router/test/codex-web-status-bridge.test.mjs",
+      "result": "13 passed, 0 failed"
+    },
+    {
+      "command": "M4_2_CODEX_WEB_ROOT=/private/tmp/codex-web-pin-888 node --test packages/account-router/test/*.test.mjs",
+      "result": "437 passed, 1 failed, 2 skipped",
+      "known_external_fixture_failure": "The pinned public checkout is missing scratch/asar/webview/assets/index-LQUNCOO3.js; the failing overlay-bundle test did not execute changed R123 code."
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r123-current-quota-identity.sh && git diff --check",
+      "result": "pass"
+    }
+  ],
+  "deployment": {
+    "first_preflight_attempt": "failed closed before mutation because the 0.2.36 observe protocol did not yet expose account_alias",
+    "second_attempt": "success",
+    "active_router_release": "codex-account-router-0.2.37-linux-x64",
+    "active_web_release": "c3e92f0f-20260803-m69-router-r123-current-quota-identity",
+    "installed_index_sha256": "c4f2c6ff665bf00f8a93e27909fd4dbdab9f6d8536ad150be05953cae3b4ba2b",
+    "installed_preload": "preload-a5d77090.js",
+    "installed_preload_sha256": "a5d77090e59391561d3920b92db798e93ae985492fac8a6fd5401397d236afd9",
+    "installed_status_bridge_sha256": "30a7a21262e168269fd9be386a091310723b12b59e2e1c546a152ad836fdfce8",
+    "current_route": "Secondary",
+    "native_identity": "Secondary",
+    "active_requests": 0,
+    "active_streams": 0,
+    "verified_weekly_remaining_ratio": 0.87,
+    "weekly_resets_at": "2026-08-09T03:03:28.000Z",
+    "snapshot_observed_at": "2026-08-03T15:09:59.908Z",
+    "routed_8216_app_server_unchanged": true,
+    "standalone_8215_unchanged": true,
+    "standalone_8215_web_pid_start": "3664557 / 464091607256",
+    "standalone_8215_app_pid_start": "3664550 / 464091596213",
+    "all_seven_related_units_active": true,
+    "route_unchanged": true,
+    "model_request_sent": false,
+    "account_switch_sent": false,
+    "semantic_output_replayed": false
+  },
+  "browser_ui_verification": {
+    "attempted": true,
+    "result": "not additionally verified",
+    "reason": "The first bounded in-app Browser reload timed out; after the documented reconnect flow there was no matching open 8216 tab to claim.",
+    "server_asset_delivery_verified": true,
+    "pixel_or_dom_claimed": false
+  },
+  "residual_risks": [
+    "The current account quota is intentionally shown as unavailable until a credential-verified no-model refresh succeeds; a busy Router or unavailable manager fails closed instead of showing a stale percentage.",
+    "The full aggregate test run retains one pre-existing external fixture failure because the pinned public checkout lacks one legacy scratch asset.",
+    "The installed content hashes and protected status response are verified, but this run does not add a browser-rendered menu/dialog claim because the in-app Browser control channel did not retain an 8216 tab.",
+    "Automatic or manual switching still starts a new backend session; no prior semantic output, in-flight request or running computation is migrated, replayed, resumed or restored.",
+    "No account switch and no model request were used for this deployment qualification."
+  ],
+  "status": "done",
+  "recorded_at": "2026-08-03T23:12:55+08:00"
+}

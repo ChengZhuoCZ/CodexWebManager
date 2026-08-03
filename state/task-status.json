@@ -6449,6 +6449,33 @@
       "semantic_stream_replay_attempted": false,
       "cross_account_continuity_claimed": false,
       "status": "done"
+    },
+    "r123_current_quota_identity": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "903af71a2ffd10cd8194d4b2bcb86976606c9364",
+      "implementation_revision": "b7ed97ccbbbf6c3fa62f1662296e1a9fb48048bf",
+      "evidence": "evidence/M6.9/router-r123-current-quota-identity.json",
+      "artifact_sha256": "6bcd5e9cd0582d2b5aa30861ace2c2ca979cfaa559a1030b9c79805a9e20eb23",
+      "router_version": "0.2.37",
+      "native_identity_verified_before_and_after_quota_read": true,
+      "unverified_current_quota_redacted": true,
+      "server_mutated": true,
+      "active_router_release": "codex-account-router-0.2.37-linux-x64",
+      "active_web_release": "c3e92f0f-20260803-m69-router-r123-current-quota-identity",
+      "current_route": "Secondary",
+      "native_app_server_identity": "Secondary",
+      "verified_weekly_remaining_ratio": 0.87,
+      "active_requests": 0,
+      "active_streams": 0,
+      "all_seven_related_units_active": true,
+      "routed_8216_app_server_unchanged": true,
+      "standalone_8215_mutated": false,
+      "model_request_sent": false,
+      "account_switch_sent": false,
+      "semantic_stream_replay_attempted": false,
+      "cross_account_continuity_claimed": false,
+      "status": "done"
     }
   },
   "blockers": [],
@@ -6685,7 +6712,12 @@
     "R121 changes presentation only. Account switching still starts a new backend session and does not migrate, replay, resume or restore prior semantic output, an in-flight request or running computation.",
     "R122 replaces approximate inline font, spacing, padding and height values with the exact public upstream menu-item structure and class contract. A future upstream menu class or role rewrite still requires a new bounded adapter.",
     "The R122 in-app browser listed the live 8216 Codex tab, but its bounded DOM evaluation timed out and reset the automation kernel. Installed hashes, exact source contracts, trusted-Tailnet HTML readiness and protected-service invariants passed; no pixel-perfect screenshot claim is made.",
-    "R122 changes presentation only. Manual or automatic account switching still starts a new backend session and does not migrate, replay, resume or restore prior semantic output, an in-flight request or running computation."
+    "R122 changes presentation only. Manual or automatic account switching still starts a new backend session and does not migrate, replay, resume or restore prior semantic output, an in-flight request or running computation.",
+    "R123 no longer trusts the static CODEX_ROUTER_QUOTA_ACCOUNT_ALIAS value to label a native App Server quota read. It requires the Router to be idle, the Router route to match the unique current credential alias before and after the no-model read, and otherwise shows the current quota as unavailable instead of stale.",
+    "R123 installed-host qualification sent no model request and no account switch. The live Secondary quota was 87% at 2026-08-03T15:09:59.908Z and may continue to decrease with use.",
+    "The R123 aggregate Node run passed 437 tests with two skips and retained one unrelated fixture failure because the pinned public checkout lacks scratch/asar/webview/assets/index-LQUNCOO3.js; focused R123 and compiled bridge tests passed.",
+    "R123 installed content hashes and the protected status response are verified, but the in-app Browser reload timed out and the documented reconnect had no matching 8216 tab to claim, so no additional browser-rendered menu/dialog or pixel-level claim is made.",
+    "R123 does not change continuity semantics. Manual or automatic account switching starts a new backend session and does not migrate, replay, resume or restore prior semantic output, an in-flight request or running computation."
   ],
-  "updated_at": "2026-08-03T22:35:41+08:00"
+  "updated_at": "2026-08-03T23:12:55+08:00"
 }
