@@ -1,0 +1,78 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R126",
+  "input_revision": "25fb59b",
+  "implementation_mode": "clean-room",
+  "scope": "read-only 8216 browser startup measurement",
+  "edge": {
+    "browser": "Microsoft Edge 151.0.4129.59",
+    "profile": "new temporary profile",
+    "samples_per_cache_state": 3,
+    "cold_cache_median_ms": {
+      "html_ttfb": 59.9,
+      "dom_content_loaded": 1683.2,
+      "composer_visible": 6718.5,
+      "main_bundle_download": 1562.9,
+      "script_duration": 1207.948,
+      "task_duration": 1558.846,
+      "v8_background_parse_cpu": 3441.176
+    },
+    "warm_cache_median_ms": {
+      "html_ttfb": 61.2,
+      "dom_content_loaded": 88.4,
+      "composer_visible": 5342.6,
+      "main_bundle_transfer": 0,
+      "script_duration": 1079.179,
+      "task_duration": 1693.534,
+      "v8_background_parse_cpu": 0
+    },
+    "main_bundle": {
+      "path": "/assets/app-initial-BTphDPeq.js",
+      "decoded_bytes": 13936387,
+      "served_encoded_bytes": 4243211,
+      "available_brotli_bytes": 3117335,
+      "served_encoding_inference": "The transferred byte count exactly matches the precompressed gzip sibling; the Brotli sibling was not selected.",
+      "potential_brotli_transfer_saving_bytes": 1125876
+    }
+  },
+  "safari": {
+    "exact_baseline_completed": false,
+    "blockers": [
+      "Computer Use capture failed with macOS ScreenCaptureKit SCStream -3811.",
+      "A bounded Safari WebDriver session timed out while connecting to Safari.",
+      "Enabling safaridriver required an interactive administrator authorization and was not bypassed."
+    ],
+    "substitute_browser_claimed": false
+  },
+  "method": [
+    "A pre-document MutationObserver recorded the first visible enabled composer.",
+    "Chrome DevTools Protocol navigation timing, Network, Performance and V8 tracing measured the exact Edge browser.",
+    "Cold runs cleared the browser cache before navigation; warm runs reloaded the same fresh profile without clearing cache.",
+    "No model request, account switch, service restart or repository mutation was performed by the measurement."
+  ],
+  "decision": {
+    "primary_next_step": "reduce initial JavaScript parse and initialization work using upstream-compatible source/chunk boundaries",
+    "secondary_next_step": "prefer the existing Brotli sibling over gzip when encoding quality is equal",
+    "not_sufficient_alone": [
+      "browser cache",
+      "HTML TTFB optimization",
+      "loading skeleton"
+    ]
+  },
+  "tests": [
+    {
+      "command": "Microsoft Edge --remote-debugging-port=<temporary> --user-data-dir=<new temporary profile>; <bundled-node> /private/tmp/r126-cdp-measure.mjs",
+      "result": "3 cold and 3 warm authenticated 8216 document loads returned HTTP 200 and rendered the composer"
+    },
+    {
+      "command": "/usr/bin/safaridriver -p 4444; <bundled-node> /private/tmp/r126-safari-measure.mjs",
+      "result": "blocked after a bounded 30-second session timeout; no Safari performance result claimed"
+    }
+  ],
+  "residual_risks": [
+    "Safari cold and warm timing remains unqualified until macOS Safari automation authorization is functional.",
+    "Three observations per state are a decision baseline, not a soak test or a stable speed guarantee.",
+    "The warm composer median shows that caching alone does not remove the multi-second renderer initialization cost."
+  ]
+}

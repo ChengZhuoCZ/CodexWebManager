@@ -6559,6 +6559,24 @@
       "standalone_8215_mutated": false,
       "deployed": false,
       "status": "done"
+    },
+    "r126_clean_browser_startup_baseline": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "25fb59b",
+      "evidence": "evidence/M6.9/router-r126-clean-browser-startup-baseline.json",
+      "edge_version": "151.0.4129.59",
+      "edge_cold_composer_median_ms": 6718.5,
+      "edge_warm_composer_median_ms": 5342.6,
+      "main_bundle_decoded_bytes": 13936387,
+      "main_bundle_served_encoded_bytes": 4243211,
+      "main_bundle_available_brotli_bytes": 3117335,
+      "safari_baseline_completed": false,
+      "safari_blocker_recorded": true,
+      "model_request_sent": false,
+      "account_switch_sent": false,
+      "standalone_8215_mutated": false,
+      "status": "done"
     }
   },
   "blockers": [],
