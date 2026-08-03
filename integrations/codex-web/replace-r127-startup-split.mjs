@@ -22,9 +22,11 @@ export const R127_STARTUP_SPLIT_CONTRACT = Object.freeze({
     "router-account-management.js": "d918cec444e06789a5cbfc3170d9d4fb1fd939e02828631d65684ff9b4ef4de9",
   }),
   browser_assets: Object.freeze({
-    "preload.js": "a11205f88270a81f264075c1dae7f7bdf81d357d2a52e5a9a4d070fabef900a2",
-    "account-settings-window-B0-uL438.mjs": "6ab1522e74f7764f6c105e18ad69a66c8271b2a9f0832bd15d648226351360b1",
-    "client-cwlt_MhB.mjs": "2a2f3faf286d83fc9b88eedcd4f6c02bb2127d3acbfbc0f0563748d74db6c651",
+    "preload.js": "96037be170c5c6f8f87024de9085c7f7dc80171d4711c015960ff14b1b438647",
+    "account-settings-window-C1CW0Ui2.mjs": "e9fd12b9506c2440706801a9a149897ecab3223a68897336800108a361bf8cc0",
+    "workspace-root-dialog-CTNvLaH0.mjs": "4809e2fd8316f5824c7d18c9d84ba23b1164ad6452e6eab66a0534d9a2cdd649",
+    "jsx-runtime-BhZVp74s.mjs": "c6bebbac8a268cb22a871ed791b43e79cf23c3f88afb473855e8338c1bd04be0",
+    "rolldown-runtime-7_rZTKki.mjs": "ee6f7f26af65d579908c6904c08fa7fd954f22673d48974bf74dd8036a83cc71",
   }),
   server_assets: Object.freeze({
     "preferred-content-encoding.js": "084e34b5197d70a7d7859235b4f50baa48d0ff142bbd82a3a0fdbbdd13de6cb9",
@@ -163,13 +165,27 @@ export async function replaceR127StartupSplit({
   const patchedServerMain = patchServerMain(oldServerMain, contract.successor_server_main_sha256);
   const browser = Object.fromEntries(browserEntries);
   const preloadName = `preload-${contract.browser_assets["preload.js"].slice(0, 8)}.js`;
-  const accountChunk = "account-settings-window-B0-uL438.mjs";
-  const reactChunk = "client-cwlt_MhB.mjs";
+  const browserNames = Object.keys(contract.browser_assets);
+  const namedChunk = (pattern) => {
+    const matches = browserNames.filter((name) => pattern.test(name));
+    if (matches.length !== 1) throw new Error("R127 startup chunk contract is invalid");
+    return matches[0];
+  };
+  const accountChunk = namedChunk(/^account-settings-window-[A-Za-z0-9_-]{8}\.mjs$/u);
+  const workspaceChunk = namedChunk(/^workspace-root-dialog-[A-Za-z0-9_-]{8}\.mjs$/u);
+  const reactChunk = namedChunk(/^jsx-runtime-[A-Za-z0-9_-]{8}\.mjs$/u);
+  const runtimeChunk = namedChunk(/^rolldown-runtime-[A-Za-z0-9_-]{8}\.mjs$/u);
+  const preloadText = browser["preload.js"].toString("utf8");
   if (
-    !browser["preload.js"].includes(Buffer.from(`./${accountChunk}`)) ||
+    !preloadText.includes(`import("./${accountChunk}")`) ||
+    !preloadText.includes(`import("./${workspaceChunk}")`) ||
+    !preloadText.includes(`from "./${runtimeChunk}"`) ||
+    preloadText.includes(`from "./${reactChunk}"`) ||
     !browser[accountChunk].includes(Buffer.from(`./${reactChunk}`)) ||
+    !browser[workspaceChunk].includes(Buffer.from(`./${reactChunk}`)) ||
     !browser["preload.js"].includes(Buffer.from("/v1/log_event")) ||
-    browser["preload.js"].includes(Buffer.from("installAccountSettingsWindow();"))
+    browser["preload.js"].includes(Buffer.from("//#region src/browser/account-settings-window.tsx")) ||
+    browser["preload.js"].includes(Buffer.from("//#region src/browser/workspace-root-dialog.tsx"))
   ) throw new Error("R127 startup split contract is unavailable");
 
   const oldReference = `./assets/${contract.predecessor_preload_name}`;
@@ -211,6 +227,7 @@ export async function replaceR127StartupSplit({
     preload_sha256: sha256(browser["preload.js"]),
     preload_bytes: browser["preload.js"].length,
     deferred_account_window_bytes: browser[accountChunk].length,
+    deferred_workspace_dialog_bytes: browser[workspaceChunk].length,
     deferred_react_client_bytes: browser[reactChunk].length,
     exact_telemetry_short_circuit: true,
     brotli_preferred: true,

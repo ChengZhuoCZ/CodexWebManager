@@ -34,9 +34,17 @@ const IMPORT_ANCHOR = `import {
   openSelectWorkspaceRootDialog,
   type WorkspaceDirectoryEntries,
 } from "./workspace-root-dialog";`;
-const IMPORT_REPLACEMENT = `${IMPORT_ANCHOR}
+const IMPORT_REPLACEMENT = `import type { WorkspaceDirectoryEntries } from "./workspace-root-dialog";
 import { installAccountSettingsEntry } from "./account-settings-entry";
 import { installBrowserFetchPolicy } from "./browser-session";`;
+const WORKSPACE_DIALOG_ANCHOR = `        return openSelectWorkspaceRootDialog({
+          listDirectory: requestWorkspaceDirectoryEntries,
+        }).then((root) => {`;
+const WORKSPACE_DIALOG_REPLACEMENT = `        return import("./workspace-root-dialog")
+          .then(({ openSelectWorkspaceRootDialog }) => openSelectWorkspaceRootDialog({
+            listDirectory: requestWorkspaceDirectoryEntries,
+          }))
+          .then((root) => {`;
 const START_ANCHOR = `};
 
 ensureSocket();
@@ -116,6 +124,7 @@ export async function applyR127StartupPolicy({ upstreamRoot, sourceRoot } = {}) 
 
   let shim = shimBytes.toString("utf8");
   shim = replaceExactlyOnce(shim, IMPORT_ANCHOR, IMPORT_REPLACEMENT);
+  shim = replaceExactlyOnce(shim, WORKSPACE_DIALOG_ANCHOR, WORKSPACE_DIALOG_REPLACEMENT);
   shim = replaceExactlyOnce(shim, START_ANCHOR, START_REPLACEMENT);
   const targets = [
     [path.join(browserRoot, INPUTS.accountEntry.file), entryBytes],

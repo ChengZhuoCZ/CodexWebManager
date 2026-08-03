@@ -58,9 +58,11 @@ ${staticAnchor}`));
     await fs.writeFile(path.join(server, name), bytes);
   }
   const browser = {
-    "preload.js": Buffer.from('import("./account-settings-window-B0-uL438.mjs");const endpoint="/v1/log_event";installAccountSettingsEntry();'),
-    "account-settings-window-B0-uL438.mjs": Buffer.from('import "./client-cwlt_MhB.mjs";'),
-    "client-cwlt_MhB.mjs": Buffer.from("export const client=true;"),
+    "preload.js": Buffer.from('import {r} from "./rolldown-runtime-7_rZTKki.mjs";import("./account-settings-window-C1CW0Ui2.mjs");import("./workspace-root-dialog-CTNvLaH0.mjs");const endpoint="/v1/log_event";installAccountSettingsEntry();'),
+    "account-settings-window-C1CW0Ui2.mjs": Buffer.from('import "./jsx-runtime-BhZVp74s.mjs";'),
+    "workspace-root-dialog-CTNvLaH0.mjs": Buffer.from('import "./jsx-runtime-BhZVp74s.mjs";'),
+    "jsx-runtime-BhZVp74s.mjs": Buffer.from("export const client=true;"),
+    "rolldown-runtime-7_rZTKki.mjs": Buffer.from("export const r=true;"),
   };
   for (const [name, bytes] of Object.entries(browser)) {
     await fs.writeFile(path.join(browserInput, name), bytes);

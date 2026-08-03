@@ -7,7 +7,7 @@ readonly ROUTER_RELEASE_NAME="codex-account-router-${ROUTER_VERSION}-linux-x64"
 readonly ROUTER_ARCHIVE="${INPUT_ROOT}/${ROUTER_RELEASE_NAME}.tar.gz"
 readonly ROUTER_ARCHIVE_SHA256=c27b292494dba853b922cdf3a3c0dff9d83f3a9ad40400122f43829d32e7bbc4
 readonly TRANSFORMER="${INPUT_ROOT}/replace-r127-startup-split.mjs"
-readonly TRANSFORMER_SHA256=0a0446e81ad056195ea55c10ebda8777cb03cef9fc101d8378cc0c2574565159
+readonly TRANSFORMER_SHA256=8ad6cde98e3278bc0249308eee02aae656880aba70750c958a45ef4bcdd33b83
 readonly BROWSER_ASSETS="${INPUT_ROOT}/browser-assets"
 readonly SERVER_ASSETS="${INPUT_ROOT}/server-assets"
 
@@ -161,20 +161,21 @@ verify_browser() {
   local cookies="$workdir/cookies" headers="$workdir/headers" body="$workdir/preload.br"
   curl --noproxy '*' -fsS --max-time 5 -H 'Host: 100.95.50.98:8216' -H 'Accept: text/html' \
     -c "$cookies" http://127.0.0.1:8216/ >"$workdir/index.html" || return 1
-  grep -Fq './assets/preload-a11205f8.js' "$workdir/index.html" || return 1
-  ! grep -Fq 'account-settings-window-B0-uL438.mjs' "$workdir/index.html" || return 1
+  grep -Fq './assets/preload-96037be1.js' "$workdir/index.html" || return 1
+  ! grep -Fq 'account-settings-window-C1CW0Ui2.mjs' "$workdir/index.html" || return 1
   curl --noproxy '*' -fsS --max-time 5 -H 'Host: 100.95.50.98:8216' -H 'Accept: application/json' \
     -b "$cookies" http://127.0.0.1:8216/__backend/session >"$workdir/session.json" || return 1
   /usr/bin/node -e 'const fs=require("node:fs"),v=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
     if(typeof v?.csrfToken!=="string"||!/^[A-Za-z0-9_-]{43}$/u.test(v.csrfToken)||Number.isNaN(Date.parse(v.expiresAt)))process.exit(1)' \
     "$workdir/session.json" || return 1
   curl --noproxy '*' -fsS --max-time 8 -D "$headers" -o "$body" -H 'Host: 100.95.50.98:8216' \
-    -H 'Accept-Encoding: gzip, deflate, br' http://127.0.0.1:8216/assets/preload-a11205f8.js || return 1
+    -H 'Accept-Encoding: gzip, deflate, br' http://127.0.0.1:8216/assets/preload-96037be1.js || return 1
   grep -Eiq '^content-encoding:[[:space:]]*br' "$headers" || return 1
   /usr/bin/node -e 'const fs=require("node:fs"),z=require("node:zlib"),c=require("node:crypto");
     const raw=z.brotliDecompressSync(fs.readFileSync(process.argv[1]));
-    if(c.createHash("sha256").update(raw).digest("hex")!=="a11205f88270a81f264075c1dae7f7bdf81d357d2a52e5a9a4d070fabef900a2")process.exit(1)' "$body" || return 1
-  for asset in account-settings-window-B0-uL438.mjs client-cwlt_MhB.mjs; do
+    if(c.createHash("sha256").update(raw).digest("hex")!=="96037be170c5c6f8f87024de9085c7f7dc80171d4711c015960ff14b1b438647")process.exit(1)' "$body" || return 1
+  for asset in account-settings-window-C1CW0Ui2.mjs workspace-root-dialog-CTNvLaH0.mjs \
+    jsx-runtime-BhZVp74s.mjs rolldown-runtime-7_rZTKki.mjs; do
     curl --noproxy '*' -fsS --max-time 5 -H 'Host: 100.95.50.98:8216' \
       "http://127.0.0.1:8216/assets/$asset" >/dev/null || return 1
   done
@@ -300,7 +301,7 @@ must web_transform /usr/bin/node "$TRANSFORMER" --candidate "$WEB_NEW" \
   --browser-assets "$BROWSER_ASSETS" --server-assets "$SERVER_ASSETS" >"$workdir/transform.json"
 must web_transform_event /usr/bin/node -e '
   const fs=require("node:fs"),v=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
-  if(v?.event!=="r127_startup_split_installed"||v?.preload_name!=="preload-a11205f8.js"||
+  if(v?.event!=="r127_startup_split_installed"||v?.preload_name!=="preload-96037be1.js"||
     v?.exact_telemetry_short_circuit!==true||v?.brotli_preferred!==true)process.exit(1)' "$workdir/transform.json"
 must standalone_changed_before_mutation verify_8215
 
@@ -359,6 +360,6 @@ printf 'configured_accounts=2\nroute_restored=Secondary\nnative_identity_restore
 printf 'primary_event_sync_elapsed_ms=%s\nsecondary_event_sync_elapsed_ms=%s\n' "$PRIMARY_ELAPSED" "$SECONDARY_ELAPSED"
 cat "$workdir/event-metrics"
 printf 'app_account_present=true\nlogin_state_restored=true\nupload_root_persistent=true\n'
-printf 'initial_preload_bytes=120736\naccount_settings_deferred=true\nreact_client_deferred=true\nbrotli_preferred=true\n'
+printf 'initial_preload_bytes=26335\naccount_settings_deferred=true\nworkspace_dialog_deferred=true\nreact_client_deferred=true\nbrotli_preferred=true\n'
 printf 'model_request_sent=false\nsemantic_output_replayed=false\nstandalone_8215_unchanged=true\n'
 rm -rf -- "$workdir"
