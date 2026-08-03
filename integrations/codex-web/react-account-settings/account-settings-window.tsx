@@ -459,27 +459,69 @@ function nativeMenuClassName(menu: HTMLElement): string {
     : "flex w-full cursor-default items-center gap-2 rounded-md px-2 py-2 text-sm outline-none hover:bg-token-bg-secondary";
 }
 
+function RouteIcon(): React.ReactElement {
+  return (
+    <svg aria-hidden="true" fill="none" height="20" viewBox="0 0 20 20" width="20">
+      <path d="M4 6.5h10.5m0 0-2.75-2.75M14.5 6.5l-2.75 2.75M16 13.5H5.5m0 0 2.75 2.75M5.5 13.5l2.75-2.75" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function ChevronRightIcon(): React.ReactElement {
+  return (
+    <svg aria-hidden="true" fill="none" height="18" viewBox="0 0 18 18" width="18">
+      <path d="m6.75 3.75 5.25 5.25-5.25 5.25" stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function currentRouteAlias(snapshot: AccountSettingsSnapshot): string {
+  const current = snapshot.model?.accounts.find((account) => account.isCurrent);
+  if (current) return current.alias;
+  return snapshot.status === "unavailable" ? "Unavailable" : "Loading…";
+}
+
 function AccountSettingsApp(): React.ReactElement {
   const menu = useNativeProfileMenu();
   const { controller, snapshot } = useAccountController();
   const [open, setOpen] = useState(false);
   const menuClassName = useMemo(() => menu ? nativeMenuClassName(menu) : "", [menu]);
+  const routeAlias = currentRouteAlias(snapshot);
   return (
     <>
       {menu ? createPortal(
-        <div
+        <button
+          aria-label={snapshot.label}
           aria-haspopup="dialog"
           className={menuClassName}
           data-router-account-menu-entry="true"
+          data-router-account-menu-layout="native-row"
           onClick={() => setOpen(true)}
           role="menuitem"
-          style={{ alignItems: "center", cursor: "default", display: "flex", gap: 8, width: "100%" }}
+          style={{
+            alignItems: "center",
+            boxSizing: "border-box",
+            cursor: "default",
+            display: "flex",
+            flexDirection: "row",
+            fontSize: 14,
+            gap: 10,
+            justifyContent: "flex-start",
+            lineHeight: "20px",
+            minHeight: 40,
+            padding: "8px 10px",
+            textAlign: "left",
+            width: "100%",
+          }}
           tabIndex={-1}
+          title={snapshot.label}
+          type="button"
         >
-          <span aria-hidden="true" className="text-token-text-secondary">⇄</span>
-          <span className="min-w-0 flex-1 truncate">{snapshot.label}</span>
-          <span aria-hidden="true" className="text-token-text-tertiary">›</span>
-        </div>,
+          <span className="flex h-5 w-5 shrink-0 items-center justify-center text-token-text-secondary"><RouteIcon /></span>
+          <span className="min-w-0 flex-1 truncate text-token-text-primary">Account route</span>
+          <span className="max-w-24 shrink-0 truncate text-token-text-secondary">{routeAlias}</span>
+          <span className="flex h-[18px] w-[18px] shrink-0 items-center justify-center text-token-text-tertiary"><ChevronRightIcon /></span>
+        </button>,
         menu,
       ) : null}
       {open ? <AccountSettingsDialog controller={controller} onClose={() => setOpen(false)} snapshot={snapshot} /> : null}
