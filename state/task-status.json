@@ -87,12 +87,13 @@
     "r108_persistent_uploads": "d6a631f49e09c058e8c1917c1e5a12cc3ff781b7",
     "r109_safari_profile_menu": "0d7672dab6fe722d0654fb06d91248c38810ce11",
     "r110_compact_auto_failover": "0d7672dab6fe722d0654fb06d91248c38810ce11",
+    "r111_safari_account_launcher": "4d207779bfecda8e01561a55ae2cde5f1c48f2fc",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "0d7672dab6fe722d0654fb06d91248c38810ce11",
+  "output_revision": "4d207779bfecda8e01561a55ae2cde5f1c48f2fc",
   "workspace_branch": "codex/m6-9-8216-r85-handoff",
   "workspace_input_revision": "168369e5a552260358efbfc04dbfd04a6038ba24",
   "depends_on": [
@@ -1971,6 +1972,22 @@
     {
       "command": "hash-verified rollback-capable R110 deployment and post-deployment service/policy checks",
       "result": "R110 activated with CODEX_ROUTER_FAILOVER_MAX_ATTEMPTS=16. Only routed 8216 Web and account-router restarted; 8215, routed App Server and account-manager remained unchanged. Five relevant services were active. No model request or account switch was sent."
+    },
+    {
+      "command": "failure-first Safari-independent launcher contract; <bundled-node> --test codex-web-router-panel-merge",
+      "result": "The focused test failed before implementation because R110 had no independent launcher, then the final profile-menu suite passed 37/37 with the fixed launcher, separate popover DOM identity and retained native-menu adapter."
+    },
+    {
+      "command": "<bundled-node> --test failover-state-machine failure-injection-matrix failover-proxy websocket-failover runtime-composition config runtime-bootstrap systemd-units codex-web-router-panel-merge",
+      "result": "122 passed, 0 failed after allowing bounded loopback test listeners. The managed-sandbox attempt had first denied 30 network-listener tests with listen EPERM; those were environment denials rather than assertion failures."
+    },
+    {
+      "command": "bash -n R111 deployment; node --check R111 installer and panel; git diff --check; scanRepository(loadSecurityAuditPolicy())",
+      "result": "Syntax and diff checks passed; the final pre-state scan covered 667 files with zero findings. Aggregate strict-CI requalification remains pending because R111 changes the protected routed Web tree."
+    },
+    {
+      "command": "hash-verified rollback-capable R111 Web-only deployment and post-deployment service/source checks",
+      "result": "R111 activated with panel SHA-256 2043970f. Only routed 8216 Web restarted; 8215, routed App Server, account-router and account-manager remained unchanged. Seven relevant units were active. No model request or account switch was sent."
     }
   ],
   "evidence": [
@@ -2251,7 +2268,9 @@
     "evidence/M6.9/deploy-router-r109-safari-profile-menu.sh",
     "evidence/M6.9/router-r109-safari-profile-menu-summary.json",
     "evidence/M6.9/deploy-router-r110-compact-auto-failover.sh",
-    "evidence/M6.9/router-r110-compact-auto-failover-summary.json"
+    "evidence/M6.9/router-r110-compact-auto-failover-summary.json",
+    "evidence/M6.9/deploy-router-r111-safari-account-launcher.sh",
+    "evidence/M6.9/router-r111-safari-account-launcher-summary.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -5954,6 +5973,29 @@
       "real_cross_account_auto_failover_verified": false,
       "cross_account_continuity_claimed": false,
       "status": "done"
+    },
+    "r111_safari_account_launcher": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "103c3a4d532f6a6fc71d444347f70b65310f3465",
+      "implementation_revision": "4d207779bfecda8e01561a55ae2cde5f1c48f2fc",
+      "evidence": "evidence/M6.9/router-r111-safari-account-launcher-summary.json",
+      "active_web_release": "c3e92f0f-20260803-m69-router-r111-safari-account-launcher",
+      "active_router_release": "codex-account-router-0.2.33-linux-x64",
+      "installed_panel_sha256": "2043970fdfe436b46f900e7041e8d8c4cbdce019db551b2b0f1517e09013b88a",
+      "safari_always_visible_account_launcher": true,
+      "native_profile_menu_adapter_retained": true,
+      "standalone_8215_unchanged": true,
+      "routed_8216_app_server_unchanged": true,
+      "account_router_process_unchanged": true,
+      "account_manager_process_unchanged": true,
+      "only_routed_8216_web_restarted": true,
+      "model_request_sent": false,
+      "account_switch_sent": false,
+      "semantic_stream_replay_attempted": false,
+      "safari_pixel_capture_verified": false,
+      "cross_account_continuity_claimed": false,
+      "status": "done"
     }
   },
   "blockers": [],
@@ -6147,7 +6189,11 @@
     "R110 verifies fourth-account automatic failover with fixtures only. No real model request or real cross-account automatic switch was sent during this release.",
     "R110 permits up to 16 account attempts but retains an independent 120-second total deadline, so stalled upstreams can stop the operation before all configured accounts are tried.",
     "R110 automatic or manual switching starts a new backend session. It does not migrate, replay or resume a request after semantic output, and seamless cross-account continuity is not claimed.",
-    "The aggregate strict-CI baseline must be requalified before merge because R109/R110 intentionally change the protected integrations/codex-web tree; repository secret scanning reported zero findings."
+    "The aggregate strict-CI baseline must be requalified before merge because R109/R110 intentionally change the protected integrations/codex-web tree; repository secret scanning reported zero findings.",
+    "R111 no longer depends on the upstream profile-menu DOM for its primary account entry, but it renders only after the protected router status request succeeds; an invalid browser session fails closed.",
+    "R111 Safari pixel-level verification remains blocked by macOS ScreenCaptureKit SCStream -3812, and the independent in-app browser could not reach the Tailnet URL within its bounded navigation window. Installed hashes, server readiness and DOM-contract tests passed, but no Safari screenshot claim is made.",
+    "R111 sent no model request or account switch. Automatic or manual switching starts a new backend session and does not migrate, replay or resume work after semantic output.",
+    "The aggregate strict-CI baseline must be requalified before merge because R111 changes the protected integrations/codex-web tree; repository secret scanning reported zero findings."
   ],
-  "updated_at": "2026-08-03T12:51:53+08:00"
+  "updated_at": "2026-08-03T13:25:00+08:00"
 }
