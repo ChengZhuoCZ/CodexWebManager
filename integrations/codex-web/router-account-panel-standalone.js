@@ -7,7 +7,6 @@ const SESSION_PATH = "/__backend/session";
 const MENU_SECTION_ID = "codex-router-account-menu-section";
 const FALLBACK_MENU_SECTION_ID = "codex-router-account-menu-section-fallback";
 const FALLBACK_LAUNCHER_ID = "codex-router-account-launcher";
-const SIDEBAR_LAUNCHER_ROW_ID = "codex-router-account-launcher-row";
 const FALLBACK_DIALOG_ID = "codex-router-account-dialog";
 const FALLBACK_STYLE_ID = "codex-router-account-launcher-style";
 const PROFILE_ROUTE_ATTRIBUTE = "data-codex-router-current-route";
@@ -18,6 +17,9 @@ const PROFILE_BUTTON_SELECTOR = 'button[aria-label="Open profile menu"]';
 const PROFILE_BUTTON_FALLBACK_SELECTOR = 'button[aria-haspopup="menu"]';
 const PROFILE_MENU_SELECTOR = '[role="menu"]';
 const PROFILE_MENU_ITEM_SELECTOR = '[role="menuitem"]';
+const PROFILE_MENU_ACTIVATION_EVENTS = Object.freeze(["click", "keydown"]);
+const PROFILE_MENU_RENDER_MAX_ATTEMPTS = 5;
+const PROFILE_MENU_RENDER_DELAYS_MS = Object.freeze([0, 16, 40, 80, 160]);
 const POLL_INTERVAL_MS = 30_000;
 const PRUNED_NATIVE_MENU_LABELS = new Set(["Show pet", "Log out"]);
 const DEVICE_CODE_PATTERN = /^[A-Z0-9]{4}(?:-[A-Z0-9]{4})+$/u;
@@ -391,47 +393,6 @@ function profileButton({ expandedOnly = false } = {}) {
   return profileButtonCandidates().find((button) =>
     !expandedOnly || button.getAttribute("aria-expanded") === "true"
   ) ?? null;
-}
-
-function findNativeSidebarFooter() {
-  const button = profileButton();
-  let candidate = button?.parentElement ?? null;
-  while (candidate instanceof HTMLElement && candidate !== document.body) {
-    if (
-      candidate.classList.contains("h-toolbar") &&
-      candidate.classList.contains("items-center") &&
-      candidate.parentElement instanceof HTMLElement
-    ) return candidate;
-    candidate = candidate.parentElement;
-  }
-  return null;
-}
-
-function mountLauncherInNativeSidebar(launcher) {
-  const footer = findNativeSidebarFooter();
-  let row = document.getElementById(SIDEBAR_LAUNCHER_ROW_ID);
-  if (!(footer instanceof HTMLElement)) {
-    if (launcher.parentElement !== document.body) document.body.append(launcher);
-    row?.remove();
-    launcher.dataset.routerLauncherSurface = "standalone";
-    return false;
-  }
-  if (!(row instanceof HTMLElement)) {
-    row = element("div");
-    row.id = SIDEBAR_LAUNCHER_ROW_ID;
-    row.className = "px-row-x pt-1";
-    row.setAttribute("data-router-launcher-surface", "native-sidebar");
-  }
-  if (row.parentElement !== footer.parentElement || row.nextElementSibling !== footer) {
-    footer.parentElement.insertBefore(row, footer);
-  }
-  if (launcher.parentElement !== row) row.append(launcher);
-  const nativeButton = profileButton();
-  if (nativeButton instanceof HTMLButtonElement) {
-    launcher.className = `${nativeButton.className} w-full`;
-  }
-  launcher.dataset.routerLauncherSurface = "native-sidebar";
-  return true;
 }
 
 function syncProfileRouteIdentity(identity) {
@@ -1049,7 +1010,8 @@ export async function installRouterAccountPanel() {
   let model = null;
   let eventSource = null;
   let pollTimer = null;
-  let profileMenuObserver = null;
+  let profileMenuRenderTimer = null;
+  let profileMenuRenderAttempt = 0;
   let stopped = false;
   let busyAlias = null;
   let quotaBusy = false;
@@ -1057,10 +1019,23 @@ export async function installRouterAccountPanel() {
   let transientMessage = null;
   let management = { mode: "idle" };
   let managementPollTimer = null;
-  let menuRenderQueued = false;
   let fallbackDismissHandler = null;
   let fallbackEscapeHandler = null;
   let launcherStatus = "loading";
+
+  const removeFallbackLauncher = () => {
+    document.getElementById(FALLBACK_LAUNCHER_ID)?.remove();
+    document.getElementById(FALLBACK_DIALOG_ID)?.remove();
+    document.getElementById(FALLBACK_STYLE_ID)?.remove();
+    if (fallbackDismissHandler) {
+      document.removeEventListener("pointerdown", fallbackDismissHandler, true);
+      fallbackDismissHandler = null;
+    }
+    if (fallbackEscapeHandler) {
+      document.removeEventListener("keydown", fallbackEscapeHandler, true);
+      fallbackEscapeHandler = null;
+    }
+  };
 
   const renderFallbackMenu = (dialog) => {
     if (!model) {
@@ -1119,6 +1094,10 @@ export async function installRouterAccountPanel() {
 
   const renderFallbackLauncher = () => {
     if (stopped) return;
+    if (profileButton() instanceof HTMLElement) {
+      removeFallbackLauncher();
+      return;
+    }
     let launcher = document.getElementById(FALLBACK_LAUNCHER_ID);
     let dialog = document.getElementById(FALLBACK_DIALOG_ID);
     if (!(launcher instanceof HTMLButtonElement) || !(dialog instanceof HTMLElement)) {
@@ -1136,12 +1115,6 @@ export async function installRouterAccountPanel() {
             background: rgba(31,31,31,.97); box-shadow: 0 8px 28px rgba(0,0,0,.28); color: #f5f5f5; }
           #${FALLBACK_LAUNCHER_ID}[data-router-launcher-surface="standalone"]:hover {
             background: rgba(43,43,43,.98); }
-          #${SIDEBAR_LAUNCHER_ROW_ID} { position: relative; z-index: 1; flex: none; }
-          #${FALLBACK_LAUNCHER_ID}[data-router-launcher-surface="native-sidebar"] { position: static;
-            width: 100%; max-width: none; border: 0; background: transparent; box-shadow: none; color: inherit;
-            font: inherit; }
-          #${FALLBACK_LAUNCHER_ID}[data-router-launcher-surface="native-sidebar"]:hover {
-            background: var(--color-token-list-hover-background, rgba(127,127,127,.12)); }
           #${FALLBACK_LAUNCHER_ID}:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
           #${FALLBACK_LAUNCHER_ID} .router-launcher-icon { flex: none; font-size: 17px; opacity: .8; }
           #${FALLBACK_LAUNCHER_ID} .router-launcher-label { min-width: 0; overflow: hidden;
@@ -1220,7 +1193,8 @@ export async function installRouterAccountPanel() {
       document.addEventListener("pointerdown", fallbackDismissHandler, true);
       document.addEventListener("keydown", fallbackEscapeHandler, true);
     }
-    mountLauncherInNativeSidebar(launcher);
+    if (launcher.parentElement !== document.body) document.body.append(launcher);
+    launcher.dataset.routerLauncherSurface = "standalone";
     const currentAlias = model?.accounts.find((account) => account.isCurrent)?.alias ?? "Unavailable";
     const launcherLabel = model
       ? `Account route · ${currentAlias}`
@@ -1233,11 +1207,66 @@ export async function installRouterAccountPanel() {
     if (!dialog.hidden) renderFallbackMenu(dialog);
   };
 
+  const renderNativeMenuNotice = () => {
+    const menu = findProfileMenu();
+    if (!(menu instanceof HTMLElement)) return false;
+    const signature = `notice:${launcherStatus}`;
+    const current = menu.querySelector(`#${MENU_SECTION_ID}`);
+    if (current instanceof HTMLElement && current.dataset.renderSignature === signature) return true;
+    const section = element("div");
+    section.id = MENU_SECTION_ID;
+    section.dataset.renderSignature = signature;
+    section.setAttribute("role", "group");
+    section.setAttribute("aria-label", "Account route");
+    Object.assign(section.style, {
+      margin: "3px 5px 4px",
+      borderTop: "1px solid color-mix(in srgb, currentColor 12%, transparent)",
+      padding: "7px 5px 3px",
+      fontSize: "11px",
+    });
+    section.append(element(
+      "span",
+      undefined,
+      launcherStatus === "unavailable"
+        ? "Account route · Temporarily unavailable"
+        : "Account route · Loading…",
+    ));
+    const retry = element("button", undefined, "Retry");
+    retry.type = "button";
+    retry.setAttribute("aria-label", "Retry account route status");
+    Object.assign(retry.style, {
+      marginInlineStart: "8px",
+      border: "0",
+      borderRadius: "5px",
+      padding: "2px 5px",
+      background: "color-mix(in srgb, currentColor 9%, transparent)",
+      color: "inherit",
+      font: "inherit",
+    });
+    retry.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      launcherStatus = "loading";
+      renderNativeMenuNotice();
+      refresh().catch(() => {
+        launcherStatus = "unavailable";
+        renderNativeMenuNotice();
+      });
+    });
+    section.append(retry);
+    if (current instanceof HTMLElement) current.replaceWith(section);
+    else menu.append(section);
+    return true;
+  };
+
   const renderSurfaces = () => {
     renderFallbackLauncher();
-    if (!model || stopped) return;
+    if (stopped) return;
+    if (!model) {
+      renderNativeMenuNotice();
+      return;
+    }
     pruneNativeProfileMenuItems();
-    syncProfileRouteIdentity(currentRouteIdentity(model));
     syncNativeUsageSurface(model);
     renderProfileMenu(
       model,
@@ -1254,13 +1283,41 @@ export async function installRouterAccountPanel() {
       management,
     );
   };
-  const queueSurfaceRender = () => {
-    if (menuRenderQueued || stopped) return;
-    menuRenderQueued = true;
-    queueMicrotask(() => {
-      menuRenderQueued = false;
+
+  const scheduleProfileMenuRender = () => {
+    if (stopped) return;
+    if (profileMenuRenderTimer !== null) window.clearTimeout(profileMenuRenderTimer);
+    profileMenuRenderAttempt = 0;
+    const attempt = () => {
+      profileMenuRenderTimer = null;
+      if (stopped) return;
       renderSurfaces();
-    });
+      if (
+        findProfileMenu() instanceof HTMLElement ||
+        profileMenuRenderAttempt + 1 >= PROFILE_MENU_RENDER_MAX_ATTEMPTS
+      ) return;
+      profileMenuRenderAttempt += 1;
+      profileMenuRenderTimer = window.setTimeout(
+        attempt,
+        PROFILE_MENU_RENDER_DELAYS_MS[profileMenuRenderAttempt],
+      );
+    };
+    profileMenuRenderTimer = window.setTimeout(
+      attempt,
+      PROFILE_MENU_RENDER_DELAYS_MS[profileMenuRenderAttempt],
+    );
+  };
+
+  const profileMenuActivationHandler = (event) => {
+    if (
+      event.type === "keydown" &&
+      (!(event instanceof KeyboardEvent) || !new Set(["Enter", " "]).has(event.key))
+    ) return;
+    const target = event.target;
+    if (!(target instanceof Element)) return;
+    const button = target.closest(PROFILE_BUTTON_FALLBACK_SELECTOR);
+    if (!(button instanceof HTMLElement) || !profileButtonCandidates().includes(button)) return;
+    scheduleProfileMenuRender();
   };
   const showError = (message) => {
     transientMessage = message;
@@ -1521,25 +1578,22 @@ export async function installRouterAccountPanel() {
   pollTimer = window.setInterval(() => {
     refresh().catch(() => showError("Router status is temporarily unavailable."));
   }, POLL_INTERVAL_MS);
-  if (typeof MutationObserver === "function") {
-    profileMenuObserver = new MutationObserver(queueSurfaceRender);
-    profileMenuObserver.observe(document.body, { childList: true, subtree: true });
-    queueSurfaceRender();
+  for (const eventName of PROFILE_MENU_ACTIVATION_EVENTS) {
+    document.addEventListener(eventName, profileMenuActivationHandler, true);
   }
+  scheduleProfileMenuRender();
   installedCleanup = () => {
     if (stopped) return;
     stopped = true;
     clearManagementPoll();
     eventSource?.close();
-    profileMenuObserver?.disconnect();
+    if (profileMenuRenderTimer !== null) window.clearTimeout(profileMenuRenderTimer);
+    for (const eventName of PROFILE_MENU_ACTIVATION_EVENTS) {
+      document.removeEventListener(eventName, profileMenuActivationHandler, true);
+    }
     if (pollTimer !== null) window.clearInterval(pollTimer);
     document.getElementById(MENU_SECTION_ID)?.remove();
-    document.getElementById(FALLBACK_LAUNCHER_ID)?.remove();
-    document.getElementById(SIDEBAR_LAUNCHER_ROW_ID)?.remove();
-    document.getElementById(FALLBACK_DIALOG_ID)?.remove();
-    document.getElementById(FALLBACK_STYLE_ID)?.remove();
-    if (fallbackDismissHandler) document.removeEventListener("pointerdown", fallbackDismissHandler, true);
-    if (fallbackEscapeHandler) document.removeEventListener("keydown", fallbackEscapeHandler, true);
+    removeFallbackLauncher();
     document.querySelectorAll(`[${PROFILE_ROUTE_ATTRIBUTE}]`).forEach((badge) => badge.remove());
     restoreNativeUsageSurfaces();
     installedCleanup = null;

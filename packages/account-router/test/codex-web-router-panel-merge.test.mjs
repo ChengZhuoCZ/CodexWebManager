@@ -63,6 +63,9 @@ import {
   R113_NATIVE_SIDEBAR_LAUNCHER_CONTRACT,
 } from "../../../integrations/codex-web/replace-r113-native-sidebar-launcher.mjs";
 import {
+  R114_NATIVE_PROFILE_MENU_CONTRACT,
+} from "../../../integrations/codex-web/replace-r114-native-profile-menu.mjs";
+import {
   buildManualSwitchRequest as buildStandaloneSwitchRequest,
   buildAccountEnrollmentRequest,
   buildAccountRemovalRequest,
@@ -212,6 +215,10 @@ const R112_DEPLOY = path.resolve(
 const R113_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r113-native-sidebar-launcher.sh",
+);
+const R114_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r114-native-profile-menu.sh",
 );
 
 function sha256(value) {
@@ -419,8 +426,9 @@ test("standalone panel exposes only a sanitized current route in the profile men
   assert.match(source, /Usage remaining/u);
   assert.match(source, /role", "menuitemradio"/u);
   assert.match(source, /Account route/u);
-  assert.match(source, /MutationObserver/u);
-  assert.match(source, /profileMenuObserver\?\.disconnect/u);
+  assert.match(source, /PROFILE_MENU_ACTIVATION_EVENTS/u);
+  assert.match(source, /scheduleProfileMenuRender/u);
+  assert.doesNotMatch(source, /new MutationObserver/u);
   assert.doesNotMatch(source, /position:\s*"fixed"/u);
 });
 
@@ -1129,15 +1137,28 @@ test("account launcher renders before protected router status and survives an in
   assert.match(panel, /Router status is temporarily unavailable\./u);
 });
 
-test("account launcher mounts in the native left-bottom sidebar before status succeeds", async () => {
+test("account launcher remains a temporary fallback outside the React-owned native sidebar", async () => {
   const panel = await fs.readFile(STANDALONE_PANEL, "utf8");
-  assert.match(panel, /codex-router-account-launcher-row/u);
   assert.match(panel, /data-router-launcher-surface/u);
-  assert.match(panel, /native-sidebar/u);
-  assert.match(panel, /findNativeSidebarFooter/u);
-  assert.match(panel, /footer\.parentElement\.insertBefore\(row, footer\)/u);
-  assert.match(panel, /renderFallbackLauncher\(\);\s*if \(!model \|\| stopped\) return/u);
+  assert.match(panel, /profileButton\(\) instanceof HTMLElement/u);
+  assert.match(panel, /removeFallbackLauncher\(\);\s*return/u);
+  assert.match(panel, /launcher\.dataset\.routerLauncherSurface = "standalone"/u);
   assert.match(panel, /button\.id !== FALLBACK_LAUNCHER_ID/u);
+  assert.doesNotMatch(panel, /native-sidebar/u);
+  assert.doesNotMatch(panel, /footer\.parentElement\.insertBefore/u);
+});
+
+test("native profile-menu integration is event-driven and never watches or mutates the React footer", async () => {
+  const panel = await fs.readFile(STANDALONE_PANEL, "utf8");
+  assert.match(panel, /PROFILE_MENU_ACTIVATION_EVENTS/u);
+  assert.match(panel, /PROFILE_MENU_RENDER_MAX_ATTEMPTS/u);
+  assert.match(panel, /scheduleProfileMenuRender/u);
+  assert.match(panel, /profileMenuActivationHandler/u);
+  assert.match(panel, /addEventListener\(eventName, profileMenuActivationHandler, true\)/u);
+  assert.match(panel, /removeFallbackLauncher/u);
+  assert.doesNotMatch(panel, /new MutationObserver/u);
+  assert.doesNotMatch(panel, /footer\.parentElement\.insertBefore/u);
+  assert.doesNotMatch(panel, /SIDEBAR_LAUNCHER_ROW_ID/u);
 });
 
 test("R110 pins the compact panel and expands only bounded pre-output failover", async () => {
@@ -1225,12 +1246,12 @@ test("R112 pins the pre-status launcher and restarts only routed Web", async () 
   );
 });
 
-test("R113 mounts the launcher in the native sidebar and restarts only routed Web", async () => {
-  const [panel, deployment] = await Promise.all([
-    fs.readFile(STANDALONE_PANEL),
-    fs.readFile(R113_DEPLOY, "utf8"),
-  ]);
-  assert.equal(R113_NATIVE_SIDEBAR_LAUNCHER_CONTRACT.replacement_panel_sha256, sha256(panel));
+test("R113 records the rejected native-sidebar release and its bounded deployment scope", async () => {
+  const deployment = await fs.readFile(R113_DEPLOY, "utf8");
+  assert.equal(
+    R113_NATIVE_SIDEBAR_LAUNCHER_CONTRACT.replacement_panel_sha256,
+    "8102f63226b9b0bdb36a6fd0ec34d9313122aa4b10058ec6c970b5dc9c45c1b7",
+  );
   assert.equal(
     R113_NATIVE_SIDEBAR_LAUNCHER_CONTRACT.predecessor_panel_name,
     "router-account-panel-8a5b3659.js",
@@ -1239,6 +1260,35 @@ test("R113 mounts the launcher in the native sidebar and restarts only routed We
   assert.match(deployment, /router-account-panel-8102f632\.js/u);
   assert.match(deployment, /native_left_bottom_launcher=true/u);
   assert.match(deployment, /pre_status_launcher_visible=true/u);
+  assert.match(deployment, /standalone_8215_unchanged=true/u);
+  assert.match(deployment, /routed_8216_app_server_unchanged=true/u);
+  assert.match(deployment, /account_router_process_unchanged=true/u);
+  assert.match(deployment, /account_manager_process_unchanged=true/u);
+  assert.match(deployment, /only_8216_web_restarted=true/u);
+  assert.match(deployment, /model_request_sent=false/u);
+  assert.match(deployment, /account_switch_sent=false/u);
+  assert.doesNotMatch(
+    deployment,
+    /systemctl\s+(?:restart|stop|start)\s+"?\$?(?:APP_SERVICE|ROUTER_SERVICE|MANAGER_SERVICE|MANAGER_SOCKET|STANDALONE_WEB_SERVICE|STANDALONE_APP_SERVICE)/u,
+  );
+});
+
+test("R114 integrates through the native profile menu without a body observer or footer mutation", async () => {
+  const [panel, deployment] = await Promise.all([
+    fs.readFile(STANDALONE_PANEL),
+    fs.readFile(R114_DEPLOY, "utf8"),
+  ]);
+  assert.equal(R114_NATIVE_PROFILE_MENU_CONTRACT.replacement_panel_sha256, sha256(panel));
+  assert.equal(
+    R114_NATIVE_PROFILE_MENU_CONTRACT.predecessor_panel_name,
+    "router-account-panel-8a5b3659.js",
+  );
+  assert.match(deployment, /router-r112-visible-bootstrap-launcher/u);
+  assert.match(deployment, /router-account-panel-0f9f3a68\.js/u);
+  assert.match(deployment, /native_profile_menu_integration=true/u);
+  assert.match(deployment, /react_footer_mutation=false/u);
+  assert.match(deployment, /body_mutation_observer=false/u);
+  assert.match(deployment, /bounded_profile_menu_render_attempts=5/u);
   assert.match(deployment, /standalone_8215_unchanged=true/u);
   assert.match(deployment, /routed_8216_app_server_unchanged=true/u);
   assert.match(deployment, /account_router_process_unchanged=true/u);
