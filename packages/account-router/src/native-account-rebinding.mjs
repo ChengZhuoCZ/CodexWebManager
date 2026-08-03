@@ -20,20 +20,29 @@ function callback(value, label) {
   return value;
 }
 
-async function readPrivate(filePath) {
+async function readBounded(filePath, { requirePrivateOwner = false } = {}) {
   let handle;
   try {
     handle = await fs.open(filePath, fsConstants.O_RDONLY | (fsConstants.O_NOFOLLOW ?? 0));
     const stat = await handle.stat();
     const expectedUid = typeof process.getuid === "function" ? process.getuid() : stat.uid;
     if (
-      !stat.isFile() || stat.uid !== expectedUid || (stat.mode & 0o077) !== 0 ||
+      !stat.isFile() || (requirePrivateOwner && stat.uid !== expectedUid) ||
+      (stat.mode & (requirePrivateOwner ? 0o077 : 0o022)) !== 0 ||
       stat.size < 1 || stat.size > MAX_DOCUMENT_BYTES
-    ) throw new Error("private file boundary is invalid");
+    ) throw new Error("file boundary is invalid");
     return { bytes: await handle.readFile(), stat };
   } finally {
     await handle?.close();
   }
+}
+
+async function readConfiguration(filePath) {
+  return readBounded(filePath);
+}
+
+async function readPrivate(filePath) {
+  return readBounded(filePath, { requirePrivateOwner: true });
 }
 
 async function syncDirectory(directory) {
@@ -142,7 +151,7 @@ export function createNativeAccountRebinder({
   const lockPath = path.join(path.dirname(configPath), ".account-enrollment.lock");
 
   async function inputs(alias) {
-    const accounts = await readPrivate(configPath);
+    const accounts = await readConfiguration(configPath);
     const parsed = parseAccounts(accounts.bytes);
     const binding = accountForAlias(parsed, alias);
     const targetPath = path.join(credentialRoot, binding.credentialRef);
@@ -267,7 +276,7 @@ export function createNativeAccountRebinder({
   }
 
   async function configuredAccountCount() {
-    const accounts = await readPrivate(configPath);
+    const accounts = await readConfiguration(configPath);
     return parseAccounts(accounts.bytes).catalog.size;
   }
 

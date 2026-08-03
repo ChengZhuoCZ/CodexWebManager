@@ -40,7 +40,7 @@ async function fixture(context, overrides = {}) {
         credential_ref: "codex-account-router.auth.secondary",
       },
     ],
-  }, null, 2)}\n`, { mode: 0o600 });
+  }, null, 2)}\n`, { mode: 0o640 });
   await fs.writeFile(path.join(credentials, "codex-account-router.auth.primary"), primary, { mode: 0o600 });
   await fs.writeFile(path.join(credentials, "codex-account-router.auth.secondary"), secondary, { mode: 0o600 });
   await fs.writeFile(appServerCredentialFile, primary, { mode: 0o600 });
@@ -69,7 +69,7 @@ async function fixture(context, overrides = {}) {
       return readiness?.length ? readiness.shift() : true;
     },
   });
-  return { appServerCredentialFile, calls, rebinder };
+  return { accountsFile, appServerCredentialFile, calls, rebinder };
 }
 
 test("rebinds the native credential and router route as one bounded new-session transaction", async (context) => {
@@ -86,6 +86,14 @@ test("rebinds the native credential and router route as one bounded new-session 
   assert.deepEqual(calls, [
     "status", "stop", "status", "switch:Secondary", "start", "ready",
   ]);
+});
+
+test("rejects a router-owned configuration that another principal can write", async (context) => {
+  const { accountsFile, appServerCredentialFile, calls, rebinder } = await fixture(context);
+  await fs.chmod(accountsFile, 0o660);
+  await assert.rejects(rebinder.switchToAlias("Secondary"), /native account rebind failed/);
+  assert.equal(await fs.readFile(appServerCredentialFile, "utf8"), primary);
+  assert.deepEqual(calls, ["status"]);
 });
 
 test("rejects switching before stopping the native App Server when any request is active", async (context) => {
