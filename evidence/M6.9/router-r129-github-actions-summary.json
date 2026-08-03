@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "workflow": "Automated test matrix",
+  "workflow_file": ".github/workflows/test-matrix.yml",
+  "run_id": 30848939102,
+  "event": "push",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "head_sha": "704cea07fb2e3f5a2deac62968c5120adf6188a9",
+  "conclusion": "success",
+  "total_duration_seconds": 128,
+  "jobs": [
+    {
+      "name": "Node 22 unit, integration, and E2E",
+      "job_id": 91803987158,
+      "runner": "ubuntu-24.04",
+      "conclusion": "success",
+      "duration_seconds": 123,
+      "tests": 448,
+      "passed": 448,
+      "failed": 0,
+      "skipped": 0
+    },
+    {
+      "name": "Node 24 unit, integration, and E2E",
+      "job_id": 91803987044,
+      "runner": "ubuntu-24.04",
+      "conclusion": "success",
+      "duration_seconds": 122,
+      "tests": 448,
+      "passed": 448,
+      "failed": 0,
+      "skipped": 0
+    }
+  ],
+  "artifacts": [
+    {
+      "name": "automated-test-matrix-node-22",
+      "artifact_id": 8869853181,
+      "size_in_bytes": 3387,
+      "archive_sha256": "b0dc1080296edd42d8248d1f047e0a7dfa1f3899a8e041c9b7b7a372a1dc869b",
+      "summary_sha256": "d502ef853e6312ac0be06c32913f17ad977a2dcbda2443e2d49204a199618b0d"
+    },
+    {
+      "name": "automated-test-matrix-node-24",
+      "artifact_id": 8869852735,
+      "size_in_bytes": 3387,
+      "archive_sha256": "85ff86acf6e2e24473c975ccc834d85bb496479dc24c5341ffed3b46488674cd",
+      "summary_sha256": "0a45857262162ca32eb49a48cba197c8a59e35caaeabe50f6e44f16b40094352"
+    }
+  ],
+  "run_url": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/30848939102",
+  "real_account_configured": false,
+  "account_switch_tested": false,
+  "seamless_account_continuity_claimed": false
+}

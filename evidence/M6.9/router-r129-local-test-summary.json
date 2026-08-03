@@ -1,0 +1,45 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R129",
+  "implementation_revision": "704cea07fb2e3f5a2deac62968c5120adf6188a9",
+  "implementation_mode": "clean-room",
+  "focused_test": {
+    "command": "<bundled-node> --test packages/account-router/test/r129-mathproof-surface.test.mjs",
+    "tests": 3,
+    "passed": 3,
+    "failed": 0,
+    "skipped": 0
+  },
+  "local_matrix": {
+    "command": "M4_1_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_2_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_3_CODEX_WEB_ROOT=<clean-888692f-fixture> M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+    "platform": "darwin",
+    "tests": 448,
+    "passed": 447,
+    "failed": 0,
+    "skipped": 1,
+    "skip_reason": "installed native release verification is Linux-only"
+  },
+  "strict_linux_matrix": {
+    "workflow_run_id": 30848939102,
+    "node_22": { "tests": 448, "passed": 448, "failed": 0, "skipped": 0 },
+    "node_24": { "tests": 448, "passed": 448, "failed": 0, "skipped": 0 }
+  },
+  "repository_secret_scan": {
+    "files_scanned": 749,
+    "findings": 0
+  },
+  "security_audit": {
+    "focused_tests": 111,
+    "passed": 111,
+    "failed": 0,
+    "skipped": 0,
+    "strict_ci_tests": 896,
+    "strict_ci_passed": 896,
+    "protected_paths_unchanged_after_qualification": true
+  },
+  "real_model_request_sent": false,
+  "account_switch_sent": false,
+  "semantic_output_replayed": false,
+  "seamless_account_continuity_claimed": false
+}

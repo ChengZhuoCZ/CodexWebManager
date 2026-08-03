@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R129",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "d180ef4c3829ffc41892a384862851825c462266",
+  "implementation_revision": "704cea07fb2e3f5a2deac62968c5120adf6188a9",
+  "implementation_mode": "clean-room",
+  "predecessor_release": "c3e92f0f-20260804-m69-router-r127-event-split",
+  "active_release": "c3e92f0f-20260804-m69-router-r129-mathproof-surface",
+  "predecessor_asset_manifest_sha256": "8b3b60ba6abe512145b6d80030092655e575986052de523b21e1bf53daea16a7",
+  "transformer_sha256": "b3007ea39b354d4227af727f726caea745cae7c63c4ac80bcdfd564ecf32fa03",
+  "deployment_script_sha256": "d149e3769a5ee774308120e3ac8e27e264e7cc11a19c1d203c9a5ccf9dcccba1",
+  "asset_reduction": {
+    "original_primary_bytes": 190923137,
+    "projected_primary_bytes": 106751265,
+    "primary_bytes_saved": 84171872,
+    "primary_percent_saved": 44.09,
+    "stubbed_module_count": 83,
+    "removed_primary_count": 348,
+    "removed_groups_bytes": {
+      "disabled_feature_modules": 1080742,
+      "disabled_feature_static": 16313759,
+      "non_chinese_locales": 60266547,
+      "uncommon_themes": 2743244,
+      "uncommon_grammars": 3773350
+    }
+  },
+  "disabled_surfaces": [
+    "voice_dictation_realtime_voice",
+    "computer_browser_recording_replay",
+    "pets_games_sprite_media",
+    "appgen_canvas_notebook_appshots",
+    "pull_requests_team_share_invite_referral",
+    "home_recommendations_announcements_onboarding"
+  ],
+  "retained_surface": {
+    "locales": ["en_embedded", "zh-CN", "zh-HK", "zh-TW"],
+    "proof_languages": ["tex", "bibtex", "markdown", "python", "coq"],
+    "themes": ["codex-dark", "codex-light"],
+    "account_entry": true,
+    "attachments": true,
+    "commands_and_skill_progress": true
+  },
+  "deployment": {
+    "status": "success",
+    "pre_success_failures": [
+      { "stage": "bundle_invalid", "rollback_completed": true },
+      { "stage": "browser_failed", "cause": "unauthenticated_loopback_401_was_misclassified", "rollback_completed": true },
+      { "stage": "browser_failed", "cause": "protected_static_asset_401_was_misclassified", "rollback_completed": true }
+    ],
+    "only_routed_8216_web_restarted": true,
+    "routed_8216_router_unchanged": true,
+    "routed_8216_manager_unchanged": true,
+    "routed_8216_app_server_unchanged": true,
+    "standalone_8215_unchanged": true,
+    "all_six_checked_services_active": true,
+    "health_http_status": 200
+  },
+  "browser_observation": {
+    "navigation_url": "http://100.95.50.98:8216/",
+    "document_title": "Codex",
+    "document_navigation_completed": true,
+    "visual_composer_verified": false,
+    "blocker": "optional Statsig timeout coincided with bounded DOM and screenshot control timeouts"
+  },
+  "real_model_request_sent": false,
+  "account_switch_sent": false,
+  "semantic_output_replayed": false,
+  "seamless_account_continuity_claimed": false
+}

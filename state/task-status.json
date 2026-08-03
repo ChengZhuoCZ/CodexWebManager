@@ -103,12 +103,13 @@
     "r124_current_auto_failover": "a16114f0312aa1b24ef9575f454391559345e4c3",
     "r125_r130_optimization_start": "ad2a00b8e5e11ef082a1496f8ee29489e9481e0a",
     "r127_event_split_recovery": "0457a25ad2e472878a0390bb55ccd9c1ac2f7b17",
+    "r129_mathproof_surface": "704cea07fb2e3f5a2deac62968c5120adf6188a9",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "0457a25ad2e472878a0390bb55ccd9c1ac2f7b17",
+  "output_revision": "704cea07fb2e3f5a2deac62968c5120adf6188a9",
   "workspace_branch": "codex/m6-9-8216-r85-handoff",
   "workspace_input_revision": "ad2a00b8e5e11ef082a1496f8ee29489e9481e0a",
   "depends_on": [
@@ -2175,6 +2176,26 @@
     {
       "command": "M6.3 fail-closed security audit after recording the R128 analysis",
       "result": "The focused security audit passed and 743 repository files produced zero secret findings."
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/r129-mathproof-surface.test.mjs; bash -n evidence/M6.9/deploy-router-r129-mathproof-surface.sh",
+      "result": "R129's manifest-pinned transform, predecessor-drift failure and 8216-only rollback deployment contract passed 3/3; shell syntax passed."
+    },
+    {
+      "command": "M4_1_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_2_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_3_CODEX_WEB_ROOT=<clean-888692f-fixture> M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> scripts/run-test-matrix.mjs --summary <private-summary> --suite all",
+      "result": "Local macOS passed 447/448 with zero failures; the sole skip was the installed native Linux release check. GitHub ubuntu-24.04 Node 22 and Node 24 each passed 448/448 with zero failures and zero skips."
+    },
+    {
+      "command": "sudo /usr/local/sbin/codex-m69-deploy-8216-r129",
+      "result": "After three fail-closed rollback drills, R129 activated successfully. It removed 84,171,872 primary asset bytes, stubbed 83 optional modules, removed 348 primary resources, restarted only routed 8216 Web, kept six checked services active and left standalone 8215 plus routed Router/manager/App Server unchanged."
+    },
+    {
+      "command": "in-app browser read-only navigation to the installed R129 8216 URL",
+      "result": "Navigation completed with document title Codex. Optional Statsig timeouts coincided with bounded DOM and screenshot control timeouts, so visual composer rendering is not claimed. No model request or account switch was sent."
+    },
+    {
+      "command": "M6.3 fail-closed security audit with the R129 GitHub Actions baseline",
+      "result": "111/111 focused security tests passed; 749 repository files produced zero findings; the strict baseline covers 896/896 Linux results with zero skips and all protected paths remained unchanged after qualification."
     }
   ],
   "evidence": [
@@ -2478,7 +2499,11 @@
     "evidence/M6.9/deploy-router-r127-event-split-recovery.sh",
     "evidence/M6.9/router-r127-github-actions-summary.json",
     "evidence/M6.9/router-r127-event-split-recovery-summary.json",
-    "evidence/M6.9/router-r128-mathproof-bundle-audit.json"
+    "evidence/M6.9/router-r128-mathproof-bundle-audit.json",
+    "evidence/M6.9/deploy-router-r129-mathproof-surface.sh",
+    "evidence/M6.9/router-r129-local-test-summary.json",
+    "evidence/M6.9/router-r129-github-actions-summary.json",
+    "evidence/M6.9/router-r129-mathproof-surface-summary.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -6677,6 +6702,32 @@
       "model_request_sent": false,
       "account_switch_sent": false,
       "status": "done"
+    },
+    "r129_mathproof_surface": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "d180ef4c3829ffc41892a384862851825c462266",
+      "implementation_revision": "704cea07fb2e3f5a2deac62968c5120adf6188a9",
+      "evidence": "evidence/M6.9/router-r129-mathproof-surface-summary.json",
+      "active_web_release": "c3e92f0f-20260804-m69-router-r129-mathproof-surface",
+      "primary_bytes_saved": 84171872,
+      "stubbed_module_count": 83,
+      "removed_primary_count": 348,
+      "retained_locales": ["en_embedded", "zh-CN", "zh-HK", "zh-TW"],
+      "node_22_strict_tests_passed": 448,
+      "node_24_strict_tests_passed": 448,
+      "focused_security_tests_passed": 111,
+      "repository_secret_findings": 0,
+      "only_routed_8216_web_restarted": true,
+      "routed_8216_core_unchanged": true,
+      "standalone_8215_mutated": false,
+      "browser_document_title_loaded": true,
+      "browser_visual_composer_verified": false,
+      "model_request_sent": false,
+      "account_switch_sent": false,
+      "semantic_stream_replay_attempted": false,
+      "cross_account_continuity_claimed": false,
+      "status": "done"
     }
   },
   "blockers": [],
@@ -6929,7 +6980,11 @@
     "Safari cold and warm timing remains unqualified because ScreenCaptureKit returned SCStream -3811 and a bounded SafariDriver session timed out; no substitute-browser result is presented as Safari evidence.",
     "R127 automatic switching starts a new backend session and does not replay after semantic output; it does not migrate, resume or restore a prior request, stream or running computation.",
     "R128 is a single-run read-only browser and installed-asset audit. Its V8 result is an upper-bound unused-function estimate, not a guaranteed byte saving or stable timing result.",
-    "R128 confirms that pruning unused static assets mainly reduces release disk and update cost; first-composer speed requires changing the pkc/ekc main-chunk route boundaries while retaining math-proof rendering, attachments, commands and skill progress."
+    "R128 confirms that pruning unused static assets mainly reduces release disk and update cost; first-composer speed requires changing the pkc/ekc main-chunk route boundaries while retaining math-proof rendering, attachments, commands and skill progress.",
+    "R129 removes or stubs optional surfaces and reduces installed/update payload, but the 13.936 MB decoded main application chunk remains; it does not yet prove a proportional first-composer speedup.",
+    "R129 retains only embedded English, Chinese locale variants and a conservative proof-oriented syntax/theme allowlist. Opening a deliberately removed language or uncommon theme must fail closed or receive a later hash-pinned expansion.",
+    "R129 browser navigation reached the Codex document, but optional Statsig timeouts coincided with bounded DOM and screenshot control timeouts; installed hashes, health, rollback and strict CI passed, but a fresh browser-rendered composer is not additionally claimed.",
+    "R129 sent no model request or account switch. Automatic switching remains limited to a new request before semantic output and does not migrate, replay, resume or restore prior semantic output, an in-flight request or running computation."
   ],
-  "updated_at": "2026-08-04T03:07:00+08:00"
+  "updated_at": "2026-08-04T04:14:03+08:00"
 }
