@@ -280,5 +280,33 @@ export function createNativeAccountRebinder({
     return parseAccounts(accounts.bytes).catalog.size;
   }
 
-  return Object.freeze({ switchToAlias, reconcileCurrentRoute, configuredAccountCount });
+  async function currentIdentityAlias() {
+    return withLock(async () => {
+      const accounts = await readConfiguration(configPath);
+      const parsed = parseAccounts(accounts.bytes);
+      const current = await readPrivate(appCredentialPath);
+      parseCodexAuthCredential(current.bytes);
+      const matches = [];
+      for (const account of parsed.catalog.listPublic()) {
+        if (!account.enabled) continue;
+        const binding = accountForAlias(parsed, account.alias);
+        const targetPath = path.join(credentialRoot, binding.credentialRef);
+        if (path.dirname(targetPath) !== credentialRoot) {
+          throw new Error("account binding is unavailable");
+        }
+        const target = await readPrivate(targetPath);
+        parseCodexAuthCredential(target.bytes);
+        if (target.bytes.equals(current.bytes)) matches.push(account.alias);
+      }
+      if (matches.length !== 1) throw new Error("native account identity is unavailable");
+      return matches[0];
+    });
+  }
+
+  return Object.freeze({
+    switchToAlias,
+    reconcileCurrentRoute,
+    configuredAccountCount,
+    currentIdentityAlias,
+  });
 }

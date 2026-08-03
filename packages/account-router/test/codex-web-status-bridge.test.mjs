@@ -130,6 +130,7 @@ function safeStatus() {
     status: "ready",
     architecture_mode: "LIMITED_MODE",
     cross_account_e2e_verified: false,
+    active_requests: 0,
     active_streams: 0,
     current_route: null,
     accounts: [

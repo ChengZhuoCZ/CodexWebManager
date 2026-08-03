@@ -69,8 +69,28 @@ async function fixture(context, overrides = {}) {
       return readiness?.length ? readiness.shift() : true;
     },
   });
-  return { accountsFile, appServerCredentialFile, calls, rebinder };
+  return { accountsFile, appServerCredentialFile, calls, credentials, rebinder };
 }
+
+test("reports only the unique alias matching the native App Server credential", async (context) => {
+  const { appServerCredentialFile, rebinder } = await fixture(context);
+  assert.equal(await rebinder.currentIdentityAlias(), "Primary");
+  await fs.writeFile(appServerCredentialFile, secondary, { mode: 0o600 });
+  assert.equal(await rebinder.currentIdentityAlias(), "Secondary");
+});
+
+test("fails closed when the native App Server credential matches multiple aliases", async (context) => {
+  const { credentials, rebinder } = await fixture(context);
+  await fs.writeFile(
+    path.join(credentials, "codex-account-router.auth.secondary"),
+    primary,
+    { mode: 0o600 },
+  );
+  await assert.rejects(
+    rebinder.currentIdentityAlias(),
+    /native account identity is unavailable/,
+  );
+});
 
 test("rebinds the native credential and router route as one bounded new-session transaction", async (context) => {
   const { appServerCredentialFile, calls, rebinder } = await fixture(context);

@@ -183,6 +183,8 @@ export function createManagerProtocolServer({ sourceRoot, enroll, remove, switch
             native_identity_rebound: result.native_identity_rebound === true,
             web_restart_required: result.web_restart_required === true,
           });
+        } else if (request.operation === "observe") {
+          Object.assign(response, { account_alias: safeAlias(result.account_alias) });
         }
         boundedReply(socket, response);
       }).catch(() => {
@@ -416,6 +418,7 @@ async function start() {
     observe: async () => ({
       event: "router_account_observer_ready",
       configured_accounts: await rebinder.configuredAccountCount(),
+      account_alias: await rebinder.currentIdentityAlias(),
     }),
   });
   server.listen({ fd: 3 });

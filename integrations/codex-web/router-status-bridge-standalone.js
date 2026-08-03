@@ -70,6 +70,9 @@ function sanitizeStatus(value) {
         !ROUTER_STATUSES.has(String(value.status)) ||
         value.architecture_mode !== "LIMITED_MODE" ||
         value.cross_account_e2e_verified !== false ||
+        !Number.isSafeInteger(value.active_requests) ||
+        Number(value.active_requests) < 0 ||
+        Number(value.active_requests) > 1_000_000 ||
         !Number.isSafeInteger(value.active_streams) ||
         Number(value.active_streams) < 0 ||
         Number(value.active_streams) > 1_000_000 ||
@@ -113,6 +116,7 @@ function sanitizeStatus(value) {
         status: value.status,
         architecture_mode: "LIMITED_MODE",
         cross_account_e2e_verified: false,
+        active_requests: value.active_requests,
         active_streams: value.active_streams,
         current_route: currentRoute,
         accounts,
@@ -203,6 +207,7 @@ function loadQuotaRefreshConfig(environment) {
     const accountAlias = environment.CODEX_ROUTER_QUOTA_ACCOUNT_ALIAS;
     if (accountAlias === undefined)
         return { enabled: false };
+    alias(accountAlias);
     if (socketPath === undefined ||
         !node_path_1.default.isAbsolute(socketPath) ||
         !socketPath.startsWith(`/run${node_path_1.default.sep}`) ||
@@ -215,15 +220,21 @@ function loadQuotaRefreshConfig(environment) {
     return {
         enabled: true,
         socketPath: node_path_1.default.normalize(socketPath),
-        accountAlias: alias(accountAlias),
     };
 }
 function mergeWeeklyQuotaSnapshot(status, snapshot) {
-    if (snapshot === null)
-        return status;
+    const currentAlias = status.current_route?.account_alias ?? null;
     const accounts = status.accounts.map((account) => {
-        if (account.alias !== snapshot.accountAlias)
-            return account;
+        if (snapshot === null || account.alias !== snapshot.accountAlias) {
+            if (account.alias !== currentAlias)
+                return account;
+            return {
+                ...account,
+                weekly_remaining_ratio: null,
+                weekly_resets_at: null,
+                snapshot_observed_at: null,
+            };
+        }
         const routerObservedAt = account.snapshot_observed_at === null
             ? Number.NEGATIVE_INFINITY
             : Date.parse(account.snapshot_observed_at);
@@ -317,7 +328,7 @@ function manualSwitchBody(value) {
     }
     return { account_alias: alias(value.account_alias), reason: "manual" };
 }
-function managerRequest(socketPath, value) {
+function managerRequest(socketPath, value, timeoutMs = 125_000) {
     return new Promise((resolve, reject) => {
         let settled = false;
         let length = 0;
@@ -333,7 +344,7 @@ function managerRequest(socketPath, value) {
                 resolve(result);
         };
         const socket = node_net_1.default.createConnection(socketPath);
-        socket.setTimeout(125_000, () => finish(new Error("account manager timed out")));
+        socket.setTimeout(timeoutMs, () => finish(new Error("account manager timed out")));
         socket.once("error", () => finish(new Error("account manager failed")));
         socket.once("connect", () => socket.write(`${JSON.stringify(value)}\n`));
         socket.on("data", (chunk) => {
@@ -419,7 +430,7 @@ function weeklyQuotaSnapshotFromResult(value, accountAlias, observedAt) {
         observedAt,
     };
 }
-async function readWeeklyQuotaSnapshot(config) {
+async function readWeeklyQuotaSnapshot(config, accountAlias) {
     return new Promise((resolve, reject) => {
         let settled = false;
         let initialized = false;
@@ -486,7 +497,7 @@ async function readWeeklyQuotaSnapshot(config) {
             }
             if (message.id === 2) {
                 try {
-                    finish(null, weeklyQuotaSnapshotFromResult(message.result, config.accountAlias, new Date().toISOString()));
+                    finish(null, weeklyQuotaSnapshotFromResult(message.result, accountAlias, new Date().toISOString()));
                 }
                 catch {
                     finish(new Error("weekly quota is unavailable"));
@@ -494,6 +505,27 @@ async function readWeeklyQuotaSnapshot(config) {
             }
         });
     });
+}
+async function currentQuotaIdentity(config) {
+    if (config.managerSocket === undefined)
+        throw new Error("weekly quota is unavailable");
+    const [status, manager] = await Promise.all([
+        fetchStatus(config),
+        managerRequest(config.managerSocket, { operation: "observe" }, REQUEST_TIMEOUT_MS),
+    ]);
+    if (status.status !== "ready" || status.active_requests !== 0 || status.active_streams !== 0 ||
+        status.current_route === null || manager.ok !== true ||
+        manager.event !== "router_account_observer_ready" ||
+        manager.credentials_exposed !== false ||
+        !Number.isSafeInteger(manager.configured_accounts) ||
+        Number(manager.configured_accounts) < 1 || Number(manager.configured_accounts) > 1_000) {
+        throw new Error("weekly quota is unavailable");
+    }
+    const identityAlias = alias(manager.account_alias);
+    if (identityAlias !== status.current_route.account_alias) {
+        throw new Error("weekly quota is unavailable");
+    }
+    return identityAlias;
 }
 async function fetchStatus(config) {
     const controller = new AbortController();
@@ -607,7 +639,12 @@ async function registerRouterStatusBridge(app, environment) {
             return reply.code(400).send({ enabled: true, error: "invalid_quota_refresh_request" });
         }
         try {
-            quotaSnapshot = await readWeeklyQuotaSnapshot(quotaRefreshConfig);
+            const identityBefore = await currentQuotaIdentity(config);
+            const candidate = await readWeeklyQuotaSnapshot(quotaRefreshConfig, identityBefore);
+            const identityAfter = await currentQuotaIdentity(config);
+            if (identityAfter !== identityBefore)
+                throw new Error("weekly quota is unavailable");
+            quotaSnapshot = candidate;
             return reply.send({
                 enabled: true,
                 refreshed: true,

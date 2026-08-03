@@ -430,7 +430,7 @@ function AccountSettingsDialog({
             <div className="flex items-center gap-2">
               <span className="rounded-full bg-green-500/10 px-2 py-1 text-xs font-semibold text-green-600">Auto</span>
               <button className="rounded-lg px-3 py-2 text-sm hover:bg-token-bg-secondary disabled:opacity-40" disabled={snapshot.model?.activeStreams !== 0 || snapshot.management.mode !== "idle"} onClick={() => controller?.actions.beginAdd()} type="button">Add</button>
-              <button aria-label="Refresh Primary weekly quota" className="rounded-lg px-3 py-2 text-sm hover:bg-token-bg-secondary disabled:opacity-40" disabled={snapshot.quotaBusy || controller === null} onClick={() => controller?.actions.refreshQuota()} type="button">{snapshot.quotaBusy ? "Refreshing…" : "Refresh"}</button>
+              <button aria-label="Refresh current account weekly quota" className="rounded-lg px-3 py-2 text-sm hover:bg-token-bg-secondary disabled:opacity-40" disabled={snapshot.quotaBusy || controller === null} onClick={() => controller?.actions.refreshQuota()} type="button">{snapshot.quotaBusy ? "Refreshing…" : "Refresh"}</button>
             </div>
           </div>
           {controller ? <ManagementPanel controller={controller} snapshot={snapshot} /> : null}

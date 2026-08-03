@@ -121,7 +121,11 @@ test("manager socket returns only a sanitized operation result", async (context)
     observe: async (value) => {
       calls.push(value);
       await new Promise((resolve) => setTimeout(resolve, 25));
-      return { event: "router_account_observer_ready", configured_accounts: 3 };
+      return {
+        event: "router_account_observer_ready",
+        configured_accounts: 3,
+        account_alias: "Research 2",
+      };
     },
   });
   await new Promise((resolve, reject) => {
@@ -167,6 +171,7 @@ test("manager socket returns only a sanitized operation result", async (context)
     event: "router_account_observer_ready",
     configured_accounts: 3,
     credentials_exposed: false,
+    account_alias: "Research 2",
   });
   assert.equal(calls.length, 4);
 });

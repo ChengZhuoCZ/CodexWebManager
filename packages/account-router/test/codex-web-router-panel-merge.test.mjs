@@ -78,6 +78,9 @@ import {
   replaceR122NativeMenuContract,
 } from "../../../integrations/codex-web/replace-r122-native-menu-contract.mjs";
 import {
+  replaceR123CurrentQuotaIdentity,
+} from "../../../integrations/codex-web/replace-r123-current-quota-identity.mjs";
+import {
   atomicWrite,
   r118ControllerSource,
 } from "../../../integrations/codex-web/replace-r118-native-identity-sync.mjs";
@@ -359,6 +362,65 @@ test("R122 replaces only the React preload while preserving native account bound
   await assert.rejects(fs.access(path.join(assets, oldName)));
   await assert.rejects(fs.access(`${path.join(assets, oldName)}.gz`));
   await assert.rejects(fs.access(`${path.join(assets, oldName)}.br`));
+});
+
+test("R123 binds the visible weekly quota to the current native App Server identity", async (context) => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "m69-r123-current-quota-"));
+  context.after(() => fs.rm(root, { recursive: true, force: true }));
+  const candidate = path.join(root, "candidate");
+  const oldName = "preload-old.js";
+  const controllerName = "router-account-controller.js";
+  const index = Buffer.from(`<script type="module" src="./assets/${controllerName}"></script>\n<script type="module" src="./assets/${oldName}"></script>\n`);
+  const oldPreload = Buffer.from("const label = 'Refresh Primary weekly quota';\n");
+  const controller = Buffer.from("native account controller\n");
+  const oldBridge = Buffer.from("old status bridge\n");
+  const nextBridge = Buffer.from("credential-verified current status bridge\n");
+  const accountManagement = Buffer.from("account management\n");
+  const bridgeSource = path.join(root, "router-status-bridge.js");
+  const contract = {
+    predecessor_index_sha256: sha256(index),
+    predecessor_preload_name: oldName,
+    predecessor_preload_sha256: sha256(oldPreload),
+    controller_name: controllerName,
+    controller_sha256: sha256(controller),
+    predecessor_status_bridge_sha256: sha256(oldBridge),
+    successor_status_bridge_sha256: sha256(nextBridge),
+    account_management_sha256: sha256(accountManagement),
+  };
+  await Promise.all([
+    write(candidate, INDEX, index),
+    write(candidate, `${INDEX}.gz`, gzipSync(index)),
+    write(candidate, `${INDEX}.br`, brotliCompressSync(index)),
+    write(candidate, `${ASSETS}/${oldName}`, oldPreload),
+    write(candidate, `${ASSETS}/${oldName}.gz`, gzipSync(oldPreload)),
+    write(candidate, `${ASSETS}/${oldName}.br`, brotliCompressSync(oldPreload)),
+    write(candidate, `${ASSETS}/${controllerName}`, controller),
+    write(candidate, "src/server/router-status-bridge.js", oldBridge),
+    write(candidate, "src/server/router-account-management.js", accountManagement),
+    fs.writeFile(bridgeSource, nextBridge, { mode: 0o644 }),
+  ]);
+
+  const result = await replaceR123CurrentQuotaIdentity({ candidate, statusBridge: bridgeSource, contract });
+  const nextIndex = await fs.readFile(path.join(candidate, INDEX), "utf8");
+  const nextPreload = await fs.readFile(path.join(candidate, ASSETS, result.react_preload_name), "utf8");
+  assert.equal(result.event, "r123_current_quota_identity_installed");
+  assert.equal(result.quota_identity, "native_app_server_credential");
+  assert.equal(result.model_request_sent, false);
+  assert.equal(result.account_switch_sent, false);
+  assert.match(nextIndex, new RegExp(result.react_preload_name, "u"));
+  assert.doesNotMatch(nextIndex, new RegExp(oldName, "u"));
+  assert.match(nextPreload, /Refresh current account weekly quota/u);
+  assert.doesNotMatch(nextPreload, /Refresh Primary weekly quota/u);
+  assert.deepEqual(await fs.readFile(path.join(candidate, "src/server/router-status-bridge.js")), nextBridge);
+  await assert.rejects(fs.access(path.join(candidate, ASSETS, oldName)));
+  assert.deepEqual(
+    gunzipSync(await fs.readFile(`${path.join(candidate, ASSETS, result.react_preload_name)}.gz`)).toString("utf8"),
+    nextPreload,
+  );
+  assert.deepEqual(
+    brotliDecompressSync(await fs.readFile(`${path.join(candidate, ASSETS, result.react_preload_name)}.br`)).toString("utf8"),
+    nextPreload,
+  );
 });
 
 test("R116 replaces the Shadow DOM surface and restarts only routed Web", async () => {
@@ -830,8 +892,11 @@ test("native Usage remaining presentation follows the sanitized current router r
 });
 
 test("profile menu quota UI inherits native width and exposes a bounded read-only refresh", async () => {
-  const panel = await fs.readFile(STANDALONE_PANEL, "utf8");
-  const bridge = await fs.readFile(ROUTER_STATUS_BRIDGE, "utf8");
+  const [panel, bridge, reactSource] = await Promise.all([
+    fs.readFile(STANDALONE_PANEL, "utf8"),
+    fs.readFile(ROUTER_STATUS_BRIDGE, "utf8"),
+    fs.readFile(REACT_ACCOUNT_SETTINGS, "utf8"),
+  ]);
   assert.match(panel, /width: 100%; min-width: 0; max-width: 100%/u);
   assert.doesNotMatch(panel, /min-width: 300px|max-width: 360px/u);
   assert.match(panel, /min-height: 38px/u);
@@ -839,7 +904,7 @@ test("profile menu quota UI inherits native width and exposes a bounded read-onl
   assert.match(panel, /weeklyLabel\.replace\(" remaining", ""\)/u);
   assert.match(panel, /Refreshed \$\{utcLabel\(account\.snapshot_observed_at\)\}/u);
   assert.match(panel, /Resets \$\{utcLabel\(account\.weekly_resets_at\)\}/u);
-  assert.match(panel, /Refresh Primary weekly quota/u);
+  assert.match(reactSource, /Refresh current account weekly quota/u);
   assert.match(panel, /\/__backend\/codex-router\/quota-refresh/u);
   assert.match(panel, /\.\.\.\(await browserCsrfHeaders\(\)\)/u);
   assert.match(bridge, /account\/rateLimits\/read/u);
@@ -849,6 +914,13 @@ test("profile menu quota UI inherits native width and exposes a bounded read-onl
   assert.match(bridge, /weekly\.usedPercent > 100/u);
   assert.match(bridge, /weekly\.resetsAt > 4_102_444_800/u);
   assert.match(bridge, /weekly_resets_at: quotaSnapshot\.weeklyResetsAt/u);
+  assert.match(bridge, /currentQuotaIdentity/u);
+  assert.match(bridge, /operation: "observe"/u);
+  assert.match(bridge, /identityAfter !== identityBefore/u);
+  assert.match(bridge, /identityAlias !== status\.current_route\.account_alias/u);
+  assert.doesNotMatch(bridge, /config\.accountAlias/u);
+  assert.match(bridge, /account\.alias !== currentAlias/u);
+  assert.match(bridge, /weekly_remaining_ratio: null/u);
   assert.doesNotMatch(bridge, /thread\/start|turn\/start|responses\/create/u);
 });
 
