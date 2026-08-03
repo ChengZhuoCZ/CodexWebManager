@@ -1,0 +1,104 @@
+{
+  "task": "M6.9",
+  "release": "R115 owned account-settings surface",
+  "recorded_at": "2026-08-03T16:28:10+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_commit": "f05293b4c8fbb4ced3eb300196620ea95178738d",
+  "implementation_commit": "5cadf5e",
+  "implementation_mode": "clean-room",
+  "incident": {
+    "rejected_release": "c3e92f0f-20260803-m69-router-r114-native-profile-menu",
+    "user_observation": "The account surface disappeared when the upstream Settings/profile-menu lifecycle removed its React-owned subtree; the App Host also displayed its fatal error boundary.",
+    "assessment": "R114 coupled the account-control surface to an upstream-owned ephemeral menu. Hash and process checks could not establish correct UI ownership, so R114 was rejected as the active UI release.",
+    "recovery_release": "c3e92f0f-20260803-m69-router-r112-visible-bootstrap-launcher",
+    "recovery_status": "success",
+    "recovery_note": "The first recovery command changed the current symlink but stopped before the Web restart because its shell trap referenced an unbound local variable. A second bounded command immediately completed the R112 Web-only restart and verified protected processes. No account or App Server configuration changed."
+  },
+  "architecture": {
+    "owned_body_sibling_host": true,
+    "open_shadow_dom": true,
+    "pure_lifecycle_reducer": true,
+    "native_profile_menu_is_read_only_adapter": true,
+    "native_react_tree_mutated": false,
+    "mutation_observer_used": false,
+    "bounded_native_menu_inspection_attempts": 5,
+    "account_dialog_closed_by_native_menu_teardown": false,
+    "account_dialog_close_events": [
+      "explicit close button",
+      "owned backdrop pointerdown",
+      "Escape key",
+      "page unload or explicit installer cleanup"
+    ]
+  },
+  "artifacts": {
+    "panel_source": "integrations/codex-web/router-account-panel-standalone.js",
+    "lifecycle_source": "integrations/codex-web/router-account-surface-lifecycle.js",
+    "transformer": "integrations/codex-web/replace-r115-owned-account-surface.mjs",
+    "deployment_script": "evidence/M6.9/deploy-router-r115-owned-account-surface.sh",
+    "panel_sha256": "270c1de071c9f8af11938114fc7e102f2e8005762f1940c7730bc12c094f0fb2",
+    "lifecycle_sha256": "1a4ffdf16ab912adc5d9c2960a0a0ce50db87e434d956da8613c35b243ee1fcd",
+    "transformer_sha256": "1405b28a34c70232213f802dd0a8b792d6c1521dfd291c898f2d3a2370005720",
+    "deployment_script_sha256": "130a1559dd09f51312829e16aec317b89a4c0b8a73a60b6dca320920a3ff2832"
+  },
+  "tests": {
+    "panel_lifecycle_suite": "46 passed, 0 failed.",
+    "lifecycle_acceptance": "After account_dialog_opened, both native_menu_closed and native_trigger_absent preserve accountDialog=true; only account_dialog_closed makes it false.",
+    "syntax": "Panel, lifecycle module and transformer passed node --check; the deployment script passed bash -n.",
+    "local_transformer": "The R112 fixture transformed successfully, removed the predecessor panel, preserved the qualified App/preload assets and installed the R115 panel plus lifecycle assets.",
+    "complete_account_router_matrix": "420 total: 385 passed, 2 failed and 33 skipped.",
+    "known_matrix_failures": [
+      "The pre-existing isolated host deployment test reports web_unit_source_hash_mismatch.",
+      "The pre-existing matrix-classification contract omits several existing test files."
+    ],
+    "regression_assessment": "The same two strict-matrix failures were already recorded for R114; R115 introduced no additional failures.",
+    "final_security_scan": "681 repository files scanned, 0 findings; both JSON evidence files parsed and git diff --check passed."
+  },
+  "deployment": {
+    "status": "success",
+    "active_release": "c3e92f0f-20260803-m69-router-r115-owned-account-surface",
+    "previous_release": "c3e92f0f-20260803-m69-router-r112-visible-bootstrap-launcher",
+    "standalone_8215_unchanged": true,
+    "routed_8216_app_server_unchanged": true,
+    "account_router_process_unchanged": true,
+    "account_manager_process_unchanged": true,
+    "only_8216_web_restarted": true,
+    "model_request_sent": false,
+    "account_switch_sent": false,
+    "semantic_output_replay_attempted": false
+  },
+  "process_invariants": {
+    "before": {
+      "routed_web_pid": 249558,
+      "routed_app_server_pid": 3791302,
+      "account_router_pid": 203596,
+      "account_manager_pid": 4191355,
+      "standalone_8215_web_pid": 3664557,
+      "standalone_8215_app_server_pid": 3664550
+    },
+    "after": {
+      "routed_web_pid": 255210,
+      "routed_app_server_pid": 3791302,
+      "account_router_pid": 203596,
+      "account_manager_pid": 4191355,
+      "standalone_8215_web_pid": 3664557,
+      "standalone_8215_app_server_pid": 3664550
+    },
+    "all_seven_related_units_active": true,
+    "routed_web_recent_fatal_panic_crash_reconnect_matches": 0
+  },
+  "runtime_verification": {
+    "deployment_browser_ready_check": "A fresh trusted-Tailnet HTML session and protected router status passed before activation completed; the check required at least two accounts, zero active streams and new_backend_session continuity.",
+    "local_tailnet_html": "HTTP 200 with router-account-panel-270c1de0.js referenced in index.html.",
+    "served_panel_sha256": "270c1de071c9f8af11938114fc7e102f2e8005762f1940c7730bc12c094f0fb2",
+    "served_lifecycle_sha256": "1a4ffdf16ab912adc5d9c2960a0a0ce50db87e434d956da8613c35b243ee1fcd",
+    "in_app_browser_visual_verified": false,
+    "browser_limit": "The Codex in-app browser had no claimable 8216 tab; creating a fresh 8216 tab timed out and reset its automation kernel. No pixel-level claim is made."
+  },
+  "residual_risks": [
+    "The native entry remains a bounded visual adapter positioned beside the upstream menu; a future upstream profile-button accessibility rewrite may temporarily expose only the owned fallback launcher.",
+    "The account dialog survives SPA Settings/menu teardown, but a full browser navigation or reload intentionally destroys page-owned UI state.",
+    "The aggregate strict-CI baseline still has the two pre-existing failures recorded above.",
+    "No real account switch or model request was performed. Switching starts a new backend session and does not migrate, replay or resume semantic output or in-flight work."
+  ]
+}

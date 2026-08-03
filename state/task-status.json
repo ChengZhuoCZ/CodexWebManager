@@ -92,14 +92,15 @@
     "r113_native_sidebar_launcher": "e1f232595bbeeb8a21b8bb8c1465b956802f9216",
     "r113_runtime_rollback": "e95d90d32d7e1b764ea1766188fc672efab5c6d3",
     "r114_native_profile_menu": "b9bd3fc90ad5b3319e13380208e81102eec13c43",
+    "r115_owned_account_surface": "f05293b4c8fbb4ced3eb300196620ea95178738d",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "9bf17de",
+  "output_revision": "5cadf5e",
   "workspace_branch": "codex/m6-9-8216-r85-handoff",
-  "workspace_input_revision": "168369e5a552260358efbfc04dbfd04a6038ba24",
+  "workspace_input_revision": "f05293b4c8fbb4ced3eb300196620ea95178738d",
   "depends_on": [
     "M2.5",
     "M6.8",
@@ -2064,6 +2065,22 @@
     {
       "command": "jq validation, git diff --check and scanRepository(loadSecurityAuditPolicy()) after R114 evidence/state updates",
       "result": "Both JSON documents parsed, git diff --check passed, and 677 repository files produced zero secret findings."
+    },
+    {
+      "command": "R115 lifecycle reducer acceptance; node --check panel/lifecycle/transformer; bash -n deployment; <bundled-node> --test --test-reporter=dot packages/account-router/test/codex-web-router-panel-merge.test.mjs",
+      "result": "The owned-dialog lifecycle preserves accountDialog=true across native Settings/profile-menu teardown and trigger disappearance. Syntax checks passed and the complete R115 panel suite passed 46/46. The adapter performs five bounded read-only inspections and does not mutate the upstream React tree."
+    },
+    {
+      "command": "<bundled-node> --test --test-reporter=tap packages/account-router/test/*.test.mjs with bounded loopback and Unix-socket permission",
+      "result": "R115 matrix: 420 total, 385 passed, 2 failed and 33 skipped. The two failures are the previously recorded isolated-host Web unit source-hash drift and test-matrix classification-list drift; R115 added no new failure."
+    },
+    {
+      "command": "hash-verified rollback-capable R115 Web-only deployment, protected-process checks, trusted-Tailnet HTML/asset hashes and recent-journal scan",
+      "result": "R115 activated successfully and restarted only routed 8216 Web. Seven related units remained active; standalone 8215, routed App Server, account-router and account-manager PIDs were unchanged; recent routed-Web fatal/panic/crash/reconnect matches were zero. Trusted-Tailnet HTML referenced router-account-panel-270c1de0.js and served panel/lifecycle hashes matched source. No model request or account switch was sent."
+    },
+    {
+      "command": "jq validation, git diff --check and scanRepository(loadSecurityAuditPolicy()) after R115 evidence/state updates",
+      "result": "Both JSON documents parsed, git diff --check passed, and 681 repository files produced zero secret findings."
     }
   ],
   "evidence": [
@@ -2353,7 +2370,9 @@
     "evidence/M6.9/router-r113-native-sidebar-launcher-summary.json",
     "evidence/M6.9/router-r113-runtime-rollback-summary.json",
     "evidence/M6.9/deploy-router-r114-native-profile-menu.sh",
-    "evidence/M6.9/router-r114-native-profile-menu-summary.json"
+    "evidence/M6.9/router-r114-native-profile-menu-summary.json",
+    "evidence/M6.9/deploy-router-r115-owned-account-surface.sh",
+    "evidence/M6.9/router-r115-owned-account-surface-summary.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -6184,6 +6203,44 @@
       "account_switch_sent": false,
       "semantic_stream_replay_attempted": false,
       "cross_account_continuity_claimed": false,
+      "status": "rejected"
+    },
+    "r114_settings_lifecycle_incident": {
+      "user_observation": "Clicking upstream Settings removed the account surface and the App Host displayed its fatal error boundary.",
+      "root_cause_boundary": "R114 coupled account controls to an upstream-owned ephemeral React menu lifecycle.",
+      "recovery_release": "c3e92f0f-20260803-m69-router-r112-visible-bootstrap-launcher",
+      "recovery_status": "done",
+      "only_routed_8216_web_restarted": true,
+      "standalone_8215_unchanged": true,
+      "model_request_sent": false,
+      "account_switch_sent": false
+    },
+    "r115_owned_account_surface": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "f05293b4c8fbb4ced3eb300196620ea95178738d",
+      "implementation_revision": "5cadf5e",
+      "evidence": "evidence/M6.9/router-r115-owned-account-surface-summary.json",
+      "active_web_release": "c3e92f0f-20260803-m69-router-r115-owned-account-surface",
+      "active_router_release": "codex-account-router-0.2.33-linux-x64",
+      "installed_panel_sha256": "270c1de071c9f8af11938114fc7e102f2e8005762f1940c7730bc12c094f0fb2",
+      "installed_lifecycle_sha256": "1a4ffdf16ab912adc5d9c2960a0a0ce50db87e434d956da8613c35b243ee1fcd",
+      "owned_shadow_surface": true,
+      "native_react_tree_mutation": false,
+      "mutation_observer": false,
+      "bounded_profile_menu_inspection_attempts": 5,
+      "settings_teardown_closes_account_dialog": false,
+      "all_seven_related_units_active": true,
+      "standalone_8215_unchanged": true,
+      "routed_8216_app_server_unchanged": true,
+      "account_router_process_unchanged": true,
+      "account_manager_process_unchanged": true,
+      "only_routed_8216_web_restarted": true,
+      "browser_pixel_capture_verified": false,
+      "model_request_sent": false,
+      "account_switch_sent": false,
+      "semantic_stream_replay_attempted": false,
+      "cross_account_continuity_claimed": false,
       "status": "done"
     }
   },
@@ -6397,7 +6454,12 @@
     "R114 integrates account controls only when the native profile menu is activated and removes its temporary fallback when the native trigger exists. A future upstream profile-button accessibility rewrite may require a new bounded adapter.",
     "R114 browser visual capture remains unverified because the in-app screenshot/DOM channel timed out and Safari ScreenCaptureKit returned SCStream -3811. Installed hashes, DOM contracts, service invariants and active-release checks passed, but no pixel-level claim is made.",
     "R114's 0.3% Web CPU and one recent reconnect-pattern match are bounded observations only, not a soak test or stable performance guarantee.",
-    "R114 sent no model request or account switch. Automatic or manual switching starts a new backend session and does not migrate, replay or resume semantic output or in-flight work."
+    "R114 sent no model request or account switch. Automatic or manual switching starts a new backend session and does not migrate, replay or resume semantic output or in-flight work.",
+    "R114 is rejected as an active UI release because its account controls were coupled to the upstream Settings/profile-menu teardown lifecycle. Production 8216 advanced from the R112 recovery baseline to the owned R115 surface.",
+    "R115's native entry is a bounded read-only visual adapter beside the upstream menu. If upstream profile-button discovery changes, the independent owned fallback launcher remains the fail-closed entry path.",
+    "R115 preserves the account dialog across SPA Settings/menu teardown, but a full document navigation or reload intentionally destroys page-owned UI state.",
+    "R115 browser visual capture remains unverified because creating a fresh in-app 8216 tab timed out and reset the automation kernel. Installed hashes, trusted-Tailnet HTML, lifecycle contracts and service invariants passed, but no pixel-level claim is made.",
+    "R115 sent no model request or account switch. Automatic or manual switching starts a new backend session and does not migrate, replay or resume semantic output or in-flight work."
   ],
-  "updated_at": "2026-08-03T15:47:48+08:00"
+  "updated_at": "2026-08-03T16:28:10+08:00"
 }
