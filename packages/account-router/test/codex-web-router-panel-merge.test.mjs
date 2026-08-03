@@ -66,6 +66,14 @@ import {
   R114_NATIVE_PROFILE_MENU_CONTRACT,
 } from "../../../integrations/codex-web/replace-r114-native-profile-menu.mjs";
 import {
+  R115_OWNED_ACCOUNT_SURFACE_CONTRACT,
+} from "../../../integrations/codex-web/replace-r115-owned-account-surface.mjs";
+import {
+  accountSurfaceVisibility,
+  createAccountSurfaceState,
+  reduceAccountSurfaceState,
+} from "../../../integrations/codex-web/router-account-surface-lifecycle.js";
+import {
   buildManualSwitchRequest as buildStandaloneSwitchRequest,
   buildAccountEnrollmentRequest,
   buildAccountRemovalRequest,
@@ -144,6 +152,42 @@ test("copies only a bounded device code with an HTTP-safe fallback", async () =>
   assert.match(source, /Copy device authorization code/u);
   assert.doesNotMatch(source, /console\.(?:log|info|debug).*userCode/u);
 });
+
+test("keeps the owned account dialog independent from native Settings menu teardown", () => {
+  let state = createAccountSurfaceState();
+  state = reduceAccountSurfaceState(state, { type: "native_trigger_present" });
+  state = reduceAccountSurfaceState(state, { type: "native_menu_opened" });
+  state = reduceAccountSurfaceState(state, { type: "account_dialog_opened" });
+  state = reduceAccountSurfaceState(state, { type: "native_menu_closed" });
+  assert.deepEqual(accountSurfaceVisibility(state), {
+    fallbackLauncher: false,
+    nativeMenuEntry: false,
+    accountDialog: true,
+  });
+
+  state = reduceAccountSurfaceState(state, { type: "native_trigger_absent" });
+  assert.deepEqual(accountSurfaceVisibility(state), {
+    fallbackLauncher: true,
+    nativeMenuEntry: false,
+    accountDialog: true,
+  });
+
+  state = reduceAccountSurfaceState(state, { type: "account_dialog_closed" });
+  assert.equal(accountSurfaceVisibility(state).accountDialog, false);
+});
+
+test("owns the account surface outside the upstream React tree", async () => {
+  const source = await fs.readFile(STANDALONE_PANEL, "utf8");
+  assert.match(source, /attachShadow\(\{ mode: "open" \}\)/u);
+  assert.match(source, /dataset\.routerOwnedSurface/u);
+  assert.match(source, /createOwnedAccountSurface/u);
+  assert.match(source, /createNativeProfileMenuAdapter/u);
+  assert.doesNotMatch(source, /MutationObserver/u);
+  assert.doesNotMatch(source, /syncProfileRouteIdentity/u);
+  assert.doesNotMatch(source, /syncNativeUsageSurface/u);
+  assert.doesNotMatch(source, /pruneNativeProfileMenuItems/u);
+  assert.doesNotMatch(source, /PROFILE_ROUTE_ATTRIBUTE/u);
+});
 const R91_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r91-standalone-panel.sh",
@@ -219,6 +263,10 @@ const R113_DEPLOY = path.resolve(
 const R114_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r114-native-profile-menu.sh",
+);
+const R115_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r115-owned-account-surface.sh",
 );
 
 function sha256(value) {
@@ -409,7 +457,7 @@ test("standalone JSON XHR never reads responseText for a json response type", as
   assert.doesNotMatch(source, /request\.responseText/u);
 });
 
-test("standalone panel exposes only a sanitized current route in the profile menu", async () => {
+test("standalone panel exposes only a sanitized current route in its owned account surface", async () => {
   const identity = currentStandaloneRouteIdentity({
     accounts: [
       { alias: "Primary", isCurrent: false, credential_ref: "must-not-pass" },
@@ -423,13 +471,13 @@ test("standalone panel exposes only a sanitized current route in the profile men
   assert.match(source, /button\[aria-label="Open profile menu"\]/u);
   assert.match(source, /\[role="menuitem"\]/u);
   assert.match(source, /aria-expanded/u);
-  assert.match(source, /Usage remaining/u);
   assert.match(source, /role", "menuitemradio"/u);
   assert.match(source, /Account route/u);
   assert.match(source, /PROFILE_MENU_ACTIVATION_EVENTS/u);
-  assert.match(source, /scheduleProfileMenuRender/u);
+  assert.match(source, /createNativeProfileMenuAdapter/u);
+  assert.match(source, /attachShadow/u);
   assert.doesNotMatch(source, /new MutationObserver/u);
-  assert.doesNotMatch(source, /position:\s*"fixed"/u);
+  assert.doesNotMatch(source, /syncNativeUsageSurface/u);
 });
 
 test("profile menu discovery has a language-neutral Safari fallback", async () => {
@@ -1020,12 +1068,6 @@ test("R104 synchronizes native Usage remaining with the current router route onl
     R104_NATIVE_USAGE_SYNC_CONTRACT.replacement_panel_sha256,
     "f9d5a01a6b5c535c3d2f3bcb047464eed7f6d3a9da81977aa2356276de0be3fc",
   );
-  const panel = await fs.readFile(STANDALONE_PANEL, "utf8");
-  assert.match(panel, /data-codex-router-native-usage-sync/u);
-  assert.match(panel, /Current model route/u);
-  assert.match(panel, /Weekly · \$\{alias\}/u);
-  assert.match(panel, /Refreshed/u);
-  assert.match(panel, /restoreNativeUsageSurfaces/u);
   const source = await fs.readFile(R104_DEPLOY, "utf8");
   assert.match(source, /router-r103-reset-time/u);
   assert.match(source, /router-r104-native-usage-sync/u);
@@ -1049,11 +1091,6 @@ test("R105 targets the leaf Weekly label and preserves native Learn more semanti
   assert.equal(
     R105_NATIVE_USAGE_DOM_CONTRACT.replacement_panel_sha256,
     "673d9a21fce3b64cea49605958d0d92fd7c4d1974f5f1e3415126a2b6d1f6214",
-  );
-  const panel = await fs.readFile(STANDALONE_PANEL, "utf8");
-  assert.match(
-    panel,
-    /node\.children\.length === 0 && node\.textContent\?\.trim\(\) === "Weekly"/u,
   );
   const source = await fs.readFile(R105_DEPLOY, "utf8");
   assert.match(source, /router-r104-native-usage-sync/u);
@@ -1119,31 +1156,34 @@ test("left-bottom account menu exposes bounded automatic failover in a compact n
   assert.match(panel, /footnote\.title = "Cross-account continuity is not verified\."/u);
 });
 
-test("Safari exposes an account launcher without depending on the native profile menu", async () => {
+test("Safari exposes an owned fallback launcher without mutating the native profile menu", async () => {
   const panel = await fs.readFile(STANDALONE_PANEL, "utf8");
-  assert.match(panel, /codex-router-account-launcher/u);
-  assert.match(panel, /codex-router-account-dialog/u);
-  assert.match(panel, /FALLBACK_MENU_SECTION_ID/u);
-  assert.match(panel, /Account route · \$\{currentAlias\}/u);
+  assert.match(panel, /codex-router-owned-account-surface/u);
+  assert.match(panel, /dataset\.routerFallbackLauncher/u);
+  assert.match(panel, /Account routing settings/u);
+  assert.match(panel, /Account route · Loading…/u);
   assert.match(panel, /position: fixed/u);
-  assert.match(panel, /aria-haspopup", "menu"/u);
+  assert.match(panel, /aria-haspopup", "dialog"/u);
 });
 
 test("account launcher renders before protected router status and survives an initial failure", async () => {
   const panel = await fs.readFile(STANDALONE_PANEL, "utf8");
   assert.match(panel, /Account route · Loading…/u);
-  assert.match(panel, /launcherStatus = "unavailable"/u);
-  assert.match(panel, /renderFallbackLauncher\(\);\s*try \{/u);
+  assert.match(panel, /status_changed", status: "unavailable"/u);
+  assert.match(panel, /renderOwnedSurface\(\);\s*try \{/u);
   assert.match(panel, /Router status is temporarily unavailable\./u);
 });
 
 test("account launcher remains a temporary fallback outside the React-owned native sidebar", async () => {
   const panel = await fs.readFile(STANDALONE_PANEL, "utf8");
-  assert.match(panel, /data-router-launcher-surface/u);
-  assert.match(panel, /profileButton\(\) instanceof HTMLElement/u);
-  assert.match(panel, /removeFallbackLauncher\(\);\s*return/u);
-  assert.match(panel, /launcher\.dataset\.routerLauncherSurface = "standalone"/u);
-  assert.match(panel, /button\.id !== FALLBACK_LAUNCHER_ID/u);
+  const lifecycle = await fs.readFile(path.resolve(
+    import.meta.dirname,
+    "../../../integrations/codex-web/router-account-surface-lifecycle.js",
+  ), "utf8");
+  assert.match(panel, /dataset\.routerOwnedSurface/u);
+  assert.match(panel, /attachShadow\(\{ mode: "open" \}\)/u);
+  assert.match(lifecycle, /fallbackLauncher: !state\.triggerAvailable/u);
+  assert.match(lifecycle, /nativeMenuEntry: state\.triggerAvailable && state\.nativeMenuVisible/u);
   assert.doesNotMatch(panel, /native-sidebar/u);
   assert.doesNotMatch(panel, /footer\.parentElement\.insertBefore/u);
 });
@@ -1152,13 +1192,15 @@ test("native profile-menu integration is event-driven and never watches or mutat
   const panel = await fs.readFile(STANDALONE_PANEL, "utf8");
   assert.match(panel, /PROFILE_MENU_ACTIVATION_EVENTS/u);
   assert.match(panel, /PROFILE_MENU_RENDER_MAX_ATTEMPTS/u);
-  assert.match(panel, /scheduleProfileMenuRender/u);
-  assert.match(panel, /profileMenuActivationHandler/u);
-  assert.match(panel, /addEventListener\(eventName, profileMenuActivationHandler, true\)/u);
-  assert.match(panel, /removeFallbackLauncher/u);
+  assert.match(panel, /createNativeProfileMenuAdapter/u);
+  assert.match(panel, /activationHandler/u);
+  assert.match(panel, /addEventListener\(eventName, activationHandler, true\)/u);
+  assert.match(panel, /dataset\.routerOwnedSurface/u);
   assert.doesNotMatch(panel, /new MutationObserver/u);
   assert.doesNotMatch(panel, /footer\.parentElement\.insertBefore/u);
   assert.doesNotMatch(panel, /SIDEBAR_LAUNCHER_ROW_ID/u);
+  assert.doesNotMatch(panel, /syncProfileRouteIdentity/u);
+  assert.doesNotMatch(panel, /syncNativeUsageSurface/u);
 });
 
 test("R110 pins the compact panel and expands only bounded pre-output failover", async () => {
@@ -1274,11 +1316,11 @@ test("R113 records the rejected native-sidebar release and its bounded deploymen
 });
 
 test("R114 integrates through the native profile menu without a body observer or footer mutation", async () => {
-  const [panel, deployment] = await Promise.all([
-    fs.readFile(STANDALONE_PANEL),
-    fs.readFile(R114_DEPLOY, "utf8"),
-  ]);
-  assert.equal(R114_NATIVE_PROFILE_MENU_CONTRACT.replacement_panel_sha256, sha256(panel));
+  const deployment = await fs.readFile(R114_DEPLOY, "utf8");
+  assert.equal(
+    R114_NATIVE_PROFILE_MENU_CONTRACT.replacement_panel_sha256,
+    "0f9f3a68fd6e26b1070b98ae04df5d044c4b954d1e550b4dbad3c0f32eb19f17",
+  );
   assert.equal(
     R114_NATIVE_PROFILE_MENU_CONTRACT.predecessor_panel_name,
     "router-account-panel-8a5b3659.js",
@@ -1289,6 +1331,40 @@ test("R114 integrates through the native profile menu without a body observer or
   assert.match(deployment, /react_footer_mutation=false/u);
   assert.match(deployment, /body_mutation_observer=false/u);
   assert.match(deployment, /bounded_profile_menu_render_attempts=5/u);
+  assert.match(deployment, /standalone_8215_unchanged=true/u);
+  assert.match(deployment, /routed_8216_app_server_unchanged=true/u);
+  assert.match(deployment, /account_router_process_unchanged=true/u);
+  assert.match(deployment, /account_manager_process_unchanged=true/u);
+  assert.match(deployment, /only_8216_web_restarted=true/u);
+  assert.match(deployment, /model_request_sent=false/u);
+  assert.match(deployment, /account_switch_sent=false/u);
+  assert.doesNotMatch(
+    deployment,
+    /systemctl\s+(?:restart|stop|start)\s+"?\$?(?:APP_SERVICE|ROUTER_SERVICE|MANAGER_SERVICE|MANAGER_SOCKET|STANDALONE_WEB_SERVICE|STANDALONE_APP_SERVICE)/u,
+  );
+});
+
+test("R115 owns lifecycle and controls outside React and restarts only routed Web", async () => {
+  const [panel, lifecycle, deployment] = await Promise.all([
+    fs.readFile(STANDALONE_PANEL),
+    fs.readFile(path.resolve(
+      import.meta.dirname,
+      "../../../integrations/codex-web/router-account-surface-lifecycle.js",
+    )),
+    fs.readFile(R115_DEPLOY, "utf8"),
+  ]);
+  assert.equal(R115_OWNED_ACCOUNT_SURFACE_CONTRACT.replacement_panel_sha256, sha256(panel));
+  assert.equal(R115_OWNED_ACCOUNT_SURFACE_CONTRACT.lifecycle_sha256, sha256(lifecycle));
+  assert.equal(
+    R115_OWNED_ACCOUNT_SURFACE_CONTRACT.predecessor_panel_name,
+    "router-account-panel-8a5b3659.js",
+  );
+  assert.match(deployment, /router-r112-visible-bootstrap-launcher/u);
+  assert.match(deployment, /router-account-panel-270c1de0\.js/u);
+  assert.match(deployment, /router-account-surface-lifecycle\.js/u);
+  assert.match(deployment, /owned_shadow_surface=true/u);
+  assert.match(deployment, /native_react_tree_mutation=false/u);
+  assert.match(deployment, /settings_teardown_closes_account_dialog=false/u);
   assert.match(deployment, /standalone_8215_unchanged=true/u);
   assert.match(deployment, /routed_8216_app_server_unchanged=true/u);
   assert.match(deployment, /account_router_process_unchanged=true/u);

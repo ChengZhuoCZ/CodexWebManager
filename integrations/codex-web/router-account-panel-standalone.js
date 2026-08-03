@@ -1,18 +1,17 @@
+import {
+  accountSurfaceVisibility,
+  createAccountSurfaceState,
+  reduceAccountSurfaceState,
+} from "./router-account-surface-lifecycle.js?v=r115";
+
 const STATUS_PATH = "/__backend/codex-router/status";
 const EVENTS_PATH = "/__backend/codex-router/events";
 const SWITCH_PATH = "/__backend/codex-router/switch";
 const QUOTA_REFRESH_PATH = "/__backend/codex-router/quota-refresh";
 const ACCOUNT_AUTH_PATH = "/__backend/codex-router/accounts/device-auth";
 const SESSION_PATH = "/__backend/session";
-const MENU_SECTION_ID = "codex-router-account-menu-section";
-const FALLBACK_MENU_SECTION_ID = "codex-router-account-menu-section-fallback";
-const FALLBACK_LAUNCHER_ID = "codex-router-account-launcher";
-const FALLBACK_DIALOG_ID = "codex-router-account-dialog";
-const FALLBACK_STYLE_ID = "codex-router-account-launcher-style";
-const PROFILE_ROUTE_ATTRIBUTE = "data-codex-router-current-route";
-const NATIVE_USAGE_BADGE_ATTRIBUTE = "data-codex-router-native-usage-badge";
-const NATIVE_USAGE_SYNC_ATTRIBUTE = "data-codex-router-native-usage-sync";
-const NATIVE_USAGE_ORIGINAL_ATTRIBUTE = "data-codex-router-native-usage-original";
+const ACCOUNT_CONTROLS_SECTION_ID = "codex-router-account-controls";
+const OWNED_SURFACE_HOST_ID = "codex-router-owned-account-surface";
 const PROFILE_BUTTON_SELECTOR = 'button[aria-label="Open profile menu"]';
 const PROFILE_BUTTON_FALLBACK_SELECTOR = 'button[aria-haspopup="menu"]';
 const PROFILE_MENU_SELECTOR = '[role="menu"]';
@@ -344,7 +343,7 @@ function element(name, className, text) {
   return node;
 }
 
-function menuRenderSignature(model, busyAlias, quotaBusy, transientMessage, management) {
+function accountControlsRenderSignature(model, busyAlias, quotaBusy, transientMessage, management) {
   return JSON.stringify({
     accounts: model.accounts,
     banner: model.banner,
@@ -368,13 +367,12 @@ function visibleRectangle(node) {
 
 function profileButtonCandidates() {
   const exact = [...document.querySelectorAll(PROFILE_BUTTON_SELECTOR)].filter(
-    (button) => button instanceof HTMLElement && button.id !== FALLBACK_LAUNCHER_ID,
+    (button) => button instanceof HTMLElement,
   );
   if (exact.length > 0) return exact;
   return [...document.querySelectorAll(PROFILE_BUTTON_FALLBACK_SELECTOR)]
     .filter((button) =>
       button instanceof HTMLElement &&
-      button.id !== FALLBACK_LAUNCHER_ID &&
       button.closest(PROFILE_MENU_SELECTOR) === null &&
       visibleRectangle(button) !== null
     )
@@ -392,40 +390,6 @@ function profileButtonCandidates() {
 function profileButton({ expandedOnly = false } = {}) {
   return profileButtonCandidates().find((button) =>
     !expandedOnly || button.getAttribute("aria-expanded") === "true"
-  ) ?? null;
-}
-
-function syncProfileRouteIdentity(identity) {
-  const button = profileButton();
-  if (button instanceof HTMLElement) {
-    let badge = button.querySelector(`[${PROFILE_ROUTE_ATTRIBUTE}]`);
-    if (identity === null) {
-      badge?.remove();
-    } else if (!(badge instanceof HTMLElement)) {
-      badge = element("span");
-      badge.setAttribute(PROFILE_ROUTE_ATTRIBUTE, "");
-      badge.setAttribute("aria-hidden", "true");
-      Object.assign(badge.style, {
-        display: "inline-flex",
-        alignItems: "center",
-        marginInlineStart: "6px",
-        borderRadius: "999px",
-        padding: "1px 6px",
-        fontSize: "11px",
-        fontWeight: "600",
-        lineHeight: "1.4",
-        whiteSpace: "nowrap",
-        background: "color-mix(in srgb, currentColor 12%, transparent)",
-      });
-      button.append(badge);
-    }
-    if (identity !== null && badge.textContent !== identity.label) badge.textContent = identity.label;
-  }
-}
-
-function findUsageMenuItem(root = document) {
-  return [...root.querySelectorAll(PROFILE_MENU_ITEM_SELECTOR)].find(
-    (item) => item.textContent?.trim().startsWith("Usage remaining"),
   ) ?? null;
 }
 
@@ -490,116 +454,6 @@ function copyDeviceCodeFromPage(value) {
   });
 }
 
-function pruneNativeProfileMenuItems(root = document) {
-  let removed = 0;
-  for (const item of root.querySelectorAll(PROFILE_MENU_ITEM_SELECTOR)) {
-    if (!isPrunedNativeMenuLabel(item.textContent ?? "")) continue;
-    item.remove();
-    removed += 1;
-  }
-  return removed;
-}
-
-function nativeUsageRow(template, label, values) {
-  const row = template.cloneNode(false);
-  row.removeAttribute(NATIVE_USAGE_ORIGINAL_ATTRIBUTE);
-  delete row.dataset.routerOriginalDisplay;
-  row.style.display = template.dataset.routerOriginalDisplay ?? "";
-  const leftTemplate = template.children[0];
-  const rightTemplate = template.children[1];
-  const left = leftTemplate instanceof HTMLElement
-    ? leftTemplate.cloneNode(false)
-    : element("span");
-  const right = rightTemplate instanceof HTMLElement
-    ? rightTemplate.cloneNode(false)
-    : element("span");
-  const leftValue = element("span", "shrink-0", label);
-  left.append(leftValue);
-  values.forEach((value, index) => {
-    if (index > 0) {
-      const separator = element("span", "shrink-0", "·");
-      separator.setAttribute("aria-hidden", "true");
-      right.append(separator);
-    }
-    right.append(element("span", "shrink-0", value));
-  });
-  row.append(left, right);
-  return row;
-}
-
-function restoreNativeUsageSurfaces() {
-  document.querySelectorAll(`[${NATIVE_USAGE_BADGE_ATTRIBUTE}]`).forEach((node) => node.remove());
-  document.querySelectorAll(`[${NATIVE_USAGE_SYNC_ATTRIBUTE}]`).forEach((node) => node.remove());
-  document.querySelectorAll(`[${NATIVE_USAGE_ORIGINAL_ATTRIBUTE}]`).forEach((node) => {
-    if (!(node instanceof HTMLElement)) return;
-    node.style.display = node.dataset.routerOriginalDisplay ?? "";
-    delete node.dataset.routerOriginalDisplay;
-    node.removeAttribute(NATIVE_USAGE_ORIGINAL_ATTRIBUTE);
-  });
-}
-
-function syncNativeUsageSurface(model) {
-  const presentation = nativeUsagePresentation(model);
-  const usageItem = findUsageMenuItem();
-  if (!(usageItem instanceof HTMLElement) || presentation === null) return false;
-
-  const itemRow = usageItem.firstElementChild;
-  if (itemRow instanceof HTMLElement) {
-    let badge = usageItem.querySelector(`[${NATIVE_USAGE_BADGE_ATTRIBUTE}]`);
-    if (!(badge instanceof HTMLElement)) {
-      badge = element("span");
-      badge.setAttribute(NATIVE_USAGE_BADGE_ATTRIBUTE, "");
-      badge.setAttribute("aria-hidden", "true");
-      Object.assign(badge.style, {
-        marginInlineStart: "auto",
-        marginInlineEnd: "4px",
-        fontSize: "10px",
-        fontWeight: "600",
-        opacity: ".62",
-        whiteSpace: "nowrap",
-      });
-      itemRow.insertBefore(badge, itemRow.lastElementChild);
-    }
-    if (badge.textContent !== presentation.badgeLabel) {
-      badge.textContent = presentation.badgeLabel;
-    }
-  }
-
-  const expansion = usageItem.nextElementSibling;
-  if (!(expansion instanceof HTMLElement)) return true;
-  let originalRow = expansion.querySelector(`[${NATIVE_USAGE_ORIGINAL_ATTRIBUTE}]`);
-  if (!(originalRow instanceof HTMLElement)) {
-    const weeklyLabel = [...expansion.querySelectorAll("span")].find(
-      (node) => node.children.length === 0 && node.textContent?.trim() === "Weekly",
-    );
-    const candidate = weeklyLabel?.parentElement?.parentElement;
-    if (!(candidate instanceof HTMLElement) || candidate.children.length < 2) return true;
-    originalRow = candidate;
-    originalRow.setAttribute(NATIVE_USAGE_ORIGINAL_ATTRIBUTE, "");
-    originalRow.dataset.routerOriginalDisplay = originalRow.style.display;
-    originalRow.style.display = "none";
-  }
-  const signature = JSON.stringify(presentation);
-  const current = expansion.querySelector(`[${NATIVE_USAGE_SYNC_ATTRIBUTE}]`);
-  if (current instanceof HTMLElement && current.dataset.renderSignature === signature) return true;
-
-  const sync = element("div");
-  sync.setAttribute(NATIVE_USAGE_SYNC_ATTRIBUTE, "");
-  sync.dataset.renderSignature = signature;
-  sync.setAttribute("aria-label", `Current model route ${presentation.alias}`);
-  sync.append(
-    nativeUsageRow(
-      originalRow,
-      presentation.weeklyLabel,
-      [presentation.weeklyValue, presentation.resetValue],
-    ),
-    nativeUsageRow(originalRow, "Refreshed", [presentation.refreshedValue]),
-  );
-  if (current instanceof HTMLElement) current.replaceWith(sync);
-  else originalRow.insertAdjacentElement("afterend", sync);
-  return true;
-}
-
 function controlledProfileMenu(button) {
   for (const attribute of ["aria-controls", "aria-owns"]) {
     const identifier = button.getAttribute(attribute);
@@ -645,26 +499,10 @@ function findProfileMenu() {
     )[0];
   if (structural instanceof HTMLElement) return structural;
 
-  const usageItem = findUsageMenuItem();
-  if (usageItem instanceof HTMLElement) {
-    let candidate = usageItem.parentElement;
-    while (candidate && candidate !== document.body) {
-      const itemLabels = [...candidate.querySelectorAll(PROFILE_MENU_ITEM_SELECTOR)].map(
-        (item) => item.textContent?.trim() ?? "",
-      );
-      if (
-        itemLabels.some((label) => label.startsWith("Usage remaining")) &&
-        itemLabels.some((label) => label.startsWith("Settings"))
-      ) {
-        return candidate;
-      }
-      candidate = candidate.parentElement;
-    }
-  }
   return null;
 }
 
-function renderProfileMenu(
+function renderAccountControls(
   model,
   onSwitch,
   onQuotaRefresh,
@@ -677,13 +515,19 @@ function renderProfileMenu(
   quotaBusy = false,
   transientMessage = null,
   management = { mode: "idle" },
-  explicitMenu = null,
-  sectionId = MENU_SECTION_ID,
+  explicitContainer,
+  sectionId = ACCOUNT_CONTROLS_SECTION_ID,
 ) {
-  const menu = explicitMenu ?? findProfileMenu();
-  if (!(menu instanceof HTMLElement)) return false;
-  const signature = menuRenderSignature(model, busyAlias, quotaBusy, transientMessage, management);
-  const currentSection = menu.querySelector(`#${sectionId}`);
+  const container = explicitContainer;
+  if (!(container instanceof HTMLElement)) return false;
+  const signature = accountControlsRenderSignature(
+    model,
+    busyAlias,
+    quotaBusy,
+    transientMessage,
+    management,
+  );
+  const currentSection = container.querySelector(`#${sectionId}`);
   if (currentSection instanceof HTMLElement && currentSection.dataset.renderSignature === signature) {
     return true;
   }
@@ -939,7 +783,7 @@ function renderProfileMenu(
   footnote.title = "Cross-account continuity is not verified.";
   section.append(footnote);
   if (currentSection instanceof HTMLElement) currentSection.replaceWith(section);
-  else menu.append(section);
+  else container.append(section);
   return true;
 }
 
@@ -1003,312 +847,175 @@ function domReady() {
   });
 }
 
-export async function installRouterAccountPanel() {
-  if (installedCleanup) return installedCleanup;
-  await domReady();
-  setPanelStage("dom_ready");
-  let model = null;
-  let eventSource = null;
-  let pollTimer = null;
-  let profileMenuRenderTimer = null;
-  let profileMenuRenderAttempt = 0;
-  let stopped = false;
-  let busyAlias = null;
-  let quotaBusy = false;
-  let quotaRefreshAttempted = false;
-  let transientMessage = null;
-  let management = { mode: "idle" };
-  let managementPollTimer = null;
-  let fallbackDismissHandler = null;
-  let fallbackEscapeHandler = null;
-  let launcherStatus = "loading";
-
-  const removeFallbackLauncher = () => {
-    document.getElementById(FALLBACK_LAUNCHER_ID)?.remove();
-    document.getElementById(FALLBACK_DIALOG_ID)?.remove();
-    document.getElementById(FALLBACK_STYLE_ID)?.remove();
-    if (fallbackDismissHandler) {
-      document.removeEventListener("pointerdown", fallbackDismissHandler, true);
-      fallbackDismissHandler = null;
+function createOwnedAccountSurface({ onOpen, onClose, onRetry }) {
+  document.getElementById(OWNED_SURFACE_HOST_ID)?.remove();
+  const host = element("div");
+  host.id = OWNED_SURFACE_HOST_ID;
+  host.dataset.routerOwnedSurface = "true";
+  const root = host.attachShadow({ mode: "open" });
+  const style = element("style");
+  style.textContent = `
+    :host { all: initial; color-scheme: light dark; }
+    * { box-sizing: border-box; }
+    button { color: inherit; font: inherit; }
+    .route-entry, .fallback-launcher { position: fixed; z-index: 2147483000; display: flex;
+      min-width: 0; height: 40px; align-items: center; gap: 8px; border: 1px solid rgba(255,255,255,.14);
+      border-radius: 8px; padding: 0 11px; background: rgba(31,31,31,.985); color: #f5f5f5;
+      box-shadow: 0 8px 28px rgba(0,0,0,.28); font: 500 13px/1.2 -apple-system,
+      BlinkMacSystemFont, "Segoe UI", sans-serif; text-align: left; }
+    .route-entry:hover, .fallback-launcher:hover { background: rgba(43,43,43,.99); }
+    .route-entry:focus-visible, .fallback-launcher:focus-visible, .close:focus-visible {
+      outline: 2px solid #3b82f6; outline-offset: 2px; }
+    .route-entry { width: 280px; }
+    .fallback-launcher { left: 8px; bottom: 56px; width: min(220px, calc(100vw - 16px)); }
+    .icon { flex: none; font-size: 17px; opacity: .8; }
+    .label { min-width: 0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .chevron { flex: none; opacity: .55; }
+    .backdrop { position: fixed; inset: 0; z-index: 2147483001; display: grid; place-items: center;
+      padding: 16px; background: rgba(0,0,0,.28); font: 13px/1.35 -apple-system,
+      BlinkMacSystemFont, "Segoe UI", sans-serif; }
+    .card { width: min(360px, calc(100vw - 32px)); max-height: min(720px, calc(100vh - 32px));
+      overflow: auto; border: 1px solid rgba(255,255,255,.14); border-radius: 12px; padding: 4px;
+      background: rgba(31,31,31,.99); box-shadow: 0 20px 60px rgba(0,0,0,.45); color: #f5f5f5;
+      overscroll-behavior: contain; }
+    .dialog-header { position: sticky; top: 0; z-index: 1; display: flex; align-items: center;
+      justify-content: space-between; gap: 8px; padding: 8px 9px 5px; background: inherit; }
+    .dialog-title { font-size: 13px; font-weight: 650; }
+    .close { width: 28px; height: 28px; border: 0; border-radius: 6px; background: transparent;
+      color: inherit; font-size: 18px; line-height: 1; }
+    .close:hover { background: rgba(127,127,127,.14); }
+    .notice { padding: 10px; font-size: 12px; }
+    .notice button { border: 0; border-radius: 5px; padding: 5px 8px;
+      background: rgba(127,127,127,.16); }
+    [hidden] { display: none !important; }
+    @media (prefers-color-scheme: light) {
+      .route-entry, .fallback-launcher, .card { border-color: rgba(0,0,0,.14);
+        background: rgba(250,250,250,.99); color: #171717; }
+      .route-entry:hover, .fallback-launcher:hover { background: rgba(240,240,240,.99); }
     }
-    if (fallbackEscapeHandler) {
-      document.removeEventListener("keydown", fallbackEscapeHandler, true);
-      fallbackEscapeHandler = null;
-    }
-  };
+  `;
+  const nativeEntry = element("button", "route-entry");
+  nativeEntry.type = "button";
+  nativeEntry.hidden = true;
+  nativeEntry.dataset.routerNativeMenuEntry = "true";
+  nativeEntry.setAttribute("aria-haspopup", "dialog");
+  const nativeEntryLabel = element("span", "label");
+  nativeEntry.append(
+    element("span", "icon", "⇄"),
+    nativeEntryLabel,
+    element("span", "chevron", "›"),
+  );
+  const fallbackLauncher = element("button", "fallback-launcher");
+  fallbackLauncher.type = "button";
+  fallbackLauncher.hidden = true;
+  fallbackLauncher.dataset.routerFallbackLauncher = "true";
+  fallbackLauncher.setAttribute("aria-haspopup", "dialog");
+  const fallbackLabel = element("span", "label");
+  fallbackLauncher.append(element("span", "icon", "⇄"), fallbackLabel);
+  const backdrop = element("div", "backdrop");
+  backdrop.hidden = true;
+  const card = element("section", "card");
+  card.setAttribute("role", "dialog");
+  card.setAttribute("aria-modal", "true");
+  card.setAttribute("aria-label", "Account routing settings");
+  const header = element("header", "dialog-header");
+  const close = element("button", "close", "×");
+  close.type = "button";
+  close.setAttribute("aria-label", "Close account routing settings");
+  header.append(element("span", "dialog-title", "Account routing"), close);
+  const content = element("div");
+  card.append(header, content);
+  backdrop.append(card);
+  root.append(style, nativeEntry, fallbackLauncher, backdrop);
+  document.body.append(host);
 
-  const renderFallbackMenu = (dialog) => {
-    if (!model) {
-      const notice = element("div");
-      Object.assign(notice.style, { padding: "10px", fontSize: "12px" });
+  nativeEntry.addEventListener("click", onOpen);
+  fallbackLauncher.addEventListener("click", onOpen);
+  close.addEventListener("click", onClose);
+  backdrop.addEventListener("pointerdown", (event) => {
+    if (event.target === backdrop) onClose();
+  });
+
+  return Object.freeze({
+    positionNativeEntry(rectangle) {
+      const width = Math.min(320, Math.max(220, rectangle.width));
+      const left = Math.max(8, Math.min(rectangle.left, window.innerWidth - width - 8));
+      const preferredTop = rectangle.top - 46;
+      const top = preferredTop >= 8
+        ? preferredTop
+        : Math.min(window.innerHeight - 48, rectangle.bottom + 6);
+      nativeEntry.style.left = `${left}px`;
+      nativeEntry.style.top = `${Math.max(8, top)}px`;
+      nativeEntry.style.width = `${width}px`;
+    },
+    render({ state, label, renderControls }) {
+      const visibility = accountSurfaceVisibility(state);
+      nativeEntry.hidden = !visibility.nativeMenuEntry;
+      fallbackLauncher.hidden = !visibility.fallbackLauncher;
+      backdrop.hidden = !visibility.accountDialog;
+      nativeEntryLabel.textContent = label;
+      fallbackLabel.textContent = label;
+      nativeEntry.setAttribute("aria-label", label);
+      fallbackLauncher.setAttribute("aria-label", label);
+      if (!visibility.accountDialog) return;
+      content.replaceChildren();
+      if (typeof renderControls === "function") {
+        renderControls(content);
+        return;
+      }
+      const notice = element("div", "notice");
       notice.append(element(
         "p",
         undefined,
-        launcherStatus === "unavailable"
+        state.status === "unavailable"
           ? "Router status is temporarily unavailable."
           : "Account controls are loading…",
       ));
-      const stage = document.documentElement.dataset.routerPanelStage ?? "unknown";
-      const detail = element("p", undefined, `Stage: ${stage}`);
-      Object.assign(detail.style, { margin: "5px 0", opacity: ".62", fontSize: "10px" });
       const retry = element("button", undefined, "Retry");
       retry.type = "button";
-      Object.assign(retry.style, {
-        border: "0",
-        borderRadius: "5px",
-        padding: "5px 8px",
-        background: "rgba(127,127,127,.16)",
-        color: "inherit",
-      });
-      retry.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        launcherStatus = "loading";
-        renderFallbackLauncher();
-        refresh().catch(() => {
-          launcherStatus = "unavailable";
-          renderFallbackLauncher();
-        });
-      });
-      notice.append(detail, retry);
-      dialog.replaceChildren(notice);
-      return true;
-    }
-    return renderProfileMenu(
-      model,
-      requestSwitch,
-      () => requestQuotaRefresh(true),
-      beginAdd,
-      submitAdd,
-      cancelManagement,
-      beginRemove,
-      confirmRemove,
-      busyAlias,
-      quotaBusy,
-      transientMessage,
-      management,
-      dialog,
-      FALLBACK_MENU_SECTION_ID,
-    );
-  };
+      retry.addEventListener("click", onRetry);
+      notice.append(retry);
+      content.append(notice);
+    },
+    focusClose() {
+      close.focus({ preventScroll: true });
+    },
+    destroy() {
+      host.remove();
+    },
+  });
+}
 
-  const renderFallbackLauncher = () => {
+function createNativeProfileMenuAdapter({ onStateEvent, onMenuRectangle }) {
+  let timer = null;
+  let attempt = 0;
+  let stopped = false;
+  const inspect = () => {
+    timer = null;
     if (stopped) return;
-    if (profileButton() instanceof HTMLElement) {
-      removeFallbackLauncher();
-      return;
-    }
-    let launcher = document.getElementById(FALLBACK_LAUNCHER_ID);
-    let dialog = document.getElementById(FALLBACK_DIALOG_ID);
-    if (!(launcher instanceof HTMLButtonElement) || !(dialog instanceof HTMLElement)) {
-      launcher?.remove();
-      dialog?.remove();
-      if (!document.getElementById(FALLBACK_STYLE_ID)) {
-        const style = element("style");
-        style.id = FALLBACK_STYLE_ID;
-        style.textContent = `
-          #${FALLBACK_LAUNCHER_ID} { z-index: 2147483000; display: flex; height: 40px; align-items: center;
-            gap: 8px; border-radius: 8px; padding: 0 11px;
-            font: 500 13px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-align: left; }
-          #${FALLBACK_LAUNCHER_ID}[data-router-launcher-surface="standalone"] { position: fixed; left: 8px;
-            bottom: 56px; width: min(220px, calc(100vw - 16px)); border: 1px solid rgba(255,255,255,.14);
-            background: rgba(31,31,31,.97); box-shadow: 0 8px 28px rgba(0,0,0,.28); color: #f5f5f5; }
-          #${FALLBACK_LAUNCHER_ID}[data-router-launcher-surface="standalone"]:hover {
-            background: rgba(43,43,43,.98); }
-          #${FALLBACK_LAUNCHER_ID}:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
-          #${FALLBACK_LAUNCHER_ID} .router-launcher-icon { flex: none; font-size: 17px; opacity: .8; }
-          #${FALLBACK_LAUNCHER_ID} .router-launcher-label { min-width: 0; overflow: hidden;
-            text-overflow: ellipsis; white-space: nowrap; }
-          #${FALLBACK_DIALOG_ID} { position: fixed; left: 8px; bottom: 104px; z-index: 2147483001;
-            width: min(320px, calc(100vw - 16px)); max-height: calc(100vh - 120px); overflow: auto;
-            border: 1px solid rgba(255,255,255,.14); border-radius: 10px; padding: 4px;
-            background: rgba(31,31,31,.985); box-shadow: 0 16px 44px rgba(0,0,0,.38); color: #f5f5f5;
-            font: 13px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-            overscroll-behavior: contain; }
-          #${FALLBACK_DIALOG_ID}[hidden] { display: none !important; }
-          @media (prefers-color-scheme: light) {
-            #${FALLBACK_LAUNCHER_ID}[data-router-launcher-surface="standalone"], #${FALLBACK_DIALOG_ID} {
-              border-color: rgba(0,0,0,.14); background: rgba(250,250,250,.985); color: #171717; }
-            #${FALLBACK_LAUNCHER_ID}[data-router-launcher-surface="standalone"]:hover {
-              background: rgba(240,240,240,.99); }
-          }
-        `;
-        document.head.append(style);
-      }
-      launcher = element("button");
-      launcher.id = FALLBACK_LAUNCHER_ID;
-      launcher.type = "button";
-      launcher.setAttribute("aria-haspopup", "menu");
-      launcher.setAttribute("aria-expanded", "false");
-      launcher.setAttribute("aria-controls", FALLBACK_DIALOG_ID);
-      launcher.title = "Open account routing controls";
-      launcher.dataset.routerLauncherSurface = "standalone";
-      launcher.append(
-        element("span", "router-launcher-icon", "⇄"),
-        element("span", "router-launcher-label"),
-      );
-      dialog = element("div");
-      dialog.id = FALLBACK_DIALOG_ID;
-      dialog.hidden = true;
-      dialog.setAttribute("role", "menu");
-      dialog.setAttribute("aria-label", "Account routing controls");
-      launcher.addEventListener("click", (event) => {
-        event.preventDefault();
-        event.stopPropagation();
-        const opening = dialog.hidden;
-        dialog.hidden = !opening;
-        launcher.setAttribute("aria-expanded", String(opening));
-        if (opening) {
-          const rectangle = visibleRectangle(launcher);
-          if (rectangle !== null) {
-            const viewportWidth = Math.max(0, window.innerWidth);
-            const dialogWidth = Math.min(320, Math.max(0, viewportWidth - 16));
-            dialog.style.left = `${Math.max(8, Math.min(rectangle.left, viewportWidth - dialogWidth - 8))}px`;
-            dialog.style.bottom = `${Math.max(8, window.innerHeight - rectangle.top + 8)}px`;
-          }
-          renderFallbackMenu(dialog);
-        }
-      });
-      document.body.append(launcher, dialog);
-      fallbackDismissHandler ??= (event) => {
-        const activeLauncher = document.getElementById(FALLBACK_LAUNCHER_ID);
-        const activeDialog = document.getElementById(FALLBACK_DIALOG_ID);
-        if (
-          !(activeLauncher instanceof HTMLButtonElement) ||
-          !(activeDialog instanceof HTMLElement) || activeDialog.hidden ||
-          activeLauncher.contains(event.target) || activeDialog.contains(event.target)
-        ) return;
-        activeDialog.hidden = true;
-        activeLauncher.setAttribute("aria-expanded", "false");
-      };
-      fallbackEscapeHandler ??= (event) => {
-        if (event.key !== "Escape") return;
-        const activeLauncher = document.getElementById(FALLBACK_LAUNCHER_ID);
-        const activeDialog = document.getElementById(FALLBACK_DIALOG_ID);
-        if (!(activeLauncher instanceof HTMLButtonElement) || !(activeDialog instanceof HTMLElement)) return;
-        activeDialog.hidden = true;
-        activeLauncher.setAttribute("aria-expanded", "false");
-        activeLauncher.focus();
-      };
-      document.addEventListener("pointerdown", fallbackDismissHandler, true);
-      document.addEventListener("keydown", fallbackEscapeHandler, true);
-    }
-    if (launcher.parentElement !== document.body) document.body.append(launcher);
-    launcher.dataset.routerLauncherSurface = "standalone";
-    const currentAlias = model?.accounts.find((account) => account.isCurrent)?.alias ?? "Unavailable";
-    const launcherLabel = model
-      ? `Account route · ${currentAlias}`
-      : launcherStatus === "unavailable"
-        ? "Account route · Unavailable"
-        : "Account route · Loading…";
-    const label = launcher.querySelector(".router-launcher-label");
-    if (label instanceof HTMLElement) label.textContent = launcherLabel;
-    launcher.setAttribute("aria-label", launcherLabel);
-    if (!dialog.hidden) renderFallbackMenu(dialog);
-  };
-
-  const renderNativeMenuNotice = () => {
+    const trigger = profileButton();
+    onStateEvent({ type: trigger instanceof HTMLElement
+      ? "native_trigger_present"
+      : "native_trigger_absent" });
     const menu = findProfileMenu();
-    if (!(menu instanceof HTMLElement)) return false;
-    const signature = `notice:${launcherStatus}`;
-    const current = menu.querySelector(`#${MENU_SECTION_ID}`);
-    if (current instanceof HTMLElement && current.dataset.renderSignature === signature) return true;
-    const section = element("div");
-    section.id = MENU_SECTION_ID;
-    section.dataset.renderSignature = signature;
-    section.setAttribute("role", "group");
-    section.setAttribute("aria-label", "Account route");
-    Object.assign(section.style, {
-      margin: "3px 5px 4px",
-      borderTop: "1px solid color-mix(in srgb, currentColor 12%, transparent)",
-      padding: "7px 5px 3px",
-      fontSize: "11px",
-    });
-    section.append(element(
-      "span",
-      undefined,
-      launcherStatus === "unavailable"
-        ? "Account route · Temporarily unavailable"
-        : "Account route · Loading…",
-    ));
-    const retry = element("button", undefined, "Retry");
-    retry.type = "button";
-    retry.setAttribute("aria-label", "Retry account route status");
-    Object.assign(retry.style, {
-      marginInlineStart: "8px",
-      border: "0",
-      borderRadius: "5px",
-      padding: "2px 5px",
-      background: "color-mix(in srgb, currentColor 9%, transparent)",
-      color: "inherit",
-      font: "inherit",
-    });
-    retry.addEventListener("click", (event) => {
-      event.preventDefault();
-      event.stopPropagation();
-      launcherStatus = "loading";
-      renderNativeMenuNotice();
-      refresh().catch(() => {
-        launcherStatus = "unavailable";
-        renderNativeMenuNotice();
-      });
-    });
-    section.append(retry);
-    if (current instanceof HTMLElement) current.replaceWith(section);
-    else menu.append(section);
-    return true;
-  };
-
-  const renderSurfaces = () => {
-    renderFallbackLauncher();
-    if (stopped) return;
-    if (!model) {
-      renderNativeMenuNotice();
-      return;
+    if (menu instanceof HTMLElement) {
+      onStateEvent({ type: "native_menu_opened" });
+      const rectangle = visibleRectangle(menu);
+      if (rectangle !== null) onMenuRectangle(rectangle);
+    } else {
+      onStateEvent({ type: "native_menu_closed" });
     }
-    pruneNativeProfileMenuItems();
-    syncNativeUsageSurface(model);
-    renderProfileMenu(
-      model,
-      requestSwitch,
-      () => requestQuotaRefresh(true),
-      beginAdd,
-      submitAdd,
-      cancelManagement,
-      beginRemove,
-      confirmRemove,
-      busyAlias,
-      quotaBusy,
-      transientMessage,
-      management,
-    );
+    if (attempt + 1 >= PROFILE_MENU_RENDER_MAX_ATTEMPTS) return;
+    attempt += 1;
+    timer = window.setTimeout(inspect, PROFILE_MENU_RENDER_DELAYS_MS[attempt]);
   };
-
-  const scheduleProfileMenuRender = () => {
+  const schedule = () => {
     if (stopped) return;
-    if (profileMenuRenderTimer !== null) window.clearTimeout(profileMenuRenderTimer);
-    profileMenuRenderAttempt = 0;
-    const attempt = () => {
-      profileMenuRenderTimer = null;
-      if (stopped) return;
-      renderSurfaces();
-      if (
-        findProfileMenu() instanceof HTMLElement ||
-        profileMenuRenderAttempt + 1 >= PROFILE_MENU_RENDER_MAX_ATTEMPTS
-      ) return;
-      profileMenuRenderAttempt += 1;
-      profileMenuRenderTimer = window.setTimeout(
-        attempt,
-        PROFILE_MENU_RENDER_DELAYS_MS[profileMenuRenderAttempt],
-      );
-    };
-    profileMenuRenderTimer = window.setTimeout(
-      attempt,
-      PROFILE_MENU_RENDER_DELAYS_MS[profileMenuRenderAttempt],
-    );
+    if (timer !== null) window.clearTimeout(timer);
+    attempt = 0;
+    timer = window.setTimeout(inspect, PROFILE_MENU_RENDER_DELAYS_MS[0]);
   };
-
-  const profileMenuActivationHandler = (event) => {
+  const activationHandler = (event) => {
     if (
       event.type === "keydown" &&
       (!(event instanceof KeyboardEvent) || !new Set(["Enter", " "]).has(event.key))
@@ -1316,17 +1023,103 @@ export async function installRouterAccountPanel() {
     const target = event.target;
     if (!(target instanceof Element)) return;
     const button = target.closest(PROFILE_BUTTON_FALLBACK_SELECTOR);
-    if (!(button instanceof HTMLElement) || !profileButtonCandidates().includes(button)) return;
-    scheduleProfileMenuRender();
+    if (button instanceof HTMLElement && profileButtonCandidates().includes(button)) {
+      schedule();
+      return;
+    }
+    if (findProfileMenu() instanceof HTMLElement) schedule();
   };
+  for (const eventName of PROFILE_MENU_ACTIVATION_EVENTS) {
+    document.addEventListener(eventName, activationHandler, true);
+  }
+  schedule();
+  return () => {
+    stopped = true;
+    if (timer !== null) window.clearTimeout(timer);
+    for (const eventName of PROFILE_MENU_ACTIVATION_EVENTS) {
+      document.removeEventListener(eventName, activationHandler, true);
+    }
+  };
+}
+
+export async function installRouterAccountPanel() {
+  if (installedCleanup) return installedCleanup;
+  await domReady();
+  setPanelStage("dom_ready");
+  let model = null;
+  let eventSource = null;
+  let pollTimer = null;
+  let stopped = false;
+  let busyAlias = null;
+  let quotaBusy = false;
+  let quotaRefreshAttempted = false;
+  let transientMessage = null;
+  let management = { mode: "idle" };
+  let managementPollTimer = null;
+  let surfaceState = createAccountSurfaceState();
+  let ownedSurface = null;
+  let profileAdapterCleanup = null;
+
+  const renderOwnedSurface = () => {
+    if (stopped || ownedSurface === null) return;
+    const identity = model === null ? null : currentRouteIdentity(model);
+    const label = identity === null
+      ? surfaceState.status === "unavailable"
+        ? "Account route · Unavailable"
+        : "Account route · Loading…"
+      : identity.label;
+    ownedSurface.render({
+      state: surfaceState,
+      label,
+      renderControls: model === null ? null : (container) => renderAccountControls(
+        model,
+        requestSwitch,
+        () => requestQuotaRefresh(true),
+        beginAdd,
+        submitAdd,
+        cancelManagement,
+        beginRemove,
+        confirmRemove,
+        busyAlias,
+        quotaBusy,
+        transientMessage,
+        management,
+        container,
+      ),
+    });
+  };
+  const dispatchSurface = (event) => {
+    surfaceState = reduceAccountSurfaceState(surfaceState, event);
+    renderOwnedSurface();
+  };
+  ownedSurface = createOwnedAccountSurface({
+    onOpen: () => {
+      dispatchSurface({ type: "account_dialog_opened" });
+      ownedSurface?.focusClose();
+    },
+    onClose: () => dispatchSurface({ type: "account_dialog_closed" }),
+    onRetry: () => {
+      dispatchSurface({ type: "status_changed", status: "loading" });
+      refresh().catch(() => dispatchSurface({ type: "status_changed", status: "unavailable" }));
+    },
+  });
+  profileAdapterCleanup = createNativeProfileMenuAdapter({
+    onStateEvent: dispatchSurface,
+    onMenuRectangle: (rectangle) => ownedSurface?.positionNativeEntry(rectangle),
+  });
+  const escapeHandler = (event) => {
+    if (event.key === "Escape" && surfaceState.dialogOpen) {
+      dispatchSurface({ type: "account_dialog_closed" });
+    }
+  };
+  document.addEventListener("keydown", escapeHandler, true);
   const showError = (message) => {
     transientMessage = message;
     if (!model) {
-      launcherStatus = "unavailable";
-      renderFallbackLauncher();
+      dispatchSurface({ type: "status_changed", status: "unavailable" });
       return;
     }
-    renderSurfaces();
+    renderOwnedSurface();
   };
   const refresh = async () => {
     setPanelStage("status_request");
@@ -1341,9 +1134,9 @@ export async function installRouterAccountPanel() {
       throw new Error("router status is unavailable");
     }
     model = deriveRouterAccountPanelModel(body.router);
-    launcherStatus = "ready";
+    dispatchSurface({ type: "status_changed", status: "ready" });
     transientMessage = null;
-    renderSurfaces();
+    renderOwnedSurface();
     setPanelStage("ready");
     return "enabled";
   };
@@ -1352,7 +1145,7 @@ export async function installRouterAccountPanel() {
     quotaBusy = true;
     quotaRefreshAttempted = true;
     transientMessage = null;
-    renderSurfaces();
+    renderOwnedSurface();
     try {
       const response = await requestJson(QUOTA_REFRESH_PATH, {
         method: "POST",
@@ -1382,7 +1175,7 @@ export async function installRouterAccountPanel() {
       if (showFailure) showError("Weekly quota refresh was not available.");
     } finally {
       quotaBusy = false;
-      renderSurfaces();
+      renderOwnedSurface();
     }
   }
   async function requestSwitch(account) {
@@ -1395,7 +1188,7 @@ export async function installRouterAccountPanel() {
     }
     busyAlias = account.alias;
     transientMessage = null;
-    renderSurfaces();
+    renderOwnedSurface();
     try {
       const response = await requestJson(SWITCH_PATH, {
         method: "POST",
@@ -1412,7 +1205,7 @@ export async function installRouterAccountPanel() {
       showError("Manual switch was not accepted.");
     } finally {
       busyAlias = null;
-      renderSurfaces();
+      renderOwnedSurface();
     }
   }
   function clearManagementPoll() {
@@ -1425,7 +1218,7 @@ export async function installRouterAccountPanel() {
     if (stopped || management.mode !== "idle" || model?.activeStreams > 0) return;
     management = { mode: "add_alias" };
     transientMessage = null;
-    renderSurfaces();
+    renderOwnedSurface();
   }
   async function submitAdd(rawAlias) {
     if (stopped || management.mode !== "add_alias") return;
@@ -1439,7 +1232,7 @@ export async function installRouterAccountPanel() {
     const { alias } = requestBody;
     management = { mode: "starting", alias, operationId: null, verificationUrl: null, userCode: null };
     transientMessage = null;
-    renderSurfaces();
+    renderOwnedSurface();
     try {
       const response = await requestJson(ACCOUNT_AUTH_PATH, {
         method: "POST",
@@ -1462,7 +1255,7 @@ export async function installRouterAccountPanel() {
         verificationUrl: typeof body.verification_url === "string" ? body.verification_url : null,
         userCode: typeof body.user_code === "string" ? body.user_code : null,
       };
-      renderSurfaces();
+      renderOwnedSurface();
       managementPollTimer = window.setTimeout(pollDeviceAuth, 750);
     } catch {
       management = { mode: "idle" };
@@ -1500,7 +1293,7 @@ export async function installRouterAccountPanel() {
         verificationUrl: typeof body.verification_url === "string" ? body.verification_url : null,
         userCode: typeof body.user_code === "string" ? body.user_code : null,
       };
-      renderSurfaces();
+      renderOwnedSurface();
       managementPollTimer = window.setTimeout(pollDeviceAuth, 1_000);
     } catch {
       management = { mode: "idle" };
@@ -1511,7 +1304,7 @@ export async function installRouterAccountPanel() {
     clearManagementPoll();
     const operationId = management.operationId;
     management = { mode: "idle" };
-    renderSurfaces();
+    renderOwnedSurface();
     if (typeof operationId !== "string") return;
     try {
       await requestJson(`${ACCOUNT_AUTH_PATH}/${operationId}`, {
@@ -1527,12 +1320,12 @@ export async function installRouterAccountPanel() {
     ) return;
     management = { mode: "remove_confirm", alias };
     transientMessage = null;
-    renderSurfaces();
+    renderOwnedSurface();
   }
   async function confirmRemove(alias) {
     if (stopped || management.mode !== "remove_confirm" || management.alias !== alias) return;
     management = { mode: "remove_working", alias };
-    renderSurfaces();
+    renderOwnedSurface();
     try {
       const requestBody = buildAccountRemovalRequest(alias, model);
       const response = await requestJson(`/__backend/codex-router/accounts/${encodeURIComponent(alias)}`, {
@@ -1555,16 +1348,16 @@ export async function installRouterAccountPanel() {
     }
   }
 
-  renderFallbackLauncher();
+  renderOwnedSurface();
   try {
     if (await refresh() === "disabled") {
-      launcherStatus = "unavailable";
+      dispatchSurface({ type: "status_changed", status: "unavailable" });
       setPanelStage("disabled");
-      renderFallbackLauncher();
+      renderOwnedSurface();
     }
   } catch {
-    launcherStatus = "unavailable";
-    renderFallbackLauncher();
+    dispatchSurface({ type: "status_changed", status: "unavailable" });
+    renderOwnedSurface();
   }
   if (!quotaRefreshAttempted && model?.accounts.some((account) => account.weeklyLabel === "Not observed yet")) {
     await requestQuotaRefresh(false);
@@ -1578,24 +1371,15 @@ export async function installRouterAccountPanel() {
   pollTimer = window.setInterval(() => {
     refresh().catch(() => showError("Router status is temporarily unavailable."));
   }, POLL_INTERVAL_MS);
-  for (const eventName of PROFILE_MENU_ACTIVATION_EVENTS) {
-    document.addEventListener(eventName, profileMenuActivationHandler, true);
-  }
-  scheduleProfileMenuRender();
   installedCleanup = () => {
     if (stopped) return;
     stopped = true;
     clearManagementPoll();
     eventSource?.close();
-    if (profileMenuRenderTimer !== null) window.clearTimeout(profileMenuRenderTimer);
-    for (const eventName of PROFILE_MENU_ACTIVATION_EVENTS) {
-      document.removeEventListener(eventName, profileMenuActivationHandler, true);
-    }
+    profileAdapterCleanup?.();
+    document.removeEventListener("keydown", escapeHandler, true);
     if (pollTimer !== null) window.clearInterval(pollTimer);
-    document.getElementById(MENU_SECTION_ID)?.remove();
-    removeFallbackLauncher();
-    document.querySelectorAll(`[${PROFILE_ROUTE_ATTRIBUTE}]`).forEach((badge) => badge.remove());
-    restoreNativeUsageSurfaces();
+    ownedSurface?.destroy();
     installedCleanup = null;
   };
   window.addEventListener("beforeunload", installedCleanup, { once: true });
