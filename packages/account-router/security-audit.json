@@ -79,8 +79,8 @@
     "test/websocket-tunnel.test.mjs"
   ],
   "strict_ci_baseline": {
-    "evidence_file": "evidence/M6.9/router-r73-github-actions-summary.json",
-    "head_sha": "9f9afc7bef0e04bcd26ce5aec1ea77e9b5320e6d",
+    "evidence_file": "evidence/M6.9/router-r127-github-actions-summary.json",
+    "head_sha": "c1c8ce4021e6547468d467fd2fa18b13a086ae70",
     "protected_paths": [
       "integrations/codex-web",
       "packages/account-router/scripts/run-codex-web-account-ui.mjs",
