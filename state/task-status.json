@@ -101,6 +101,7 @@
     "r121_native_menu_row": "fc7d8d3",
     "r122_native_menu_contract": "3a1041598eba2fd38b916111f3ef9d454cc77ff5",
     "r124_current_auto_failover": "a16114f0312aa1b24ef9575f454391559345e4c3",
+    "r125_r130_optimization_start": "ad2a00b8e5e11ef082a1496f8ee29489e9481e0a",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
@@ -108,7 +109,7 @@
   },
   "output_revision": "e84c8d4fceea2c01348bcd6089d61f51fe48bf96",
   "workspace_branch": "codex/m6-9-8216-r85-handoff",
-  "workspace_input_revision": "a16114f0312aa1b24ef9575f454391559345e4c3",
+  "workspace_input_revision": "ad2a00b8e5e11ef082a1496f8ee29489e9481e0a",
   "depends_on": [
     "M2.5",
     "M6.8",
@@ -6523,6 +6524,26 @@
       "semantic_stream_replay_attempted": false,
       "cross_account_continuity_claimed": false,
       "status": "done"
+    },
+    "r125_r130_optimization_start": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "ad2a00b8e5e11ef082a1496f8ee29489e9481e0a",
+      "depends_on": [
+        "M2.5",
+        "M6.8",
+        "G-SECRETS"
+      ],
+      "expected_outputs": [
+        "event-driven Router-to-account-manager native identity synchronization with bounded polling fallback",
+        "sanitized automatic failover timing and stage telemetry",
+        "clean Safari and Edge cold/warm startup baselines",
+        "baseline-driven first-screen code splitting with deferred Plugins and Scheduled modules and no Computer Use module",
+        "8216-only restart recovery qualification",
+        "restored pinned upstream fixture and complete strict CI evidence"
+      ],
+      "standalone_8215_mutation_authorized": false,
+      "status": "in_progress"
     }
   },
   "blockers": [],
@@ -6767,5 +6788,5 @@
     "R123 does not change continuity semantics. Manual or automatic account switching starts a new backend session and does not migrate, replay, resume or restore prior semantic output, an in-flight request or running computation.",
     "R124 qualifies one current-version real new initial HTTP/SSE request from a pre-semantic Primary authentication failure to Secondary completion. Real post-semantic disruption was not induced; installed-package HTTP/SSE and WebSocket fixtures prove unsafe_to_replay with zero Secondary contact after semantic output. No backend session, in-flight request or running computation is migrated, replayed, resumed or restored."
   ],
-  "updated_at": "2026-08-04T00:02:26+08:00"
+  "updated_at": "2026-08-04T00:09:00+08:00"
 }
