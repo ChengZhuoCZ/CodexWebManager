@@ -96,6 +96,7 @@
     "r116_react_account_settings": "72ac998ac77457b016db90a1151cdaa7918c75a2",
     "r117_app_server_recovery": "03c306389627d2eddabeb7f171b59c0e67642dd7",
     "r118_native_identity_sync": "c508eca0cf0b5423ad1544a3ad12f0eba72313a0",
+    "r119_manager_framing": "7c572cca791ac051c7fa9a60f2baee840238e77f",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
@@ -6314,7 +6315,7 @@
       "branch": "codex/m6-9-8216-r85-handoff",
       "input_revision": "c508eca0cf0b5423ad1544a3ad12f0eba72313a0",
       "implementation_revision": "a58f4283193b22062436d1dfa7eac0deeda2c03d",
-      "evidence": "evidence/M6.9/router-r118-native-identity-sync-blocker.json",
+      "evidence": "evidence/M6.9/router-r118-native-identity-sync-deployment.json",
       "artifact_sha256": "819b716adc608e53be57fd45a56bedbb6befbfd8a0b5f0055baa55cda95eb45a",
       "fixed_8216_service_protocol": true,
       "atomic_native_credential_rebind": true,
@@ -6322,17 +6323,41 @@
       "active_request_and_stream_gate": true,
       "arbitrary_root_command_execution": false,
       "server_read_only_preflight_completed": true,
+      "server_mutated": true,
+      "active_router_release": "codex-account-router-0.2.34-linux-x64",
+      "active_web_release": "c3e92f0f-20260803-m69-router-r118-native-identity-sync",
+      "all_seven_related_units_active": true,
+      "app_server_credential_matches_current_route": true,
+      "routed_8216_app_server_unchanged": true,
+      "standalone_8215_mutated": false,
+      "model_request_sent": false,
+      "account_switch_sent": false,
+      "semantic_stream_replay_attempted": false,
+      "cross_account_continuity_claimed": false,
+      "status": "done"
+    },
+    "r119_manager_framing": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "7c572cca791ac051c7fa9a60f2baee840238e77f",
+      "implementation_revision": "7c572cca791ac051c7fa9a60f2baee840238e77f",
+      "evidence": "evidence/M6.9/router-r119-manager-framing-blocker.json",
+      "artifact_sha256": "3a7c9a4e7842aa9eca6b171d06d8f3cf5e33f2eacfeb45faa33281b7bad5adb1",
+      "delayed_manager_response_regression_passed": true,
+      "manager_server_half_close_safe": true,
+      "web_manager_clients_wait_for_response": true,
+      "arbitrary_root_command_execution": false,
       "server_mutated": false,
       "standalone_8215_mutated": false,
       "model_request_sent": false,
       "account_switch_sent": false,
       "semantic_stream_replay_attempted": false,
       "cross_account_continuity_claimed": false,
-      "status": "blocked_pending_explicit_install_activation_authorization"
+      "status": "blocked"
     }
   },
   "blockers": [
-    "R118 implementation and local qualification are complete, but installing account-router 0.2.34 and replacing/restarting persistent 8216 systemd units require explicit deployment authorization beyond the approved runtime helper boundary."
+    "R119 is locally implemented and qualified, but activating account-router 0.2.35 and an R119 Web release requires a new explicit deployment authorization because the prior authorization named commit a58f428 and version 0.2.34."
   ],
   "residual_risks": [
     "Cross-account continuity remains unverified and is not claimed.",
@@ -6555,9 +6580,11 @@
     "R117 recovers the native App Host by rebinding its fixed systemd credential from the expired Primary credential to the existing Secondary credential. It starts a new backend session and does not restore the prior session or in-flight work.",
     "The 8216 App Server still has one fixed systemd credential. Router-only manual or automatic route changes do not persistently rebind the native App Server identity, so a later expiry can return the native App Host to the login screen even if another router credential remains usable.",
     "Making the native App Server identity follow every router route change would expand the approved root helper beyond its current catalog/credential-store/account-router-only restart boundary and requires a separate least-privilege design and authorization.",
-    "R118 locally implements the separately approved least-privilege native identity synchronization boundary, but it is not active on the server until account-router 0.2.34 and the 8216-only manager/Web units receive explicit installation and activation authorization.",
+    "R118 is active on 8216 with account-router 0.2.34 and the R118 Web release. Two failed mutation attempts rolled back to R116/0.2.33 before the final successful activation; 8215 and the 8216 App Server remained unchanged throughout.",
     "R118 complete E2E qualification remains partially blocked by legacy upstream scratch assets that are not present in the repository or the pinned public checkout; focused runtime, persistence and security tests passed, but the missing legacy build inputs are not treated as successful E2E evidence.",
-    "The R118 aggregate strict-CI audit remains fail-closed because protected integrations/codex-web paths intentionally changed after the retained baseline; focused security tests and the zero-finding repository scan do not replace a newly qualified strict-CI run."
+    "The R118 aggregate strict-CI audit remains fail-closed because protected integrations/codex-web paths intentionally changed after the retained baseline; focused security tests and the zero-finding repository scan do not replace a newly qualified strict-CI run.",
+    "R118 still has a Unix Socket half-close race for asynchronous root-helper responses. R119 fixes both server and Web-client framing locally, but no live account switch is attempted and manual/automatic native identity synchronization is not claimed operational until R119 is explicitly deployed and qualified.",
+    "The in-app browser automation channel timed out before navigating away from about:blank. Protected server-side HTML and router status checks passed, but R118 browser-rendered composer or account-window behavior is not additionally claimed from that attempt."
   ],
-  "updated_at": "2026-08-03T19:53:30+08:00"
+  "updated_at": "2026-08-03T20:28:19+08:00"
 }

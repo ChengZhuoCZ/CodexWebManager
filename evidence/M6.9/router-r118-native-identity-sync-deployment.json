@@ -1,0 +1,80 @@
+{
+  "task": "M6.9",
+  "continuation": "R118 native route and App Server identity synchronization deployment",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "implementation_revision": "a58f4283193b22062436d1dfa7eac0deeda2c03d",
+  "deployment_script_revision": "7c572cca791ac051c7fa9a60f2baee840238e77f",
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "deployment_attempts": [
+    {
+      "result": "preflight_failed_without_mutation",
+      "reason": "The 0.2.33 status schema uses current_route.account_alias and status=ready.",
+      "services_restarted": false
+    },
+    {
+      "result": "rolled_back",
+      "reason": "Restrictive deployment umask reduced newly written public Web release files to 0600; the transformer was repaired to chmod before atomic rename.",
+      "standalone_8215_restored_without_restart": true,
+      "routed_8216_app_server_unchanged": true
+    },
+    {
+      "result": "rolled_back",
+      "reason": "The deployment probe incorrectly required internal active_requests in the sanitized Web status response; direct Router active-request verification remained in place.",
+      "standalone_8215_restored_without_restart": true,
+      "routed_8216_app_server_unchanged": true
+    },
+    {
+      "result": "success",
+      "router_release": "codex-account-router-0.2.34-linux-x64",
+      "web_release": "c3e92f0f-20260803-m69-router-r118-native-identity-sync"
+    }
+  ],
+  "installed_units": {
+    "codex_web_router_service_sha256": "32df27d024a2f24800e82981768ded9153e8c4dcc3f544406f6e503550c8b95d",
+    "account_manager_service_sha256": "15c1f8bdc57df11b74ed3b90eb52d422e3960017dd41eccf8dd0c99102d41259",
+    "app_server_service_sha256_unchanged": "983b71a39bec32bdb1c9c74f0cd203f4c70e4f08ca4c8549df87fe8e29b141ad",
+    "account_manager_socket_sha256_unchanged": "29aecb37ec655eb4c3499f400f48bc80944ccfd02ef317cf4832e449046fd53e"
+  },
+  "least_privilege_helper": {
+    "user": "root",
+    "group": "codex8216",
+    "no_new_privileges": true,
+    "protect_system": "strict",
+    "capability_bounding_set": [
+      "CAP_CHOWN",
+      "CAP_DAC_READ_SEARCH"
+    ],
+    "arbitrary_root_command_execution": false,
+    "fixed_8216_services_only": true
+  },
+  "post_deployment": {
+    "all_seven_related_units_active": true,
+    "pending_daemon_reload": false,
+    "router_ready": true,
+    "configured_accounts": 2,
+    "active_requests": 0,
+    "active_streams": 0,
+    "final_route_category": "secondary",
+    "app_server_credential_matches_current_route": true,
+    "routed_8216_app_server_pid_unchanged": true,
+    "standalone_8215_web_pid_unchanged": true,
+    "standalone_8215_app_server_pid_unchanged": true,
+    "protected_browser_session_status": 200,
+    "browser_rendered_composer_verified": false,
+    "browser_control_note": "The in-app navigation channel timed out before leaving about:blank; no rendered-browser claim is made."
+  },
+  "newly_discovered_followup": {
+    "id": "R119",
+    "issue": "Manager clients half-closed the Unix socket immediately after sending the request. Fast fixture replies could pass, while asynchronous native identity work could lose the response.",
+    "live_switch_attempted": false,
+    "server_or_account_state_mutated_by_probe": false
+  },
+  "model_request_sent": false,
+  "account_switch_sent": false,
+  "semantic_stream_replay_attempted": false,
+  "cross_account_continuity_claimed": false,
+  "status": "done_with_r119_followup_required",
+  "recorded_at": "2026-08-03T20:28:19+08:00"
+}

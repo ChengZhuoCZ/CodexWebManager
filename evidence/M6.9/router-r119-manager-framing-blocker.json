@@ -1,0 +1,52 @@
+{
+  "task": "M6.9",
+  "continuation": "R119 asynchronous account-manager response framing",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "7c572cca791ac051c7fa9a60f2baee840238e77f",
+  "implementation_revision": "7c572cca791ac051c7fa9a60f2baee840238e77f",
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "fixes": [
+    "The root helper server keeps its response half open after a framed client half-close.",
+    "The status/switch Web bridge writes one newline-framed request and waits for the helper response.",
+    "The account enrollment/removal Web bridge uses the same non-half-closing request framing.",
+    "Delayed asynchronous responses are covered by failure-first regression tests."
+  ],
+  "local_artifact": {
+    "path": "/private/tmp/m69-r119-artifacts/codex-account-router-0.2.35-linux-x64.tar.gz",
+    "sha256": "3a7c9a4e7842aa9eca6b171d06d8f3cf5e33f2eacfeb45faa33281b7bad5adb1"
+  },
+  "tests": [
+    {
+      "command": "M4_2_CODEX_WEB_ROOT=/private/tmp/codex-web-pin-888 <bundled-node> --test account-manager-protocol native-account-rebinding codex-web-status-bridge systemd-units linux-release",
+      "result": "43 passed, 0 failed, 1 Linux-installed-only skip"
+    },
+    {
+      "command": "<bundled-node> --test codex-web-router-panel-merge.test.mjs",
+      "result": "50 passed, 0 failed"
+    },
+    {
+      "command": "scanRepository(loadSecurityAuditPolicy())",
+      "result": "695 files scanned, 0 findings"
+    }
+  ],
+  "deployment": {
+    "status": "blocked_pending_explicit_0_2_35_activation_authorization",
+    "required_actions": [
+      "install and activate codex-account-router 0.2.35",
+      "install and activate an R119 Web release containing both framed manager clients",
+      "restart codex-account-router.service",
+      "restart codex-router-account-manager.service",
+      "restart codex-web-router.service"
+    ],
+    "systemd_unit_replacement_required": false,
+    "standalone_8215_changes_allowed": false,
+    "routed_8216_app_server_restart_during_deployment": false
+  },
+  "real_model_request_sent": false,
+  "account_switch_sent": false,
+  "semantic_stream_replay_attempted": false,
+  "cross_account_continuity_claimed": false,
+  "recorded_at": "2026-08-03T20:28:19+08:00"
+}
