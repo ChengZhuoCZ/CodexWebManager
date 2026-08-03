@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-readonly INPUT_ROOT="${R119_INPUT_ROOT:-/tmp/codex-r119-deploy-inputs}"
-readonly ROUTER_ARCHIVE="${INPUT_ROOT}/codex-account-router-0.2.35-linux-x64.tar.gz"
-readonly ROUTER_ARCHIVE_SHA256=3a7c9a4e7842aa9eca6b171d06d8f3cf5e33f2eacfeb45faa33281b7bad5adb1
+readonly INPUT_ROOT="${ROUTER_DEPLOY_INPUT_ROOT:-${R119_INPUT_ROOT:-/tmp/codex-r119-deploy-inputs}}"
+readonly ROUTER_VERSION="${ROUTER_DEPLOY_VERSION:-0.2.35}"
+readonly ROUTER_RELEASE_NAME="codex-account-router-${ROUTER_VERSION}-linux-x64"
+readonly ROUTER_ARCHIVE="${INPUT_ROOT}/${ROUTER_RELEASE_NAME}.tar.gz"
+readonly ROUTER_ARCHIVE_SHA256="${ROUTER_DEPLOY_ARCHIVE_SHA256:-3a7c9a4e7842aa9eca6b171d06d8f3cf5e33f2eacfeb45faa33281b7bad5adb1}"
 readonly TRANSFORMER="${INPUT_ROOT}/replace-r119-manager-framing.mjs"
 readonly TRANSFORMER_SHA256=18f3b4ded54c614061911c34c165e09559d3a165bff2bf6776bfc632acad5be6
 readonly STATUS_BRIDGE="${INPUT_ROOT}/router-status-bridge-standalone.js"
@@ -14,12 +16,13 @@ readonly ACCOUNT_MANAGEMENT_SHA256=d918cec444e06789a5cbfc3170d9d4fb1fd939e028286
 readonly ROUTER_ROOT=/opt/codex-account-router
 readonly ROUTER_CURRENT="${ROUTER_ROOT}/current"
 readonly ROUTER_OLD="${ROUTER_ROOT}/releases/codex-account-router-0.2.34-linux-x64"
-readonly ROUTER_NEW="${ROUTER_ROOT}/releases/codex-account-router-0.2.35-linux-x64"
-readonly ROUTER_ARCHIVE_ROOT=codex-account-router-0.2.35-linux-x64
+readonly ROUTER_NEW="${ROUTER_ROOT}/releases/${ROUTER_RELEASE_NAME}"
+readonly ROUTER_ARCHIVE_ROOT="${ROUTER_RELEASE_NAME}"
 readonly WEB_ROOT=/opt/0xcaff-codex-web-router
 readonly WEB_CURRENT="${WEB_ROOT}/current"
 readonly WEB_OLD="${WEB_ROOT}/releases/c3e92f0f-20260803-m69-router-r118-native-identity-sync"
-readonly WEB_NEW="${WEB_ROOT}/releases/c3e92f0f-20260803-m69-router-r119-manager-framing"
+readonly WEB_RELEASE_NAME="${ROUTER_DEPLOY_WEB_RELEASE:-c3e92f0f-20260803-m69-router-r119-manager-framing}"
+readonly WEB_NEW="${WEB_ROOT}/releases/${WEB_RELEASE_NAME}"
 readonly STANDALONE_CURRENT=/opt/0xcaff-codex-web/releases/c3e92f0-20260729-tailnet-startup-r3
 
 readonly ROUTER_SERVICE=codex-account-router.service
@@ -214,9 +217,9 @@ cp -p "$APP_CREDENTIAL" "$workdir/app-server-auth.before"
 mkdir "$workdir/router"
 tar -xzf "$ROUTER_ARCHIVE" --no-same-owner -C "$workdir/router"
 must extracted_router_manifest test -f "$workdir/router/${ROUTER_ARCHIVE_ROOT}/manifest.json"
-must extracted_router_version /usr/bin/node -e '
+must extracted_router_version env EXPECTED_VERSION="$ROUTER_VERSION" /usr/bin/node -e '
   const fs=require("node:fs"),m=JSON.parse(fs.readFileSync(process.argv[1],"utf8"));
-  if(m?.version!=="0.2.35"||m?.target?.os!=="linux"||m?.target?.architecture!=="x64")process.exit(1);
+  if(m?.version!==process.env.EXPECTED_VERSION||m?.target?.os!=="linux"||m?.target?.architecture!=="x64")process.exit(1);
 ' "$workdir/router/${ROUTER_ARCHIVE_ROOT}/manifest.json"
 must extracted_router_symlink test -z "$(find "$workdir/router/${ROUTER_ARCHIVE_ROOT}" -type l -print -quit)"
 
@@ -230,12 +233,12 @@ must web_successor_verify verify_web_release "$WEB_NEW"
 must standalone_changed_before_mutation verify_8215
 
 mutation_started=1
-router_staging="${ROUTER_ROOT}/releases/.codex-account-router-0.2.35-linux-x64.r119.$$"
+router_staging="${ROUTER_ROOT}/releases/.${ROUTER_RELEASE_NAME}.r119.$$"
 must router_staging_create mkdir "$router_staging"
 must router_release_copy cp -a "$workdir/router/${ROUTER_ARCHIVE_ROOT}/." "$router_staging/"
 must router_release_activate mv "$router_staging" "$ROUTER_NEW"
 router_created=1
-must router_link_stage ln -s "releases/codex-account-router-0.2.35-linux-x64" "${ROUTER_ROOT}/.current-r119.$$"
+must router_link_stage ln -s "releases/${ROUTER_RELEASE_NAME}" "${ROUTER_ROOT}/.current-r119.$$"
 must router_link_switch replace_link "${ROUTER_ROOT}/.current-r119.$$" "$ROUTER_CURRENT"
 router_switched=1
 must web_link_stage ln -s "$WEB_NEW" "${WEB_ROOT}/.current-r119.$$"
@@ -280,8 +283,8 @@ success=1
 trap - EXIT
 rm -rf -- "$workdir"
 printf 'deployment_status=success\n'
-printf 'router_release=codex-account-router-0.2.35-linux-x64\n'
-printf 'web_release=c3e92f0f-20260803-m69-router-r119-manager-framing\n'
+printf 'router_release=%s\n' "$ROUTER_RELEASE_NAME"
+printf 'web_release=%s\n' "$WEB_RELEASE_NAME"
 printf 'manager_framing_installed=true\n'
 printf 'route_unchanged=true\n'
 printf 'routed_8216_app_server_unchanged=true\n'
