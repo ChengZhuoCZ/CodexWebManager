@@ -1,0 +1,88 @@
+{
+  "task": "M6.9",
+  "release": "R114 native profile-menu integration",
+  "recorded_at": "2026-08-03T15:47:48+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_commit": "b9bd3fc90ad5b3319e13380208e81102eec13c43",
+  "implementation_commits": [
+    "5c13b36",
+    "9bf17de"
+  ],
+  "implementation_mode": "clean-room",
+  "scope": {
+    "native_profile_menu_integration": true,
+    "react_footer_mutation": false,
+    "body_mutation_observer": false,
+    "bounded_profile_menu_render_attempts": 5,
+    "temporary_fallback_only_when_native_button_absent": true,
+    "only_routed_8216_web_restart_authorized": true
+  },
+  "artifacts": {
+    "panel_source": "integrations/codex-web/router-account-panel-standalone.js",
+    "transformer": "integrations/codex-web/replace-r114-native-profile-menu.mjs",
+    "deployment_script": "evidence/M6.9/deploy-router-r114-native-profile-menu.sh",
+    "panel_sha256": "0f9f3a68fd6e26b1070b98ae04df5d044c4b954d1e550b4dbad3c0f32eb19f17",
+    "deployment_script_sha256": "fcfe0f76a730f77f771a99a421238ec37a1b7cc76c2dc890020e236284fb1031"
+  },
+  "tests": {
+    "failure_first": "The focused native-profile event-driven contract failed before implementation because the R112 panel lacked the R114 markers.",
+    "syntax": "Panel, transformer and deployment-script syntax checks passed.",
+    "focused_panel_suite": "3 passed, 0 failed.",
+    "complete_panel_suite": "43 passed, 0 failed.",
+    "complete_account_router_matrix": "417 total: 382 passed, 2 failed, 33 fixture-dependent skips. The two failures were the old isolated-host Web unit source hash and the matrix classification list.",
+    "input_commit_reproduction": "The same two targeted failures reproduced in an unmodified b9bd3fc input snapshot: 9 passed, 2 failed.",
+    "security_scan_before_evidence": "676 repository files scanned, 0 findings.",
+    "final_security_scan": "677 repository files scanned after evidence/state updates, 0 findings."
+  },
+  "deployment": {
+    "first_attempt": {
+      "status": "rolled_back_before_activation",
+      "reason": "Linux zlib gzip bytes differed from the locally pinned gzip hashes.",
+      "r112_remained_active": true,
+      "r114_successor_absent_after_rollback": true,
+      "services_remained_active": true
+    },
+    "second_attempt": {
+      "status": "success",
+      "active_release": "c3e92f0f-20260803-m69-router-r114-native-profile-menu",
+      "standalone_8215_unchanged": true,
+      "routed_8216_app_server_unchanged": true,
+      "account_router_process_unchanged": true,
+      "account_manager_process_unchanged": true,
+      "only_8216_web_restarted": true,
+      "model_request_sent": false,
+      "account_switch_sent": false,
+      "semantic_output_replay_attempted": false
+    }
+  },
+  "post_deployment": {
+    "all_seven_related_units_active": true,
+    "web_pid": 244171,
+    "web_elapsed_seconds_observed": 666,
+    "web_cpu_percent_observed": 0.3,
+    "web_rss_kib_observed": 238704,
+    "recent_messageport_reconnect_disconnect_matches": 1,
+    "in_app_browser_tab_loaded": true,
+    "in_app_browser_tab_title": "Codex",
+    "visual_profile_menu_capture_verified": false,
+    "unauthenticated_http_status": 401,
+    "unauthenticated_http_status_expected": true
+  },
+  "browser_limits": [
+    "The in-app browser loaded the R114 URL and exposed a Codex tab, but screenshot and DOM capture timed out and reset the browser-control kernel.",
+    "The Computer Use Safari fallback was blocked by ScreenCaptureKit SCStream error -3811, so no pixel-level profile-menu claim is made.",
+    "Optional Statsig telemetry timeouts remained visible to browser automation and were not treated as an application failure."
+  ],
+  "assessment": [
+    "R114 replaces the rejected persistent React-footer insertion with a bounded event-driven adapter attached to native profile-menu activation.",
+    "The bounded post-deployment observation did not reproduce R113's sustained Web CPU or repeated reconnect churn.",
+    "Installed hashes, local DOM contracts, service invariants and active-release checks passed, but visual menu rendering remains a user-visible confirmation because both capture channels failed."
+  ],
+  "residual_risks": [
+    "The native trigger adapter depends on the upstream profile button remaining discoverable through its current accessible structure; failure falls back to the temporary launcher.",
+    "The runtime observation is short and is not a soak test or stable performance guarantee.",
+    "The aggregate strict-CI baseline remains unqualified for the protected routed Web tree; the two observed matrix failures predate R114 and are recorded rather than hidden.",
+    "No real account switch or model request was performed. Switching starts a new backend session and does not migrate, replay or resume semantic output or in-flight work."
+  ]
+}
