@@ -7,6 +7,7 @@ const SESSION_PATH = "/__backend/session";
 const MENU_SECTION_ID = "codex-router-account-menu-section";
 const FALLBACK_MENU_SECTION_ID = "codex-router-account-menu-section-fallback";
 const FALLBACK_LAUNCHER_ID = "codex-router-account-launcher";
+const SIDEBAR_LAUNCHER_ROW_ID = "codex-router-account-launcher-row";
 const FALLBACK_DIALOG_ID = "codex-router-account-dialog";
 const FALLBACK_STYLE_ID = "codex-router-account-launcher-style";
 const PROFILE_ROUTE_ATTRIBUTE = "data-codex-router-current-route";
@@ -365,12 +366,13 @@ function visibleRectangle(node) {
 
 function profileButtonCandidates() {
   const exact = [...document.querySelectorAll(PROFILE_BUTTON_SELECTOR)].filter(
-    (button) => button instanceof HTMLElement,
+    (button) => button instanceof HTMLElement && button.id !== FALLBACK_LAUNCHER_ID,
   );
   if (exact.length > 0) return exact;
   return [...document.querySelectorAll(PROFILE_BUTTON_FALLBACK_SELECTOR)]
     .filter((button) =>
       button instanceof HTMLElement &&
+      button.id !== FALLBACK_LAUNCHER_ID &&
       button.closest(PROFILE_MENU_SELECTOR) === null &&
       visibleRectangle(button) !== null
     )
@@ -389,6 +391,47 @@ function profileButton({ expandedOnly = false } = {}) {
   return profileButtonCandidates().find((button) =>
     !expandedOnly || button.getAttribute("aria-expanded") === "true"
   ) ?? null;
+}
+
+function findNativeSidebarFooter() {
+  const button = profileButton();
+  let candidate = button?.parentElement ?? null;
+  while (candidate instanceof HTMLElement && candidate !== document.body) {
+    if (
+      candidate.classList.contains("h-toolbar") &&
+      candidate.classList.contains("items-center") &&
+      candidate.parentElement instanceof HTMLElement
+    ) return candidate;
+    candidate = candidate.parentElement;
+  }
+  return null;
+}
+
+function mountLauncherInNativeSidebar(launcher) {
+  const footer = findNativeSidebarFooter();
+  let row = document.getElementById(SIDEBAR_LAUNCHER_ROW_ID);
+  if (!(footer instanceof HTMLElement)) {
+    if (launcher.parentElement !== document.body) document.body.append(launcher);
+    row?.remove();
+    launcher.dataset.routerLauncherSurface = "standalone";
+    return false;
+  }
+  if (!(row instanceof HTMLElement)) {
+    row = element("div");
+    row.id = SIDEBAR_LAUNCHER_ROW_ID;
+    row.className = "px-row-x pt-1";
+    row.setAttribute("data-router-launcher-surface", "native-sidebar");
+  }
+  if (row.parentElement !== footer.parentElement || row.nextElementSibling !== footer) {
+    footer.parentElement.insertBefore(row, footer);
+  }
+  if (launcher.parentElement !== row) row.append(launcher);
+  const nativeButton = profileButton();
+  if (nativeButton instanceof HTMLButtonElement) {
+    launcher.className = `${nativeButton.className} w-full`;
+  }
+  launcher.dataset.routerLauncherSurface = "native-sidebar";
+  return true;
 }
 
 function syncProfileRouteIdentity(identity) {
@@ -1085,12 +1128,20 @@ export async function installRouterAccountPanel() {
         const style = element("style");
         style.id = FALLBACK_STYLE_ID;
         style.textContent = `
-          #${FALLBACK_LAUNCHER_ID} { position: fixed; left: 8px; bottom: 56px; z-index: 2147483000;
-            display: flex; width: min(220px, calc(100vw - 16px)); height: 40px; align-items: center;
-            gap: 8px; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; padding: 0 11px;
-            background: rgba(31,31,31,.97); box-shadow: 0 8px 28px rgba(0,0,0,.28); color: #f5f5f5;
+          #${FALLBACK_LAUNCHER_ID} { z-index: 2147483000; display: flex; height: 40px; align-items: center;
+            gap: 8px; border-radius: 8px; padding: 0 11px;
             font: 500 13px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-align: left; }
-          #${FALLBACK_LAUNCHER_ID}:hover { background: rgba(43,43,43,.98); }
+          #${FALLBACK_LAUNCHER_ID}[data-router-launcher-surface="standalone"] { position: fixed; left: 8px;
+            bottom: 56px; width: min(220px, calc(100vw - 16px)); border: 1px solid rgba(255,255,255,.14);
+            background: rgba(31,31,31,.97); box-shadow: 0 8px 28px rgba(0,0,0,.28); color: #f5f5f5; }
+          #${FALLBACK_LAUNCHER_ID}[data-router-launcher-surface="standalone"]:hover {
+            background: rgba(43,43,43,.98); }
+          #${SIDEBAR_LAUNCHER_ROW_ID} { position: relative; z-index: 1; flex: none; }
+          #${FALLBACK_LAUNCHER_ID}[data-router-launcher-surface="native-sidebar"] { position: static;
+            width: 100%; max-width: none; border: 0; background: transparent; box-shadow: none; color: inherit;
+            font: inherit; }
+          #${FALLBACK_LAUNCHER_ID}[data-router-launcher-surface="native-sidebar"]:hover {
+            background: var(--color-token-list-hover-background, rgba(127,127,127,.12)); }
           #${FALLBACK_LAUNCHER_ID}:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
           #${FALLBACK_LAUNCHER_ID} .router-launcher-icon { flex: none; font-size: 17px; opacity: .8; }
           #${FALLBACK_LAUNCHER_ID} .router-launcher-label { min-width: 0; overflow: hidden;
@@ -1103,9 +1154,10 @@ export async function installRouterAccountPanel() {
             overscroll-behavior: contain; }
           #${FALLBACK_DIALOG_ID}[hidden] { display: none !important; }
           @media (prefers-color-scheme: light) {
-            #${FALLBACK_LAUNCHER_ID}, #${FALLBACK_DIALOG_ID} { border-color: rgba(0,0,0,.14);
-              background: rgba(250,250,250,.985); color: #171717; }
-            #${FALLBACK_LAUNCHER_ID}:hover { background: rgba(240,240,240,.99); }
+            #${FALLBACK_LAUNCHER_ID}[data-router-launcher-surface="standalone"], #${FALLBACK_DIALOG_ID} {
+              border-color: rgba(0,0,0,.14); background: rgba(250,250,250,.985); color: #171717; }
+            #${FALLBACK_LAUNCHER_ID}[data-router-launcher-surface="standalone"]:hover {
+              background: rgba(240,240,240,.99); }
           }
         `;
         document.head.append(style);
@@ -1117,6 +1169,7 @@ export async function installRouterAccountPanel() {
       launcher.setAttribute("aria-expanded", "false");
       launcher.setAttribute("aria-controls", FALLBACK_DIALOG_ID);
       launcher.title = "Open account routing controls";
+      launcher.dataset.routerLauncherSurface = "standalone";
       launcher.append(
         element("span", "router-launcher-icon", "⇄"),
         element("span", "router-launcher-label"),
@@ -1132,7 +1185,16 @@ export async function installRouterAccountPanel() {
         const opening = dialog.hidden;
         dialog.hidden = !opening;
         launcher.setAttribute("aria-expanded", String(opening));
-        if (opening) renderFallbackMenu(dialog);
+        if (opening) {
+          const rectangle = visibleRectangle(launcher);
+          if (rectangle !== null) {
+            const viewportWidth = Math.max(0, window.innerWidth);
+            const dialogWidth = Math.min(320, Math.max(0, viewportWidth - 16));
+            dialog.style.left = `${Math.max(8, Math.min(rectangle.left, viewportWidth - dialogWidth - 8))}px`;
+            dialog.style.bottom = `${Math.max(8, window.innerHeight - rectangle.top + 8)}px`;
+          }
+          renderFallbackMenu(dialog);
+        }
       });
       document.body.append(launcher, dialog);
       fallbackDismissHandler ??= (event) => {
@@ -1158,6 +1220,7 @@ export async function installRouterAccountPanel() {
       document.addEventListener("pointerdown", fallbackDismissHandler, true);
       document.addEventListener("keydown", fallbackEscapeHandler, true);
     }
+    mountLauncherInNativeSidebar(launcher);
     const currentAlias = model?.accounts.find((account) => account.isCurrent)?.alias ?? "Unavailable";
     const launcherLabel = model
       ? `Account route · ${currentAlias}`
@@ -1171,6 +1234,7 @@ export async function installRouterAccountPanel() {
   };
 
   const renderSurfaces = () => {
+    renderFallbackLauncher();
     if (!model || stopped) return;
     pruneNativeProfileMenuItems();
     syncProfileRouteIdentity(currentRouteIdentity(model));
@@ -1189,7 +1253,6 @@ export async function installRouterAccountPanel() {
       transientMessage,
       management,
     );
-    renderFallbackLauncher();
   };
   const queueSurfaceRender = () => {
     if (menuRenderQueued || stopped) return;
@@ -1472,6 +1535,7 @@ export async function installRouterAccountPanel() {
     if (pollTimer !== null) window.clearInterval(pollTimer);
     document.getElementById(MENU_SECTION_ID)?.remove();
     document.getElementById(FALLBACK_LAUNCHER_ID)?.remove();
+    document.getElementById(SIDEBAR_LAUNCHER_ROW_ID)?.remove();
     document.getElementById(FALLBACK_DIALOG_ID)?.remove();
     document.getElementById(FALLBACK_STYLE_ID)?.remove();
     if (fallbackDismissHandler) document.removeEventListener("pointerdown", fallbackDismissHandler, true);

@@ -60,6 +60,9 @@ import {
   R112_VISIBLE_BOOTSTRAP_LAUNCHER_CONTRACT,
 } from "../../../integrations/codex-web/replace-r112-visible-bootstrap-launcher.mjs";
 import {
+  R113_NATIVE_SIDEBAR_LAUNCHER_CONTRACT,
+} from "../../../integrations/codex-web/replace-r113-native-sidebar-launcher.mjs";
+import {
   buildManualSwitchRequest as buildStandaloneSwitchRequest,
   buildAccountEnrollmentRequest,
   buildAccountRemovalRequest,
@@ -205,6 +208,10 @@ const R111_DEPLOY = path.resolve(
 const R112_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r112-visible-bootstrap-launcher.sh",
+);
+const R113_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r113-native-sidebar-launcher.sh",
 );
 
 function sha256(value) {
@@ -1122,6 +1129,17 @@ test("account launcher renders before protected router status and survives an in
   assert.match(panel, /Router status is temporarily unavailable\./u);
 });
 
+test("account launcher mounts in the native left-bottom sidebar before status succeeds", async () => {
+  const panel = await fs.readFile(STANDALONE_PANEL, "utf8");
+  assert.match(panel, /codex-router-account-launcher-row/u);
+  assert.match(panel, /data-router-launcher-surface/u);
+  assert.match(panel, /native-sidebar/u);
+  assert.match(panel, /findNativeSidebarFooter/u);
+  assert.match(panel, /footer\.parentElement\.insertBefore\(row, footer\)/u);
+  assert.match(panel, /renderFallbackLauncher\(\);\s*if \(!model \|\| stopped\) return/u);
+  assert.match(panel, /button\.id !== FALLBACK_LAUNCHER_ID/u);
+});
+
 test("R110 pins the compact panel and expands only bounded pre-output failover", async () => {
   const [deployment, dropin] = await Promise.all([
     fs.readFile(R110_DEPLOY, "utf8"),
@@ -1181,11 +1199,11 @@ test("R111 pins an always-visible Safari launcher and restarts only routed Web",
 });
 
 test("R112 pins the pre-status launcher and restarts only routed Web", async () => {
-  const [panel, deployment] = await Promise.all([
-    fs.readFile(STANDALONE_PANEL),
-    fs.readFile(R112_DEPLOY, "utf8"),
-  ]);
-  assert.equal(R112_VISIBLE_BOOTSTRAP_LAUNCHER_CONTRACT.replacement_panel_sha256, sha256(panel));
+  const deployment = await fs.readFile(R112_DEPLOY, "utf8");
+  assert.equal(
+    R112_VISIBLE_BOOTSTRAP_LAUNCHER_CONTRACT.replacement_panel_sha256,
+    "8a5b36594e6fd0c1dce9601d02ddefaa2ba0dc52a14babc2e3d9bd90fee1487d",
+  );
   assert.equal(
     R112_VISIBLE_BOOTSTRAP_LAUNCHER_CONTRACT.predecessor_panel_name,
     "router-account-panel-2043970f.js",
@@ -1194,6 +1212,33 @@ test("R112 pins the pre-status launcher and restarts only routed Web", async () 
   assert.match(deployment, /router-account-panel-8a5b3659\.js/u);
   assert.match(deployment, /pre_status_launcher_visible=true/u);
   assert.match(deployment, /initial_status_failure_visible=true/u);
+  assert.match(deployment, /standalone_8215_unchanged=true/u);
+  assert.match(deployment, /routed_8216_app_server_unchanged=true/u);
+  assert.match(deployment, /account_router_process_unchanged=true/u);
+  assert.match(deployment, /account_manager_process_unchanged=true/u);
+  assert.match(deployment, /only_8216_web_restarted=true/u);
+  assert.match(deployment, /model_request_sent=false/u);
+  assert.match(deployment, /account_switch_sent=false/u);
+  assert.doesNotMatch(
+    deployment,
+    /systemctl\s+(?:restart|stop|start)\s+"?\$?(?:APP_SERVICE|ROUTER_SERVICE|MANAGER_SERVICE|MANAGER_SOCKET|STANDALONE_WEB_SERVICE|STANDALONE_APP_SERVICE)/u,
+  );
+});
+
+test("R113 mounts the launcher in the native sidebar and restarts only routed Web", async () => {
+  const [panel, deployment] = await Promise.all([
+    fs.readFile(STANDALONE_PANEL),
+    fs.readFile(R113_DEPLOY, "utf8"),
+  ]);
+  assert.equal(R113_NATIVE_SIDEBAR_LAUNCHER_CONTRACT.replacement_panel_sha256, sha256(panel));
+  assert.equal(
+    R113_NATIVE_SIDEBAR_LAUNCHER_CONTRACT.predecessor_panel_name,
+    "router-account-panel-8a5b3659.js",
+  );
+  assert.match(deployment, /router-r112-visible-bootstrap-launcher/u);
+  assert.match(deployment, /router-account-panel-8102f632\.js/u);
+  assert.match(deployment, /native_left_bottom_launcher=true/u);
+  assert.match(deployment, /pre_status_launcher_visible=true/u);
   assert.match(deployment, /standalone_8215_unchanged=true/u);
   assert.match(deployment, /routed_8216_app_server_unchanged=true/u);
   assert.match(deployment, /account_router_process_unchanged=true/u);
