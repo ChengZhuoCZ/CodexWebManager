@@ -144,16 +144,18 @@ wait_identity() {
 
 app_account_ready() {
   /usr/bin/node -e '
-    const net=require("node:net");let buffer="",initialized=false,done=false;
-    const socket=net.createConnection("/run/codex-web-router-app-server/app-server.sock");
-    const fail=()=>{if(!done){done=true;socket.destroy();process.exit(1)}};
-    socket.setTimeout(5000,fail);socket.on("error",fail);
-    socket.on("connect",()=>socket.write(JSON.stringify({id:1,method:"initialize",params:{clientInfo:{name:"m69_r127_recovery",title:"M6.9 R127 recovery",version:"0.1.0"},capabilities:{experimentalApi:true}}})+"\n"));
-    socket.on("data",chunk=>{buffer+=chunk;for(;;){const end=buffer.indexOf("\n");if(end<0)break;
-      const line=buffer.slice(0,end);buffer=buffer.slice(end+1);let value;try{value=JSON.parse(line)}catch{continue}
-      if(value.id===1&&!value.error&&!initialized){initialized=true;socket.write(JSON.stringify({method:"initialized",params:{}})+"\n");socket.write(JSON.stringify({id:2,method:"account/read",params:{}})+"\n")}
-      if(value.id===2){if(value.error||value.result?.account==null)return fail();done=true;socket.end();}}
-    });socket.on("close",()=>process.exit(done?0:1));
+    const net=require("node:net");
+    const WebSocket=require("/opt/0xcaff-codex-web-router/current/node_modules/ws");
+    let initialized=false,settled=false;
+    const socket=new WebSocket("ws://localhost/",{createConnection:()=>net.createConnection("/run/codex-web-router-app-server/app-server.sock"),maxPayload:1_048_576,perMessageDeflate:false});
+    const finish=code=>{if(settled)return;settled=true;clearTimeout(timer);process.exitCode=code;
+      if(socket.readyState===WebSocket.OPEN||socket.readyState===WebSocket.CONNECTING)socket.close()};
+    const timer=setTimeout(()=>finish(1),5000);
+    socket.once("error",()=>finish(1));socket.once("close",()=>{if(!settled)finish(1)});
+    socket.once("open",()=>socket.send(JSON.stringify({id:1,method:"initialize",params:{clientInfo:{name:"m69_r127_recovery",title:"M6.9 R127 recovery",version:"0.1.0"},capabilities:{experimentalApi:true}}})));
+    socket.on("message",data=>{let value;try{value=JSON.parse(data.toString())}catch{return}
+      if(value.id===1&&!value.error&&!initialized){initialized=true;socket.send(JSON.stringify({method:"initialized",params:{}}));socket.send(JSON.stringify({id:2,method:"account/read",params:{refreshToken:false}}));return}
+      if(value.id===2)finish(value.error||value.result?.account==null?1:0)});
   '
 }
 
