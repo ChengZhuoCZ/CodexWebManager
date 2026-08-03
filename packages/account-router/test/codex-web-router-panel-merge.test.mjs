@@ -69,6 +69,9 @@ import {
   R115_OWNED_ACCOUNT_SURFACE_CONTRACT,
 } from "../../../integrations/codex-web/replace-r115-owned-account-surface.mjs";
 import {
+  R116_REACT_ACCOUNT_SETTINGS_CONTRACT,
+} from "../../../integrations/codex-web/replace-r116-react-account-settings.mjs";
+import {
   accountSurfaceVisibility,
   createAccountSurfaceState,
   reduceAccountSurfaceState,
@@ -90,6 +93,18 @@ const APP = `${ASSETS}/app-initial-BTphDPeq.js`;
 const STANDALONE_PANEL = path.resolve(
   import.meta.dirname,
   "../../../integrations/codex-web/router-account-panel-standalone.js",
+);
+const REACT_ACCOUNT_SETTINGS = path.resolve(
+  import.meta.dirname,
+  "../../../integrations/codex-web/react-account-settings/account-settings-window.tsx",
+);
+const REACT_ACCOUNT_CONTROLLER = path.resolve(
+  import.meta.dirname,
+  "../../../integrations/codex-web/router-account-controller.js",
+);
+const REACT_ACCOUNT_PRELOAD = path.resolve(
+  import.meta.dirname,
+  "../../../integrations/codex-web/react-account-settings/preload-r116.js",
 );
 const ROUTER_STATUS_BRIDGE = path.resolve(
   import.meta.dirname,
@@ -174,6 +189,54 @@ test("keeps the owned account dialog independent from native Settings menu teard
 
   state = reduceAccountSurfaceState(state, { type: "account_dialog_closed" });
   assert.equal(accountSurfaceVisibility(state).accountDialog, false);
+});
+
+test("R116 owns the account window in React and portals only one entry into the native menu", async () => {
+  const [reactSource, controllerSource] = await Promise.all([
+    fs.readFile(REACT_ACCOUNT_SETTINGS, "utf8"),
+    fs.readFile(REACT_ACCOUNT_CONTROLLER, "utf8"),
+  ]);
+  assert.match(reactSource, /createPortal/u);
+  assert.match(reactSource, /createRoot/u);
+  assert.match(reactSource, /AccountSettingsDialog/u);
+  assert.match(reactSource, /data-router-account-menu-entry/u);
+  assert.match(reactSource, /codex-dialog-overlay/u);
+  assert.match(reactSource, /bg-token-dropdown-background/u);
+  assert.equal([...reactSource.matchAll(/data-router-account-menu-entry=/gu)].length, 1);
+  assert.doesNotMatch(reactSource, /attachShadow/u);
+  assert.match(controllerSource, /__CODEX_ROUTER_ACCOUNT_SETTINGS__/u);
+  assert.doesNotMatch(controllerSource, /attachShadow/u);
+  assert.doesNotMatch(controllerSource, /createOwnedAccountSurface/u);
+  assert.doesNotMatch(controllerSource, /positionNativeEntry/u);
+});
+
+test("R116 replaces the Shadow DOM surface and restarts only routed Web", async () => {
+  const [controller, preload, deployment] = await Promise.all([
+    fs.readFile(REACT_ACCOUNT_CONTROLLER),
+    fs.readFile(REACT_ACCOUNT_PRELOAD),
+    fs.readFile(R116_DEPLOY, "utf8"),
+  ]);
+  assert.equal(R116_REACT_ACCOUNT_SETTINGS_CONTRACT.controller_sha256, sha256(controller));
+  assert.equal(R116_REACT_ACCOUNT_SETTINGS_CONTRACT.react_preload_sha256, sha256(preload));
+  assert.equal(
+    R116_REACT_ACCOUNT_SETTINGS_CONTRACT.predecessor_panel_name,
+    "router-account-panel-270c1de0.js",
+  );
+  assert.match(deployment, /router-r115-owned-account-surface/u);
+  assert.match(deployment, /router-account-controller-e506d62f\.js/u);
+  assert.match(deployment, /preload-e102b9bc\.js/u);
+  assert.match(deployment, /react_account_settings_window=true/u);
+  assert.match(deployment, /shadow_dom=false/u);
+  assert.match(deployment, /native_menu_portal_entries=1/u);
+  assert.match(deployment, /standalone_8215_unchanged=true/u);
+  assert.match(deployment, /routed_8216_app_server_unchanged=true/u);
+  assert.match(deployment, /only_8216_web_restarted=true/u);
+  assert.match(deployment, /model_request_sent=false/u);
+  assert.match(deployment, /account_switch_sent=false/u);
+  assert.doesNotMatch(
+    deployment,
+    /systemctl\s+(?:restart|stop|start)\s+"?\$?(?:APP_SERVICE|ROUTER_SERVICE|MANAGER_SERVICE|MANAGER_SOCKET|STANDALONE_WEB_SERVICE|STANDALONE_APP_SERVICE)/u,
+  );
 });
 
 test("owns the account surface outside the upstream React tree", async () => {
@@ -267,6 +330,10 @@ const R114_DEPLOY = path.resolve(
 const R115_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r115-owned-account-surface.sh",
+);
+const R116_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r116-react-account-settings.sh",
 );
 
 function sha256(value) {
