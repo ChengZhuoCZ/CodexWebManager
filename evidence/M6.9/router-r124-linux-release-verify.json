@@ -1,0 +1,638 @@
+{
+  "schema_version": 1,
+  "target": {
+    "os": "linux",
+    "architecture": "x64"
+  },
+  "artifact": {
+    "name": "codex-account-router-0.2.37-linux-x64.tar.gz",
+    "sha256": "6bcd5e9cd0582d2b5aa30861ace2c2ca979cfaa559a1030b9c79805a9e20eb23",
+    "payload_file_count": 52,
+    "electron_required": false,
+    "display_server_required": false,
+    "node_modules_present": false
+  },
+  "install": {
+    "command": "PREFIX=<absolute-directory> sh <release>/install.sh",
+    "node_requirement": ">=22"
+  },
+  "runtime": {
+    "health_status": 200,
+    "readiness_status": 503,
+    "readiness_reason": "no_accounts",
+    "admin_bind": "127.0.0.1",
+    "model_bind": "127.0.0.1",
+    "sigterm_exit_code": 0,
+    "display_environment_present": false,
+    "account_configuration_present": false,
+    "account_switch_tested": false,
+    "architecture": "x64",
+    "startup_interruption": {
+      "signal": "SIGTERM",
+      "stalled_before_runtime_creation": true,
+      "exit_code": 0,
+      "exit_signal": null,
+      "router_stopping_emitted": true,
+      "router_started_emitted": false,
+      "router_start_failed_emitted": false,
+      "stderr_bytes": 0
+    },
+    "startup_interruptions": [
+      {
+        "signal": "SIGTERM",
+        "stalled_before_runtime_creation": true,
+        "exit_code": 0,
+        "exit_signal": null,
+        "router_stopping_emitted": true,
+        "router_started_emitted": false,
+        "router_start_failed_emitted": false,
+        "stderr_bytes": 0
+      },
+      {
+        "signal": "SIGINT",
+        "stalled_before_runtime_creation": true,
+        "exit_code": 0,
+        "exit_signal": null,
+        "router_stopping_emitted": true,
+        "router_started_emitted": false,
+        "router_start_failed_emitted": false,
+        "stderr_bytes": 0
+      }
+    ],
+    "listener_start_interruption": {
+      "signal": "SIGTERM",
+      "stalled_during_listener_start": true,
+      "runtime_created_before_stall": true,
+      "exit_code": 0,
+      "exit_signal": null,
+      "router_stopping_emitted": true,
+      "router_started_emitted": false,
+      "router_start_failed_emitted": false,
+      "stderr_bytes": 0
+    },
+    "listener_start_interruptions": [
+      {
+        "signal": "SIGTERM",
+        "stalled_during_listener_start": true,
+        "runtime_created_before_stall": true,
+        "exit_code": 0,
+        "exit_signal": null,
+        "router_stopping_emitted": true,
+        "router_started_emitted": false,
+        "router_start_failed_emitted": false,
+        "stderr_bytes": 0
+      },
+      {
+        "signal": "SIGINT",
+        "stalled_during_listener_start": true,
+        "runtime_created_before_stall": true,
+        "exit_code": 0,
+        "exit_signal": null,
+        "router_stopping_emitted": true,
+        "router_started_emitted": false,
+        "router_start_failed_emitted": false,
+        "stderr_bytes": 0
+      }
+    ],
+    "synthetic_two_binding_restart": {
+      "configured_bindings": 2,
+      "process_starts": 2,
+      "restart_count": 1,
+      "state_checkpoint_files_after_first_stop": 2,
+      "readiness_statuses": [
+        200,
+        200
+      ],
+      "usable_accounts": [
+        2,
+        2
+      ],
+      "sigterm_exit_codes": [
+        0,
+        0
+      ],
+      "synthetic_credential_acquisition_tested": false,
+      "real_credentials_present": false,
+      "model_request_sent": false,
+      "account_switch_tested": false
+    },
+    "synthetic_weekly_quota_restart": {
+      "configured_bindings": 2,
+      "process_starts": 2,
+      "restart_count": 1,
+      "readiness_statuses": [
+        200,
+        200
+      ],
+      "usable_accounts": [
+        2,
+        1
+      ],
+      "synthetic_model_response_statuses": [
+        200,
+        200
+      ],
+      "completed_sse_responses": 2,
+      "synthetic_upstream_role_sequence": [
+        "primary",
+        "secondary"
+      ],
+      "weekly_zero_persisted": true,
+      "weekly_reset_persisted": true,
+      "cooldown_persisted": true,
+      "next_new_request_route_changed": true,
+      "current_route_continuity": [
+        "new_backend_session",
+        "new_backend_session"
+      ],
+      "synthetic_credential_acquisition_tested": true,
+      "local_fixture_upstream_only": true,
+      "synthetic_model_requests_sent": 2,
+      "manual_switch_tested": false,
+      "real_credentials_present": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "in_flight_resume_tested": false
+    },
+    "synthetic_http_sse_safety_boundaries": {
+      "scenarios": 2,
+      "process_starts": 2,
+      "readiness_statuses": [
+        200,
+        200
+      ],
+      "initial_requests": 2,
+      "pre_semantic": {
+        "downstream_status": 200,
+        "failure_kind": "quota_exhausted",
+        "upstream_role_sequence": [
+          "primary",
+          "secondary"
+        ],
+        "upstream_attempts": 2,
+        "secondary_semantic_marker_received": true,
+        "retry_bound_observed": true
+      },
+      "post_semantic": {
+        "downstream_status": 200,
+        "upstream_role_sequence": [
+          "primary"
+        ],
+        "upstream_attempts": 1,
+        "primary_semantic_marker_received": true,
+        "unsafe_to_replay_exposed": true,
+        "semantic_output": true,
+        "secondary_contacted": false
+      },
+      "local_fixture_upstream_only": true,
+      "synthetic_credential_acquisition_tested": true,
+      "synthetic_model_requests_sent": 2,
+      "synthetic_upstream_attempts": 3,
+      "manual_switch_tested": false,
+      "real_credentials_present": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "in_flight_resume_tested": false
+    },
+    "synthetic_websocket_safety_boundaries": {
+      "scenarios": 2,
+      "process_starts": 2,
+      "readiness_statuses": [
+        200,
+        200
+      ],
+      "downstream_upgrade_statuses": [
+        101,
+        101
+      ],
+      "initial_requests": 2,
+      "pre_semantic": {
+        "failure_kind": "quota_exhausted",
+        "upstream_role_sequence": [
+          "primary",
+          "secondary"
+        ],
+        "upstream_attempts": 2,
+        "primary_preflight_discarded": true,
+        "secondary_semantic_marker_received": true,
+        "completed": true,
+        "retry_bound_observed": true
+      },
+      "post_semantic": {
+        "upstream_role_sequence": [
+          "primary"
+        ],
+        "upstream_attempts": 1,
+        "primary_semantic_marker_received": true,
+        "unsafe_to_replay_exposed": true,
+        "semantic_output": true,
+        "secondary_contacted": false
+      },
+      "local_fixture_upstream_only": true,
+      "synthetic_credential_acquisition_tested": true,
+      "synthetic_websocket_requests_sent": 2,
+      "synthetic_upstream_attempts": 3,
+      "manual_switch_tested": false,
+      "real_credentials_present": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "in_flight_resume_tested": false
+    },
+    "synthetic_websocket_pre_semantic_failure_classifications": {
+      "configured_bindings": 2,
+      "scenarios": 4,
+      "process_starts": 4,
+      "readiness_statuses": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "downstream_upgrade_statuses": [
+        101,
+        101,
+        101,
+        101
+      ],
+      "initial_requests": 4,
+      "classifications": {
+        "rate_limited": {
+          "primary_failure_injection": "upgrade_http_429",
+          "upstream_role_sequence": [
+            "primary",
+            "secondary"
+          ],
+          "upstream_attempts": 2,
+          "secondary_semantic_marker_received": true,
+          "completed": true,
+          "downstream_error_exposed": false,
+          "third_upstream_attempt_observed": false
+        },
+        "auth_expired": {
+          "primary_failure_injection": "upgrade_http_401",
+          "upstream_role_sequence": [
+            "primary",
+            "secondary"
+          ],
+          "upstream_attempts": 2,
+          "secondary_semantic_marker_received": true,
+          "completed": true,
+          "downstream_error_exposed": false,
+          "third_upstream_attempt_observed": false
+        },
+        "network_error": {
+          "primary_failure_injection": "connection_closed_before_upgrade_headers",
+          "upstream_role_sequence": [
+            "primary",
+            "secondary"
+          ],
+          "upstream_attempts": 2,
+          "secondary_semantic_marker_received": true,
+          "completed": true,
+          "downstream_error_exposed": false,
+          "third_upstream_attempt_observed": false
+        },
+        "upstream_5xx": {
+          "primary_failure_injection": "upgrade_http_503",
+          "upstream_role_sequence": [
+            "primary",
+            "secondary"
+          ],
+          "upstream_attempts": 2,
+          "secondary_semantic_marker_received": true,
+          "completed": true,
+          "downstream_error_exposed": false,
+          "third_upstream_attempt_observed": false
+        }
+      },
+      "max_upstream_attempts_per_request": 2,
+      "third_upstream_attempts_observed": 0,
+      "local_fixture_upstream_only": true,
+      "synthetic_credential_acquisition_tested": true,
+      "synthetic_websocket_requests_sent": 4,
+      "synthetic_upstream_attempts": 8,
+      "manual_switch_tested": false,
+      "real_credentials_present": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "in_flight_resume_tested": false
+    },
+    "synthetic_websocket_all_pool_unavailable": {
+      "configured_bindings": 2,
+      "process_starts": 1,
+      "readiness_before_status": 200,
+      "downstream_upgrade_status": 101,
+      "initial_requests": 1,
+      "downstream_error": {
+        "type": "all_accounts_unavailable",
+        "reason": "no_eligible_account",
+        "attempts": 2,
+        "semantic_output": false
+      },
+      "downstream_close": {
+        "code": 1013,
+        "reason": "all_accounts_unavailable"
+      },
+      "upstream_role_sequence": [
+        "primary",
+        "secondary"
+      ],
+      "upstream_failure_sequence": [
+        "rate_limited",
+        "upstream_5xx"
+      ],
+      "retry_bound_observed": true,
+      "third_upstream_attempt_observed": false,
+      "readiness_after_status": 503,
+      "usable_accounts_after": 0,
+      "sanitized_error_exact": true,
+      "local_fixture_upstream_only": true,
+      "synthetic_credential_acquisition_tested": true,
+      "synthetic_websocket_requests_sent": 1,
+      "synthetic_upstream_attempts": 2,
+      "manual_switch_tested": false,
+      "real_credentials_present": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "in_flight_resume_tested": false
+    },
+    "synthetic_manual_switch_safety_boundary": {
+      "configured_bindings": 2,
+      "process_starts": 2,
+      "restart_count": 1,
+      "readiness_statuses": [
+        200,
+        200
+      ],
+      "active_semantic_stream": {
+        "downstream_upgrade_status": 101,
+        "upstream_role_sequence": [
+          "primary"
+        ],
+        "primary_semantic_marker_received": true,
+        "active_streams_before_denied_switch": 1,
+        "denied_switch_status": 409,
+        "denied_switch_error": "active_semantic_stream",
+        "current_route_role_before": "primary",
+        "current_route_role_after": "primary",
+        "durable_route_unchanged": true,
+        "completed_before_acceptance": true
+      },
+      "safe_boundary": {
+        "active_streams_at_acceptance": 0,
+        "accepted_switch_status": 200,
+        "accepted": true,
+        "target_role": "secondary",
+        "continuity": "new_backend_session",
+        "next_new_request_role_sequence": [
+          "secondary"
+        ],
+        "next_new_request_completed": true,
+        "durable_preference_persisted": true
+      },
+      "restart": {
+        "readiness_status": 200,
+        "current_route_role": "secondary",
+        "continuity": "new_backend_session",
+        "next_new_request_role_sequence": [
+          "secondary"
+        ],
+        "next_new_request_completed": true
+      },
+      "local_fixture_upstream_only": true,
+      "synthetic_credential_acquisition_tested": true,
+      "synthetic_manual_switch_tested": true,
+      "synthetic_model_requests_sent": 3,
+      "real_credentials_present": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "in_flight_resume_tested": false
+    },
+    "synthetic_all_pool_unavailable": {
+      "configured_bindings": 2,
+      "process_starts": 1,
+      "readiness_before_status": 200,
+      "initial_requests": 1,
+      "downstream_status": 503,
+      "downstream_error": {
+        "type": "all_accounts_unavailable",
+        "reason": "no_eligible_account",
+        "attempts": 2,
+        "semantic_output": false
+      },
+      "upstream_role_sequence": [
+        "primary",
+        "secondary"
+      ],
+      "upstream_failure_sequence": [
+        "rate_limited",
+        "upstream_5xx"
+      ],
+      "retry_bound_observed": true,
+      "third_upstream_attempt_observed": false,
+      "readiness_after_status": 503,
+      "usable_accounts_after": 0,
+      "sanitized_error_exact": true,
+      "local_fixture_upstream_only": true,
+      "synthetic_credential_acquisition_tested": true,
+      "synthetic_model_requests_sent": 1,
+      "synthetic_upstream_attempts": 2,
+      "manual_switch_tested": false,
+      "real_credentials_present": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "in_flight_resume_tested": false
+    },
+    "synthetic_pre_semantic_failure_classifications": {
+      "configured_bindings": 2,
+      "scenarios": 4,
+      "process_starts": 4,
+      "readiness_statuses": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "initial_requests": 4,
+      "downstream_statuses": [
+        200,
+        200,
+        200,
+        200
+      ],
+      "classifications": {
+        "rate_limited": {
+          "primary_failure_injection": "http_429",
+          "upstream_role_sequence": [
+            "primary",
+            "secondary"
+          ],
+          "upstream_attempts": 2,
+          "secondary_semantic_marker_received": true,
+          "completed": true,
+          "third_upstream_attempt_observed": false
+        },
+        "auth_expired": {
+          "primary_failure_injection": "http_401",
+          "upstream_role_sequence": [
+            "primary",
+            "secondary"
+          ],
+          "upstream_attempts": 2,
+          "secondary_semantic_marker_received": true,
+          "completed": true,
+          "third_upstream_attempt_observed": false
+        },
+        "network_error": {
+          "primary_failure_injection": "connection_closed_before_headers",
+          "upstream_role_sequence": [
+            "primary",
+            "secondary"
+          ],
+          "upstream_attempts": 2,
+          "secondary_semantic_marker_received": true,
+          "completed": true,
+          "third_upstream_attempt_observed": false
+        },
+        "upstream_5xx": {
+          "primary_failure_injection": "http_503",
+          "upstream_role_sequence": [
+            "primary",
+            "secondary"
+          ],
+          "upstream_attempts": 2,
+          "secondary_semantic_marker_received": true,
+          "completed": true,
+          "third_upstream_attempt_observed": false
+        }
+      },
+      "max_upstream_attempts_per_request": 2,
+      "third_upstream_attempts_observed": 0,
+      "local_fixture_upstream_only": true,
+      "synthetic_credential_acquisition_tested": true,
+      "synthetic_model_requests_sent": 4,
+      "synthetic_upstream_attempts": 8,
+      "manual_switch_tested": false,
+      "real_credentials_present": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "in_flight_resume_tested": false
+    },
+    "synthetic_retry_backoff_deadline": {
+      "configured_bindings": 2,
+      "scenarios": 2,
+      "process_starts": 2,
+      "readiness_statuses": [
+        200,
+        200
+      ],
+      "nonzero_retry_after": {
+        "configured_max_attempts": 2,
+        "configured_retry_after_ms": 1000,
+        "configured_base_backoff_ms": 20,
+        "configured_max_backoff_ms": 200,
+        "configured_total_deadline_ms": 1000,
+        "downstream_status": 200,
+        "upstream_role_sequence": [
+          "primary",
+          "secondary"
+        ],
+        "upstream_attempts": 2,
+        "observed_retry_delay_at_least_ms": 150,
+        "observed_retry_delay_below_ms": 900,
+        "secondary_semantic_marker_received": true,
+        "completed": true
+      },
+      "deadline_before_retry": {
+        "configured_max_attempts": 2,
+        "configured_retry_after_ms": 1000,
+        "configured_base_backoff_ms": 20,
+        "configured_max_backoff_ms": 200,
+        "configured_total_deadline_ms": 150,
+        "downstream_status": 503,
+        "downstream_error": {
+          "type": "all_accounts_unavailable",
+          "reason": "total_deadline_exceeded",
+          "attempts": 1,
+          "semantic_output": false
+        },
+        "upstream_role_sequence": [
+          "primary"
+        ],
+        "upstream_attempts": 1,
+        "secondary_contacted": false
+      },
+      "local_fixture_upstream_only": true,
+      "synthetic_credential_acquisition_tested": true,
+      "synthetic_model_requests_sent": 2,
+      "synthetic_upstream_attempts": 3,
+      "manual_switch_tested": false,
+      "real_credentials_present": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "in_flight_resume_tested": false
+    },
+    "synthetic_websocket_retry_backoff_deadline": {
+      "configured_bindings": 2,
+      "scenarios": 2,
+      "process_starts": 2,
+      "readiness_statuses": [
+        200,
+        200
+      ],
+      "downstream_upgrade_statuses": [
+        101,
+        101
+      ],
+      "nonzero_retry_after": {
+        "configured_max_attempts": 2,
+        "configured_retry_after_ms": 1000,
+        "configured_base_backoff_ms": 20,
+        "configured_max_backoff_ms": 200,
+        "configured_total_deadline_ms": 1000,
+        "upstream_role_sequence": [
+          "primary",
+          "secondary"
+        ],
+        "upstream_attempts": 2,
+        "observed_retry_delay_at_least_ms": 150,
+        "observed_retry_delay_below_ms": 900,
+        "secondary_semantic_marker_received": true,
+        "completed": true,
+        "downstream_error_exposed": false
+      },
+      "deadline_before_retry": {
+        "configured_max_attempts": 2,
+        "configured_retry_after_ms": 1000,
+        "configured_base_backoff_ms": 20,
+        "configured_max_backoff_ms": 200,
+        "configured_total_deadline_ms": 150,
+        "downstream_error": {
+          "type": "all_accounts_unavailable",
+          "reason": "total_deadline_exceeded",
+          "attempts": 1,
+          "semantic_output": false
+        },
+        "upstream_role_sequence": [
+          "primary"
+        ],
+        "upstream_attempts": 1,
+        "secondary_contacted": false
+      },
+      "local_fixture_upstream_only": true,
+      "synthetic_credential_acquisition_tested": true,
+      "synthetic_websocket_requests_sent": 2,
+      "synthetic_upstream_attempts": 3,
+      "manual_switch_tested": false,
+      "real_credentials_present": false,
+      "real_model_request_sent": false,
+      "real_account_switch_tested": false,
+      "in_flight_resume_tested": false
+    }
+  },
+  "continuity": {
+    "architecture_mode": "LIMITED_MODE",
+    "account_switch_tested": false,
+    "seamless_cross_account_continuity_claimed": false
+  }
+}
