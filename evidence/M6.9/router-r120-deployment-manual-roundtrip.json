@@ -1,0 +1,129 @@
+{
+  "task": "M6.9",
+  "continuation": "R120 catalog-owner repair activation and no-model manual native identity roundtrip",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "implementation_revision": "9a24feda8a0071b831128eb43dcace1a8988285b",
+  "deployment_script_revision": "3bcae39",
+  "qualification_readiness_revision": "08e78cf",
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "scope": {
+    "target": "isolated 8216 routed stack only",
+    "standalone_8215_changes_allowed": false,
+    "model_request_allowed_or_sent": false,
+    "semantic_output_replay_allowed_or_sent": false,
+    "arbitrary_root_command_surface_added": false
+  },
+  "artifact": {
+    "path": "/private/tmp/m69-r120-artifacts/codex-account-router-0.2.36-linux-x64.tar.gz",
+    "sha256": "18c987501a25c3878b3fbfcc6bfaf88f07fd5f2bff83f4522faa3a4515b9e101"
+  },
+  "preflight": {
+    "router_release": "codex-account-router-0.2.34-linux-x64",
+    "web_release": "c3e92f0f-20260803-m69-router-r118-native-identity-sync",
+    "current_route": "Secondary",
+    "active_requests": 0,
+    "active_streams": 0,
+    "established_model_connections": 0,
+    "all_seven_related_units_active": true,
+    "standalone_8215_web_pid": 3664557,
+    "standalone_8215_app_pid": 3664550,
+    "routed_8216_app_pid": 275808
+  },
+  "deployment": {
+    "status": "success",
+    "active_router_release": "codex-account-router-0.2.36-linux-x64",
+    "active_web_release": "c3e92f0f-20260803-m69-router-r120-catalog-owner-boundary",
+    "systemd_units_replaced": false,
+    "daemon_reload_executed": false,
+    "restarted_services": [
+      "codex-account-router.service",
+      "codex-router-account-manager.service",
+      "codex-web-router.service"
+    ],
+    "routed_app_server_unchanged_during_activation": true,
+    "route_unchanged_during_activation": true,
+    "standalone_8215_unchanged": true
+  },
+  "qualification": {
+    "first_attempt": {
+      "product_switches_completed": true,
+      "result": "test_harness_readiness_failure",
+      "failure": "The second fresh-session probe ran after systemd reported the Web unit active but before port 8216 was listening.",
+      "final_route_restored": true,
+      "final_credential_restored": true,
+      "standalone_8215_unchanged": true
+    },
+    "test_harness_repair": {
+      "revision": "08e78cf",
+      "change": "Require a successful 8216 HTML listener probe in addition to active unit and changed PID before creating the post-switch browser session.",
+      "product_code_changed": false
+    },
+    "second_attempt": {
+      "status": "success",
+      "route_sequence": [
+        "Secondary",
+        "Primary",
+        "Secondary"
+      ],
+      "active_requests_before_each_switch": 0,
+      "active_streams_before_each_switch": 0,
+      "native_identity_rebound_each_direction": true,
+      "routed_app_server_restarted_by_bounded_helper_each_direction": true,
+      "new_web_session_each_direction": true,
+      "original_route_restored": true,
+      "original_credential_restored": true,
+      "model_request_sent": false,
+      "semantic_output_started": false,
+      "semantic_output_replayed": false,
+      "continuity": "new_backend_session"
+    }
+  },
+  "final_state": {
+    "router_status": "ready",
+    "current_route": "Secondary",
+    "app_server_credential_matches_current_route": true,
+    "configured_accounts": 2,
+    "active_requests": 0,
+    "active_streams": 0,
+    "all_seven_related_units_active": true,
+    "routed_8216_web_pid": 339521,
+    "routed_8216_app_pid": 338496,
+    "standalone_8215_web_pid": 3664557,
+    "standalone_8215_app_pid": 3664550,
+    "standalone_8215_pid_and_start_time_unchanged": true,
+    "tailnet_html_http": 200,
+    "tailnet_router_status_http": 200,
+    "tailnet_route": "Secondary",
+    "tailnet_account_count": 2
+  },
+  "tests": [
+    {
+      "command": "M4_2_CODEX_WEB_ROOT=/private/tmp/codex-web-pin-888 <bundled-node> --test account-manager-protocol native-account-rebinding codex-web-status-bridge systemd-units linux-release",
+      "result": "44 passed, 0 failed, 1 Linux-installed-only skip"
+    },
+    {
+      "command": "sudo env ROUTER_DEPLOY_VERSION=0.2.36 ... deploy-router-r119-manager-framing.sh",
+      "result": "deployment_status=success; route, App Server and standalone 8215 invariants passed"
+    },
+    {
+      "command": "sudo env ROUTER_QUALIFY_CURRENT=... WEB_QUALIFY_CURRENT=... qualify-router-r119-manual-roundtrip.sh",
+      "result": "qualification_status=success; Secondary to Primary to Secondary; native identity rebound twice; no model request"
+    },
+    {
+      "command": "curl with a new browser session through http://100.95.50.98:8216/ and /__backend/codex-router/status",
+      "result": "HTML 200; status 200; route Secondary; two configured accounts"
+    },
+    {
+      "command": "scanRepository(loadSecurityAuditPolicy())",
+      "result": "701 files scanned, 0 findings"
+    }
+  ],
+  "residual_risks": [
+    "This qualifies manual switching without a model request. It does not itself induce and qualify a real automatic failover on the installed host.",
+    "Every account switch starts a new backend session. Prior semantic output, in-flight work, and running computation are not migrated, resumed, or replayed.",
+    "The loopback-only no-cookie probe is rejected by the trusted-Tailnet browser boundary; final client accessibility was therefore verified from the Mac through the real Tailnet address."
+  ],
+  "recorded_at": "2026-08-03T21:18:12+08:00"
+}

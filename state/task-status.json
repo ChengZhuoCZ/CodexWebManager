@@ -6368,7 +6368,7 @@
       "branch": "codex/m6-9-8216-r85-handoff",
       "input_revision": "7c572cca791ac051c7fa9a60f2baee840238e77f",
       "implementation_revision": "9a24feda8a0071b831128eb43dcace1a8988285b",
-      "evidence": "evidence/M6.9/router-r119-deployment-r120-owner-boundary.json",
+      "evidence": "evidence/M6.9/router-r120-deployment-manual-roundtrip.json",
       "artifact_sha256": "18c987501a25c3878b3fbfcc6bfaf88f07fd5f2bff83f4522faa3a4515b9e101",
       "router_version": "0.2.36",
       "router_owned_catalog_accepted": true,
@@ -6376,20 +6376,27 @@
       "root_private_credential_boundary_retained": true,
       "focused_tests_passed": 44,
       "focused_tests_failed": 0,
-      "repository_files_scanned": 700,
+      "repository_files_scanned": 701,
       "repository_secret_findings": 0,
-      "server_mutated": false,
+      "server_mutated": true,
+      "active_router_release": "codex-account-router-0.2.36-linux-x64",
+      "active_web_release": "c3e92f0f-20260803-m69-router-r120-catalog-owner-boundary",
+      "manual_switch_roundtrip_passed": true,
+      "native_identity_rebound_each_direction": true,
+      "original_route_restored": true,
+      "app_server_credential_matches_current_route": true,
+      "all_seven_related_units_active": true,
+      "tailnet_html_http": 200,
+      "tailnet_status_http": 200,
       "standalone_8215_mutated": false,
       "model_request_sent": false,
-      "account_switch_sent_after_repair": false,
+      "account_switch_sent_after_repair": true,
       "semantic_stream_replay_attempted": false,
       "cross_account_continuity_claimed": false,
-      "status": "blocked"
+      "status": "done"
     }
   },
-  "blockers": [
-    "R119 activation was rolled back after its first no-model manual switch exposed a catalog-owner boundary bug. R120 revision 9a24fed and account-router 0.2.36 are locally qualified, but require new explicit deployment authorization because the completed authorization named revision 7c572cc and version 0.2.35."
-  ],
+  "blockers": [],
   "residual_risks": [
     "Cross-account continuity remains unverified and is not claimed.",
     "Pre-fix codex-web-router journal records may contain upstream IPC bodies or response headers. Per-unit deletion is unavailable without vacuuming unrelated system logs; retention and access must be handled operationally.",
@@ -6617,7 +6624,8 @@
     "R118 still has a Unix Socket half-close race for asynchronous root-helper responses. R119 fixes both server and Web-client framing, but its live activation was rolled back after a separate catalog-owner boundary blocked native identity rebinding.",
     "The in-app browser automation channel timed out before navigating away from about:blank. Protected server-side HTML and router status checks passed, but R118 browser-rendered composer or account-window behavior is not additionally claimed from that attempt.",
     "R119/0.2.35 was activated and then fully rolled back to R118/0.2.34 after the real no-model manual switch qualification failed at the Router-owned accounts catalog UID boundary; no model request or SSE replay occurred, and 8215 remained unchanged.",
-    "R120/0.2.36 separates the Router-owned non-secret catalog boundary from root-private credential boundaries and passes focused local tests, but no installed-host manual or automatic switch qualification is claimed until a new explicitly authorized deployment succeeds."
+    "R120/0.2.36 separates the Router-owned non-secret catalog boundary from root-private credential boundaries and passed an installed no-model manual Secondary-to-Primary-to-Secondary roundtrip without changing standalone 8215.",
+    "R120 manual switching is qualified on the installed host, but real automatic failover is not additionally induced by this deployment run and remains a separate installed-host qualification risk."
   ],
-  "updated_at": "2026-08-03T21:02:31+08:00"
+  "updated_at": "2026-08-03T21:18:12+08:00"
 }
