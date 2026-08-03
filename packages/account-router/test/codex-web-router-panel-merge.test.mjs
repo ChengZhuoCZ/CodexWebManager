@@ -57,6 +57,9 @@ import {
   R111_SAFARI_ACCOUNT_LAUNCHER_CONTRACT,
 } from "../../../integrations/codex-web/replace-r111-safari-account-launcher.mjs";
 import {
+  R112_VISIBLE_BOOTSTRAP_LAUNCHER_CONTRACT,
+} from "../../../integrations/codex-web/replace-r112-visible-bootstrap-launcher.mjs";
+import {
   buildManualSwitchRequest as buildStandaloneSwitchRequest,
   buildAccountEnrollmentRequest,
   buildAccountRemovalRequest,
@@ -198,6 +201,10 @@ const R110_DEPLOY = path.resolve(
 const R111_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r111-safari-account-launcher.sh",
+);
+const R112_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r112-visible-bootstrap-launcher.sh",
 );
 
 function sha256(value) {
@@ -1107,6 +1114,14 @@ test("Safari exposes an account launcher without depending on the native profile
   assert.match(panel, /aria-haspopup", "menu"/u);
 });
 
+test("account launcher renders before protected router status and survives an initial failure", async () => {
+  const panel = await fs.readFile(STANDALONE_PANEL, "utf8");
+  assert.match(panel, /Account route · Loading…/u);
+  assert.match(panel, /launcherStatus = "unavailable"/u);
+  assert.match(panel, /renderFallbackLauncher\(\);\s*try \{/u);
+  assert.match(panel, /Router status is temporarily unavailable\./u);
+});
+
 test("R110 pins the compact panel and expands only bounded pre-output failover", async () => {
   const [deployment, dropin] = await Promise.all([
     fs.readFile(R110_DEPLOY, "utf8"),
@@ -1140,11 +1155,11 @@ test("R110 pins the compact panel and expands only bounded pre-output failover",
 });
 
 test("R111 pins an always-visible Safari launcher and restarts only routed Web", async () => {
-  const [panel, deployment] = await Promise.all([
-    fs.readFile(STANDALONE_PANEL),
-    fs.readFile(R111_DEPLOY, "utf8"),
-  ]);
-  assert.equal(R111_SAFARI_ACCOUNT_LAUNCHER_CONTRACT.replacement_panel_sha256, sha256(panel));
+  const deployment = await fs.readFile(R111_DEPLOY, "utf8");
+  assert.equal(
+    R111_SAFARI_ACCOUNT_LAUNCHER_CONTRACT.replacement_panel_sha256,
+    "2043970fdfe436b46f900e7041e8d8c4cbdce019db551b2b0f1517e09013b88a",
+  );
   assert.equal(
     R111_SAFARI_ACCOUNT_LAUNCHER_CONTRACT.predecessor_panel_name,
     "router-account-panel-23e50032.js",
@@ -1152,6 +1167,33 @@ test("R111 pins an always-visible Safari launcher and restarts only routed Web",
   assert.match(deployment, /router-r110-compact-auto-failover/u);
   assert.match(deployment, /router-account-panel-2043970f\.js/u);
   assert.match(deployment, /safari_always_visible_account_launcher=true/u);
+  assert.match(deployment, /standalone_8215_unchanged=true/u);
+  assert.match(deployment, /routed_8216_app_server_unchanged=true/u);
+  assert.match(deployment, /account_router_process_unchanged=true/u);
+  assert.match(deployment, /account_manager_process_unchanged=true/u);
+  assert.match(deployment, /only_8216_web_restarted=true/u);
+  assert.match(deployment, /model_request_sent=false/u);
+  assert.match(deployment, /account_switch_sent=false/u);
+  assert.doesNotMatch(
+    deployment,
+    /systemctl\s+(?:restart|stop|start)\s+"?\$?(?:APP_SERVICE|ROUTER_SERVICE|MANAGER_SERVICE|MANAGER_SOCKET|STANDALONE_WEB_SERVICE|STANDALONE_APP_SERVICE)/u,
+  );
+});
+
+test("R112 pins the pre-status launcher and restarts only routed Web", async () => {
+  const [panel, deployment] = await Promise.all([
+    fs.readFile(STANDALONE_PANEL),
+    fs.readFile(R112_DEPLOY, "utf8"),
+  ]);
+  assert.equal(R112_VISIBLE_BOOTSTRAP_LAUNCHER_CONTRACT.replacement_panel_sha256, sha256(panel));
+  assert.equal(
+    R112_VISIBLE_BOOTSTRAP_LAUNCHER_CONTRACT.predecessor_panel_name,
+    "router-account-panel-2043970f.js",
+  );
+  assert.match(deployment, /router-r111-safari-account-launcher/u);
+  assert.match(deployment, /router-account-panel-8a5b3659\.js/u);
+  assert.match(deployment, /pre_status_launcher_visible=true/u);
+  assert.match(deployment, /initial_status_failure_visible=true/u);
   assert.match(deployment, /standalone_8215_unchanged=true/u);
   assert.match(deployment, /routed_8216_app_server_unchanged=true/u);
   assert.match(deployment, /account_router_process_unchanged=true/u);

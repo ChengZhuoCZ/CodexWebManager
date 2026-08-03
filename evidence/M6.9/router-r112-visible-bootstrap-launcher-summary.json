@@ -1,0 +1,63 @@
+{
+  "task": "M6.9",
+  "release": "c3e92f0f-20260803-m69-router-r112-visible-bootstrap-launcher",
+  "input_commit": "8b3a65e3f91078f37ce61078d898b2aed2d21a48",
+  "implementation_mode": "clean-room",
+  "diagnosis": [
+    "A Safari user-agent request received HTTP 200, Cache-Control no-store and index.html referencing the installed R111 content-hashed panel.",
+    "The same-origin R111 panel returned HTTP 200 and the response CSP allowed self-hosted scripts.",
+    "R111 created no visible DOM until the protected router status request succeeded, and it returned silently after an initial status failure."
+  ],
+  "changes": [
+    "Render the lower-left account launcher immediately after DOM readiness and before the first protected router status request.",
+    "Expose fixed Loading and Unavailable labels plus the sanitized fixed panel stage when the status boundary has not completed.",
+    "Keep the installer alive after an initial status failure, retain the bounded 30-second poll, and provide a manual Retry control.",
+    "Retain the account panel, native profile-menu adapter and no-replay semantic-output boundary."
+  ],
+  "tests": [
+    {
+      "command": "<bundled-node> --test --test-name-pattern='account launcher renders before protected router status' codex-web-router-panel-merge.test.mjs",
+      "pre_fix_result": "failed as expected because R111 had no pre-status visible launcher",
+      "post_fix_result": "passed"
+    },
+    {
+      "command": "<bundled-node> --test codex-web-router-panel-merge.test.mjs",
+      "result": "39 passed, 0 failed"
+    },
+    {
+      "command": "<bundled-node> --test failover-state-machine failure-injection-matrix failover-proxy websocket-failover runtime-composition config runtime-bootstrap systemd-units codex-web-router-panel-merge",
+      "result": "124 passed, 0 failed"
+    },
+    {
+      "command": "bash -n R112 deployment; node --check R112 installer and account panel; git diff --check; scanRepository(loadSecurityAuditPolicy())",
+      "result": "passed; 669 files scanned with 0 findings"
+    }
+  ],
+  "deployment": {
+    "status": "success",
+    "installed_panel_sha256": "8a5b36594e6fd0c1dce9601d02ddefaa2ba0dc52a14babc2e3d9bd90fee1487d",
+    "pre_status_launcher_visible": true,
+    "initial_status_failure_visible": true,
+    "bounded_status_retry_retained": true,
+    "standalone_8215_unchanged": true,
+    "routed_8216_app_server_unchanged": true,
+    "account_router_process_unchanged": true,
+    "account_manager_process_unchanged": true,
+    "only_8216_web_restarted": true,
+    "services_active_after_deployment": 7,
+    "model_request_sent": false,
+    "account_switch_sent": false,
+    "semantic_output_replay_attempted": false
+  },
+  "evidence_files": [
+    "integrations/codex-web/router-account-panel-standalone.js",
+    "integrations/codex-web/replace-r112-visible-bootstrap-launcher.mjs",
+    "evidence/M6.9/deploy-router-r112-visible-bootstrap-launcher.sh"
+  ],
+  "residual_risks": [
+    "Safari pixel-level verification remains unavailable because macOS ScreenCaptureKit returns SCStream -3812; user-visible confirmation is still required.",
+    "If R112 shows no Loading or Unavailable launcher at the new content-hashed document URL, the failure is before module execution and must be diagnosed at the document/module loading boundary.",
+    "The aggregate strict-CI baseline must be requalified before merge because R112 changes the protected routed Web tree; repository secret scanning reported zero findings.",
+    "No real account switch or model request was sent. Switching starts a new backend session and does not migrate, replay or resume work after semantic output."
+  ]
+}

@@ -1017,26 +1017,65 @@ export async function installRouterAccountPanel() {
   let menuRenderQueued = false;
   let fallbackDismissHandler = null;
   let fallbackEscapeHandler = null;
+  let launcherStatus = "loading";
 
-  const renderFallbackMenu = (dialog) => renderProfileMenu(
-    model,
-    requestSwitch,
-    () => requestQuotaRefresh(true),
-    beginAdd,
-    submitAdd,
-    cancelManagement,
-    beginRemove,
-    confirmRemove,
-    busyAlias,
-    quotaBusy,
-    transientMessage,
-    management,
-    dialog,
-    FALLBACK_MENU_SECTION_ID,
-  );
+  const renderFallbackMenu = (dialog) => {
+    if (!model) {
+      const notice = element("div");
+      Object.assign(notice.style, { padding: "10px", fontSize: "12px" });
+      notice.append(element(
+        "p",
+        undefined,
+        launcherStatus === "unavailable"
+          ? "Router status is temporarily unavailable."
+          : "Account controls are loading…",
+      ));
+      const stage = document.documentElement.dataset.routerPanelStage ?? "unknown";
+      const detail = element("p", undefined, `Stage: ${stage}`);
+      Object.assign(detail.style, { margin: "5px 0", opacity: ".62", fontSize: "10px" });
+      const retry = element("button", undefined, "Retry");
+      retry.type = "button";
+      Object.assign(retry.style, {
+        border: "0",
+        borderRadius: "5px",
+        padding: "5px 8px",
+        background: "rgba(127,127,127,.16)",
+        color: "inherit",
+      });
+      retry.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        launcherStatus = "loading";
+        renderFallbackLauncher();
+        refresh().catch(() => {
+          launcherStatus = "unavailable";
+          renderFallbackLauncher();
+        });
+      });
+      notice.append(detail, retry);
+      dialog.replaceChildren(notice);
+      return true;
+    }
+    return renderProfileMenu(
+      model,
+      requestSwitch,
+      () => requestQuotaRefresh(true),
+      beginAdd,
+      submitAdd,
+      cancelManagement,
+      beginRemove,
+      confirmRemove,
+      busyAlias,
+      quotaBusy,
+      transientMessage,
+      management,
+      dialog,
+      FALLBACK_MENU_SECTION_ID,
+    );
+  };
 
   const renderFallbackLauncher = () => {
-    if (!model || stopped) return;
+    if (stopped) return;
     let launcher = document.getElementById(FALLBACK_LAUNCHER_ID);
     let dialog = document.getElementById(FALLBACK_DIALOG_ID);
     if (!(launcher instanceof HTMLButtonElement) || !(dialog instanceof HTMLElement)) {
@@ -1119,10 +1158,15 @@ export async function installRouterAccountPanel() {
       document.addEventListener("pointerdown", fallbackDismissHandler, true);
       document.addEventListener("keydown", fallbackEscapeHandler, true);
     }
-    const currentAlias = model.accounts.find((account) => account.isCurrent)?.alias ?? "Unavailable";
+    const currentAlias = model?.accounts.find((account) => account.isCurrent)?.alias ?? "Unavailable";
+    const launcherLabel = model
+      ? `Account route · ${currentAlias}`
+      : launcherStatus === "unavailable"
+        ? "Account route · Unavailable"
+        : "Account route · Loading…";
     const label = launcher.querySelector(".router-launcher-label");
-    if (label instanceof HTMLElement) label.textContent = `Account route · ${currentAlias}`;
-    launcher.setAttribute("aria-label", `Account route · ${currentAlias}`);
+    if (label instanceof HTMLElement) label.textContent = launcherLabel;
+    launcher.setAttribute("aria-label", launcherLabel);
     if (!dialog.hidden) renderFallbackMenu(dialog);
   };
 
@@ -1157,6 +1201,11 @@ export async function installRouterAccountPanel() {
   };
   const showError = (message) => {
     transientMessage = message;
+    if (!model) {
+      launcherStatus = "unavailable";
+      renderFallbackLauncher();
+      return;
+    }
     renderSurfaces();
   };
   const refresh = async () => {
@@ -1172,6 +1221,7 @@ export async function installRouterAccountPanel() {
       throw new Error("router status is unavailable");
     }
     model = deriveRouterAccountPanelModel(body.router);
+    launcherStatus = "ready";
     transientMessage = null;
     renderSurfaces();
     setPanelStage("ready");
@@ -1385,10 +1435,16 @@ export async function installRouterAccountPanel() {
     }
   }
 
+  renderFallbackLauncher();
   try {
-    if (await refresh() === "disabled") return () => undefined;
+    if (await refresh() === "disabled") {
+      launcherStatus = "unavailable";
+      setPanelStage("disabled");
+      renderFallbackLauncher();
+    }
   } catch {
-    return () => undefined;
+    launcherStatus = "unavailable";
+    renderFallbackLauncher();
   }
   if (!quotaRefreshAttempted && model?.accounts.some((account) => account.weeklyLabel === "Not observed yet")) {
     await requestQuotaRefresh(false);
