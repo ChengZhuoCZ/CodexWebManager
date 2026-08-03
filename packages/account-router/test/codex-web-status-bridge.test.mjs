@@ -217,6 +217,32 @@ main().catch(() => { process.stderr.write("fixture bridge failed\\n"); process.e
     patchedMain,
     /root: path\.resolve\(__dirname, "\.\.\/\.\.\/scratch\/asar\/webview"\),[\s\S]*preCompressed: true,[\s\S]*maxAge: "1y",[\s\S]*immutable: true/,
   );
+  assert.match(
+    patchedMain,
+    /request\.url\.startsWith\("\/assets\/"\)[\s\S]*preferBrotliAcceptEncoding/,
+  );
+  const { preferBrotliAcceptEncoding } = await import(
+    pathToFileURL(
+      path.join(
+        temporaryRoot,
+        "src",
+        "server",
+        "preferred-content-encoding.js",
+      ),
+    ).href
+  );
+  assert.equal(
+    preferBrotliAcceptEncoding("gzip, deflate, br, zstd"),
+    "br, gzip, deflate, zstd",
+  );
+  assert.equal(
+    preferBrotliAcceptEncoding("gzip;q=1, br;q=0.8"),
+    "gzip;q=1, br;q=0.8",
+  );
+  assert.equal(
+    preferBrotliAcceptEncoding("gzip, br;q=0"),
+    "gzip, br;q=0",
+  );
   assert.equal(
     (patchedMain.match(/return sendBrowserIndex\(reply\);/gu) ?? []).length,
     2,

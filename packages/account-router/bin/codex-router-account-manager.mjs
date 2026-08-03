@@ -443,12 +443,14 @@ async function start() {
     let attempts = 0;
     let backoff = 100;
     let unavailableSince = Date.now();
+    let afterId = "0";
     while (!eventAbort.signal.aborted) {
       try {
         await eventBridge.followEvents({
-          afterId: "0",
+          afterId,
           signal: eventAbort.signal,
           onEvent: (event) => {
+            afterId = event.id;
             attempts = 0;
             backoff = 100;
             unavailableSince = Date.now();

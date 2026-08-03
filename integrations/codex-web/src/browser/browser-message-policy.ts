@@ -358,9 +358,11 @@ export function localBrowserStatsigResponse(url: string): unknown | null {
   if (
     parsed.protocol === "https:" &&
     ((parsed.hostname === "ab.chatgpt.com" &&
-      parsed.pathname === "/v1/rgstr") ||
+      (parsed.pathname === "/v1/rgstr" ||
+        parsed.pathname === "/v1/log_event")) ||
       (parsed.hostname === "chatgpt.com" &&
-        parsed.pathname === "/ces/v1/rgstr"))
+        (parsed.pathname === "/ces/v1/rgstr" ||
+          parsed.pathname === "/ces/v1/log_event")))
   ) {
     return {};
   }

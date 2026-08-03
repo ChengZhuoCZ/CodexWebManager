@@ -395,6 +395,16 @@ integrationTest(
       { method: "POST", body: '{"fixture":true}' },
     );
     assert.deepEqual(await events.json(), {});
+    const logEvents = await fetch(
+      "https://ab.chatgpt.com/v1/log_event?k=fixture",
+      { method: "POST", body: '{"fixture":true}' },
+    );
+    assert.deepEqual(await logEvents.json(), {});
+    const cesLogEvents = await fetch(
+      "https://chatgpt.com/ces/v1/log_event?k=fixture",
+      { method: "POST", body: '{"fixture":true}' },
+    );
+    assert.deepEqual(await cesLogEvents.json(), {});
     assert.equal(forwarded, 0);
 
     const lookalike = await fetch(
@@ -402,7 +412,12 @@ integrationTest(
       { method: "POST" },
     );
     assert.deepEqual(await lookalike.json(), { forwarded: true });
-    assert.equal(forwarded, 1);
+    const readOnly = await fetch(
+      "https://ab.chatgpt.com/v1/log_event?k=fixture",
+      { method: "GET" },
+    );
+    assert.deepEqual(await readOnly.json(), { forwarded: true });
+    assert.equal(forwarded, 2);
   },
 );
 

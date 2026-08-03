@@ -75,6 +75,7 @@
         "test/linux-release.test.mjs",
         "test/r106-account-management-install.test.mjs",
         "test/r108-persistent-upload-install.test.mjs",
+        "test/r127-startup-split.test.mjs",
         "test/soak-contract.test.mjs"
       ]
     }

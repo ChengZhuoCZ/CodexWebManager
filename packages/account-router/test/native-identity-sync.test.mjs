@@ -79,3 +79,11 @@ test("sanitized identity telemetry rejects extra or sensitive fields", () => {
   assert.throws(() => logger({ ...safe, account_alias: "forbidden" }), /telemetry is invalid/);
   assert.doesNotMatch(lines[0], /alias|token|prompt|response|authorization/i);
 });
+
+test("manager advances the router event cursor before reconnecting", async () => {
+  const source = await import("node:fs/promises").then(({ readFile }) =>
+    readFile(new URL("../bin/codex-router-account-manager.mjs", import.meta.url), "utf8"));
+  assert.match(source, /let afterId = "0";/u);
+  assert.match(source, /followEvents\(\{[\s\S]*?afterId,[\s\S]*?onEvent: \(event\) => \{[\s\S]*?afterId = event\.id;/u);
+  assert.equal((source.match(/afterId = "0"/gu) ?? []).length, 1);
+});

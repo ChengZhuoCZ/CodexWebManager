@@ -44,6 +44,12 @@ const browserIpcRouterOverlaySource = path.join(
   "server",
   "browser-ipc-router.ts",
 );
+const preferredContentEncodingOverlaySource = path.join(
+  integrationDirectory,
+  "src",
+  "server",
+  "preferred-content-encoding.ts",
+);
 const browserMessagePolicyOverlaySource = path.join(
   integrationDirectory,
   "src",
@@ -241,6 +247,12 @@ async function applyStatusBridgeLocked({ codexWebRoot, revision = null } = {}) {
     "server",
     "browser-ipc-router.ts",
   );
+  const targetPreferredContentEncodingOverlay = path.join(
+    codexWebRoot,
+    "src",
+    "server",
+    "preferred-content-encoding.ts",
+  );
   const targetBrowserMessagePolicyOverlay = path.join(
     codexWebRoot,
     "src",
@@ -283,7 +295,7 @@ async function applyStatusBridgeLocked({ codexWebRoot, revision = null } = {}) {
   patchedMain = replaceOnce(
     patchedMain,
     importAnchor,
-    `${importAnchor}\nimport { BrowserIpcRouter } from "./browser-ipc-router";\nimport { registerRouterAccountManagement } from "./router-account-management";\nimport { registerBrowserSessionAuth } from "./browser-session-auth";\nimport { BROWSER_UPLOAD_LIMITS, BrowserUploadStore, isBrowserUploadLimitError } from "./browser-upload-store";\nimport { registerRouterStatusBridge } from "./router-status-bridge";`,
+    `${importAnchor}\nimport { BrowserIpcRouter } from "./browser-ipc-router";\nimport { registerRouterAccountManagement } from "./router-account-management";\nimport { registerBrowserSessionAuth } from "./browser-session-auth";\nimport { BROWSER_UPLOAD_LIMITS, BrowserUploadStore, isBrowserUploadLimitError } from "./browser-upload-store";\nimport { preferBrotliAcceptEncoding } from "./preferred-content-encoding";\nimport { registerRouterStatusBridge } from "./router-status-bridge";`,
     "server import",
   );
   patchedMain = replaceOnce(
@@ -463,7 +475,19 @@ async function applyStatusBridgeLocked({ codexWebRoot, revision = null } = {}) {
     root: path.resolve(__dirname, "../../scratch/asar/webview"),
     prefix: "/",
   });`,
-    `  await app.register(fastifyStatic, {
+    `  app.addHook("onRequest", async (request) => {
+    if (
+      (request.method === "GET" || request.method === "HEAD") &&
+      request.url.startsWith("/assets/") &&
+      typeof request.headers["accept-encoding"] === "string"
+    ) {
+      request.headers["accept-encoding"] = preferBrotliAcceptEncoding(
+        request.headers["accept-encoding"],
+      );
+    }
+  });
+
+  await app.register(fastifyStatic, {
     root: path.resolve(__dirname, "../../scratch/asar/webview"),
     prefix: "/",
     preCompressed: true,
@@ -1482,6 +1506,7 @@ async function handleLocalBrowserMessage(
     [browserSessionOverlaySource, targetBrowserSessionOverlay],
     [browserUploadStoreOverlaySource, targetBrowserUploadStoreOverlay],
     [browserIpcRouterOverlaySource, targetBrowserIpcRouterOverlay],
+    [preferredContentEncodingOverlaySource, targetPreferredContentEncodingOverlay],
     [browserMessagePolicyOverlaySource, targetBrowserMessagePolicyOverlay],
   ];
   const copiedTargets = [];
