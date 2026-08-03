@@ -102,12 +102,13 @@
     "r122_native_menu_contract": "3a1041598eba2fd38b916111f3ef9d454cc77ff5",
     "r124_current_auto_failover": "a16114f0312aa1b24ef9575f454391559345e4c3",
     "r125_r130_optimization_start": "ad2a00b8e5e11ef082a1496f8ee29489e9481e0a",
+    "r127_event_split_recovery": "0457a25ad2e472878a0390bb55ccd9c1ac2f7b17",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "e84c8d4fceea2c01348bcd6089d61f51fe48bf96",
+  "output_revision": "0457a25ad2e472878a0390bb55ccd9c1ac2f7b17",
   "workspace_branch": "codex/m6-9-8216-r85-handoff",
   "workspace_input_revision": "ad2a00b8e5e11ef082a1496f8ee29489e9481e0a",
   "depends_on": [
@@ -2134,6 +2135,30 @@
     {
       "command": "bash -n evidence/M6.9/run-r124-current-real-auto-failover.sh && git diff --check; scanRepository(loadSecurityAuditPolicy())",
       "result": "Syntax and whitespace checks passed; 717 repository files produced zero secret findings."
+    },
+    {
+      "command": "<bundled-node> --test native identity, manager protocol, systemd and R127 startup-split focused suites",
+      "result": "Event-driven Router-to-manager native identity synchronization, bounded polling fallback, fixed-field telemetry and source-level deferred account/workspace chunks passed."
+    },
+    {
+      "command": "hash-pinned rollback-capable R127 8216-only deployment and four-service restart recovery qualification",
+      "result": "Router 0.2.38 and R127 Web activated; two accounts, Secondary route, Secondary native identity, signed-in state and persistent upload root recovered. Event sync used one attempt, all failed deployment candidates rolled back, no model request or SSE replay occurred, and 8215 remained unchanged."
+    },
+    {
+      "command": "Microsoft Edge 151 fresh-profile CDP, three cold-cache plus three warm-cache post-R127 runs",
+      "result": "Cold composer median was 5766.3 ms and warm median was 3866.8 ms, observed 14.2% and 27.6% below R126 respectively. Account Settings, workspace dialog, deferred React client, Scheduled and Computer Use chunks did not load on the first screen. This is a bounded baseline, not a stable-speed guarantee."
+    },
+    {
+      "command": "M4_2_CODEX_WEB_ROOT=<clean-888692f-fixture> M4_3_CODEX_WEB_ROOT=<clean-888692f-fixture> M6_3_CODEX_WEB_ROOT=<clean-888692f-fixture> <bundled-node> --test test/*.test.mjs",
+      "result": "Local macOS explicit matrix passed 444/445 with 0 failures; the sole skip was the installed native Linux release check. The formerly missing startup/App Host aggregate fixture passed reproducibly."
+    },
+    {
+      "command": "GitHub Actions Automated test matrix on ubuntu-24.04 with Node 22 and Node 24",
+      "result": "Both jobs passed 445/445 with 0 failures and 0 skips, including three UI smoke scenarios and both pre-semantic failover and post-semantic unsafe-to-replay boundaries."
+    },
+    {
+      "command": "M6.3 fail-closed security audit locally and on GitHub Actions",
+      "result": "111/111 focused security tests passed; the remote run scanned 741 repository files and the final local audit scanned 742, both with zero findings; the renewed strict-CI baseline covers 890/890 zero-skip results and all protected paths remained unchanged."
     }
   ],
   "evidence": [
@@ -2431,7 +2456,12 @@
     "evidence/M6.9/router-r117-app-server-secondary-recovery.json",
     "evidence/M6.9/router-r124-linux-release-verify.json",
     "evidence/M6.9/run-r124-current-real-auto-failover.sh",
-    "evidence/M6.9/router-r124-current-auto-failover.json"
+    "evidence/M6.9/router-r124-current-auto-failover.json",
+    "evidence/M6.9/router-r125-event-driven-native-identity-sync.json",
+    "evidence/M6.9/router-r126-clean-browser-startup-baseline.json",
+    "evidence/M6.9/deploy-router-r127-event-split-recovery.sh",
+    "evidence/M6.9/router-r127-github-actions-summary.json",
+    "evidence/M6.9/router-r127-event-split-recovery-summary.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -6543,7 +6573,12 @@
         "restored pinned upstream fixture and complete strict CI evidence"
       ],
       "standalone_8215_mutation_authorized": false,
-      "status": "in_progress"
+      "event_driven_identity_sync_deployed": true,
+      "restart_recovery_qualified": true,
+      "strict_ci_qualified": true,
+      "safari_exact_baseline_completed": false,
+      "safari_blocker_recorded": true,
+      "status": "done"
     },
     "r125_event_driven_native_identity_sync": {
       "repository": "ChengZhuoCZ/CodexWebManager",
@@ -6576,6 +6611,35 @@
       "model_request_sent": false,
       "account_switch_sent": false,
       "standalone_8215_mutated": false,
+      "status": "done"
+    },
+    "r127_event_split_recovery": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "ad2a00b8e5e11ef082a1496f8ee29489e9481e0a",
+      "output_revision": "0457a25ad2e472878a0390bb55ccd9c1ac2f7b17",
+      "evidence": "evidence/M6.9/router-r127-event-split-recovery-summary.json",
+      "router_release": "codex-account-router-0.2.38-linux-x64",
+      "web_release": "c3e92f0f-20260804-m69-router-r127-event-split",
+      "configured_accounts": 2,
+      "route_restored": "Secondary",
+      "native_identity_restored": "Secondary",
+      "login_state_restored": true,
+      "persistent_upload_root_restored": true,
+      "event_sync_max_elapsed_ms": 1044,
+      "event_sync_max_attempts": 1,
+      "initial_preload_bytes": 26335,
+      "edge_cold_composer_median_ms": 5766.3,
+      "edge_warm_composer_median_ms": 3866.8,
+      "node_22_strict_tests_passed": 445,
+      "node_24_strict_tests_passed": 445,
+      "focused_security_tests_passed": 111,
+      "repository_secret_findings": 0,
+      "safari_exact_baseline_completed": false,
+      "standalone_8215_mutated": false,
+      "model_request_sent": false,
+      "semantic_stream_replay_attempted": false,
+      "cross_account_continuity_claimed": false,
       "status": "done"
     }
   },
@@ -6822,7 +6886,12 @@
     "R124 qualifies one current-version real new initial HTTP/SSE request from a pre-semantic Primary authentication failure to Secondary completion. Real post-semantic disruption was not induced; installed-package HTTP/SSE and WebSocket fixtures prove unsafe_to_replay with zero Secondary contact after semantic output. No backend session, in-flight request or running computation is migrated, replayed, resumed or restored.",
     "R125 event-driven native identity synchronization is source-qualified but not yet installed-host qualified. Its 3-second polling path remains only as a fallback after an event-stream interruption or process restart.",
     "R125 monitoring emits only fixed trigger, stage, reason, attempt-count, elapsed-time and credentials-exposed fields. It deliberately omits account identity, tokens, prompts and response bodies.",
-    "R125 automatic switching starts a new backend session. It does not migrate, replay, resume or restore prior semantic output, an in-flight request or running computation."
+    "R125 automatic switching starts a new backend session. It does not migrate, replay, resume or restore prior semantic output, an in-flight request or running computation.",
+    "R127 qualifies event-driven native identity synchronization and restart recovery on the installed 8216 host, with polling retained only as a fallback after event-stream interruption or process restart.",
+    "R127 reduces owned first-screen preload work, but the 13.936 MB decoded proprietary upstream main bundle remains the largest transfer and parse cost and is not claimed as split.",
+    "R127 Edge timing uses three cold and three warm samples and is not a soak test or stable performance guarantee.",
+    "Safari cold and warm timing remains unqualified because ScreenCaptureKit returned SCStream -3811 and a bounded SafariDriver session timed out; no substitute-browser result is presented as Safari evidence.",
+    "R127 automatic switching starts a new backend session and does not replay after semantic output; it does not migrate, resume or restore a prior request, stream or running computation."
   ],
-  "updated_at": "2026-08-04T01:05:00+08:00"
+  "updated_at": "2026-08-04T02:41:00+08:00"
 }

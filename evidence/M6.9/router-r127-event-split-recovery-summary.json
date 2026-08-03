@@ -1,0 +1,128 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R127",
+  "implementation_mode": "clean-room",
+  "input_revision": "ad2a00b8e5e11ef082a1496f8ee29489e9481e0a",
+  "implementation_revisions": [
+    "25fb59b",
+    "c1eec01",
+    "623d04a",
+    "d55bb1c",
+    "4d55de6",
+    "1154483",
+    "f9b09f1",
+    "ec7eaef",
+    "c586e71",
+    "027beb8",
+    "2490861",
+    "1800411",
+    "9c1a9a6",
+    "c1c8ce4",
+    "0457a25"
+  ],
+  "scope": "isolated routed 8216 only",
+  "deployment": {
+    "status": "success",
+    "router_release": "codex-account-router-0.2.38-linux-x64",
+    "web_release": "c3e92f0f-20260804-m69-router-r127-event-split",
+    "configured_accounts": 2,
+    "route_restored": "Secondary",
+    "native_identity_restored": "Secondary",
+    "login_state_restored": true,
+    "persistent_upload_root_restored": true,
+    "event_sync_records": 2,
+    "event_sync_max_elapsed_ms": 1044,
+    "event_sync_max_attempts": 1,
+    "polling_is_fallback_only": true,
+    "all_unsuccessful_deployment_attempts_rolled_back": true,
+    "standalone_8215_unchanged": true,
+    "model_request_sent": false,
+    "semantic_output_replayed": false,
+    "seamless_account_continuity_claimed": false
+  },
+  "sanitized_monitoring": {
+    "destination": "account-manager journal",
+    "fields": [
+      "event",
+      "trigger",
+      "stage",
+      "switch_reason",
+      "route_attempts",
+      "sync_attempts",
+      "elapsed_ms",
+      "credentials_exposed"
+    ],
+    "account_identity_recorded": false,
+    "token_recorded": false,
+    "prompt_recorded": false,
+    "response_body_recorded": false
+  },
+  "browser_startup": {
+    "edge_browser": "Microsoft Edge 151.0.4129.59",
+    "fresh_profile": true,
+    "samples_per_cache_state": 3,
+    "r126_cold_composer_median_ms": 6718.5,
+    "r127_cold_composer_median_ms": 5766.3,
+    "observed_cold_improvement_percent": 14.2,
+    "r126_warm_composer_median_ms": 5342.6,
+    "r127_warm_composer_median_ms": 3866.8,
+    "observed_warm_improvement_percent": 27.6,
+    "r127_cold_html_ttfb_median_ms": 70.8,
+    "r127_cold_dom_content_loaded_median_ms": 2111.6,
+    "r127_cold_script_duration_median_ms": 822.303,
+    "r127_warm_html_ttfb_median_ms": 82.3,
+    "r127_warm_dom_content_loaded_median_ms": 93.9,
+    "r127_warm_script_duration_median_ms": 945.131,
+    "initial_preload_bytes": 26335,
+    "main_bundle_decoded_bytes": 13936387,
+    "main_bundle_transferred_bytes": 4243511,
+    "account_settings_chunk_deferred": true,
+    "workspace_dialog_chunk_deferred": true,
+    "scheduled_module_loaded_on_first_screen": false,
+    "computer_use_module_loaded_on_first_screen": false,
+    "heavy_plugins_page_loaded_on_first_screen": false,
+    "small_plugins_helper_may_remain_in_upstream_main": true,
+    "stable_speedup_claimed": false,
+    "safari_exact_baseline_completed": false,
+    "safari_blockers": [
+      "macOS ScreenCaptureKit returned SCStream -3811",
+      "a bounded SafariDriver session timed out"
+    ]
+  },
+  "strict_ci": {
+    "qualified_revision": "c1c8ce4021e6547468d467fd2fa18b13a086ae70",
+    "matrix_run": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/30841565882",
+    "node_22": {
+      "tests": 445,
+      "passed": 445,
+      "failed": 0,
+      "skipped": 0
+    },
+    "node_24": {
+      "tests": 445,
+      "passed": 445,
+      "failed": 0,
+      "skipped": 0
+    },
+    "final_matrix_run": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/30842039814",
+    "security_run": "https://github.com/ChengZhuoCZ/CodexWebManager/actions/runs/30842039694",
+    "focused_security_tests": 111,
+    "repository_files_scanned": 741,
+    "secret_findings": 0,
+    "final_local_security_audit": {
+      "focused_tests_passed": 111,
+      "repository_files_scanned": 742,
+      "secret_findings": 0
+    },
+    "linux_release_passed": true,
+    "systemd_least_privilege_passed": true,
+    "systemd_upgrade_rollback_passed": true
+  },
+  "residual_risks": [
+    "Safari cold and warm timing remains unqualified until the macOS automation channel can create a bounded Safari session.",
+    "The proprietary upstream main bundle remains the largest first-screen transfer and parse cost; R127 does not claim that it has been split.",
+    "Three browser observations per cache state are a decision baseline, not a soak test or stable performance guarantee.",
+    "Automatic switching starts a new backend session and never replays after semantic output; it does not migrate or resume prior work."
+  ]
+}
