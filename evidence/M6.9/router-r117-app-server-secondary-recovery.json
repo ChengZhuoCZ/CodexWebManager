@@ -1,0 +1,56 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "recorded_at": "2026-08-03T18:09:21+08:00",
+  "input_commit": "03c306389627d2eddabeb7f171b59c0e67642dd7",
+  "scope": "Recover the isolated 8216 native App Server after its fixed Primary credential could no longer refresh, without modifying 8215 or sending a model request.",
+  "failure_evidence": {
+    "fresh_browser_stage": "ready",
+    "fresh_browser_result": "Sign in to ChatGPT",
+    "app_server_log": "The provider refresh returned HTTP 401 and the sanitized App Server auth status reported auth_token_missing.",
+    "router_route_before_repair": "Secondary",
+    "router_accounts_reported_healthy": 2,
+    "active_streams_before_repair": 0,
+    "credential_boundary": "The App Server systemd credential matched the fixed Primary binding while the router route was Secondary. No credential bytes, identity, token, cookie, email or full provider response were recorded."
+  },
+  "repair": {
+    "app_server_identity_after_repair": "Secondary",
+    "credential_install": "Atomically installed the existing root-owned Secondary router credential as the fixed 8216 App Server credential with mode 0600 and a rollback copy in /run.",
+    "services_restarted": [
+      "codex-web-router-app-server.service",
+      "codex-web-router.service"
+    ],
+    "reason_web_restart_was_required": "The Web process did not reconnect to the replacement App Server Unix socket after the App Server-only restart; the Web restart established a new IPC bridge and invalidated only 8216 browser sessions."
+  },
+  "verification": {
+    "app_server_active": true,
+    "web_active": true,
+    "account_router_process_unchanged": true,
+    "account_manager_process_unchanged": true,
+    "standalone_8215_web_process_unchanged": true,
+    "standalone_8215_app_server_process_unchanged": true,
+    "fresh_browser_stage_after_repair": "ready",
+    "fresh_browser_composer_visible": true,
+    "fresh_browser_markers": [
+      "New chat",
+      "Project",
+      "Scheduled",
+      "Plugins",
+      "What should we build?"
+    ],
+    "model_request_sent": false,
+    "account_router_switch_request_sent": false
+  },
+  "continuity": {
+    "new_backend_session": true,
+    "prior_session_restored": false,
+    "in_flight_work_resumed": false,
+    "seamless_cross_account_continuity_claimed": false
+  },
+  "residual_risks": [
+    "The isolated App Server still has one fixed systemd credential. Router-only manual or automatic route changes do not persistently rebind that native App Server identity.",
+    "A future expiry of the fixed Secondary credential can return the native App Host to the login screen even if another router credential remains usable.",
+    "Making native App Server identity follow every route change would expand the approved root helper beyond its current catalog/credential-store/account-router-only restart boundary and requires a separate least-privilege design and authorization.",
+    "Optional Statsig requests still time out in the browser-control channel but did not block the verified composer."
+  ]
+}
