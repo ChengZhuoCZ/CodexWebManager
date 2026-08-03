@@ -1,0 +1,104 @@
+{
+  "task": "M6.9",
+  "continuation": "R124 current automatic failover qualification",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "a16114f0312aa1b24ef9575f454391559345e4c3",
+  "test_revision": "e84c8d4fceea2c01348bcd6089d61f51fe48bf96",
+  "implementation_mode": "clean-room",
+  "installed_boundary": {
+    "router_release": "codex-account-router-0.2.37-linux-x64",
+    "web_release": "c3e92f0f-20260803-m69-router-r123-current-quota-identity",
+    "artifact_sha256": "6bcd5e9cd0582d2b5aa30861ace2c2ca979cfaa559a1030b9c79805a9e20eb23",
+    "test_script_sha256": "0c91e9919613609e45cce47fe9fed265bb97d793b2848e8a4b0d98f991c395f2",
+    "linux_verifier_summary_sha256": "661080762a53e9a79133dc1464f0dc9977fd29f84593e2f185c0faeff4b5c425"
+  },
+  "synthetic_installed_release": {
+    "http_sse_pre_semantic_failover": true,
+    "http_sse_pre_semantic_attempts": 2,
+    "http_sse_post_semantic_unsafe_to_replay": true,
+    "http_sse_post_semantic_secondary_contacted": false,
+    "websocket_pre_semantic_failover": true,
+    "websocket_pre_semantic_attempts": 2,
+    "websocket_post_semantic_unsafe_to_replay": true,
+    "websocket_post_semantic_secondary_contacted": false,
+    "credentials_present": false,
+    "provider_model_request_sent": false
+  },
+  "authorized_real_initial_request": {
+    "real_accounts_used": true,
+    "initial_route": "Primary",
+    "failure_kind": "authentication rejection",
+    "failure_before_semantic_output": true,
+    "automatic_target": "Secondary",
+    "secondary_http_status": 200,
+    "secondary_sse_completion_observed": true,
+    "request_had_previous_response_id": false,
+    "prompt_body_recorded": false,
+    "response_body_recorded": false,
+    "credential_or_private_identity_recorded": false,
+    "primary_credential_restored_byte_for_byte": true,
+    "router_private_state_restored": true,
+    "final_route": "Secondary",
+    "final_native_app_server_identity": "Secondary",
+    "final_account_states": [
+      "healthy",
+      "healthy"
+    ],
+    "final_active_requests": 0,
+    "final_active_streams": 0,
+    "semantic_stream_replay_attempted": false,
+    "continuity": "new_backend_session",
+    "cross_account_continuity_claimed": false,
+    "in_flight_recovery_claimed": false
+  },
+  "bounded_failed_attempts": [
+    {
+      "failure": "native identity was compared before the account-manager polling interval completed",
+      "result": "automatic route had already selected Secondary; the script failed closed and restored credentials, router state and the original route"
+    },
+    {
+      "failure": "an idle persistent 18317 App Server connection was treated as active work despite zero active requests and zero active streams",
+      "result": "the script failed closed and restored credentials, router state and the original route"
+    }
+  ],
+  "service_invariants": {
+    "all_seven_related_units_active_after": true,
+    "standalone_8215_unchanged": true,
+    "standalone_8215_web_pid_start": "3664557 / 464091607256",
+    "standalone_8215_app_pid_start": "3664550 / 464091596213",
+    "standalone_8215_unit_hashes_unchanged": true,
+    "8216_unit_hashes_unchanged": true,
+    "8216_release_links_unchanged": true
+  },
+  "tests": [
+    {
+      "command": "<bundled-node> --test failover-proxy websocket-failover semantic-gates linux-release",
+      "result": "23 passed, 0 failed, 1 installed-host fixture skip"
+    },
+    {
+      "command": "target-host verify-linux-release.mjs against SHA-256-pinned 0.2.37 artifact",
+      "result": "passed; HTTP/SSE and WebSocket pre-semantic failover and post-semantic no-secondary-contact boundaries verified"
+    },
+    {
+      "command": "sudo /bin/bash /tmp/run-r124-current-real-auto-failover.sh",
+      "result": "passed; a new initial request failed on Primary before semantic output, completed on Secondary, then restored the Primary credential, Router state, Secondary route and Secondary native identity"
+    },
+    {
+      "command": "bash -n evidence/M6.9/run-r124-current-real-auto-failover.sh && git diff --check; scanRepository(loadSecurityAuditPolicy())",
+      "result": "passed; 717 repository files scanned with zero findings"
+    }
+  ],
+  "evidence": [
+    "evidence/M6.9/router-r124-linux-release-verify.json",
+    "evidence/M6.9/run-r124-current-real-auto-failover.sh"
+  ],
+  "residual_risks": [
+    "The real provider test qualifies one new initial HTTP/SSE request only. The post-semantic no-replay boundary is qualified with installed-package loopback fixtures, not by intentionally disrupting a real semantic response.",
+    "Automatic failover starts a new backend session. It does not migrate, replay, resume or restore a prior response, an in-flight request, a backend session or a running computation.",
+    "The two real-test preparation defects were in the qualification script timing assumptions, not the Router failover result; each attempt failed closed and restored the pre-test private state before the next attempt.",
+    "Provider availability, quota observations and latency are point-in-time conditions and are not ongoing guarantees."
+  ],
+  "status": "done",
+  "recorded_at": "2026-08-04T00:02:26+08:00"
+}

@@ -100,14 +100,15 @@
     "r120_catalog_owner_boundary": "9a24feda8a0071b831128eb43dcace1a8988285b",
     "r121_native_menu_row": "fc7d8d3",
     "r122_native_menu_contract": "3a1041598eba2fd38b916111f3ef9d454cc77ff5",
+    "r124_current_auto_failover": "a16114f0312aa1b24ef9575f454391559345e4c3",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "3a1041598eba2fd38b916111f3ef9d454cc77ff5",
+  "output_revision": "e84c8d4fceea2c01348bcd6089d61f51fe48bf96",
   "workspace_branch": "codex/m6-9-8216-r85-handoff",
-  "workspace_input_revision": "03c306389627d2eddabeb7f171b59c0e67642dd7",
+  "workspace_input_revision": "a16114f0312aa1b24ef9575f454391559345e4c3",
   "depends_on": [
     "M2.5",
     "M6.8",
@@ -2116,6 +2117,22 @@
     {
       "command": "<bundled-node> scanRepository(loadSecurityAuditPolicy()); jq empty state/task-status.json evidence/M6.9/router-r117-app-server-secondary-recovery.json; git diff --check",
       "result": "The repository scan covered 689 files with zero findings. Both JSON documents parsed and git diff --check passed."
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/failover-proxy.test.mjs packages/account-router/test/websocket-failover.test.mjs packages/account-router/test/semantic-gates.test.mjs packages/account-router/test/linux-release.test.mjs",
+      "result": "R124 focused automatic-switch suite passed 23/23 with one installed-host fixture skip. The first sandboxed invocation had uniform loopback listen EPERM failures; the authorized host-network rerun passed."
+    },
+    {
+      "command": "target-host verify-linux-release.mjs against the SHA-256-pinned 0.2.37 Linux artifact",
+      "result": "Installed-package HTTP/SSE and WebSocket fixtures both selected Secondary only before semantic output; both post-semantic fixtures exposed unsafe_to_replay and recorded zero Secondary contact."
+    },
+    {
+      "command": "sudo /bin/bash /tmp/run-r124-current-real-auto-failover.sh",
+      "result": "A user-authorized new initial real request failed on Primary before semantic output and completed automatically on Secondary. Primary credentials, Router private state, the Secondary route and Secondary native App Server identity were restored; active requests and streams ended at zero; 8215 remained unchanged."
+    },
+    {
+      "command": "bash -n evidence/M6.9/run-r124-current-real-auto-failover.sh && git diff --check; scanRepository(loadSecurityAuditPolicy())",
+      "result": "Syntax and whitespace checks passed; 717 repository files produced zero secret findings."
     }
   ],
   "evidence": [
@@ -2410,7 +2427,10 @@
     "evidence/M6.9/router-r115-owned-account-surface-summary.json",
     "evidence/M6.9/deploy-router-r116-react-account-settings.sh",
     "evidence/M6.9/router-r116-react-account-settings-summary.json",
-    "evidence/M6.9/router-r117-app-server-secondary-recovery.json"
+    "evidence/M6.9/router-r117-app-server-secondary-recovery.json",
+    "evidence/M6.9/router-r124-linux-release-verify.json",
+    "evidence/M6.9/run-r124-current-real-auto-failover.sh",
+    "evidence/M6.9/router-r124-current-auto-failover.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -6476,6 +6496,33 @@
       "semantic_stream_replay_attempted": false,
       "cross_account_continuity_claimed": false,
       "status": "done"
+    },
+    "r124_current_auto_failover": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "a16114f0312aa1b24ef9575f454391559345e4c3",
+      "test_revision": "e84c8d4fceea2c01348bcd6089d61f51fe48bf96",
+      "evidence": "evidence/M6.9/router-r124-current-auto-failover.json",
+      "router_version": "0.2.37",
+      "synthetic_http_sse_presemantic_failover": true,
+      "synthetic_http_sse_postsemantic_secondary_contacted": false,
+      "synthetic_websocket_presemantic_failover": true,
+      "synthetic_websocket_postsemantic_secondary_contacted": false,
+      "authorized_real_new_initial_request": true,
+      "primary_failure_before_semantic_output": true,
+      "automatic_secondary_selection": true,
+      "secondary_response_completed": true,
+      "primary_credential_restored": true,
+      "router_private_state_restored": true,
+      "current_route": "Secondary",
+      "native_app_server_identity": "Secondary",
+      "active_requests": 0,
+      "active_streams": 0,
+      "all_seven_related_units_active": true,
+      "standalone_8215_mutated": false,
+      "semantic_stream_replay_attempted": false,
+      "cross_account_continuity_claimed": false,
+      "status": "done"
     }
   },
   "blockers": [],
@@ -6717,7 +6764,8 @@
     "R123 installed-host qualification sent no model request and no account switch. The live Secondary quota was 87% at 2026-08-03T15:09:59.908Z and may continue to decrease with use.",
     "The R123 aggregate Node run passed 437 tests with two skips and retained one unrelated fixture failure because the pinned public checkout lacks scratch/asar/webview/assets/index-LQUNCOO3.js; focused R123 and compiled bridge tests passed.",
     "R123 installed content hashes and the protected status response are verified, but the in-app Browser reload timed out and the documented reconnect had no matching 8216 tab to claim, so no additional browser-rendered menu/dialog or pixel-level claim is made.",
-    "R123 does not change continuity semantics. Manual or automatic account switching starts a new backend session and does not migrate, replay, resume or restore prior semantic output, an in-flight request or running computation."
+    "R123 does not change continuity semantics. Manual or automatic account switching starts a new backend session and does not migrate, replay, resume or restore prior semantic output, an in-flight request or running computation.",
+    "R124 qualifies one current-version real new initial HTTP/SSE request from a pre-semantic Primary authentication failure to Secondary completion. Real post-semantic disruption was not induced; installed-package HTTP/SSE and WebSocket fixtures prove unsafe_to_replay with zero Secondary contact after semantic output. No backend session, in-flight request or running computation is migrated, replayed, resumed or restored."
   ],
-  "updated_at": "2026-08-03T23:12:55+08:00"
+  "updated_at": "2026-08-04T00:02:26+08:00"
 }
