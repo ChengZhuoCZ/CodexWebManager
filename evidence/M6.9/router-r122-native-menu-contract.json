@@ -1,0 +1,102 @@
+{
+  "task": "M6.9",
+  "continuation": "R122 upstream-native profile-menu typography and structure contract",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "39bf959166d281fcfe3764b85eda671f43343f2a",
+  "implementation_revision": "3a1041598eba2fd38b916111f3ef9d454cc77ff5",
+  "implementation_mode": "clean-room",
+  "scope": {
+    "target": "isolated 8216 routed Web only",
+    "standalone_8215_changes_allowed": false,
+    "model_request_allowed_or_sent": false,
+    "account_switch_allowed_or_sent": false,
+    "semantic_output_replay_allowed_or_sent": false
+  },
+  "implementation": {
+    "source_level_react_window_retained": true,
+    "shadow_dom": false,
+    "native_menu_entry_count": 1,
+    "native_menu_layout": "native-contract",
+    "native_structure": "menuitem > flex-col > flex w-full items-center gap-1.5",
+    "native_outer_typography": "text-sm inherited from the upstream menu item class",
+    "native_icon_size": "icon-xs",
+    "route_alias_typography": "ml-2 shrink-0 text-xs text-token-description-foreground",
+    "custom_inline_font_padding_gap_and_height_removed": true,
+    "browser_title_tooltip_removed": true,
+    "details_remain_in_native_account_settings_dialog": true
+  },
+  "build": {
+    "upstream_revision": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7",
+    "modules_transformed": 68,
+    "preload_bytes": 628245,
+    "preload_sha256": "ba57f3d68765fd06d0830c8d1bae5d01c35b02835f71624607733dd869d82dfb",
+    "source_sha256": "9650646532dd9e9da7e03f0adf6cff58478c1e0a50069a13dbf8e9454b047501",
+    "source_applier_sha256": "02c5cfd6949c2a36c44d0b3c2d7e21964a0589a329c6d64889f002ecf9991feb",
+    "transformer_sha256": "c58f7bde835b1b85904372cec08f53bab184a30c3f1389db02b0b85efced89b0",
+    "deployment_script_sha256": "11c0cc44330893683d0230ea4a27d87b48a3f925c833b361cb3bbd6e51311257"
+  },
+  "tests": [
+    {
+      "command": "<bundled-node> --test packages/account-router/test/codex-web-router-panel-merge.test.mjs",
+      "result": "55 passed, 0 failed"
+    },
+    {
+      "command": "<bundled-node> --check apply-to-upstream-r122.mjs replace-r122-native-menu-contract.mjs && bash -n deploy-router-r122-native-menu-contract.sh && git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "pinned upstream source apply followed by Vite browser build",
+      "result": "68 modules transformed; preload 628245 bytes; exact SHA-256 matched"
+    }
+  ],
+  "deployment": {
+    "status": "success",
+    "previous_web_release": "c3e92f0f-20260803-m69-router-r121-native-menu-row",
+    "active_web_release": "c3e92f0f-20260803-m69-router-r122-native-menu-contract",
+    "active_router_release": "codex-account-router-0.2.36-linux-x64",
+    "installed_preload_sha256": "ba57f3d68765fd06d0830c8d1bae5d01c35b02835f71624607733dd869d82dfb",
+    "installed_index_sha256": "ca1bd8b371a3001ef9bdaa5764c5da1a57b27206d2c7a10121a98791f02464d0",
+    "restarted_services": [
+      "codex-web-router.service"
+    ],
+    "routed_8216_app_server_unchanged_during_deployment": true,
+    "account_router_unchanged_during_deployment": true,
+    "account_manager_unchanged_during_deployment": true,
+    "standalone_8215_unchanged": true,
+    "route_unchanged": true,
+    "model_request_sent": false,
+    "account_switch_sent": false,
+    "semantic_output_replayed": false
+  },
+  "post_deployment": {
+    "router_status": "ready",
+    "current_route": "Secondary",
+    "configured_accounts": 2,
+    "active_requests": 0,
+    "active_streams": 0,
+    "all_seven_related_units_active": true,
+    "trusted_tailnet_html_status": 200,
+    "trusted_tailnet_html_total_seconds": 0.002123,
+    "routed_8216_web_pid": 389071,
+    "routed_8216_app_pid": 387831,
+    "account_router_pid": 335477,
+    "account_manager_pid": 335486,
+    "standalone_8215_web_pid": 3664557,
+    "standalone_8215_app_pid": 3664550,
+    "standalone_8215_start_times_unchanged": true
+  },
+  "browser_verification": {
+    "page_url": "http://100.95.50.98:8216/",
+    "page_title": "Codex",
+    "post_deployment_dom_geometry_capture_completed": false,
+    "limitation": "The in-app browser listed the live 8216 Codex tab, but its bounded DOM evaluation timed out and reset the automation kernel while optional telemetry remained noisy. Installed asset hashes, exact upstream source classes, the release transformer and trusted-Tailnet HTML readiness passed; no pixel-perfect screenshot claim is made."
+  },
+  "residual_risks": [
+    "The React portal still depends on the upstream profile menu exposing a stable role=menuitem surface; a future upstream menu rewrite may require a new bounded adapter.",
+    "R122 deliberately inherits the first native menu item's outer class at runtime and pins the public upstream content/icon/text classes in source. A future upstream class-contract change requires requalification.",
+    "Optional telemetry timeouts can still make browser automation noisy even when the served page and account-router are ready.",
+    "R122 changes presentation only. Manual or automatic switching starts a new backend session and does not migrate, replay, resume or restore prior semantic output, an in-flight request or running computation."
+  ],
+  "recorded_at": "2026-08-03T22:35:41+08:00"
+}
