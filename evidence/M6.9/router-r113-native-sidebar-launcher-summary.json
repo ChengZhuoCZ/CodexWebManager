@@ -1,0 +1,74 @@
+{
+  "task": "M6.9",
+  "release": "c3e92f0f-20260803-m69-router-r113-native-sidebar-launcher",
+  "input_commit": "3e8ceedff474b7f127c4e37dd8a85b997d108dac",
+  "implementation_commit": "e1f232595bbeeb8a21b8bb8c1465b956802f9216",
+  "implementation_mode": "clean-room",
+  "diagnosis": [
+    "R112 exposed the account launcher as a fixed lower-left overlay instead of a child of the native sidebar footer.",
+    "The qualified App Host footer contains a language-neutral profile trigger inside an ancestor with the h-toolbar and items-center class tokens.",
+    "The independent in-app browser timed out before the protected Tailnet document completed, so no browser pixel claim is made."
+  ],
+  "changes": [
+    "Discover the native sidebar footer from the language-neutral profile trigger and insert one full-width account row immediately before the native footer toolbar.",
+    "Move the existing launcher into the native row, inherit the native profile button classes and retain the fixed overlay only while the native footer is unavailable.",
+    "Render and remount the native launcher before protected router status succeeds, including after React replaces the footer DOM.",
+    "Keep the compact account dialog, bounded polling, account management, manual switching and pre-semantic automatic failover contracts unchanged."
+  ],
+  "tests": [
+    {
+      "command": "<bundled-node> --test codex-web-router-panel-merge.test.mjs",
+      "pre_fix_result": "39 passed, 1 failed as expected because R112 had no native sidebar row",
+      "post_fix_result": "41 passed, 0 failed"
+    },
+    {
+      "command": "<bundled-node> --test failover-state-machine failure-injection-matrix failover-proxy websocket-failover runtime-composition config runtime-bootstrap systemd-units codex-web-router-panel-merge",
+      "sandbox_result": "96 passed and 30 loopback-listener tests failed only with listen EPERM",
+      "host_result": "126 passed, 0 failed"
+    },
+    {
+      "command": "Linux /tmp predecessor copy plus R113 installer",
+      "result": "source, index, gzip and Brotli hashes were generated without switching a release or restarting a service"
+    },
+    {
+      "command": "bash -n R113 deployment; node --check R113 installer and account panel; git diff --check; scanRepository(loadSecurityAuditPolicy())",
+      "result": "passed; 672 files scanned with 0 findings"
+    }
+  ],
+  "deployment": {
+    "status": "success",
+    "installed_panel_sha256": "8102f63226b9b0bdb36a6fd0ec34d9313122aa4b10058ec6c970b5dc9c45c1b7",
+    "native_left_bottom_launcher": true,
+    "pre_status_launcher_visible": true,
+    "initial_status_failure_visible": true,
+    "bounded_status_retry_retained": true,
+    "standalone_8215_unchanged": true,
+    "routed_8216_app_server_unchanged": true,
+    "account_router_process_unchanged": true,
+    "account_manager_process_unchanged": true,
+    "only_8216_web_restarted": true,
+    "services_active_after_deployment": 7,
+    "model_request_sent": false,
+    "account_switch_sent": false,
+    "semantic_output_replay_attempted": false
+  },
+  "post_deployment": {
+    "active_release_verified": true,
+    "installed_panel_hash_verified": true,
+    "native_sidebar_markers_verified": true,
+    "all_related_services_active": true,
+    "fresh_unauthenticated_tailnet_request_status": 401
+  },
+  "evidence_files": [
+    "integrations/codex-web/router-account-panel-standalone.js",
+    "integrations/codex-web/replace-r113-native-sidebar-launcher.mjs",
+    "evidence/M6.9/deploy-router-r113-native-sidebar-launcher.sh"
+  ],
+  "residual_risks": [
+    "Protected Safari pixel-level verification remains unavailable: the in-app browser timed out and the prior Computer Use capture boundary returned SCStream -3812; user-visible confirmation is still required.",
+    "A fresh unauthenticated Tailnet request receives HTTP 401; this does not invalidate the installed asset or active services, but the existing authorized Safari session is required for visual verification.",
+    "The native footer adapter depends on the profile trigger remaining under an ancestor with h-toolbar and items-center class tokens; it fails back to the visible fixed launcher if upstream changes that DOM.",
+    "The aggregate strict-CI baseline must be requalified before merge because R113 changes the protected routed Web tree; repository secret scanning reported zero findings.",
+    "No real account switch or model request was sent. Switching starts a new backend session and does not migrate, replay or resume work after semantic output."
+  ]
+}

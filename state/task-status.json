@@ -89,12 +89,13 @@
     "r110_compact_auto_failover": "0d7672dab6fe722d0654fb06d91248c38810ce11",
     "r111_safari_account_launcher": "4d207779bfecda8e01561a55ae2cde5f1c48f2fc",
     "r112_visible_bootstrap_launcher": "6479c8c722079e312eda4427949d8c4be48aa42e",
+    "r113_native_sidebar_launcher": "e1f232595bbeeb8a21b8bb8c1465b956802f9216",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "6479c8c722079e312eda4427949d8c4be48aa42e",
+  "output_revision": "e1f232595bbeeb8a21b8bb8c1465b956802f9216",
   "workspace_branch": "codex/m6-9-8216-r85-handoff",
   "workspace_input_revision": "168369e5a552260358efbfc04dbfd04a6038ba24",
   "depends_on": [
@@ -2009,6 +2010,26 @@
     {
       "command": "hash-verified rollback-capable R112 Web-only deployment and post-deployment service/source checks",
       "result": "R112 activated with panel SHA-256 8a5b3659 and installed Loading, Unavailable and fixed status-failure markers. Only routed 8216 Web restarted; 8215, routed App Server, account-router and account-manager remained unchanged. Seven relevant units were active. No model request or account switch was sent."
+    },
+    {
+      "command": "failure-first native left-bottom launcher contract; <bundled-node> --test codex-web-router-panel-merge",
+      "result": "The new contract failed before implementation because R112 had no native sidebar row. The final panel suite passed 41/41 with native-footer insertion, language-neutral trigger discovery, pre-status visibility and fixed-overlay fallback."
+    },
+    {
+      "command": "<bundled-node> --test failover-state-machine failure-injection-matrix failover-proxy websocket-failover runtime-composition config runtime-bootstrap systemd-units codex-web-router-panel-merge",
+      "result": "126 passed, 0 failed after allowing bounded loopback test listeners. The managed-sandbox attempt had first passed 96 tests and denied 30 network-listener tests with listen EPERM; those were environment denials rather than assertion failures."
+    },
+    {
+      "command": "Linux /tmp predecessor copy plus R113 installer",
+      "result": "The unchanged R112 release produced the pinned R113 index, gzip, Brotli and panel hashes without switching a release or restarting a service."
+    },
+    {
+      "command": "bash -n R113 deployment; node --check R113 installer and panel; git diff --check; scanRepository(loadSecurityAuditPolicy())",
+      "result": "Syntax and diff checks passed; the pre-state scan covered 672 files with zero findings. Aggregate strict-CI requalification remains pending because R113 changes the protected routed Web tree."
+    },
+    {
+      "command": "hash-verified rollback-capable R113 Web-only deployment and post-deployment service/source checks",
+      "result": "R113 activated with panel SHA-256 8102f632 and native sidebar markers. Only routed 8216 Web restarted; 8215, routed App Server, account-router and account-manager remained unchanged. Seven related units were active. No model request or account switch was sent."
     }
   ],
   "evidence": [
@@ -2293,7 +2314,9 @@
     "evidence/M6.9/deploy-router-r111-safari-account-launcher.sh",
     "evidence/M6.9/router-r111-safari-account-launcher-summary.json",
     "evidence/M6.9/deploy-router-r112-visible-bootstrap-launcher.sh",
-    "evidence/M6.9/router-r112-visible-bootstrap-launcher-summary.json"
+    "evidence/M6.9/router-r112-visible-bootstrap-launcher-summary.json",
+    "evidence/M6.9/deploy-router-r113-native-sidebar-launcher.sh",
+    "evidence/M6.9/router-r113-native-sidebar-launcher-summary.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -6043,6 +6066,31 @@
       "safari_pixel_capture_verified": false,
       "cross_account_continuity_claimed": false,
       "status": "done"
+    },
+    "r113_native_sidebar_launcher": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "3e8ceedff474b7f127c4e37dd8a85b997d108dac",
+      "implementation_revision": "e1f232595bbeeb8a21b8bb8c1465b956802f9216",
+      "evidence": "evidence/M6.9/router-r113-native-sidebar-launcher-summary.json",
+      "active_web_release": "c3e92f0f-20260803-m69-router-r113-native-sidebar-launcher",
+      "active_router_release": "codex-account-router-0.2.33-linux-x64",
+      "installed_panel_sha256": "8102f63226b9b0bdb36a6fd0ec34d9313122aa4b10058ec6c970b5dc9c45c1b7",
+      "native_left_bottom_launcher": true,
+      "pre_status_launcher_visible": true,
+      "initial_status_failure_visible": true,
+      "bounded_status_retry_retained": true,
+      "standalone_8215_unchanged": true,
+      "routed_8216_app_server_unchanged": true,
+      "account_router_process_unchanged": true,
+      "account_manager_process_unchanged": true,
+      "only_routed_8216_web_restarted": true,
+      "model_request_sent": false,
+      "account_switch_sent": false,
+      "semantic_stream_replay_attempted": false,
+      "safari_pixel_capture_verified": false,
+      "cross_account_continuity_claimed": false,
+      "status": "done"
     }
   },
   "blockers": [],
@@ -6244,7 +6292,12 @@
     "R112 renders its launcher before the first router status request and keeps bounded polling after an initial failure. If the R112 Loading or Unavailable label is absent at the new document URL, the remaining fault is before module execution rather than in account status or profile-menu discovery.",
     "R112 Safari pixel-level verification remains blocked by macOS ScreenCaptureKit SCStream -3812; installed hashes, Safari-UA delivery, server readiness and DOM-contract tests passed, but no screenshot claim is made.",
     "R112 sent no model request or account switch. Automatic or manual switching starts a new backend session and does not migrate, replay or resume work after semantic output.",
-    "The aggregate strict-CI baseline must be requalified before merge because R112 changes the protected integrations/codex-web tree; repository secret scanning reported zero findings."
+    "The aggregate strict-CI baseline must be requalified before merge because R112 changes the protected integrations/codex-web tree; repository secret scanning reported zero findings.",
+    "R113 moves the single account launcher into a native full-width row immediately before the left-bottom footer toolbar and restores it after upstream React DOM replacement. It retains the fixed launcher only while that footer is absent.",
+    "R113 protected Safari pixel-level verification remains unavailable because the in-app browser timed out and prior macOS capture returned SCStream -3812; installed hashes, service state and DOM-contract tests passed, but no screenshot claim is made.",
+    "A fresh unauthenticated Tailnet request receives HTTP 401. Existing authorized Safari browser-session state is required for visual verification; no browser cookie or session store was inspected.",
+    "R113 sent no model request or account switch. Automatic or manual switching starts a new backend session and does not migrate, replay or resume work after semantic output.",
+    "The aggregate strict-CI baseline must be requalified before merge because R113 changes the protected integrations/codex-web tree; repository secret scanning reported zero findings."
   ],
-  "updated_at": "2026-08-03T13:43:00+08:00"
+  "updated_at": "2026-08-03T14:07:01+08:00"
 }
