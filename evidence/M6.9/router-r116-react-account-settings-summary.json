@@ -1,0 +1,96 @@
+{
+  "task": "M6.9",
+  "release": "R116 React Account Settings",
+  "recorded_at": "2026-08-03T17:41:46+08:00",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_commit": "72ac998ac77457b016db90a1151cdaa7918c75a2",
+  "implementation_commits": [
+    "e75e904",
+    "487856b"
+  ],
+  "implementation_mode": "clean-room",
+  "architecture": {
+    "reference_boundary": "Public MIT source-level workspace-root-dialog.tsx patterns from pinned upstream revision c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7.",
+    "source_level_react_window": true,
+    "react_portal_into_native_profile_menu": true,
+    "native_menu_account_entries": 1,
+    "account_dialog_owned_outside_native_menu_subtree": true,
+    "shadow_dom": false,
+    "mutation_observer_used": false,
+    "bounded_native_menu_inspection_attempts": 5,
+    "controller_ui_separation": "The controller exports a fixed subscribe/getSnapshot/actions store; the React source owns all account UI and dialog lifecycle."
+  },
+  "artifacts": {
+    "react_source": "integrations/codex-web/react-account-settings/account-settings-window.tsx",
+    "source_applier": "integrations/codex-web/react-account-settings/apply-to-upstream-r116.mjs",
+    "built_preload": "integrations/codex-web/react-account-settings/preload-r116.js",
+    "account_controller": "integrations/codex-web/router-account-controller.js",
+    "release_transformer": "integrations/codex-web/replace-r116-react-account-settings.mjs",
+    "deployment_script": "evidence/M6.9/deploy-router-r116-react-account-settings.sh",
+    "react_source_sha256": "d59e77dc36e6a14ce239facf90cbaee62adce669a5e49b52bed71e548f615788",
+    "source_applier_sha256": "7dea79b31f2bce19501b935742930b4c93e3d64631bafdecfae0544ced70022f",
+    "built_preload_sha256": "e102b9bc5a877847b51df6e45a65c9e262412e26015227306a8f2b190cacdc4c",
+    "account_controller_sha256": "e506d62f667ec5d418de552989000238b95f725426a3d3410530d68bb8cbb0bd",
+    "release_transformer_sha256": "6f64d949fa828b08d5ab523536b197a9b7268503d2acca62f6ac68ef05dc130d",
+    "deployment_script_sha256": "ae8441f809836069ef4a4212f13a0e8895bfc2dc552a238651d886493bfa3f59"
+  },
+  "tests": {
+    "failure_first": "The R116 source-contract test failed with ENOENT before the React source existed.",
+    "source_applier": "Applied exactly once to a clean detached worktree at c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7; source and patched shim hashes matched.",
+    "source_build": "pnpm run build:browser: 68 modules transformed; preload 624225 bytes; SHA-256 e102b9bc5a877847b51df6e45a65c9e262412e26015227306a8f2b190cacdc4c.",
+    "source_typecheck": "Targeted tsc --noEmit for account-settings-window.tsx passed.",
+    "syntax": "Controller, source applier and release transformer passed node --check; deployment script passed bash -n.",
+    "release_transformer": "A complete R115 candidate copy transformed successfully: exactly one controller and one React preload reference, old panel/lifecycle/preload assets removed, App asset preserved.",
+    "panel_suite": "48 passed, 0 failed.",
+    "complete_account_router_matrix": "422 total: 387 passed, 2 failed and 33 skipped after rerunning with loopback permission.",
+    "known_matrix_failures": [
+      "The pre-existing isolated host deployment fixture reports web_unit_source_hash_mismatch.",
+      "The pre-existing matrix-classification contract omits several existing test files."
+    ],
+    "sandbox_note": "The first complete-matrix attempt was invalid because the managed sandbox rejected temporary 127.0.0.1 listeners with EPERM; the identical command was rerun with loopback permission.",
+    "security_scan": "688 repository files scanned, 0 findings.",
+    "strict_ci": "The aggregate security CLI remains fail-closed because protected paths changed after the retained strict-CI qualification; no replacement qualification is claimed."
+  },
+  "deployment": {
+    "status": "success",
+    "active_release": "c3e92f0f-20260803-m69-router-r116-react-account-settings",
+    "previous_release": "c3e92f0f-20260803-m69-router-r115-owned-account-surface",
+    "first_attempt": "Stopped before symlink activation at successor_changed because macOS and Linux zlib gzip headers produced different hashes; the new successor was removed and no service was restarted.",
+    "second_attempt": "Succeeded after pinning the Linux-generated gzip hashes.",
+    "standalone_8215_unchanged": true,
+    "routed_8216_app_server_unchanged": true,
+    "account_router_process_unchanged": true,
+    "account_manager_process_unchanged": true,
+    "only_8216_web_restarted": true,
+    "all_six_checked_services_active": true,
+    "protected_pids_before_and_after": {
+      "standalone_8215_web": 3664557,
+      "standalone_8215_app_server": 3664550,
+      "routed_8216_app_server": 3791302,
+      "account_router": 203596,
+      "account_manager": 4191355
+    },
+    "installed_index_sha256": "e83447c096a4150890b88f3e93dbd603d011b9765e9d5a8fe1b58b63a94ec4e1",
+    "installed_controller_sha256": "e506d62f667ec5d418de552989000238b95f725426a3d3410530d68bb8cbb0bd",
+    "installed_preload_sha256": "e102b9bc5a877847b51df6e45a65c9e262412e26015227306a8f2b190cacdc4c",
+    "old_active_assets_found": 0,
+    "index_successor_references": 2,
+    "model_request_sent": false,
+    "account_switch_sent": false,
+    "semantic_output_replay_attempted": false
+  },
+  "runtime_verification": {
+    "deployment_readiness": "A fresh trusted-Tailnet HTML session and protected router status passed; readiness required at least two accounts, zero active streams and new_backend_session continuity.",
+    "in_app_browser_page": "The in-app browser reached http://100.95.50.98:8216/ with title Codex and rendered the signed-in composer and the Open profile menu control.",
+    "in_app_browser_menu_interaction": "The profile-menu click/readback and a later bounded marker query each timed out and reset the browser automation kernel. No automated menu or dialog rendering claim is made.",
+    "optional_telemetry": "Statsig initialize/register requests timed out without preventing the verified composer render."
+  },
+  "residual_risks": [
+    "The native entry is inserted through a React portal into an upstream-owned ephemeral profile menu. The Account Settings dialog state is owned by a separate React root, but an upstream accessibility or menu-role rewrite may require a new bounded adapter.",
+    "Browser automation verified the signed-in composer after deployment but did not complete the menu/dialog interaction capture; the user-facing menu remains to be visually confirmed.",
+    "The aggregate strict-CI baseline retains the two pre-existing failures recorded above and must be requalified before merge.",
+    "No real account switch or model request was performed for R116. Switching starts a new backend session and does not migrate, replay or resume semantic output, prior sessions, in-flight work or computations.",
+    "Cross-account seamless continuity remains unverified and is not claimed."
+  ]
+}
