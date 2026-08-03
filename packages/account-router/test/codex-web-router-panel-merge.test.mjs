@@ -54,6 +54,9 @@ import {
   R110_COMPACT_AUTO_FAILOVER_CONTRACT,
 } from "../../../integrations/codex-web/replace-r110-compact-auto-failover.mjs";
 import {
+  R111_SAFARI_ACCOUNT_LAUNCHER_CONTRACT,
+} from "../../../integrations/codex-web/replace-r111-safari-account-launcher.mjs";
+import {
   buildManualSwitchRequest as buildStandaloneSwitchRequest,
   buildAccountEnrollmentRequest,
   buildAccountRemovalRequest,
@@ -191,6 +194,10 @@ const R109_DEPLOY = path.resolve(
 const R110_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r110-compact-auto-failover.sh",
+);
+const R111_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r111-safari-account-launcher.sh",
 );
 
 function sha256(value) {
@@ -1090,9 +1097,18 @@ test("left-bottom account menu exposes bounded automatic failover in a compact n
   assert.match(panel, /footnote\.title = "Cross-account continuity is not verified\."/u);
 });
 
+test("Safari exposes an account launcher without depending on the native profile menu", async () => {
+  const panel = await fs.readFile(STANDALONE_PANEL, "utf8");
+  assert.match(panel, /codex-router-account-launcher/u);
+  assert.match(panel, /codex-router-account-dialog/u);
+  assert.match(panel, /FALLBACK_MENU_SECTION_ID/u);
+  assert.match(panel, /Account route · \$\{currentAlias\}/u);
+  assert.match(panel, /position: fixed/u);
+  assert.match(panel, /aria-haspopup", "menu"/u);
+});
+
 test("R110 pins the compact panel and expands only bounded pre-output failover", async () => {
-  const [panel, deployment, dropin] = await Promise.all([
-    fs.readFile(STANDALONE_PANEL),
+  const [deployment, dropin] = await Promise.all([
     fs.readFile(R110_DEPLOY, "utf8"),
     fs.readFile(
       path.resolve(
@@ -1102,7 +1118,10 @@ test("R110 pins the compact panel and expands only bounded pre-output failover",
       "utf8",
     ),
   ]);
-  assert.equal(R110_COMPACT_AUTO_FAILOVER_CONTRACT.replacement_panel_sha256, sha256(panel));
+  assert.equal(
+    R110_COMPACT_AUTO_FAILOVER_CONTRACT.replacement_panel_sha256,
+    "23e5003262db751be029f0a1b32c8945601d1536d8beda8d7457a83367c1d4fe",
+  );
   assert.equal(
     R110_COMPACT_AUTO_FAILOVER_CONTRACT.predecessor_panel_name,
     "router-account-panel-9dc6748b.js",
@@ -1117,5 +1136,31 @@ test("R110 pins the compact panel and expands only bounded pre-output failover",
   assert.doesNotMatch(
     deployment,
     /systemctl\s+(?:restart|stop|start)\s+"?\$?(?:APP_SERVICE|MANAGER_SERVICE|MANAGER_SOCKET|STANDALONE_WEB_SERVICE|STANDALONE_APP_SERVICE)/u,
+  );
+});
+
+test("R111 pins an always-visible Safari launcher and restarts only routed Web", async () => {
+  const [panel, deployment] = await Promise.all([
+    fs.readFile(STANDALONE_PANEL),
+    fs.readFile(R111_DEPLOY, "utf8"),
+  ]);
+  assert.equal(R111_SAFARI_ACCOUNT_LAUNCHER_CONTRACT.replacement_panel_sha256, sha256(panel));
+  assert.equal(
+    R111_SAFARI_ACCOUNT_LAUNCHER_CONTRACT.predecessor_panel_name,
+    "router-account-panel-23e50032.js",
+  );
+  assert.match(deployment, /router-r110-compact-auto-failover/u);
+  assert.match(deployment, /router-account-panel-2043970f\.js/u);
+  assert.match(deployment, /safari_always_visible_account_launcher=true/u);
+  assert.match(deployment, /standalone_8215_unchanged=true/u);
+  assert.match(deployment, /routed_8216_app_server_unchanged=true/u);
+  assert.match(deployment, /account_router_process_unchanged=true/u);
+  assert.match(deployment, /account_manager_process_unchanged=true/u);
+  assert.match(deployment, /only_8216_web_restarted=true/u);
+  assert.match(deployment, /model_request_sent=false/u);
+  assert.match(deployment, /account_switch_sent=false/u);
+  assert.doesNotMatch(
+    deployment,
+    /systemctl\s+(?:restart|stop|start)\s+"?\$?(?:APP_SERVICE|ROUTER_SERVICE|MANAGER_SERVICE|MANAGER_SOCKET|STANDALONE_WEB_SERVICE|STANDALONE_APP_SERVICE)/u,
   );
 });

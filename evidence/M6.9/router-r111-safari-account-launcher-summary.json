@@ -1,0 +1,62 @@
+{
+  "task": "M6.9",
+  "release": "c3e92f0f-20260803-m69-router-r111-safari-account-launcher",
+  "input_commit": "103c3a4d532f6a6fc71d444347f70b65310f3465",
+  "implementation_mode": "clean-room",
+  "changes": [
+    "Add an always-visible fixed lower-left account-route launcher that does not depend on upstream profile-menu labels, structure, localization or open state.",
+    "Reuse the existing bounded account panel and request handlers in a separate popover with a distinct DOM section identity.",
+    "Retain the language-neutral native profile-menu adapter as an optional second surface.",
+    "Keep manual and automatic switching limited to new backend sessions and preserve the no-replay gate after semantic output."
+  ],
+  "tests": [
+    {
+      "command": "<bundled-node> --test --test-name-pattern='Safari exposes an account launcher' packages/account-router/test/codex-web-router-panel-merge.test.mjs",
+      "pre_fix_result": "failed as expected because R110 contained no native-menu-independent account launcher",
+      "post_fix_result": "passed"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/codex-web-router-panel-merge.test.mjs",
+      "result": "37 passed, 0 failed"
+    },
+    {
+      "command": "<bundled-node> --test failover-state-machine failure-injection-matrix failover-proxy websocket-failover runtime-composition config runtime-bootstrap systemd-units codex-web-router-panel-merge",
+      "result": "122 passed, 0 failed after allowing bounded loopback test listeners; the managed-sandbox attempt had first denied 30 listener tests with listen EPERM"
+    },
+    {
+      "command": "bash -n R111 deployment; node --check R111 installer and account panel; git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "scanRepository(loadSecurityAuditPolicy())",
+      "result": "666 files scanned, 0 findings; aggregate strict-CI requalification remains pending because the protected routed Web tree changed"
+    }
+  ],
+  "deployment": {
+    "status": "success",
+    "installed_panel_sha256": "2043970fdfe436b46f900e7041e8d8c4cbdce019db551b2b0f1517e09013b88a",
+    "safari_always_visible_account_launcher": true,
+    "native_profile_menu_adapter_retained": true,
+    "standalone_8215_unchanged": true,
+    "routed_8216_app_server_unchanged": true,
+    "account_router_process_unchanged": true,
+    "account_manager_process_unchanged": true,
+    "only_8216_web_restarted": true,
+    "services_active_after_deployment": 7,
+    "model_request_sent": false,
+    "account_switch_sent": false,
+    "semantic_output_replay_attempted": false
+  },
+  "evidence_files": [
+    "integrations/codex-web/router-account-panel-standalone.js",
+    "integrations/codex-web/replace-r111-safari-account-launcher.mjs",
+    "evidence/M6.9/deploy-router-r111-safari-account-launcher.sh"
+  ],
+  "residual_risks": [
+    "Safari pixel-level verification remains unavailable because macOS ScreenCaptureKit returned SCStream -3812; no screenshot or Safari visual-success claim is made.",
+    "The independent in-app browser could not reach the Tailnet URL within its bounded navigation window, so installed hashes, server readiness and DOM-contract tests are the current non-Safari evidence.",
+    "The fixed launcher renders only after the protected router status request succeeds; an invalid or expired browser session still fails closed instead of exposing account controls.",
+    "The aggregate strict-CI baseline must be requalified before merge because R111 changes the protected integrations/codex-web tree; repository secret scanning reported zero findings.",
+    "No real account switch or model request was sent for R111. Automatic or manual switching starts a new backend session and does not migrate, replay or resume work after semantic output."
+  ]
+}

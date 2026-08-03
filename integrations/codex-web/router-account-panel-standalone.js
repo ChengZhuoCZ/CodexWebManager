@@ -5,6 +5,10 @@ const QUOTA_REFRESH_PATH = "/__backend/codex-router/quota-refresh";
 const ACCOUNT_AUTH_PATH = "/__backend/codex-router/accounts/device-auth";
 const SESSION_PATH = "/__backend/session";
 const MENU_SECTION_ID = "codex-router-account-menu-section";
+const FALLBACK_MENU_SECTION_ID = "codex-router-account-menu-section-fallback";
+const FALLBACK_LAUNCHER_ID = "codex-router-account-launcher";
+const FALLBACK_DIALOG_ID = "codex-router-account-dialog";
+const FALLBACK_STYLE_ID = "codex-router-account-launcher-style";
 const PROFILE_ROUTE_ATTRIBUTE = "data-codex-router-current-route";
 const NATIVE_USAGE_BADGE_ATTRIBUTE = "data-codex-router-native-usage-badge";
 const NATIVE_USAGE_SYNC_ATTRIBUTE = "data-codex-router-native-usage-sync";
@@ -669,69 +673,71 @@ function renderProfileMenu(
   quotaBusy = false,
   transientMessage = null,
   management = { mode: "idle" },
+  explicitMenu = null,
+  sectionId = MENU_SECTION_ID,
 ) {
-  const menu = findProfileMenu();
+  const menu = explicitMenu ?? findProfileMenu();
   if (!(menu instanceof HTMLElement)) return false;
   const signature = menuRenderSignature(model, busyAlias, quotaBusy, transientMessage, management);
-  const currentSection = menu.querySelector(`#${MENU_SECTION_ID}`);
+  const currentSection = menu.querySelector(`#${sectionId}`);
   if (currentSection instanceof HTMLElement && currentSection.dataset.renderSignature === signature) {
     return true;
   }
   const style = element("style");
   style.textContent = `
-    #${MENU_SECTION_ID} { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%;
+    #${sectionId} { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%;
       padding: 3px 5px 4px; color: inherit; font: inherit; }
-    #${MENU_SECTION_ID} * { box-sizing: border-box; }
-    #${MENU_SECTION_ID} .router-separator { height: 1px; margin: 2px -5px 5px;
+    #${sectionId} * { box-sizing: border-box; }
+    #${sectionId} .router-separator { height: 1px; margin: 2px -5px 5px;
       background: color-mix(in srgb, currentColor 12%, transparent); }
-    #${MENU_SECTION_ID} .router-heading { display: flex; align-items: center; justify-content: space-between;
+    #${sectionId} .router-heading { display: flex; align-items: center; justify-content: space-between;
       gap: 5px; padding: 1px 5px 3px; font-size: 12px; font-weight: 650; }
-    #${MENU_SECTION_ID} .router-heading-actions { display: inline-flex; align-items: center; gap: 3px; }
-    #${MENU_SECTION_ID} .router-limited { border-radius: 999px; padding: 1px 5px;
+    #${sectionId} .router-heading-actions { display: inline-flex; align-items: center; gap: 3px; }
+    #${sectionId} .router-limited { border-radius: 999px; padding: 1px 5px;
       background: color-mix(in srgb, #16a34a 13%, transparent); color: #16a34a;
       font-size: 9px; font-weight: 650; line-height: 1.35; }
-    #${MENU_SECTION_ID} .router-refresh { border: 0; border-radius: 5px; padding: 2px 4px;
+    #${sectionId} .router-refresh { border: 0; border-radius: 5px; padding: 2px 4px;
       background: transparent; color: inherit; font: inherit; font-size: 10px; line-height: 1.25; }
-    #${MENU_SECTION_ID} .router-refresh:not(:disabled):hover { background: color-mix(in srgb, currentColor 8%, transparent); }
-    #${MENU_SECTION_ID} .router-refresh:disabled { opacity: .5; }
-    #${MENU_SECTION_ID} .router-management { margin: 2px 4px 6px; border-radius: 6px; padding: 7px;
+    #${sectionId} .router-refresh:not(:disabled):hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+    #${sectionId} .router-refresh:disabled { opacity: .5; }
+    #${sectionId} .router-management { margin: 2px 4px 6px; border-radius: 6px; padding: 7px;
       background: color-mix(in srgb, currentColor 6%, transparent); font-size: 11px; }
-    #${MENU_SECTION_ID} .router-management-row { display: flex; align-items: center; gap: 5px; }
-    #${MENU_SECTION_ID} .router-management input { min-width: 0; flex: 1; border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+    #${sectionId} .router-management-row { display: flex; align-items: center; gap: 5px; }
+    #${sectionId} .router-management input { min-width: 0; flex: 1; border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
       border-radius: 5px; padding: 5px 6px; background: transparent; color: inherit; font: inherit; }
-    #${MENU_SECTION_ID} .router-management button, #${MENU_SECTION_ID} .router-remove { border: 0; border-radius: 5px;
+    #${sectionId} .router-management button, #${sectionId} .router-remove { border: 0; border-radius: 5px;
       padding: 4px 6px; background: color-mix(in srgb, currentColor 9%, transparent); color: inherit; font: inherit; font-size: 10px; }
-    #${MENU_SECTION_ID} .router-management button:disabled, #${MENU_SECTION_ID} .router-remove:disabled { opacity: .45; }
-    #${MENU_SECTION_ID} .router-device-code-row { display: flex; align-items: center; gap: 5px; margin: 4px 0; }
-    #${MENU_SECTION_ID} .router-device-code { display: block; min-width: 0; flex: 1; margin: 0;
+    #${sectionId} .router-management button:disabled, #${sectionId} .router-remove:disabled { opacity: .45; }
+    #${sectionId} .router-device-code-row { display: flex; align-items: center; gap: 5px; margin: 4px 0; }
+    #${sectionId} .router-device-code { display: block; min-width: 0; flex: 1; margin: 0;
       font: 600 14px/1.4 ui-monospace, monospace; letter-spacing: .08em; user-select: all; }
-    #${MENU_SECTION_ID} .router-auth-link { color: inherit; text-decoration: underline; }
-    #${MENU_SECTION_ID} .router-account-row { display: flex; align-items: center; gap: 1px; }
-    #${MENU_SECTION_ID} .router-banner { margin: 0 4px 6px; border-radius: 6px; padding: 6px 8px;
+    #${sectionId} .router-auth-link { color: inherit; text-decoration: underline; }
+    #${sectionId} .router-account-row { display: flex; align-items: center; gap: 1px; }
+    #${sectionId} .router-banner { margin: 0 4px 6px; border-radius: 6px; padding: 6px 8px;
       background: color-mix(in srgb, #d97706 16%, transparent); font-size: 11px; }
-    #${MENU_SECTION_ID} .router-error { background: color-mix(in srgb, #dc2626 15%, transparent); }
-    #${MENU_SECTION_ID} .router-account { display: flex; min-width: 0; flex: 1; min-height: 38px; align-items: center;
+    #${sectionId} .router-error { background: color-mix(in srgb, #dc2626 15%, transparent); }
+    #${sectionId} .router-account { display: flex; min-width: 0; flex: 1; min-height: 38px; align-items: center;
       gap: 6px; border: 0; border-radius: 6px; padding: 4px 6px; background: transparent; color: inherit;
       font: inherit; text-align: left; }
-    #${MENU_SECTION_ID} .router-account:not(:disabled):hover { background: color-mix(in srgb, currentColor 8%, transparent); }
-    #${MENU_SECTION_ID} .router-account:focus-visible { outline: 2px solid #2563eb; outline-offset: -2px; }
-    #${MENU_SECTION_ID} .router-account:disabled { cursor: default; opacity: .72; }
-    #${MENU_SECTION_ID} .router-account-copy { min-width: 0; flex: 1; }
-    #${MENU_SECTION_ID} .router-account-title { display: flex; align-items: baseline; gap: 6px; font-weight: 600; }
-    #${MENU_SECTION_ID} .router-state { opacity: .62; font-size: 10px; font-weight: 500; }
-    #${MENU_SECTION_ID} .router-account-meta { display: flex; min-width: 0; flex-wrap: wrap; gap: 1px 5px;
+    #${sectionId} .router-account:not(:disabled):hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+    #${sectionId} .router-account:focus-visible { outline: 2px solid #2563eb; outline-offset: -2px; }
+    #${sectionId} .router-account:disabled { cursor: default; opacity: .72; }
+    #${sectionId} .router-account-copy { min-width: 0; flex: 1; }
+    #${sectionId} .router-account-title { display: flex; align-items: baseline; gap: 6px; font-weight: 600; }
+    #${sectionId} .router-state { opacity: .62; font-size: 10px; font-weight: 500; }
+    #${sectionId} .router-account-meta { display: flex; min-width: 0; flex-wrap: wrap; gap: 1px 5px;
       margin-top: 1px; opacity: .64; overflow-wrap: anywhere; font-size: 9.5px; line-height: 1.2; }
-    #${MENU_SECTION_ID} .router-account-reset { opacity: .5; font-size: 9px; }
-    #${MENU_SECTION_ID} .router-action { flex: none; font-size: 11px; font-weight: 600; }
-    #${MENU_SECTION_ID} .router-current { color: #16a34a; }
-    #${MENU_SECTION_ID} .router-remove { width: 24px; height: 28px; padding: 0; background: transparent;
+    #${sectionId} .router-account-reset { opacity: .5; font-size: 9px; }
+    #${sectionId} .router-action { flex: none; font-size: 11px; font-weight: 600; }
+    #${sectionId} .router-current { color: #16a34a; }
+    #${sectionId} .router-remove { width: 24px; height: 28px; padding: 0; background: transparent;
       opacity: .62; font-size: 14px; line-height: 1; }
-    #${MENU_SECTION_ID} .router-remove:not(:disabled):hover { background: color-mix(in srgb, #dc2626 12%, transparent);
+    #${sectionId} .router-remove:not(:disabled):hover { background: color-mix(in srgb, #dc2626 12%, transparent);
       color: #dc2626; opacity: 1; }
-    #${MENU_SECTION_ID} .router-footnote { margin: 4px 5px 1px; opacity: .52; font-size: 9px; line-height: 1.25; }
+    #${sectionId} .router-footnote { margin: 4px 5px 1px; opacity: .52; font-size: 9px; line-height: 1.25; }
   `;
   const section = element("div");
-  section.id = MENU_SECTION_ID;
+  section.id = sectionId;
   section.dataset.routerPanelReady = "true";
   section.dataset.renderSignature = signature;
   section.setAttribute("role", "group");
@@ -1009,6 +1015,116 @@ export async function installRouterAccountPanel() {
   let management = { mode: "idle" };
   let managementPollTimer = null;
   let menuRenderQueued = false;
+  let fallbackDismissHandler = null;
+  let fallbackEscapeHandler = null;
+
+  const renderFallbackMenu = (dialog) => renderProfileMenu(
+    model,
+    requestSwitch,
+    () => requestQuotaRefresh(true),
+    beginAdd,
+    submitAdd,
+    cancelManagement,
+    beginRemove,
+    confirmRemove,
+    busyAlias,
+    quotaBusy,
+    transientMessage,
+    management,
+    dialog,
+    FALLBACK_MENU_SECTION_ID,
+  );
+
+  const renderFallbackLauncher = () => {
+    if (!model || stopped) return;
+    let launcher = document.getElementById(FALLBACK_LAUNCHER_ID);
+    let dialog = document.getElementById(FALLBACK_DIALOG_ID);
+    if (!(launcher instanceof HTMLButtonElement) || !(dialog instanceof HTMLElement)) {
+      launcher?.remove();
+      dialog?.remove();
+      if (!document.getElementById(FALLBACK_STYLE_ID)) {
+        const style = element("style");
+        style.id = FALLBACK_STYLE_ID;
+        style.textContent = `
+          #${FALLBACK_LAUNCHER_ID} { position: fixed; left: 8px; bottom: 56px; z-index: 2147483000;
+            display: flex; width: min(220px, calc(100vw - 16px)); height: 40px; align-items: center;
+            gap: 8px; border: 1px solid rgba(255,255,255,.14); border-radius: 8px; padding: 0 11px;
+            background: rgba(31,31,31,.97); box-shadow: 0 8px 28px rgba(0,0,0,.28); color: #f5f5f5;
+            font: 500 13px/1.2 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; text-align: left; }
+          #${FALLBACK_LAUNCHER_ID}:hover { background: rgba(43,43,43,.98); }
+          #${FALLBACK_LAUNCHER_ID}:focus-visible { outline: 2px solid #3b82f6; outline-offset: 2px; }
+          #${FALLBACK_LAUNCHER_ID} .router-launcher-icon { flex: none; font-size: 17px; opacity: .8; }
+          #${FALLBACK_LAUNCHER_ID} .router-launcher-label { min-width: 0; overflow: hidden;
+            text-overflow: ellipsis; white-space: nowrap; }
+          #${FALLBACK_DIALOG_ID} { position: fixed; left: 8px; bottom: 104px; z-index: 2147483001;
+            width: min(320px, calc(100vw - 16px)); max-height: calc(100vh - 120px); overflow: auto;
+            border: 1px solid rgba(255,255,255,.14); border-radius: 10px; padding: 4px;
+            background: rgba(31,31,31,.985); box-shadow: 0 16px 44px rgba(0,0,0,.38); color: #f5f5f5;
+            font: 13px/1.35 -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+            overscroll-behavior: contain; }
+          #${FALLBACK_DIALOG_ID}[hidden] { display: none !important; }
+          @media (prefers-color-scheme: light) {
+            #${FALLBACK_LAUNCHER_ID}, #${FALLBACK_DIALOG_ID} { border-color: rgba(0,0,0,.14);
+              background: rgba(250,250,250,.985); color: #171717; }
+            #${FALLBACK_LAUNCHER_ID}:hover { background: rgba(240,240,240,.99); }
+          }
+        `;
+        document.head.append(style);
+      }
+      launcher = element("button");
+      launcher.id = FALLBACK_LAUNCHER_ID;
+      launcher.type = "button";
+      launcher.setAttribute("aria-haspopup", "menu");
+      launcher.setAttribute("aria-expanded", "false");
+      launcher.setAttribute("aria-controls", FALLBACK_DIALOG_ID);
+      launcher.title = "Open account routing controls";
+      launcher.append(
+        element("span", "router-launcher-icon", "⇄"),
+        element("span", "router-launcher-label"),
+      );
+      dialog = element("div");
+      dialog.id = FALLBACK_DIALOG_ID;
+      dialog.hidden = true;
+      dialog.setAttribute("role", "menu");
+      dialog.setAttribute("aria-label", "Account routing controls");
+      launcher.addEventListener("click", (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        const opening = dialog.hidden;
+        dialog.hidden = !opening;
+        launcher.setAttribute("aria-expanded", String(opening));
+        if (opening) renderFallbackMenu(dialog);
+      });
+      document.body.append(launcher, dialog);
+      fallbackDismissHandler ??= (event) => {
+        const activeLauncher = document.getElementById(FALLBACK_LAUNCHER_ID);
+        const activeDialog = document.getElementById(FALLBACK_DIALOG_ID);
+        if (
+          !(activeLauncher instanceof HTMLButtonElement) ||
+          !(activeDialog instanceof HTMLElement) || activeDialog.hidden ||
+          activeLauncher.contains(event.target) || activeDialog.contains(event.target)
+        ) return;
+        activeDialog.hidden = true;
+        activeLauncher.setAttribute("aria-expanded", "false");
+      };
+      fallbackEscapeHandler ??= (event) => {
+        if (event.key !== "Escape") return;
+        const activeLauncher = document.getElementById(FALLBACK_LAUNCHER_ID);
+        const activeDialog = document.getElementById(FALLBACK_DIALOG_ID);
+        if (!(activeLauncher instanceof HTMLButtonElement) || !(activeDialog instanceof HTMLElement)) return;
+        activeDialog.hidden = true;
+        activeLauncher.setAttribute("aria-expanded", "false");
+        activeLauncher.focus();
+      };
+      document.addEventListener("pointerdown", fallbackDismissHandler, true);
+      document.addEventListener("keydown", fallbackEscapeHandler, true);
+    }
+    const currentAlias = model.accounts.find((account) => account.isCurrent)?.alias ?? "Unavailable";
+    const label = launcher.querySelector(".router-launcher-label");
+    if (label instanceof HTMLElement) label.textContent = `Account route · ${currentAlias}`;
+    launcher.setAttribute("aria-label", `Account route · ${currentAlias}`);
+    if (!dialog.hidden) renderFallbackMenu(dialog);
+  };
 
   const renderSurfaces = () => {
     if (!model || stopped) return;
@@ -1029,6 +1145,7 @@ export async function installRouterAccountPanel() {
       transientMessage,
       management,
     );
+    renderFallbackLauncher();
   };
   const queueSurfaceRender = () => {
     if (menuRenderQueued || stopped) return;
@@ -1298,6 +1415,11 @@ export async function installRouterAccountPanel() {
     profileMenuObserver?.disconnect();
     if (pollTimer !== null) window.clearInterval(pollTimer);
     document.getElementById(MENU_SECTION_ID)?.remove();
+    document.getElementById(FALLBACK_LAUNCHER_ID)?.remove();
+    document.getElementById(FALLBACK_DIALOG_ID)?.remove();
+    document.getElementById(FALLBACK_STYLE_ID)?.remove();
+    if (fallbackDismissHandler) document.removeEventListener("pointerdown", fallbackDismissHandler, true);
+    if (fallbackEscapeHandler) document.removeEventListener("keydown", fallbackEscapeHandler, true);
     document.querySelectorAll(`[${PROFILE_ROUTE_ATTRIBUTE}]`).forEach((badge) => badge.remove());
     restoreNativeUsageSurfaces();
     installedCleanup = null;
