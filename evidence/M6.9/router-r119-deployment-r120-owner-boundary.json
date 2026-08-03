@@ -1,0 +1,118 @@
+{
+  "task": "M6.9",
+  "continuation": "R119 live activation, failed manual roundtrip, rollback, and R120 catalog-owner repair",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "authorized_revision": "7c572cca791ac051c7fa9a60f2baee840238e77f",
+  "repair_revision": "9a24feda8a0071b831128eb43dcace1a8988285b",
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "authorization_scope": {
+    "router_release": "codex-account-router-0.2.35-linux-x64",
+    "web_release": "c3e92f0f-20260803-m69-router-r119-manager-framing",
+    "restart_allowlist": [
+      "codex-account-router.service",
+      "codex-router-account-manager.service",
+      "codex-web-router.service"
+    ],
+    "manual_switch_roundtrip_without_model_request": true,
+    "app_server_stop_start_only_through_bounded_identity_helper": true,
+    "standalone_8215_changes_allowed": false,
+    "failure_requires_rollback": true
+  },
+  "deployment": {
+    "preflight": {
+      "previous_router_release": "codex-account-router-0.2.34-linux-x64",
+      "previous_web_release": "c3e92f0f-20260803-m69-router-r118-native-identity-sync",
+      "current_route": "Secondary",
+      "active_requests": 0,
+      "active_streams": 0,
+      "established_model_connections": 0,
+      "all_seven_related_units_active": true,
+      "standalone_8215_web_pid": 3664557,
+      "standalone_8215_app_pid": 3664550,
+      "routed_8216_app_pid": 275808
+    },
+    "input_sha256": {
+      "router_archive": "3a7c9a4e7842aa9eca6b171d06d8f3cf5e33f2eacfeb45faa33281b7bad5adb1",
+      "web_transformer": "18f3b4ded54c614061911c34c165e09559d3a165bff2bf6776bfc632acad5be6",
+      "status_bridge": "ea4fdbf76505c7d8dc330fcbd415ccb8ac59c27493b62e171f5a7905952e9bdd",
+      "account_management_bridge": "d918cec444e06789a5cbfc3170d9d4fb1fd939e02828631d65684ff9b4ef4de9"
+    },
+    "activation_result": {
+      "status": "success_before_qualification",
+      "router_release": "codex-account-router-0.2.35-linux-x64",
+      "web_release": "c3e92f0f-20260803-m69-router-r119-manager-framing",
+      "route_unchanged": true,
+      "routed_8216_app_server_unchanged": true,
+      "standalone_8215_unchanged": true
+    },
+    "qualification_result": {
+      "status": "failed_and_rolled_back",
+      "failure": "The first no-model Web switch received HTTP 409 account_operation_failed.",
+      "failure_stage": "native account rebinding input boundary",
+      "semantic_model_request_sent": false,
+      "semantic_output_started": false,
+      "semantic_output_replayed": false,
+      "cross_account_continuity_claimed": false
+    },
+    "final_rollback": {
+      "router_release": "codex-account-router-0.2.34-linux-x64",
+      "web_release": "c3e92f0f-20260803-m69-router-r118-native-identity-sync",
+      "current_route": "Secondary",
+      "app_server_credential_matches_current_route": true,
+      "active_requests": 0,
+      "active_streams": 0,
+      "all_seven_related_units_active": true,
+      "routed_8216_app_pid_unchanged": true,
+      "standalone_8215_web_pid_unchanged": true,
+      "standalone_8215_app_pid_unchanged": true,
+      "successor_release_directories_removed": true
+    }
+  },
+  "root_cause": {
+    "accounts_configuration_uid": 995,
+    "helper_uid": 0,
+    "credential_uid": 0,
+    "accounts_configuration_mode": "0600",
+    "credential_mode": "0600",
+    "diagnosis": "The privileged native rebinder incorrectly applied the root-owned secret-file boundary to the non-secret Router-owned accounts catalog. It rejected the catalog before stopping the App Server.",
+    "test_script_socket_path_corrected": true,
+    "credentials_or_account_identity_recorded": false
+  },
+  "r120_repair": {
+    "revision": "9a24feda8a0071b831128eb43dcace1a8988285b",
+    "router_version": "0.2.36",
+    "configuration_boundary": "regular non-symlink bounded file with no group/other writes",
+    "credential_boundary": "root-owned private regular non-symlink bounded file",
+    "artifact": "/private/tmp/m69-r120-artifacts/codex-account-router-0.2.36-linux-x64.tar.gz",
+    "artifact_sha256": "18c987501a25c3878b3fbfcc6bfaf88f07fd5f2bff83f4522faa3a4515b9e101",
+    "server_activated": false,
+    "status": "blocked_pending_explicit_0_2_36_activation_authorization"
+  },
+  "tests": [
+    {
+      "command": "M4_2_CODEX_WEB_ROOT=/private/tmp/codex-web-pin-888 <bundled-node> --test account-manager-protocol native-account-rebinding codex-web-status-bridge systemd-units linux-release",
+      "result": "44 passed, 0 failed, 1 Linux-installed-only skip"
+    },
+    {
+      "command": "<bundled-node> packages/account-router/scripts/build-linux-release.mjs --arch x64 --output /private/tmp/m69-r120-artifacts --source-date-epoch 0",
+      "result": "codex-account-router 0.2.36 x64 archive built reproducibly"
+    },
+    {
+      "command": "scanRepository(loadSecurityAuditPolicy())",
+      "result": "700 files scanned, 0 findings"
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r119-manager-framing.sh evidence/M6.9/qualify-router-r119-manual-roundtrip.sh && git diff --check",
+      "result": "passed"
+    }
+  ],
+  "residual_risks": [
+    "R120 is locally qualified but not activated because the explicit authorization named revision 7c572cc and account-router 0.2.35.",
+    "No successful real manual switch transaction has yet qualified native identity rebinding on the installed host.",
+    "Automatic switching with native App Server identity synchronization remains unqualified on the installed host.",
+    "Every switch starts a new backend session; prior semantic output, in-flight work, and running computation are not migrated or replayed."
+  ],
+  "recorded_at": "2026-08-03T21:02:31+08:00"
+}
