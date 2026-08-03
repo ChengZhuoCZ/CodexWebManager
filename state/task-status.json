@@ -2159,6 +2159,22 @@
     {
       "command": "M6.3 fail-closed security audit locally and on GitHub Actions",
       "result": "111/111 focused security tests passed; the remote run scanned 741 repository files and the final local audit scanned 742, both with zero findings; the renewed strict-CI baseline covers 890/890 zero-skip results and all protected paths remained unchanged."
+    },
+    {
+      "command": "fresh-profile Edge CDP resource and V8 precise-coverage audit against installed R127 8216",
+      "result": "Composer rendered without a model request; 77 scripts totalled 5,853,908 encoded bytes, the main bundle contributed 72.5% of transfer and 89.4% of decoded JavaScript, and zero-count function bodies covered 70.9% of the main chunk."
+    },
+    {
+      "command": "Rolldown isolated-export tree-shaking probe for all 47 app-initial exports",
+      "result": "Most single exports retained a 9,740,759-byte raw and 2,947,354-byte gzip common floor; startup aggregate pkc retained 12,586,345 raw bytes and App root ekc retained 10,950,501 raw bytes."
+    },
+    {
+      "command": "read-only installed R127 asset inventory over the authorized Tailscale SSH channel",
+      "result": "The installed asset directory used 206M with 4,748 uncompressed files; large locale, pet, worker, WASM, voice, video and AppGen candidates were identified without changing either 8215 or 8216."
+    },
+    {
+      "command": "M6.3 fail-closed security audit after recording the R128 analysis",
+      "result": "The focused security audit passed and 743 repository files produced zero secret findings."
     }
   ],
   "evidence": [
@@ -2461,7 +2477,8 @@
     "evidence/M6.9/router-r126-clean-browser-startup-baseline.json",
     "evidence/M6.9/deploy-router-r127-event-split-recovery.sh",
     "evidence/M6.9/router-r127-github-actions-summary.json",
-    "evidence/M6.9/router-r127-event-split-recovery-summary.json"
+    "evidence/M6.9/router-r127-event-split-recovery-summary.json",
+    "evidence/M6.9/router-r128-mathproof-bundle-audit.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -6641,6 +6658,25 @@
       "semantic_stream_replay_attempted": false,
       "cross_account_continuity_claimed": false,
       "status": "done"
+    },
+    "r128_mathproof_bundle_audit": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "96a0e450a259248336946937a1ad9165606dfdf4",
+      "output_revision": "96a0e450a259248336946937a1ad9165606dfdf4",
+      "evidence": "evidence/M6.9/router-r128-mathproof-bundle-audit.json",
+      "scope": "read-only 8216 math-proof-oriented bundle audit",
+      "installed_release": "c3e92f0f-20260804-m69-router-r127-event-split",
+      "main_encoded_share_percent": 72.5,
+      "main_decoded_share_percent": 89.4,
+      "main_zero_count_function_percent": 70.9,
+      "optional_precomposer_encoded_bytes": 368430,
+      "typical_single_export_floor_gzip_bytes": 2947354,
+      "standalone_8215_mutated": false,
+      "routed_8216_mutated": false,
+      "model_request_sent": false,
+      "account_switch_sent": false,
+      "status": "done"
     }
   },
   "blockers": [],
@@ -6891,7 +6927,9 @@
     "R127 reduces owned first-screen preload work, but the 13.936 MB decoded proprietary upstream main bundle remains the largest transfer and parse cost and is not claimed as split.",
     "R127 Edge timing uses three cold and three warm samples and is not a soak test or stable performance guarantee.",
     "Safari cold and warm timing remains unqualified because ScreenCaptureKit returned SCStream -3811 and a bounded SafariDriver session timed out; no substitute-browser result is presented as Safari evidence.",
-    "R127 automatic switching starts a new backend session and does not replay after semantic output; it does not migrate, resume or restore a prior request, stream or running computation."
+    "R127 automatic switching starts a new backend session and does not replay after semantic output; it does not migrate, resume or restore a prior request, stream or running computation.",
+    "R128 is a single-run read-only browser and installed-asset audit. Its V8 result is an upper-bound unused-function estimate, not a guaranteed byte saving or stable timing result.",
+    "R128 confirms that pruning unused static assets mainly reduces release disk and update cost; first-composer speed requires changing the pkc/ekc main-chunk route boundaries while retaining math-proof rendering, attachments, commands and skill progress."
   ],
-  "updated_at": "2026-08-04T02:41:00+08:00"
+  "updated_at": "2026-08-04T03:07:00+08:00"
 }

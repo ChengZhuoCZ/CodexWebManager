@@ -1,0 +1,160 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R128",
+  "implementation_mode": "clean-room",
+  "input_revision": "96a0e450a259248336946937a1ad9165606dfdf4",
+  "scope": "read-only 8216 math-proof-oriented bundle audit",
+  "deployment_observed": {
+    "web_release": "c3e92f0f-20260804-m69-router-r127-event-split",
+    "web_service_active": true,
+    "standalone_8215_mutated": false,
+    "routed_8216_mutated": false,
+    "model_request_sent": false,
+    "account_switch_sent": false
+  },
+  "installed_asset_inventory": {
+    "directory_disk_usage": "206M",
+    "uncompressed_file_count": 4748,
+    "uncompressed_bytes": 190923137,
+    "candidate_bytes": {
+      "locale_named_javascript": 62638732,
+      "pet_or_mascot_assets": 35402833,
+      "worker_assets": 12512623,
+      "wasm_assets": 12476551,
+      "voice_assets": 6281494,
+      "video_assets": 5227291,
+      "artifact_or_appgen_named_assets": 4534848,
+      "computer_or_browser_use_named_assets": 176456
+    },
+    "candidate_groups_may_overlap": true,
+    "startup_effect": "Most inventory candidates are not fetched on the first screen; deleting them reduces release size and update cost but not first-composer time unless their imports are also removed."
+  },
+  "fresh_edge_first_screen": {
+    "browser": "Edg/151.0.4129.59",
+    "samples": 1,
+    "composer_observed_ms": 5764.4,
+    "script_count": 77,
+    "script_encoded_bytes": 5853908,
+    "script_decoded_bytes": 15583908,
+    "scripts_started_after_composer": 1,
+    "scripts_started_after_composer_encoded_bytes": 2660,
+    "main_bundle": {
+      "path": "/assets/app-initial-BTphDPeq.js",
+      "encoded_bytes": 4243211,
+      "decoded_bytes": 13936387,
+      "encoded_share_percent": 72.5,
+      "decoded_share_percent": 89.4
+    },
+    "clearly_optional_named_scripts": {
+      "count": 27,
+      "encoded_bytes": 368430,
+      "encoded_share_percent": 6.3,
+      "families": [
+        "home suggestions and announcements",
+        "pull-request detail and media",
+        "local environment and worktree controls",
+        "realtime voice surfaces",
+        "plugin and recommended-skill suggestions",
+        "onboarding, team, sharing, artifact and debug helpers"
+      ]
+    }
+  },
+  "main_bundle_coverage": {
+    "function_count": 42339,
+    "executed_function_count": 15142,
+    "code_units": 13898960,
+    "zero_count_function_code_units": 9859165,
+    "zero_count_function_percent": 70.9,
+    "interpretation": "This is an upper-bound first-screen coverage estimate. It excludes zero-count function bodies but does not exclude unexecuted branches inside called functions."
+  },
+  "tree_shaking_probe": {
+    "source_bundle_raw_bytes": 13575163,
+    "source_bundle_gzip_bytes": 4108765,
+    "typical_single_export_floor_raw_bytes": 9740759,
+    "typical_single_export_floor_gzip_bytes": 2947354,
+    "typical_single_export_floor_raw_percent": 71.8,
+    "typical_single_export_floor_gzip_percent": 71.7,
+    "startup_aggregate_export": {
+      "export": "r",
+      "symbol": "pkc",
+      "raw_bytes": 12586345,
+      "gzip_bytes": 3832476
+    },
+    "app_root_export": {
+      "export": "L",
+      "symbol": "ekc",
+      "raw_bytes": 10950501,
+      "gzip_bytes": 3317144
+    },
+    "conclusion": "The compiled upstream chunk has a large shared side-effect floor. Useful reduction requires changing the pkc/ekc source or route boundaries; deleting strings or importing fewer names from the existing chunk cannot produce a genuinely small math-proof shell."
+  },
+  "security_audit": {
+    "status": "passed",
+    "repository_files_scanned": 743,
+    "secret_findings": 0
+  },
+  "math_proof_keep": [
+    "App Server IPC and authenticated session bootstrap",
+    "account route entry and native identity synchronization",
+    "thread list, conversation state and streaming transcript",
+    "composer and ProseMirror editing",
+    "Markdown, LaTeX and KaTeX rendering",
+    "bounded syntax highlighting for common proof and code formats",
+    "file upload, persistent attachments and output download",
+    "lazy PDF preview and worker",
+    "terminal and command result surfaces",
+    "skill invocation and goal progress surfaces"
+  ],
+  "math_proof_remove_or_defer": [
+    "voice, dictation and realtime voice",
+    "Computer Use, browser use and record/replay",
+    "Scheduled and automations pages",
+    "plugin marketplace and connection suggestions",
+    "pets, mascots, games and their sprite sheets",
+    "AppGen, canvas, notebook and appshot demonstrations",
+    "pull-request, team sharing and referral surfaces",
+    "home recommendations, announcements and onboarding",
+    "unused locales, editor themes and uncommon language grammars",
+    "debug panels and nonessential telemetry clients"
+  ],
+  "recommended_sequence": [
+    {
+      "priority": 0,
+      "change": "Move the 27 clearly optional script families behind post-composer or explicit-navigation imports.",
+      "direct_measured_transfer_target_bytes": 368430,
+      "risk": "low to medium"
+    },
+    {
+      "priority": 1,
+      "change": "Create a hash-pinned math-proof startup root that replaces the pkc initializer aggregate and ekc App root with only chat, IPC, account entry, attachments and proof rendering.",
+      "direct_measured_transfer_target_bytes": null,
+      "risk": "high; requires route and feature-contract tests because upstream source maps are absent"
+    },
+    {
+      "priority": 2,
+      "change": "Replace disabled Statsig/Sentry clients with build-time no-op adapters instead of only short-circuiting their network requests.",
+      "direct_measured_transfer_target_bytes": null,
+      "risk": "medium"
+    },
+    {
+      "priority": 3,
+      "change": "Produce a math-proof release allowlist for locales, themes, grammars and static feature assets after route pruning is complete.",
+      "direct_measured_transfer_target_bytes": null,
+      "risk": "low for disk size, no direct cold-start gain without import pruning"
+    },
+    {
+      "priority": 4,
+      "change": "Add HTTPS so the browser can select the existing Brotli main bundle rather than the current gzip response.",
+      "direct_measured_transfer_target_bytes": 1125876,
+      "risk": "medium; this is a transport optimization rather than package trimming"
+    }
+  ],
+  "residual_risks": [
+    "The browser result is one fresh-profile observation, not a stable performance guarantee.",
+    "The upstream proprietary main chunk has no source map, so feature attribution combines network names, V8 coverage and isolated-export tree-shaking probes.",
+    "Static candidate groups overlap and must not be summed as independent savings.",
+    "PDF preview, Markdown, LaTeX, KaTeX, attachments, commands and skill progress must remain available for math-proof work.",
+    "No deployed file or service was changed by this audit."
+  ]
+}
