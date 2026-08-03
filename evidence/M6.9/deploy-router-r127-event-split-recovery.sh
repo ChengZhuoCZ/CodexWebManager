@@ -171,14 +171,15 @@ verify_browser() {
     if(typeof v?.csrfToken!=="string"||!/^[A-Za-z0-9_-]{43}$/u.test(v.csrfToken)||Number.isNaN(Date.parse(v.expiresAt)))process.exit(1)' \
     "$workdir/session.json" || return 1
   curl --noproxy '*' -fsS --max-time 8 -D "$headers" -o "$body" -H 'Host: 100.95.50.98:8216' \
-    -H 'Accept-Encoding: gzip, deflate, br' http://127.0.0.1:8216/assets/preload-96037be1.js || return 1
+    -b "$cookies" -H 'Accept-Encoding: gzip, deflate, br' \
+    http://127.0.0.1:8216/assets/preload-96037be1.js || return 1
   grep -Eiq '^content-encoding:[[:space:]]*br' "$headers" || return 1
   /usr/bin/node -e 'const fs=require("node:fs"),z=require("node:zlib"),c=require("node:crypto");
     const raw=z.brotliDecompressSync(fs.readFileSync(process.argv[1]));
     if(c.createHash("sha256").update(raw).digest("hex")!=="96037be170c5c6f8f87024de9085c7f7dc80171d4711c015960ff14b1b438647")process.exit(1)' "$body" || return 1
   for asset in account-settings-window-C1CW0Ui2.mjs workspace-root-dialog-CTNvLaH0.mjs \
     jsx-runtime-BhZVp74s.mjs rolldown-runtime-7_rZTKki.mjs; do
-    curl --noproxy '*' -fsS --max-time 5 -H 'Host: 100.95.50.98:8216' \
+    curl --noproxy '*' -fsS --max-time 5 -H 'Host: 100.95.50.98:8216' -b "$cookies" \
       "http://127.0.0.1:8216/assets/$asset" >/dev/null || return 1
   done
 }
