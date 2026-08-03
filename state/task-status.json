@@ -95,6 +95,7 @@
     "r115_owned_account_surface": "f05293b4c8fbb4ced3eb300196620ea95178738d",
     "r116_react_account_settings": "72ac998ac77457b016db90a1151cdaa7918c75a2",
     "r117_app_server_recovery": "03c306389627d2eddabeb7f171b59c0e67642dd7",
+    "r118_native_identity_sync": "c508eca0cf0b5423ad1544a3ad12f0eba72313a0",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
@@ -6307,9 +6308,32 @@
       "semantic_stream_replay_attempted": false,
       "cross_account_continuity_claimed": false,
       "status": "done"
+    },
+    "r118_native_identity_sync": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "c508eca0cf0b5423ad1544a3ad12f0eba72313a0",
+      "implementation_revision": "a58f4283193b22062436d1dfa7eac0deeda2c03d",
+      "evidence": "evidence/M6.9/router-r118-native-identity-sync-blocker.json",
+      "artifact_sha256": "819b716adc608e53be57fd45a56bedbb6befbfd8a0b5f0055baa55cda95eb45a",
+      "fixed_8216_service_protocol": true,
+      "atomic_native_credential_rebind": true,
+      "route_and_credential_rollback_on_failure": true,
+      "active_request_and_stream_gate": true,
+      "arbitrary_root_command_execution": false,
+      "server_read_only_preflight_completed": true,
+      "server_mutated": false,
+      "standalone_8215_mutated": false,
+      "model_request_sent": false,
+      "account_switch_sent": false,
+      "semantic_stream_replay_attempted": false,
+      "cross_account_continuity_claimed": false,
+      "status": "blocked_pending_explicit_install_activation_authorization"
     }
   },
-  "blockers": [],
+  "blockers": [
+    "R118 implementation and local qualification are complete, but installing account-router 0.2.34 and replacing/restarting persistent 8216 systemd units require explicit deployment authorization beyond the approved runtime helper boundary."
+  ],
   "residual_risks": [
     "Cross-account continuity remains unverified and is not claimed.",
     "Pre-fix codex-web-router journal records may contain upstream IPC bodies or response headers. Per-unit deletion is unavailable without vacuuming unrelated system logs; retention and access must be handled operationally.",
@@ -6530,7 +6554,10 @@
     "R116 sent no model request or account switch. Automatic or manual switching starts a new backend session and does not migrate, replay or resume semantic output, a prior session, in-flight work or a running computation.",
     "R117 recovers the native App Host by rebinding its fixed systemd credential from the expired Primary credential to the existing Secondary credential. It starts a new backend session and does not restore the prior session or in-flight work.",
     "The 8216 App Server still has one fixed systemd credential. Router-only manual or automatic route changes do not persistently rebind the native App Server identity, so a later expiry can return the native App Host to the login screen even if another router credential remains usable.",
-    "Making the native App Server identity follow every router route change would expand the approved root helper beyond its current catalog/credential-store/account-router-only restart boundary and requires a separate least-privilege design and authorization."
+    "Making the native App Server identity follow every router route change would expand the approved root helper beyond its current catalog/credential-store/account-router-only restart boundary and requires a separate least-privilege design and authorization.",
+    "R118 locally implements the separately approved least-privilege native identity synchronization boundary, but it is not active on the server until account-router 0.2.34 and the 8216-only manager/Web units receive explicit installation and activation authorization.",
+    "R118 complete E2E qualification remains partially blocked by legacy upstream scratch assets that are not present in the repository or the pinned public checkout; focused runtime, persistence and security tests passed, but the missing legacy build inputs are not treated as successful E2E evidence.",
+    "The R118 aggregate strict-CI audit remains fail-closed because protected integrations/codex-web paths intentionally changed after the retained baseline; focused security tests and the zero-finding repository scan do not replace a newly qualified strict-CI run."
   ],
-  "updated_at": "2026-08-03T18:09:21+08:00"
+  "updated_at": "2026-08-03T19:53:30+08:00"
 }

@@ -1,0 +1,95 @@
+{
+  "task": "M6.9",
+  "continuation": "R118 native route and App Server identity synchronization",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "c508eca0cf0b5423ad1544a3ad12f0eba72313a0",
+  "implementation_revision": "a58f4283193b22062436d1dfa7eac0deeda2c03d",
+  "implementation_mode": "clean-room",
+  "architecture_mode": "LIMITED_MODE",
+  "local_artifact": {
+    "path": "/private/tmp/m69-r118-artifacts/codex-account-router-0.2.34-linux-x64.tar.gz",
+    "sha256": "819b716adc608e53be57fd45a56bedbb6befbfd8a0b5f0055baa55cda95eb45a"
+  },
+  "tests": [
+    {
+      "scope": "focused native identity synchronization",
+      "result": "112 passed, 0 failed, 1 Linux-installed-only skip"
+    },
+    {
+      "scope": "final manager, rebinder, systemd and runtime persistence regression",
+      "result": "48 passed, 0 failed"
+    },
+    {
+      "scope": "complete unit suite",
+      "result": "178 passed, 0 failed"
+    },
+    {
+      "scope": "focused security policy",
+      "result": "111 passed, 0 failed, 0 skipped"
+    },
+    {
+      "scope": "repository secret and policy scan",
+      "result": "692 files scanned, 0 findings"
+    },
+    {
+      "scope": "complete E2E suite",
+      "result": "128 passed, 3 failed, 1 skipped; the three failures require legacy upstream scratch assets not present in the repository or pinned public checkout"
+    },
+    {
+      "scope": "aggregate strict CI",
+      "result": "failed closed because protected integrations/codex-web paths changed after the retained strict-CI baseline"
+    }
+  ],
+  "implementation_guards": {
+    "fixed_app_server_credential_path": "/etc/codex-account-router/credentials/app-server-auth.json",
+    "allowed_service_operations": [
+      "stop codex-web-router-app-server.service",
+      "start codex-web-router-app-server.service",
+      "restart codex-web-router.service"
+    ],
+    "arbitrary_root_command_execution": false,
+    "requires_zero_active_requests": true,
+    "requires_zero_active_streams": true,
+    "atomic_credential_replace": true,
+    "route_and_credential_rollback_on_failure": true,
+    "bounded_deadlines": true,
+    "semantic_sse_replay_attempted": false,
+    "cross_account_continuity_claimed": false
+  },
+  "server_read_only_preflight": {
+    "performed": true,
+    "active_web_release": "c3e92f0f-20260803-m69-router-r116-react-account-settings",
+    "active_router_release": "codex-account-router-0.2.33-linux-x64",
+    "router_ready": true,
+    "current_route_category": "secondary",
+    "router_active_streams": 0,
+    "app_server_credential_matches_current_route": true,
+    "standalone_8215_active": true,
+    "routed_8216_services_active": true,
+    "server_mutated": false,
+    "standalone_8215_mutated": false
+  },
+  "deployment": {
+    "status": "blocked_pending_explicit_install_activation_authorization",
+    "reason": "Installing and activating the implementation would replace persistent account-router and 8216 systemd units and restart 8216 services; this exceeds the approved runtime helper operation boundary.",
+    "required_authorization": [
+      "install and activate codex-account-router 0.2.34",
+      "replace codex-router-account-manager.service",
+      "replace codex-web-router.service",
+      "restart codex-account-router.service",
+      "restart codex-router-account-manager.service",
+      "restart codex-web-router.service"
+    ],
+    "forbidden_scope_retained": [
+      "modify or restart standalone 8215",
+      "execute arbitrary root commands",
+      "replay a request after semantic SSE output"
+    ]
+  },
+  "real_model_request_sent": false,
+  "account_switch_sent": false,
+  "semantic_stream_replay_attempted": false,
+  "seamless_continuity_claimed": false,
+  "recorded_at": "2026-08-03T19:53:30+08:00"
+}
