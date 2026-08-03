@@ -6544,6 +6544,21 @@
       ],
       "standalone_8215_mutation_authorized": false,
       "status": "in_progress"
+    },
+    "r125_event_driven_native_identity_sync": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "3cf65f336b739eff509119634d4780bc5e05cd65",
+      "evidence": "evidence/M6.9/router-r125-event-driven-native-identity-sync.json",
+      "focused_tests_passed": 47,
+      "matrix_contract_tests_passed": 4,
+      "complete_package_suite_exit_code": 0,
+      "poll_fallback_interval_ms": 3000,
+      "event_retry_deadline_ms": 120000,
+      "monitoring_sanitized": true,
+      "standalone_8215_mutated": false,
+      "deployed": false,
+      "status": "done"
     }
   },
   "blockers": [],
@@ -6786,7 +6801,10 @@
     "The R123 aggregate Node run passed 437 tests with two skips and retained one unrelated fixture failure because the pinned public checkout lacks scratch/asar/webview/assets/index-LQUNCOO3.js; focused R123 and compiled bridge tests passed.",
     "R123 installed content hashes and the protected status response are verified, but the in-app Browser reload timed out and the documented reconnect had no matching 8216 tab to claim, so no additional browser-rendered menu/dialog or pixel-level claim is made.",
     "R123 does not change continuity semantics. Manual or automatic account switching starts a new backend session and does not migrate, replay, resume or restore prior semantic output, an in-flight request or running computation.",
-    "R124 qualifies one current-version real new initial HTTP/SSE request from a pre-semantic Primary authentication failure to Secondary completion. Real post-semantic disruption was not induced; installed-package HTTP/SSE and WebSocket fixtures prove unsafe_to_replay with zero Secondary contact after semantic output. No backend session, in-flight request or running computation is migrated, replayed, resumed or restored."
+    "R124 qualifies one current-version real new initial HTTP/SSE request from a pre-semantic Primary authentication failure to Secondary completion. Real post-semantic disruption was not induced; installed-package HTTP/SSE and WebSocket fixtures prove unsafe_to_replay with zero Secondary contact after semantic output. No backend session, in-flight request or running computation is migrated, replayed, resumed or restored.",
+    "R125 event-driven native identity synchronization is source-qualified but not yet installed-host qualified. Its 3-second polling path remains only as a fallback after an event-stream interruption or process restart.",
+    "R125 monitoring emits only fixed trigger, stage, reason, attempt-count, elapsed-time and credentials-exposed fields. It deliberately omits account identity, tokens, prompts and response bodies.",
+    "R125 automatic switching starts a new backend session. It does not migrate, replay, resume or restore prior semantic output, an in-flight request or running computation."
   ],
-  "updated_at": "2026-08-04T00:09:00+08:00"
+  "updated_at": "2026-08-04T01:05:00+08:00"
 }

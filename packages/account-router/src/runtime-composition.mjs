@@ -556,7 +556,7 @@ export function createRuntimeComposition({
     return lastUnavailableReason.get(currentAccountId) ?? "startup";
   }
 
-  async function recordSelectedRoute(accountId, { signal = null } = {}) {
+  async function recordSelectedRoute(accountId, { attempts = 1, signal = null } = {}) {
     const reason = routeReasonFor(accountId);
     if (reason === null) {
       lastUnavailableReason.delete(accountId);
@@ -571,6 +571,7 @@ export function createRuntimeComposition({
       fromAccountId,
       toAccountId: accountId,
       reason,
+      attempts,
     });
     currentAccountId = accountId;
     lastUnavailableReason.delete(accountId);
@@ -773,6 +774,7 @@ export function createRuntimeComposition({
       try {
         throwIfAborted(selectionSignal);
         await recordSelectedRoute(accountId, {
+          attempts: selectionContext.attempt ?? 1,
           signal: selectionSignal,
         });
         throwIfAborted(selectionSignal);

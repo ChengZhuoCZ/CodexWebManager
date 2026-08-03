@@ -1,0 +1,55 @@
+{
+  "schema_version": 1,
+  "task": "M6.9",
+  "milestone": "R125",
+  "input_revision": "3cf65f336b739eff509119634d4780bc5e05cd65",
+  "implementation_mode": "clean-room",
+  "scope": "8216 source and candidate unit only",
+  "result": {
+    "router_switch_event_drives_native_identity_sync": true,
+    "poll_fallback_interval_ms": 3000,
+    "event_retry_deadline_ms": 120000,
+    "monitoring_is_fixed_field_and_sanitized": true,
+    "manager_stdout_is_journal": true,
+    "standalone_8215_mutated": false,
+    "deployed": false
+  },
+  "tests": [
+    {
+      "command": "<bundled-node> --test packages/account-router/test/admin-state.test.mjs packages/account-router/test/status-bridge.test.mjs packages/account-router/test/native-account-rebinding.test.mjs packages/account-router/test/native-identity-sync.test.mjs packages/account-router/test/account-manager-protocol.test.mjs packages/account-router/test/systemd-units.test.mjs",
+      "result": "47 passed, 0 failed"
+    },
+    {
+      "command": "<bundled-node> --test test/test-matrix-contract.test.mjs",
+      "result": "4 passed, 0 failed"
+    },
+    {
+      "command": "<bundled-node> --test --test-reporter=dot",
+      "result": "exit 0; complete account-router package suite passed"
+    },
+    {
+      "command": "<bundled-node> --check bin/codex-router-account-manager.mjs && <bundled-node> --check src/native-account-rebinding.mjs && <bundled-node> --check src/native-identity-sync.mjs && git diff --check",
+      "result": "passed"
+    }
+  ],
+  "monitoring_fields": [
+    "trigger",
+    "stage",
+    "switch_reason",
+    "route_attempts",
+    "sync_attempts",
+    "elapsed_ms",
+    "credentials_exposed"
+  ],
+  "forbidden_monitoring_content": [
+    "account identity",
+    "token",
+    "prompt",
+    "response body"
+  ],
+  "residual_risks": [
+    "Installed-host event timing remains unqualified until the 8216-only release is deployed and exercised.",
+    "Automatic switching starts a new backend session; it does not migrate, replay, resume or restore semantic output or in-flight work.",
+    "The polling fallback remains necessary after event-stream interruption or process restart."
+  ]
+}

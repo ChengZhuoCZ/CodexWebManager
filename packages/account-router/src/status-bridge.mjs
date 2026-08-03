@@ -150,6 +150,10 @@ export function sanitizeRouterSwitchEvent(value) {
   }
   if (
     !SWITCH_REASONS.has(data.reason) ||
+    !Number.isSafeInteger(data.attempts) ||
+    data.attempts < 1 ||
+    data.attempts > 16 ||
+    data.stage !== "route_committed" ||
     data.continuity !== "new_backend_session" ||
     data.architecture_mode !== "LIMITED_MODE" ||
     typeof data.timestamp !== "string" ||
@@ -161,6 +165,8 @@ export function sanitizeRouterSwitchEvent(value) {
     from_alias: fromAlias,
     to_alias: assertAlias(data.to_alias),
     reason: data.reason,
+    attempts: data.attempts,
+    stage: "route_committed",
     continuity: "new_backend_session",
     architecture_mode: "LIMITED_MODE",
     timestamp: data.timestamp,

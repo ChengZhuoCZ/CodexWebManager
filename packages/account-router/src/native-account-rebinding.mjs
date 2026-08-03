@@ -224,11 +224,11 @@ export function createNativeAccountRebinder({
           native_identity_rebound: true,
           web_restart_required: true,
         });
-      } catch {
+      } catch (error) {
         if (stopped && current !== undefined && originalAlias !== null) {
           await restoreStopped(current, { routeChanged, originalAlias });
         }
-        throw new Error("native account rebind failed");
+        throw new Error("native account rebind failed", { cause: error });
       }
     });
   }
@@ -266,11 +266,11 @@ export function createNativeAccountRebinder({
           account_alias: before.accountAlias,
           rebound: true,
         });
-      } catch {
+      } catch (error) {
         if (stopped && current !== undefined) {
           await restoreStopped(current, { routeChanged: false, originalAlias: "" });
         }
-        throw new Error("native account rebind failed");
+        throw new Error("native account rebind failed", { cause: error });
       }
     });
   }

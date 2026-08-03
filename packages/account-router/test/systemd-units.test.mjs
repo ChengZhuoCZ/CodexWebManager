@@ -356,6 +356,7 @@ test("8216 account manager is socket-activated and confined to its credential mu
     "/opt/codex-account-router/current/bin/codex-router-account-manager",
   );
   assert.equal(only(service, "Service.NoNewPrivileges"), "true");
+  assert.equal(only(service, "Service.StandardOutput"), "journal");
   assert.equal(only(service, "Service.ProtectSystem"), "strict");
   assert.equal(
     only(service, "Service.CapabilityBoundingSet"),

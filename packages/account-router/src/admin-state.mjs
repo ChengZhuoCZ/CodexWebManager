@@ -207,11 +207,14 @@ export function createAdminState({
     findAccountIdByAlias(alias) {
       return idByAlias.get(alias) ?? null;
     },
-    recordSwitch({ fromAccountId, toAccountId, reason }) {
+    recordSwitch({ fromAccountId, toAccountId, reason, attempts = 1 }) {
       const fromAccount = fromAccountId === null ? null : requireAccount(fromAccountId);
       const toAccount = requireAccount(toAccountId);
       if (!SWITCH_REASONS.has(reason)) {
         throw new Error("switch reason is invalid");
+      }
+      if (!Number.isSafeInteger(attempts) || attempts < 1 || attempts > 16) {
+        throw new Error("switch attempts is invalid");
       }
       currentRoute = Object.freeze({
         account_alias: toAccount.alias,
@@ -224,6 +227,8 @@ export function createAdminState({
           from_alias: fromAccount?.alias ?? null,
           to_alias: toAccount.alias,
           reason,
+          attempts,
+          stage: "route_committed",
           continuity: "new_backend_session",
           architecture_mode: "LIMITED_MODE",
         },

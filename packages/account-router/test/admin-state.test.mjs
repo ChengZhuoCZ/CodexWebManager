@@ -93,6 +93,8 @@ test("records sanitized switch events as explicit new backend sessions", () => {
     from_alias: null,
     to_alias: "Fixture A",
     reason: "manual",
+    attempts: 1,
+    stage: "route_committed",
     continuity: "new_backend_session",
     architecture_mode: "LIMITED_MODE",
   });
@@ -130,5 +132,14 @@ test("rejects unsafe account state, stream counts, routes, and switch reasons", 
   assert.throws(
     () => state.recordSwitch({ fromAccountId: null, toAccountId: "account-a", reason: "raw user text" }),
     /switch reason/,
+  );
+  assert.throws(
+    () => state.recordSwitch({
+      fromAccountId: null,
+      toAccountId: "account-a",
+      reason: "manual",
+      attempts: 0,
+    }),
+    /switch attempts/,
   );
 });

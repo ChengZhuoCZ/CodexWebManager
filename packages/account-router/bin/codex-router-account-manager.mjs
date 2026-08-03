@@ -9,6 +9,12 @@ import { pathToFileURL } from "node:url";
 
 import { createAccountEnrollmentManager } from "../src/account-enrollment.mjs";
 import { createNativeAccountRebinder } from "../src/native-account-rebinding.mjs";
+import {
+  createNativeIdentitySyncController,
+  createSanitizedIdentitySyncLogger,
+  sanitizedEventStreamFailure,
+} from "../src/native-identity-sync.mjs";
+import { createStatusBridge } from "../src/status-bridge.mjs";
 
 const SERVICE = "codex-account-router.service";
 const APP_SERVER_SERVICE = "codex-web-router-app-server.service";
@@ -422,21 +428,60 @@ async function start() {
     }),
   });
   server.listen({ fd: 3 });
-  let reconciling = false;
-  const reconcile = async () => {
-    if (reconciling) return;
-    reconciling = true;
-    try {
-      const result = await rebinder.reconcileCurrentRoute();
-      if (result.rebound === true) await spawnSystemctl("restart", WEB_SERVICE);
-    } catch {
-      // Busy routes and concurrent catalog operations are retried on the next tick.
-    } finally {
-      reconciling = false;
+  const emitTelemetry = createSanitizedIdentitySyncLogger();
+  const syncController = createNativeIdentitySyncController({
+    reconcile: () => rebinder.reconcileCurrentRoute(),
+    restartWeb: () => spawnSystemctl("restart", WEB_SERVICE),
+    emitTelemetry,
+  });
+  const eventBridge = createStatusBridge({
+    adminOrigin: `http://${ADMIN_HOST}:${ADMIN_PORT}`,
+    withAdminToken: async (consume) => consume(token),
+  });
+  const eventAbort = new AbortController();
+  const followEvents = async () => {
+    let attempts = 0;
+    let backoff = 100;
+    let unavailableSince = Date.now();
+    while (!eventAbort.signal.aborted) {
+      try {
+        await eventBridge.followEvents({
+          afterId: "0",
+          signal: eventAbort.signal,
+          onEvent: (event) => {
+            attempts = 0;
+            backoff = 100;
+            unavailableSince = Date.now();
+            void syncController.triggerEvent({
+              reason: event.data.reason,
+              routeAttempts: event.data.attempts,
+              timestamp: event.data.timestamp,
+            });
+          },
+        });
+      } catch {
+        if (eventAbort.signal.aborted) break;
+        attempts += 1;
+        if (attempts === 1 || attempts % 10 === 0) {
+          emitTelemetry(sanitizedEventStreamFailure({
+            attempts,
+            elapsedMs: Date.now() - unavailableSince,
+          }));
+        }
+        await new Promise((resolve) => setTimeout(resolve, backoff));
+        backoff = Math.min(backoff * 2, 3_000);
+      }
     }
   };
-  const interval = setInterval(() => { void reconcile(); }, 3_000);
-  interval.unref();
+  syncController.start();
+  void followEvents();
+  const shutdown = () => {
+    eventAbort.abort();
+    void syncController.stop();
+    server.close();
+  };
+  process.once("SIGTERM", shutdown);
+  process.once("SIGINT", shutdown);
 }
 
 if (isDirectManagerInvocation(import.meta.url, process.argv[1])) {

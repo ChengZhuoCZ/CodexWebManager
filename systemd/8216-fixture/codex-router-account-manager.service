@@ -10,7 +10,7 @@ LimitCORE=0
 Environment=CODEX_ROUTER_ACCOUNT_AUTH_ROOT=/var/lib/codex-web-router-account-auth
 Environment=CODEX_ROUTER_ADMIN_SOURCE_TOKEN_FILE=/etc/codex-account-router/credentials/admin-token
 ExecStart=/opt/codex-account-router/current/bin/codex-router-account-manager
-StandardOutput=null
+StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=codex-router-account-manager
 TimeoutStartSec=15s
