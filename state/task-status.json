@@ -94,14 +94,15 @@
     "r114_native_profile_menu": "b9bd3fc90ad5b3319e13380208e81102eec13c43",
     "r115_owned_account_surface": "f05293b4c8fbb4ced3eb300196620ea95178738d",
     "r116_react_account_settings": "72ac998ac77457b016db90a1151cdaa7918c75a2",
+    "r117_app_server_recovery": "03c306389627d2eddabeb7f171b59c0e67642dd7",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "487856b",
+  "output_revision": "c6865d3",
   "workspace_branch": "codex/m6-9-8216-r85-handoff",
-  "workspace_input_revision": "72ac998ac77457b016db90a1151cdaa7918c75a2",
+  "workspace_input_revision": "03c306389627d2eddabeb7f171b59c0e67642dd7",
   "depends_on": [
     "M2.5",
     "M6.8",
@@ -2098,6 +2099,18 @@
     {
       "command": "in-app browser navigation and DOM snapshot; jq validation, git diff --check and scanRepository(loadSecurityAuditPolicy())",
       "result": "The browser loaded the signed-in Codex composer at 8216. Menu click/readback and a later fixed marker query timed out in the automation channel, so no menu/dialog rendering claim is made. The evidence JSON parsed and the repository scan covered 688 files with zero findings; aggregate strict CI remains intentionally fail-closed after protected-path changes."
+    },
+    {
+      "command": "fresh 8216 browser document; sanitized codex-web-router-app-server journal inspection; router status and systemd credential-boundary comparison",
+      "result": "A fresh document reproduced the Sign in to ChatGPT route at diag stage ready. The App Server log showed a provider refresh HTTP 401 followed by auth_token_missing. The router preferred Secondary with zero active streams, while the fixed App Server credential still matched Primary. No credential, identity, Cookie, token or provider response body was recorded."
+    },
+    {
+      "command": "rollback-protected Secondary credential rebind; restart only codex-web-router-app-server.service and codex-web-router.service; protected PID checks; fresh in-app browser read-only composer verification",
+      "result": "The existing Secondary router credential was atomically installed as the fixed 8216 App Server credential. The App Server and then Web service restarted to establish a new Unix-socket/IPC session; 8215 Web/App, account-router and account-manager PIDs remained unchanged. A fresh browser document reached stage ready and exposed New chat, Project, Scheduled, Plugins and What should we build? No model request or router switch request was sent."
+    },
+    {
+      "command": "<bundled-node> scanRepository(loadSecurityAuditPolicy()); jq empty state/task-status.json evidence/M6.9/router-r117-app-server-secondary-recovery.json; git diff --check",
+      "result": "The repository scan covered 689 files with zero findings. Both JSON documents parsed and git diff --check passed."
     }
   ],
   "evidence": [
@@ -2391,7 +2404,8 @@
     "evidence/M6.9/deploy-router-r115-owned-account-surface.sh",
     "evidence/M6.9/router-r115-owned-account-surface-summary.json",
     "evidence/M6.9/deploy-router-r116-react-account-settings.sh",
-    "evidence/M6.9/router-r116-react-account-settings-summary.json"
+    "evidence/M6.9/router-r116-react-account-settings-summary.json",
+    "evidence/M6.9/router-r117-app-server-secondary-recovery.json"
   ],
   "observations": {
     "continuation_r67_start": {
@@ -6513,7 +6527,10 @@
     "R115 sent no model request or account switch. Automatic or manual switching starts a new backend session and does not migrate, replay or resume semantic output or in-flight work.",
     "R116 replaces the active Shadow DOM account surface with a source-level React window and one native-menu portal entry. A future upstream accessibility or menu-role rewrite may require a new bounded adapter.",
     "R116 browser automation verified the signed-in composer, but the profile-menu click/readback and marker query timed out in the browser-control channel. Installed hashes, release transformation and service invariants passed; no automated menu/dialog rendering claim is made.",
-    "R116 sent no model request or account switch. Automatic or manual switching starts a new backend session and does not migrate, replay or resume semantic output, a prior session, in-flight work or a running computation."
+    "R116 sent no model request or account switch. Automatic or manual switching starts a new backend session and does not migrate, replay or resume semantic output, a prior session, in-flight work or a running computation.",
+    "R117 recovers the native App Host by rebinding its fixed systemd credential from the expired Primary credential to the existing Secondary credential. It starts a new backend session and does not restore the prior session or in-flight work.",
+    "The 8216 App Server still has one fixed systemd credential. Router-only manual or automatic route changes do not persistently rebind the native App Server identity, so a later expiry can return the native App Host to the login screen even if another router credential remains usable.",
+    "Making the native App Server identity follow every router route change would expand the approved root helper beyond its current catalog/credential-store/account-router-only restart boundary and requires a separate least-privilege design and authorization."
   ],
-  "updated_at": "2026-08-03T17:41:46+08:00"
+  "updated_at": "2026-08-03T18:09:21+08:00"
 }
