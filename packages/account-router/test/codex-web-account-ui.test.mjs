@@ -16,6 +16,10 @@ const integrationTest = codexWebRoot && path.isAbsolute(codexWebRoot) ? test : t
 const testDirectory = fileURLToPath(new URL(".", import.meta.url));
 const packageDirectory = path.resolve(testDirectory, "..");
 const workspaceRoot = path.resolve(packageDirectory, "../..");
+const startupFixtureRoot = path.join(
+  testDirectory,
+  "fixtures/codex-web-startup-assets",
+);
 const panelSource = path.join(
   workspaceRoot,
   "integrations/codex-web/src/browser/router-account-panel.ts",
@@ -236,11 +240,7 @@ integrationTest("pinned browser overlay bundles without writing to the upstream 
   const startupEntryName = "index-LQUNCOO3.js";
   const startupEntry = await fs.readFile(
     path.join(
-      codexWebRoot,
-      "scratch",
-      "asar",
-      "webview",
-      "assets",
+      startupFixtureRoot,
       startupEntryName,
     ),
     "utf8",
@@ -256,7 +256,10 @@ integrationTest("pinned browser overlay bundles without writing to the upstream 
       dependencyEnd,
     ),
   );
-  assert.equal(parsedDependencies.length, 133);
+  assert.deepEqual(parsedDependencies, [
+    "./fixture-chat.js",
+    "./fixture-chat.css",
+  ]);
   const startupAssetNames = [...new Set([
     startupEntryName,
     "index-LQUNCOO3.js",
@@ -274,7 +277,7 @@ integrationTest("pinned browser overlay bundles without writing to the upstream 
   await fs.mkdir(temporaryAssets, { recursive: true });
   for (const fileName of startupAssetNames) {
     await fs.copyFile(
-      path.join(codexWebRoot, "scratch", "asar", "webview", "assets", fileName),
+      path.join(startupFixtureRoot, fileName),
       path.join(temporaryAssets, fileName),
     );
   }
