@@ -134,7 +134,7 @@ export function createManagerProtocolServer({ sourceRoot, enroll, remove, switch
   ) {
     throw new TypeError("account manager callbacks are required");
   }
-  return net.createServer((socket) => {
+  return net.createServer({ allowHalfOpen: true }, (socket) => {
     socket.setTimeout(OPERATION_TIMEOUT_MS, () => socket.destroy());
     let settled = false;
     let length = 0;

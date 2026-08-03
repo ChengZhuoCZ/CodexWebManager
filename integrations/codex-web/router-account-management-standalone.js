@@ -90,7 +90,7 @@ function managerRequest(socketPath, value) {
         const socket = node_net_1.default.createConnection(socketPath);
         socket.setTimeout(35_000, () => finish(new Error("account manager timed out")));
         socket.once("error", () => finish(new Error("account manager failed")));
-        socket.once("connect", () => socket.end(`${JSON.stringify(value)}\n`));
+        socket.once("connect", () => socket.write(`${JSON.stringify(value)}\n`));
         socket.on("data", (chunk) => {
             const bytes = Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk);
             length += bytes.length;

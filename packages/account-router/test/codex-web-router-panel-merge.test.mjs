@@ -72,6 +72,7 @@ import {
   R116_REACT_ACCOUNT_SETTINGS_CONTRACT,
 } from "../../../integrations/codex-web/replace-r116-react-account-settings.mjs";
 import {
+  atomicWrite,
   r118ControllerSource,
 } from "../../../integrations/codex-web/replace-r118-native-identity-sync.mjs";
 import {
@@ -253,6 +254,22 @@ test("R118 requires a completed native identity transaction before reloading a n
   assert.equal(source.match(/window\.location\.reload\(\)/gu)?.length, 1);
   assert.doesNotMatch(original, /native_identity_rebound/u);
   assert.throws(() => r118ControllerSource(source), /anchor is unavailable/u);
+});
+
+test("R118 atomic release writes remain readable under a restrictive deployment umask", async () => {
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), "codex-r118-mode-"));
+  const target = path.join(root, "router-status-bridge.js");
+  const previousUmask = process.umask(0o077);
+  try {
+    await atomicWrite(target, Buffer.from("module.exports = {};\n"), 0o644);
+  } finally {
+    process.umask(previousUmask);
+  }
+  try {
+    assert.equal((await fs.stat(target)).mode & 0o777, 0o644);
+  } finally {
+    await fs.rm(root, { recursive: true, force: true });
+  }
 });
 
 test("owns the account surface outside the upstream React tree", async () => {

@@ -66,8 +66,8 @@ test("builds a byte-reproducible x64 Linux archive without desktop dependencies"
   assert.ok(manifestEntry);
 
   const manifest = JSON.parse(manifestEntry.content.toString("utf8"));
-  assert.equal(manifest.version, "0.2.34");
-  assert.equal(first.releaseName, "codex-account-router-0.2.34-linux-x64");
+  assert.equal(manifest.version, "0.2.35");
+  assert.equal(first.releaseName, "codex-account-router-0.2.35-linux-x64");
   assert.deepEqual(manifest.target, { os: "linux", architecture: "x64" });
   assert.equal(manifest.runtime.node, ">=22");
   assert.equal(manifest.runtime.electron_required, false);

@@ -667,17 +667,19 @@ integrationTest("manual switch accepts only a sanitized native-identity transact
         socket.end('{"ok":false,"error":"account_operation_failed"}\n');
         return;
       }
-      socket.end(`${JSON.stringify({
-        ok: true,
-        event: "router_account_switched",
-        configured_accounts: 2,
-        credentials_exposed: false,
-        account_alias: request.alias,
-        continuity: "new_backend_session",
-        architecture_mode: "LIMITED_MODE",
-        native_identity_rebound: true,
-        web_restart_required: true,
-      })}\n`);
+      setTimeout(() => {
+        socket.end(`${JSON.stringify({
+          ok: true,
+          event: "router_account_switched",
+          configured_accounts: 2,
+          credentials_exposed: false,
+          account_alias: request.alias,
+          continuity: "new_backend_session",
+          architecture_mode: "LIMITED_MODE",
+          native_identity_rebound: true,
+          web_restart_required: true,
+        })}\n`);
+      }, 25);
     });
   });
   await new Promise((resolve, reject) => {

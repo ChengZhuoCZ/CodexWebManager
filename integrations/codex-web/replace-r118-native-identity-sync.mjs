@@ -58,10 +58,14 @@ async function regular(filePath) {
   return fs.readFile(filePath);
 }
 
-async function atomicWrite(filePath, bytes, mode = 0o644) {
+export async function atomicWrite(filePath, bytes, mode = 0o644) {
   const temporary = path.join(path.dirname(filePath), `.${path.basename(filePath)}.${randomUUID()}.next`);
   try {
     await fs.writeFile(temporary, bytes, { flag: "wx", mode });
+    // writeFile creation modes are reduced by the process umask. Deployment
+    // intentionally uses 0077, so make the public release-file mode explicit
+    // before the atomic rename.
+    await fs.chmod(temporary, mode);
     await fs.rename(temporary, filePath);
   } catch (error) {
     await fs.rm(temporary, { force: true }).catch(() => undefined);

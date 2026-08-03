@@ -120,6 +120,7 @@ test("manager socket returns only a sanitized operation result", async (context)
     },
     observe: async (value) => {
       calls.push(value);
+      await new Promise((resolve) => setTimeout(resolve, 25));
       return { event: "router_account_observer_ready", configured_accounts: 3 };
     },
   });
@@ -190,4 +191,18 @@ test("manager socket fails closed for malformed and oversized requests", async (
     ok: false,
     error: "account_operation_failed",
   });
+});
+
+test("Web manager clients keep the response half of the socket open", async () => {
+  const repository = path.resolve(import.meta.dirname, "../../..");
+  for (const relative of [
+    "integrations/codex-web/src/server/router-status-bridge.ts",
+    "integrations/codex-web/router-status-bridge-standalone.js",
+    "integrations/codex-web/src/server/router-account-management.ts",
+    "integrations/codex-web/router-account-management-standalone.js",
+  ]) {
+    const source = await fs.readFile(path.join(repository, relative), "utf8");
+    assert.match(source, /socket\.once\("connect", \(\) => socket\.write\(/u);
+    assert.doesNotMatch(source, /socket\.once\("connect", \(\) => socket\.end\(/u);
+  }
 });
