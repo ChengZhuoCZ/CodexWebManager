@@ -7,7 +7,7 @@ readonly ROUTER_RELEASE_NAME="codex-account-router-${ROUTER_VERSION}-linux-x64"
 readonly ROUTER_ARCHIVE="${INPUT_ROOT}/${ROUTER_RELEASE_NAME}.tar.gz"
 readonly ROUTER_ARCHIVE_SHA256=c27b292494dba853b922cdf3a3c0dff9d83f3a9ad40400122f43829d32e7bbc4
 readonly TRANSFORMER="${INPUT_ROOT}/replace-r127-startup-split.mjs"
-readonly TRANSFORMER_SHA256=8ad6cde98e3278bc0249308eee02aae656880aba70750c958a45ef4bcdd33b83
+readonly TRANSFORMER_SHA256=3378acf1ba54486e87589465ce4ff21c0a720e352d1fc42275bca7d92cbc265b
 readonly BROWSER_ASSETS="${INPUT_ROOT}/browser-assets"
 readonly SERVER_ASSETS="${INPUT_ROOT}/server-assets"
 

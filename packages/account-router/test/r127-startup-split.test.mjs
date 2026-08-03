@@ -10,6 +10,8 @@ import { replaceR127StartupSplit } from "../../../integrations/codex-web/replace
 const digest = (value) => createHash("sha256").update(value).digest("hex");
 
 test("R127 replaces only pinned startup assets and keeps the account window deferred", async (context) => {
+  const previousUmask = process.umask(0o077);
+  context.after(() => process.umask(previousUmask));
   const root = await fs.mkdtemp(path.join(os.tmpdir(), "r127-startup-split-"));
   context.after(() => fs.rm(root, { recursive: true, force: true }));
   const candidate = path.join(root, "candidate");
@@ -102,10 +104,15 @@ ${staticAnchor}`));
   );
   assert.deepEqual(await fs.readFile(path.join(server, "main.js")), nextMain);
   assert.equal(await fs.readFile(path.join(server, "preferred-content-encoding.js"), "utf8"), "brotli-helper");
+  assert.equal((await fs.lstat(path.join(server, "main.js"))).mode & 0o777, 0o644);
+  assert.equal((await fs.lstat(path.join(server, "preferred-content-encoding.js"))).mode & 0o777, 0o644);
+  assert.equal((await fs.lstat(path.join(candidate, "scratch/asar/webview/index.html"))).mode & 0o777, 0o644);
   await assert.rejects(fs.lstat(path.join(assets, "preload-old.js")), /ENOENT/u);
   for (const name of [preloadName, ...Object.keys(browser).slice(1)]) {
     for (const suffix of ["", ".gz", ".br"]) {
-      assert.equal((await fs.lstat(path.join(assets, `${name}${suffix}`))).isFile(), true);
+      const metadata = await fs.lstat(path.join(assets, `${name}${suffix}`));
+      assert.equal(metadata.isFile(), true);
+      assert.equal(metadata.mode & 0o777, 0o644);
     }
   }
 });

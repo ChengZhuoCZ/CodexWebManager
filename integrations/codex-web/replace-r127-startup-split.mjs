@@ -104,6 +104,11 @@ async function writeTriplet(target, bytes) {
   await fs.writeFile(target, bytes, { flag: "wx", mode: 0o644 });
   await fs.writeFile(`${target}.gz`, compressed.gzip, { flag: "wx", mode: 0o644 });
   await fs.writeFile(`${target}.br`, compressed.brotli, { flag: "wx", mode: 0o644 });
+  await Promise.all([
+    fs.chmod(target, 0o644),
+    fs.chmod(`${target}.gz`, 0o644),
+    fs.chmod(`${target}.br`, 0o644),
+  ]);
   return compressed;
 }
 
@@ -111,6 +116,7 @@ async function replaceRegularFile(target, bytes) {
   const temporary = path.join(path.dirname(target), `.${path.basename(target)}.${randomUUID()}.next`);
   try {
     await fs.writeFile(temporary, bytes, { flag: "wx", mode: 0o644 });
+    await fs.chmod(temporary, 0o644);
     await fs.rename(temporary, target);
   } finally {
     await fs.rm(temporary, { force: true }).catch(() => undefined);
@@ -208,6 +214,11 @@ export async function replaceR127StartupSplit({
     await fs.writeFile(temporaryIndex, nextIndex, { flag: "wx", mode: 0o644 });
     await fs.writeFile(`${indexTarget}.gz`, indexCompressed.gzip, { mode: 0o644 });
     await fs.writeFile(`${indexTarget}.br`, indexCompressed.brotli, { mode: 0o644 });
+    await Promise.all([
+      fs.chmod(temporaryIndex, 0o644),
+      fs.chmod(`${indexTarget}.gz`, 0o644),
+      fs.chmod(`${indexTarget}.br`, 0o644),
+    ]);
     await fs.rename(temporaryIndex, indexTarget);
     for (const [name, bytes] of serverEntries) {
       await replaceRegularFile(path.join(serverRoot, name), bytes);
