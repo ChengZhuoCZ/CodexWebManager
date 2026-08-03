@@ -48,6 +48,12 @@ import {
   replaceR107DeviceCodeCopy,
 } from "../../../integrations/codex-web/replace-r107-device-code-copy.mjs";
 import {
+  R109_SAFARI_PROFILE_MENU_CONTRACT,
+} from "../../../integrations/codex-web/replace-r109-safari-profile-menu.mjs";
+import {
+  R110_COMPACT_AUTO_FAILOVER_CONTRACT,
+} from "../../../integrations/codex-web/replace-r110-compact-auto-failover.mjs";
+import {
   buildManualSwitchRequest as buildStandaloneSwitchRequest,
   buildAccountEnrollmentRequest,
   buildAccountRemovalRequest,
@@ -177,6 +183,14 @@ const R105_DEPLOY = path.resolve(
 const R107_DEPLOY = path.resolve(
   import.meta.dirname,
   "../../../evidence/M6.9/deploy-router-r107-device-code-copy.sh",
+);
+const R109_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r109-safari-profile-menu.sh",
+);
+const R110_DEPLOY = path.resolve(
+  import.meta.dirname,
+  "../../../evidence/M6.9/deploy-router-r110-compact-auto-failover.sh",
 );
 
 function sha256(value) {
@@ -389,6 +403,14 @@ test("standalone panel exposes only a sanitized current route in the profile men
   assert.doesNotMatch(source, /position:\s*"fixed"/u);
 });
 
+test("profile menu discovery has a language-neutral Safari fallback", async () => {
+  const source = await fs.readFile(STANDALONE_PANEL, "utf8");
+  assert.match(source, /button\[aria-haspopup="menu"\]/u);
+  assert.match(source, /\[role="menu"\]/u);
+  assert.match(source, /aria-controls/u);
+  assert.match(source, /getBoundingClientRect/u);
+});
+
 test("native Usage remaining presentation follows the sanitized current router route", () => {
   const secondary = standaloneNativeUsagePresentation({
     accounts: [
@@ -442,7 +464,7 @@ test("profile menu quota UI inherits native width and exposes a bounded read-onl
   const bridge = await fs.readFile(ROUTER_STATUS_BRIDGE, "utf8");
   assert.match(panel, /width: 100%; min-width: 0; max-width: 100%/u);
   assert.doesNotMatch(panel, /min-width: 300px|max-width: 360px/u);
-  assert.match(panel, /min-height: 42px/u);
+  assert.match(panel, /min-height: 38px/u);
   assert.match(panel, /font-size: 10px; line-height: 1\.25/u);
   assert.match(panel, /weeklyLabel\.replace\(" remaining", ""\)/u);
   assert.match(panel, /Refreshed \$\{utcLabel\(account\.snapshot_observed_at\)\}/u);
@@ -1015,11 +1037,11 @@ test("R105 targets the leaf Weekly label and preserves native Learn more semanti
 });
 
 test("R107 pins the HTTP-safe device-code copy panel and protects every non-Web service", async () => {
-  const [panel, deployment] = await Promise.all([
-    fs.readFile(STANDALONE_PANEL),
-    fs.readFile(R107_DEPLOY, "utf8"),
-  ]);
-  assert.equal(R107_DEVICE_CODE_COPY_CONTRACT.replacement_panel_sha256, sha256(panel));
+  const deployment = await fs.readFile(R107_DEPLOY, "utf8");
+  assert.equal(
+    R107_DEVICE_CODE_COPY_CONTRACT.replacement_panel_sha256,
+    "8324c7accea08eda67fb023abef04ba100093a88f62755e8f0231f1e89f569b8",
+  );
   assert.equal(R107_DEVICE_CODE_COPY_CONTRACT.predecessor_panel_name, "router-account-panel-6c92b532.js");
   assert.match(deployment, /router-r106-account-management/u);
   assert.match(deployment, /router-account-panel-8324c7ac\.js/u);
@@ -1031,5 +1053,69 @@ test("R107 pins the HTTP-safe device-code copy panel and protects every non-Web 
   assert.doesNotMatch(
     deployment,
     /systemctl\s+(?:restart|stop|start)\s+"?\$?(?:APP_SERVICE|ROUTER_SERVICE|MANAGER_SERVICE|MANAGER_SOCKET|STANDALONE_WEB_SERVICE|STANDALONE_APP_SERVICE)/u,
+  );
+});
+
+test("R109 pins language-neutral Safari menu discovery and restarts only routed Web", async () => {
+  const deployment = await fs.readFile(R109_DEPLOY, "utf8");
+  assert.equal(
+    R109_SAFARI_PROFILE_MENU_CONTRACT.replacement_panel_sha256,
+    "9dc6748baa2a059dd1e4655ef25e2b1ef5fa106e6e1db753e04f0752ecd295f5",
+  );
+  assert.equal(
+    R109_SAFARI_PROFILE_MENU_CONTRACT.predecessor_panel_name,
+    "router-account-panel-8324c7ac.js",
+  );
+  assert.match(deployment, /router-r108-persistent-uploads/u);
+  assert.match(deployment, /router-account-panel-9dc6748b\.js/u);
+  assert.match(deployment, /safari_language_neutral_profile_menu=true/u);
+  assert.match(deployment, /standalone_8215_unchanged=true/u);
+  assert.match(deployment, /routed_8216_app_server_unchanged=true/u);
+  assert.match(deployment, /account_router_process_unchanged=true/u);
+  assert.match(deployment, /account_manager_process_unchanged=true/u);
+  assert.doesNotMatch(
+    deployment,
+    /systemctl\s+(?:restart|stop|start)\s+"?\$?(?:APP_SERVICE|ROUTER_SERVICE|MANAGER_SERVICE|MANAGER_SOCKET|STANDALONE_WEB_SERVICE|STANDALONE_APP_SERVICE)/u,
+  );
+});
+
+test("left-bottom account menu exposes bounded automatic failover in a compact native layout", async () => {
+  const panel = await fs.readFile(STANDALONE_PANEL, "utf8");
+  assert.match(panel, /Auto failover · pre-output only/u);
+  assert.match(panel, /router-account-meta/u);
+  assert.match(panel, /router-account-reset/u);
+  assert.match(panel, /setAttribute\("aria-label", `Delete \$\{account\.alias\}`\)/u);
+  assert.match(panel, /router-remove", "×"/u);
+  assert.match(panel, /min-height: 38px/u);
+  assert.match(panel, /footnote\.title = "Cross-account continuity is not verified\."/u);
+});
+
+test("R110 pins the compact panel and expands only bounded pre-output failover", async () => {
+  const [panel, deployment, dropin] = await Promise.all([
+    fs.readFile(STANDALONE_PANEL),
+    fs.readFile(R110_DEPLOY, "utf8"),
+    fs.readFile(
+      path.resolve(
+        import.meta.dirname,
+        "../../../systemd/8216-fixture/codex-account-router.service.d/multi-account-failover.conf",
+      ),
+      "utf8",
+    ),
+  ]);
+  assert.equal(R110_COMPACT_AUTO_FAILOVER_CONTRACT.replacement_panel_sha256, sha256(panel));
+  assert.equal(
+    R110_COMPACT_AUTO_FAILOVER_CONTRACT.predecessor_panel_name,
+    "router-account-panel-9dc6748b.js",
+  );
+  assert.equal(dropin, "[Service]\nEnvironment=CODEX_ROUTER_FAILOVER_MAX_ATTEMPTS=16\n");
+  assert.match(deployment, /router-r109-safari-profile-menu/u);
+  assert.match(deployment, /router-account-panel-23e50032\.js/u);
+  assert.match(deployment, /failover_max_attempts=16/u);
+  assert.match(deployment, /semantic_output_replay_forbidden=true/u);
+  assert.match(deployment, /standalone_8215_unchanged=true/u);
+  assert.match(deployment, /routed_8216_app_server_unchanged=true/u);
+  assert.doesNotMatch(
+    deployment,
+    /systemctl\s+(?:restart|stop|start)\s+"?\$?(?:APP_SERVICE|MANAGER_SERVICE|MANAGER_SOCKET|STANDALONE_WEB_SERVICE|STANDALONE_APP_SERVICE)/u,
   );
 });

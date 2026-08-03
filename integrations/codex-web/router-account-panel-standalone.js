@@ -10,6 +10,8 @@ const NATIVE_USAGE_BADGE_ATTRIBUTE = "data-codex-router-native-usage-badge";
 const NATIVE_USAGE_SYNC_ATTRIBUTE = "data-codex-router-native-usage-sync";
 const NATIVE_USAGE_ORIGINAL_ATTRIBUTE = "data-codex-router-native-usage-original";
 const PROFILE_BUTTON_SELECTOR = 'button[aria-label="Open profile menu"]';
+const PROFILE_BUTTON_FALLBACK_SELECTOR = 'button[aria-haspopup="menu"]';
+const PROFILE_MENU_SELECTOR = '[role="menu"]';
 const PROFILE_MENU_ITEM_SELECTOR = '[role="menuitem"]';
 const POLL_INTERVAL_MS = 30_000;
 const PRUNED_NATIVE_MENU_LABELS = new Set(["Show pet", "Log out"]);
@@ -346,15 +348,52 @@ function menuRenderSignature(model, busyAlias, quotaBusy, transientMessage, mana
   });
 }
 
+function visibleRectangle(node) {
+  if (!(node instanceof HTMLElement)) return null;
+  const rectangle = node.getBoundingClientRect();
+  if (
+    !Number.isFinite(rectangle.left) || !Number.isFinite(rectangle.top) ||
+    !Number.isFinite(rectangle.right) || !Number.isFinite(rectangle.bottom) ||
+    rectangle.width <= 0 || rectangle.height <= 0
+  ) return null;
+  return rectangle;
+}
+
+function profileButtonCandidates() {
+  const exact = [...document.querySelectorAll(PROFILE_BUTTON_SELECTOR)].filter(
+    (button) => button instanceof HTMLElement,
+  );
+  if (exact.length > 0) return exact;
+  return [...document.querySelectorAll(PROFILE_BUTTON_FALLBACK_SELECTOR)]
+    .filter((button) =>
+      button instanceof HTMLElement &&
+      button.closest(PROFILE_MENU_SELECTOR) === null &&
+      visibleRectangle(button) !== null
+    )
+    .sort((left, right) => {
+      const leftRectangle = visibleRectangle(left);
+      const rightRectangle = visibleRectangle(right);
+      if (leftRectangle === null || rightRectangle === null) return 0;
+      if (leftRectangle.bottom !== rightRectangle.bottom) {
+        return rightRectangle.bottom - leftRectangle.bottom;
+      }
+      return leftRectangle.left - rightRectangle.left;
+    });
+}
+
+function profileButton({ expandedOnly = false } = {}) {
+  return profileButtonCandidates().find((button) =>
+    !expandedOnly || button.getAttribute("aria-expanded") === "true"
+  ) ?? null;
+}
+
 function syncProfileRouteIdentity(identity) {
-  for (const button of document.querySelectorAll(PROFILE_BUTTON_SELECTOR)) {
-    if (!(button instanceof HTMLElement)) continue;
+  const button = profileButton();
+  if (button instanceof HTMLElement) {
     let badge = button.querySelector(`[${PROFILE_ROUTE_ATTRIBUTE}]`);
     if (identity === null) {
       badge?.remove();
-      continue;
-    }
-    if (!(badge instanceof HTMLElement)) {
+    } else if (!(badge instanceof HTMLElement)) {
       badge = element("span");
       badge.setAttribute(PROFILE_ROUTE_ATTRIBUTE, "");
       badge.setAttribute("aria-hidden", "true");
@@ -372,7 +411,7 @@ function syncProfileRouteIdentity(identity) {
       });
       button.append(badge);
     }
-    if (badge.textContent !== identity.label) badge.textContent = identity.label;
+    if (identity !== null && badge.textContent !== identity.label) badge.textContent = identity.label;
   }
 }
 
@@ -553,25 +592,66 @@ function syncNativeUsageSurface(model) {
   return true;
 }
 
+function controlledProfileMenu(button) {
+  for (const attribute of ["aria-controls", "aria-owns"]) {
+    const identifier = button.getAttribute(attribute);
+    if (identifier === null || identifier === "") continue;
+    const controlled = document.getElementById(identifier);
+    if (!(controlled instanceof HTMLElement)) continue;
+    if (controlled.matches(PROFILE_MENU_SELECTOR)) return controlled;
+    const nested = controlled.querySelector(PROFILE_MENU_SELECTOR);
+    if (nested instanceof HTMLElement) return nested;
+  }
+  return null;
+}
+
+function profileMenuDistance(menu, button) {
+  const menuRectangle = visibleRectangle(menu);
+  const buttonRectangle = visibleRectangle(button);
+  if (menuRectangle === null || buttonRectangle === null) return Number.POSITIVE_INFINITY;
+  const horizontalGap = Math.max(
+    0,
+    buttonRectangle.left - menuRectangle.right,
+    menuRectangle.left - buttonRectangle.right,
+  );
+  const verticalGap = Math.abs(buttonRectangle.top - menuRectangle.bottom);
+  return horizontalGap * 4 + verticalGap;
+}
+
 function findProfileMenu() {
-  const profileButton = document.querySelector(PROFILE_BUTTON_SELECTOR);
-  if (!(profileButton instanceof HTMLElement) || profileButton.getAttribute("aria-expanded") !== "true") {
+  const button = profileButton({ expandedOnly: true });
+  if (!(button instanceof HTMLElement)) {
     return null;
   }
+  const controlled = controlledProfileMenu(button);
+  if (controlled instanceof HTMLElement) return controlled;
+
+  const structural = [...document.querySelectorAll(PROFILE_MENU_SELECTOR)]
+    .filter((menu) =>
+      menu instanceof HTMLElement &&
+      visibleRectangle(menu) !== null &&
+      menu.querySelector(PROFILE_MENU_ITEM_SELECTOR) !== null
+    )
+    .sort((left, right) =>
+      profileMenuDistance(left, button) - profileMenuDistance(right, button)
+    )[0];
+  if (structural instanceof HTMLElement) return structural;
+
   const usageItem = findUsageMenuItem();
-  if (!(usageItem instanceof HTMLElement)) return null;
-  let candidate = usageItem.parentElement;
-  while (candidate && candidate !== document.body) {
-    const itemLabels = [...candidate.querySelectorAll(PROFILE_MENU_ITEM_SELECTOR)].map(
-      (item) => item.textContent?.trim() ?? "",
-    );
-    if (
-      itemLabels.some((label) => label.startsWith("Usage remaining")) &&
-      itemLabels.some((label) => label.startsWith("Settings"))
-    ) {
-      return candidate;
+  if (usageItem instanceof HTMLElement) {
+    let candidate = usageItem.parentElement;
+    while (candidate && candidate !== document.body) {
+      const itemLabels = [...candidate.querySelectorAll(PROFILE_MENU_ITEM_SELECTOR)].map(
+        (item) => item.textContent?.trim() ?? "",
+      );
+      if (
+        itemLabels.some((label) => label.startsWith("Usage remaining")) &&
+        itemLabels.some((label) => label.startsWith("Settings"))
+      ) {
+        return candidate;
+      }
+      candidate = candidate.parentElement;
     }
-    candidate = candidate.parentElement;
   }
   return null;
 }
@@ -600,15 +680,17 @@ function renderProfileMenu(
   const style = element("style");
   style.textContent = `
     #${MENU_SECTION_ID} { box-sizing: border-box; width: 100%; min-width: 0; max-width: 100%;
-      padding: 4px 6px 5px; color: inherit; font: inherit; }
+      padding: 3px 5px 4px; color: inherit; font: inherit; }
     #${MENU_SECTION_ID} * { box-sizing: border-box; }
-    #${MENU_SECTION_ID} .router-separator { height: 1px; margin: 2px -6px 6px;
+    #${MENU_SECTION_ID} .router-separator { height: 1px; margin: 2px -5px 5px;
       background: color-mix(in srgb, currentColor 12%, transparent); }
     #${MENU_SECTION_ID} .router-heading { display: flex; align-items: center; justify-content: space-between;
-      gap: 6px; padding: 1px 6px 4px; font-size: 12px; font-weight: 650; }
-    #${MENU_SECTION_ID} .router-heading-actions { display: inline-flex; align-items: center; gap: 5px; }
-    #${MENU_SECTION_ID} .router-limited { opacity: .58; font-size: 9px; font-weight: 500; }
-    #${MENU_SECTION_ID} .router-refresh { border: 0; border-radius: 5px; padding: 2px 5px;
+      gap: 5px; padding: 1px 5px 3px; font-size: 12px; font-weight: 650; }
+    #${MENU_SECTION_ID} .router-heading-actions { display: inline-flex; align-items: center; gap: 3px; }
+    #${MENU_SECTION_ID} .router-limited { border-radius: 999px; padding: 1px 5px;
+      background: color-mix(in srgb, #16a34a 13%, transparent); color: #16a34a;
+      font-size: 9px; font-weight: 650; line-height: 1.35; }
+    #${MENU_SECTION_ID} .router-refresh { border: 0; border-radius: 5px; padding: 2px 4px;
       background: transparent; color: inherit; font: inherit; font-size: 10px; line-height: 1.25; }
     #${MENU_SECTION_ID} .router-refresh:not(:disabled):hover { background: color-mix(in srgb, currentColor 8%, transparent); }
     #${MENU_SECTION_ID} .router-refresh:disabled { opacity: .5; }
@@ -624,12 +706,12 @@ function renderProfileMenu(
     #${MENU_SECTION_ID} .router-device-code { display: block; min-width: 0; flex: 1; margin: 0;
       font: 600 14px/1.4 ui-monospace, monospace; letter-spacing: .08em; user-select: all; }
     #${MENU_SECTION_ID} .router-auth-link { color: inherit; text-decoration: underline; }
-    #${MENU_SECTION_ID} .router-account-row { display: flex; align-items: center; gap: 2px; }
+    #${MENU_SECTION_ID} .router-account-row { display: flex; align-items: center; gap: 1px; }
     #${MENU_SECTION_ID} .router-banner { margin: 0 4px 6px; border-radius: 6px; padding: 6px 8px;
       background: color-mix(in srgb, #d97706 16%, transparent); font-size: 11px; }
     #${MENU_SECTION_ID} .router-error { background: color-mix(in srgb, #dc2626 15%, transparent); }
-    #${MENU_SECTION_ID} .router-account { display: flex; min-width: 0; flex: 1; min-height: 42px; align-items: center;
-      gap: 7px; border: 0; border-radius: 6px; padding: 5px 7px; background: transparent; color: inherit;
+    #${MENU_SECTION_ID} .router-account { display: flex; min-width: 0; flex: 1; min-height: 38px; align-items: center;
+      gap: 6px; border: 0; border-radius: 6px; padding: 4px 6px; background: transparent; color: inherit;
       font: inherit; text-align: left; }
     #${MENU_SECTION_ID} .router-account:not(:disabled):hover { background: color-mix(in srgb, currentColor 8%, transparent); }
     #${MENU_SECTION_ID} .router-account:focus-visible { outline: 2px solid #2563eb; outline-offset: -2px; }
@@ -637,11 +719,16 @@ function renderProfileMenu(
     #${MENU_SECTION_ID} .router-account-copy { min-width: 0; flex: 1; }
     #${MENU_SECTION_ID} .router-account-title { display: flex; align-items: baseline; gap: 6px; font-weight: 600; }
     #${MENU_SECTION_ID} .router-state { opacity: .62; font-size: 10px; font-weight: 500; }
-    #${MENU_SECTION_ID} .router-account-detail { display: block; margin-top: 1px; opacity: .62;
-      overflow-wrap: anywhere; font-size: 10px; line-height: 1.25; }
+    #${MENU_SECTION_ID} .router-account-meta { display: flex; min-width: 0; flex-wrap: wrap; gap: 1px 5px;
+      margin-top: 1px; opacity: .64; overflow-wrap: anywhere; font-size: 9.5px; line-height: 1.2; }
+    #${MENU_SECTION_ID} .router-account-reset { opacity: .5; font-size: 9px; }
     #${MENU_SECTION_ID} .router-action { flex: none; font-size: 11px; font-weight: 600; }
     #${MENU_SECTION_ID} .router-current { color: #16a34a; }
-    #${MENU_SECTION_ID} .router-footnote { margin: 5px 6px 1px; opacity: .55; font-size: 10px; line-height: 1.3; }
+    #${MENU_SECTION_ID} .router-remove { width: 24px; height: 28px; padding: 0; background: transparent;
+      opacity: .62; font-size: 14px; line-height: 1; }
+    #${MENU_SECTION_ID} .router-remove:not(:disabled):hover { background: color-mix(in srgb, #dc2626 12%, transparent);
+      color: #dc2626; opacity: 1; }
+    #${MENU_SECTION_ID} .router-footnote { margin: 4px 5px 1px; opacity: .52; font-size: 9px; line-height: 1.25; }
   `;
   const section = element("div");
   section.id = MENU_SECTION_ID;
@@ -653,7 +740,7 @@ function renderProfileMenu(
   separator.setAttribute("role", "separator");
   const heading = element("div", "router-heading");
   const headingActions = element("span", "router-heading-actions");
-  headingActions.append(element("span", "router-limited", "New session"));
+  headingActions.append(element("span", "router-limited", "Auto"));
   const addButton = element("button", "router-refresh", "Add");
   addButton.type = "button";
   addButton.disabled = model.activeStreams > 0 || management.mode !== "idle";
@@ -793,24 +880,17 @@ function renderProfileMenu(
       element("span", undefined, account.alias),
       element("span", "router-state", account.stateLabel),
     );
-    copy.append(
-      title,
-      element(
-        "span",
-        "router-account-detail",
-        `Weekly ${account.weeklyLabel.replace(" remaining", "")} · Cooldown ${account.cooldownLabel}`,
-      ),
-      element(
-        "span",
-        "router-account-detail",
-        account.weeklyResetDetail,
-      ),
-      element(
-        "span",
-        "router-account-detail",
-        account.weeklyDetail,
-      ),
+    const primaryMeta = element("span", "router-account-meta");
+    primaryMeta.append(
+      element("span", undefined, `Weekly ${account.weeklyLabel.replace(" remaining", "")}`),
+      element("span", undefined, `Cooldown ${account.cooldownLabel}`),
     );
+    const resetMeta = element("span", "router-account-meta router-account-reset");
+    resetMeta.append(
+      element("span", undefined, account.weeklyResetDetail),
+      element("span", undefined, account.weeklyDetail),
+    );
+    copy.append(title, primaryMeta, resetMeta);
     const action = element(
       "span",
       `router-action${account.isCurrent ? " router-current" : ""}`,
@@ -822,7 +902,7 @@ function renderProfileMenu(
       event.stopPropagation();
       onSwitch(account);
     });
-    const remove = element("button", "router-remove", "Delete");
+    const remove = element("button", "router-remove", "×");
     remove.type = "button";
     remove.disabled = model.accounts.length <= 1 || account.isCurrent || model.activeStreams > 0 || management.mode !== "idle";
     remove.title = model.accounts.length <= 1
@@ -841,7 +921,13 @@ function renderProfileMenu(
     row.append(button, remove);
     section.append(row);
   }
-  section.append(element("p", "router-footnote", "Cross-account continuity is not verified."));
+  const footnote = element(
+    "p",
+    "router-footnote",
+    "Auto failover · pre-output only · switching starts a new session.",
+  );
+  footnote.title = "Cross-account continuity is not verified.";
+  section.append(footnote);
   if (currentSection instanceof HTMLElement) currentSection.replaceWith(section);
   else menu.append(section);
   return true;

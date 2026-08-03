@@ -323,9 +323,10 @@ attempt, callback, or backoff.
 The production bootstrap accepts only positive, range-checked integer overrides through
 `CODEX_ROUTER_FAILOVER_MAX_ATTEMPTS`, `CODEX_ROUTER_FAILOVER_TOTAL_DEADLINE_MS`,
 `CODEX_ROUTER_FAILOVER_BASE_BACKOFF_MS`, and `CODEX_ROUTER_FAILOVER_MAX_BACKOFF_MS`.
-The packaged systemd unit fixes these at 3 attempts, a 120-second total deadline, and 100–2000 ms
-backoff. Startup fails closed if a value is malformed, outside the state-machine ceiling, or if the
-base backoff exceeds the maximum.
+The packaged systemd unit permits up to 16 distinct account attempts, with a 120-second total
+deadline and 100–2000 ms backoff. This lets the router reach every supported configured account
+without removing the independent deadline or backoff bounds. Startup fails closed if a value is
+malformed, outside the state-machine ceiling, or if the base backoff exceeds the maximum.
 
 Only `response.created`, `response.in_progress`, `response.queued`, `codex.rate_limits`, and
 `codex.response.metadata` are considered preflight metadata. Text/reasoning/function-argument

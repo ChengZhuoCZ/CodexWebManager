@@ -9,7 +9,7 @@ test("uses a literal IPv4 loopback listener by default", () => {
   assert.equal(defaults.modelHost, "127.0.0.1");
   assert.equal(defaults.modelPort, 18_317);
   assert.deepEqual(defaults.failoverOptions, {
-    maxAttempts: 3,
+    maxAttempts: 16,
     totalDeadlineMs: 120_000,
     baseBackoffMs: 100,
     maxBackoffMs: 2_000,

@@ -604,6 +604,61 @@ test("production runtime publishes the automatic route selected after pre-semant
   assert.equal(status.accounts[1].last_switch_reason, "quota_exhausted");
 });
 
+test("production defaults can reach a fourth eligible account before semantic output", async (context) => {
+  const upstreamAccounts = [];
+  const upstream = http.createServer((request, response) => {
+    request.resume();
+    const accountId = request.headers["chatgpt-account-id"];
+    upstreamAccounts.push(accountId);
+    if (accountId !== "fixture-upstream-account-d") {
+      response.writeHead(429, { "content-type": "application/json" });
+      response.end('{"error":{"type":"quota_exhausted"}}');
+      return;
+    }
+    response.writeHead(200, { "content-type": "application/json" });
+    response.end('{"models":[{"slug":"fixture-model"}]}');
+  });
+  context.after(() => close(upstream));
+  const upstreamOrigin = await listen(upstream);
+  const runtime = createRuntimeComposition({
+    accounts: [
+      routedAccount("a", "Fixture A", 30),
+      routedAccount("b", "Fixture B", 20),
+      routedAccount("c", "Fixture C", 10),
+      routedAccount("d", "Fixture D", 0),
+    ],
+    adminAuthenticator: createAdminAuthenticator({ token: ADMIN_TOKEN }),
+    adminPort: 0,
+    modelPort: 0,
+    secretRegistry: fixtureRegistry({
+      leases: [],
+      acquisitions: [],
+      accountIdFromReference: true,
+    }),
+    upstreamOrigin,
+  });
+  context.after(() => runtime.stop());
+  const addresses = await runtime.start();
+  const response = await fetch(
+    `http://127.0.0.1:${addresses.model.port}/backend-api/codex/models`,
+  );
+  assert.equal(response.status, 200);
+  await response.arrayBuffer();
+  assert.deepEqual(upstreamAccounts, [
+    "fixture-upstream-account-a",
+    "fixture-upstream-account-b",
+    "fixture-upstream-account-c",
+    "fixture-upstream-account-d",
+  ]);
+  const status = (
+    await adminJson(`http://127.0.0.1:${addresses.admin.port}`, "/v1/status")
+  ).value;
+  assert.deepEqual(status.current_route, {
+    account_alias: "Fixture D",
+    continuity: "new_backend_session",
+  });
+});
+
 test("validates runtime composition and stops both listeners together", async () => {
   const registry = new SecretProviderRegistry();
   for (const options of [

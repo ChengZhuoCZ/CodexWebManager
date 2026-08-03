@@ -1,0 +1,34 @@
+{
+  "task": "M6.9",
+  "release": "c3e92f0f-20260803-m69-router-r109-safari-profile-menu",
+  "implementation_mode": "clean-room",
+  "change": "Use the expanded profile button and structural role=menu geometry as a language-neutral Safari fallback while retaining the English accessibility fast path.",
+  "tests": [
+    {
+      "command": "<bundled-node> --test --test-name-pattern='profile menu discovery has a language-neutral Safari fallback|R109 pins language-neutral Safari menu discovery' packages/account-router/test/codex-web-router-panel-merge.test.mjs",
+      "result": "2 passed, 0 failed"
+    },
+    {
+      "command": "<bundled-node> --check integrations/codex-web/router-account-panel-standalone.js && bash -n evidence/M6.9/deploy-router-r109-safari-profile-menu.sh",
+      "result": "passed"
+    }
+  ],
+  "deployment": {
+    "status": "success",
+    "standalone_8215_unchanged": true,
+    "routed_8216_app_server_unchanged": true,
+    "account_router_process_unchanged": true,
+    "account_manager_process_unchanged": true,
+    "only_8216_web_restarted": true,
+    "model_request_sent": false,
+    "account_switch_sent": false
+  },
+  "evidence_files": [
+    "integrations/codex-web/replace-r109-safari-profile-menu.mjs",
+    "evidence/M6.9/deploy-router-r109-safari-profile-menu.sh"
+  ],
+  "residual_risks": [
+    "macOS ScreenCaptureKit repeatedly returned SCStream -3811, so post-deployment Safari pixels could not be captured from this task.",
+    "The server served the pinned Safari-compatible bundle, but a user browser with an old authenticated tab may still require one reload and reopening the lower-left profile menu."
+  ]
+}

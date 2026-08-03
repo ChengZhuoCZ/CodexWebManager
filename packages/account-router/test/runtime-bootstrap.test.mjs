@@ -33,7 +33,7 @@ test("builds an empty loopback runtime configuration when no accounts are config
   assert.equal(options.adminPort, 0);
   assert.equal(options.modelPort, 0);
   assert.deepEqual(options.failoverOptions, {
-    maxAttempts: 3,
+    maxAttempts: 16,
     totalDeadlineMs: 120_000,
     baseBackoffMs: 100,
     maxBackoffMs: 2_000,

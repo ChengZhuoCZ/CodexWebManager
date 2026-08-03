@@ -1,0 +1,55 @@
+{
+  "task": "M6.9",
+  "release": "c3e92f0f-20260803-m69-router-r110-compact-auto-failover",
+  "input_commit": "f9b53689d85dfad2f18c1c6a3f9b0178022e393c",
+  "implementation_mode": "clean-room",
+  "changes": [
+    "Raise the bounded production account-attempt ceiling from 3 to 16 while retaining the 120-second total deadline and 100-2000 ms backoff.",
+    "Keep automatic replay restricted to an initial request before semantic output.",
+    "Compact the lower-left account menu and preserve Weekly quota, reset time, observation time, cooldown, add, delete, and manual switch controls.",
+    "Retain the language-neutral Safari profile-menu discovery introduced by R109."
+  ],
+  "tests": [
+    {
+      "command": "<bundled-node> --test --test-name-pattern='production defaults can reach a fourth eligible account before semantic output' packages/account-router/test/runtime-composition.test.mjs",
+      "pre_fix_result": "failed as expected: HTTP 503 after three attempts",
+      "post_fix_result": "passed: accounts A, B, and C failed before semantic output and account D completed"
+    },
+    {
+      "command": "<bundled-node> --test packages/account-router/test/failover-state-machine.test.mjs packages/account-router/test/failure-injection-matrix.test.mjs packages/account-router/test/failover-proxy.test.mjs packages/account-router/test/websocket-failover.test.mjs packages/account-router/test/runtime-composition.test.mjs packages/account-router/test/config.test.mjs packages/account-router/test/runtime-bootstrap.test.mjs packages/account-router/test/systemd-units.test.mjs packages/account-router/test/codex-web-router-panel-merge.test.mjs",
+      "result": "120 passed, 0 failed"
+    },
+    {
+      "command": "bash -n evidence/M6.9/deploy-router-r110-compact-auto-failover.sh && <bundled-node> --check integrations/codex-web/replace-r110-compact-auto-failover.mjs && <bundled-node> --check integrations/codex-web/router-account-panel-standalone.js",
+      "result": "passed"
+    },
+    {
+      "command": "scanRepository(loadSecurityAuditPolicy())",
+      "result": "0 findings"
+    }
+  ],
+  "deployment": {
+    "status": "success",
+    "failover_max_attempts": 16,
+    "semantic_output_replay_forbidden": true,
+    "standalone_8215_unchanged": true,
+    "routed_8216_app_server_unchanged": true,
+    "account_manager_process_unchanged": true,
+    "only_8216_web_and_account_router_restarted": true,
+    "services_active_after_deployment": 5,
+    "model_request_sent": false,
+    "account_switch_sent": false
+  },
+  "evidence_files": [
+    "integrations/codex-web/replace-r110-compact-auto-failover.mjs",
+    "systemd/8216-fixture/codex-account-router.service.d/multi-account-failover.conf",
+    "evidence/M6.9/deploy-router-r110-compact-auto-failover.sh"
+  ],
+  "residual_risks": [
+    "The four-account proof is fixture-only; no real model request or real cross-account automatic switch was sent in R110.",
+    "The independent 120-second deadline can stop before all 16 accounts when earlier upstream attempts stall.",
+    "Switching selects a new backend session; cross-account continuity and in-place recovery are not verified.",
+    "Safari pixel-level verification remains blocked by macOS ScreenCaptureKit SCStream -3811.",
+    "The aggregate strict-CI audit remains intentionally unqualified because R109/R110 change the protected integrations/codex-web tree; repository scanning itself reported zero findings."
+  ]
+}
