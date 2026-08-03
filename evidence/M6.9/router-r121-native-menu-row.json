@@ -1,0 +1,104 @@
+{
+  "task": "M6.9",
+  "continuation": "R121 native-style account route menu row",
+  "repository": "ChengZhuoCZ/CodexWebManager",
+  "branch": "codex/m6-9-8216-r85-handoff",
+  "input_revision": "6d2c79e38db1d1297b561100293139d4a7289103",
+  "implementation_revision": "fc7d8d3",
+  "implementation_mode": "clean-room",
+  "scope": {
+    "target": "isolated 8216 routed Web only",
+    "standalone_8215_changes_allowed": false,
+    "model_request_allowed_or_sent": false,
+    "account_switch_allowed_or_sent": false,
+    "semantic_output_replay_allowed_or_sent": false
+  },
+  "implementation": {
+    "source_level_react_window_retained": true,
+    "shadow_dom": false,
+    "native_menu_entry_count": 1,
+    "native_menu_layout": "native-row",
+    "semantic_label": "Account route",
+    "current_alias_rendered_separately": true,
+    "unicode_icon_glyphs_removed": true,
+    "svg_route_and_chevron_icons": true,
+    "row_minimum_height_css_px": 40,
+    "row_padding_css": "8px 10px",
+    "details_remain_in_native_account_settings_dialog": true
+  },
+  "build": {
+    "upstream_revision": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7",
+    "modules_transformed": 68,
+    "preload_bytes": 628478,
+    "preload_sha256": "e9339fb81b42e829904b96e06374d4d04c56be32ada333659935ed0c051db3f2",
+    "source_sha256": "e7b1d33841631dc1adeba8a86772cf702e5b23faa14256e7bb161f731d66825d",
+    "source_applier_sha256": "3917b4468250b5f337a8754a865bf439c4999d62804a21960ae85844ecaeb5e6",
+    "transformer_sha256": "dc4245942d9c0ddba69232edc1e7f7551ca4dd0d02a96354dd9e8dad6147dee8",
+    "deployment_script_sha256": "9a65b9f612c01d82502c3819a7ed17e1c3f8efefa69790dc44b1502baa09195a"
+  },
+  "tests": [
+    {
+      "command": "<bundled-node> --test packages/account-router/test/codex-web-router-panel-merge.test.mjs",
+      "result": "53 passed, 0 failed"
+    },
+    {
+      "command": "<bundled-node> --check apply-to-upstream-r121.mjs replace-r121-native-menu-row.mjs && bash -n deploy-router-r121-native-menu-row.sh && git diff --check",
+      "result": "passed"
+    },
+    {
+      "command": "pinned upstream source apply followed by Vite browser build",
+      "result": "68 modules transformed; preload 628478 bytes; exact SHA-256 matched"
+    }
+  ],
+  "deployment": {
+    "status": "success",
+    "previous_web_release": "c3e92f0f-20260803-m69-router-r120-catalog-owner-boundary",
+    "active_web_release": "c3e92f0f-20260803-m69-router-r121-native-menu-row",
+    "active_router_release": "codex-account-router-0.2.36-linux-x64",
+    "installed_preload_sha256": "e9339fb81b42e829904b96e06374d4d04c56be32ada333659935ed0c051db3f2",
+    "installed_index_sha256": "731d8f71bc1dca7ccd359c21d391530f8da4d53955fecaf5bbf8575045f37441",
+    "restarted_services": [
+      "codex-web-router.service"
+    ],
+    "routed_8216_app_server_unchanged_during_deployment": true,
+    "account_router_unchanged_during_deployment": true,
+    "account_manager_unchanged_during_deployment": true,
+    "standalone_8215_unchanged": true,
+    "route_unchanged": true,
+    "model_request_sent": false,
+    "account_switch_sent": false,
+    "semantic_output_replayed": false
+  },
+  "post_deployment": {
+    "router_status": "ready",
+    "current_route": "Secondary",
+    "configured_accounts": 2,
+    "active_requests": 0,
+    "active_streams": 0,
+    "continuity": "new_backend_session",
+    "all_seven_related_units_active": true,
+    "routed_8216_web_pid": 364951,
+    "routed_8216_app_pid": 364654,
+    "account_router_pid": 335477,
+    "account_manager_pid": 335486,
+    "standalone_8215_web_pid": 3664557,
+    "standalone_8215_app_pid": 3664550,
+    "standalone_8215_start_times_unchanged": true
+  },
+  "browser_verification": {
+    "page_url": "http://100.95.50.98:8216/",
+    "page_title": "Codex",
+    "signed_in_profile_button_present": true,
+    "profile_button_accessible_name": "Open profile menu",
+    "profile_button_css_width": 219,
+    "profile_button_css_height": 29,
+    "post_click_menu_geometry_capture_completed": false,
+    "limitation": "The in-app browser loaded the signed-in UI and returned bounded button geometry, but optional Statsig timeouts caused the subsequent profile-menu readback to exceed the browser-control deadline. Installed asset hashes and source-level layout contracts passed; no pixel-perfect menu screenshot claim is made."
+  },
+  "residual_risks": [
+    "The React portal still depends on the upstream profile menu exposing a stable role=menuitem surface; a future upstream menu rewrite may require a new bounded adapter.",
+    "Optional Statsig requests remain noisy and can delay browser automation even when the main UI is rendered.",
+    "R121 changes presentation only. Manual or automatic account switching still starts a new backend session and does not migrate, replay, resume or restore prior semantic output, an in-flight request or running computation."
+  ],
+  "recorded_at": "2026-08-03T22:09:45+08:00"
+}

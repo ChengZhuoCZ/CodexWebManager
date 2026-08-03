@@ -98,12 +98,13 @@
     "r118_native_identity_sync": "c508eca0cf0b5423ad1544a3ad12f0eba72313a0",
     "r119_manager_framing": "7c572cca791ac051c7fa9a60f2baee840238e77f",
     "r120_catalog_owner_boundary": "9a24feda8a0071b831128eb43dcace1a8988285b",
+    "r121_native_menu_row": "fc7d8d3",
     "standalone_8215_user_interrupt": "750268a636a5f6d35e3a627ad3301ad3f7631d0e",
     "standalone_8215_full_access_interrupt": "312bd43ab6468773b6ae11a6357d82f5ebd27f7a",
     "server_router_release": "codex-account-router-0.2.1-linux-x64",
     "routed_codex_web": "c3e92f0fc16dcbbdd334b3d4f7228c5795a8adf7"
   },
-  "output_revision": "c6865d3",
+  "output_revision": "fc7d8d3",
   "workspace_branch": "codex/m6-9-8216-r85-handoff",
   "workspace_input_revision": "03c306389627d2eddabeb7f171b59c0e67642dd7",
   "depends_on": [
@@ -6394,6 +6395,31 @@
       "semantic_stream_replay_attempted": false,
       "cross_account_continuity_claimed": false,
       "status": "done"
+    },
+    "r121_native_menu_row": {
+      "repository": "ChengZhuoCZ/CodexWebManager",
+      "branch": "codex/m6-9-8216-r85-handoff",
+      "input_revision": "6d2c79e38db1d1297b561100293139d4a7289103",
+      "implementation_revision": "fc7d8d3",
+      "evidence": "evidence/M6.9/router-r121-native-menu-row.json",
+      "source_level_react_window_retained": true,
+      "native_menu_layout": "native-row",
+      "shadow_dom": false,
+      "focused_tests_passed": 53,
+      "focused_tests_failed": 0,
+      "server_mutated": true,
+      "active_router_release": "codex-account-router-0.2.36-linux-x64",
+      "active_web_release": "c3e92f0f-20260803-m69-router-r121-native-menu-row",
+      "all_seven_related_units_active": true,
+      "current_route": "Secondary",
+      "active_requests": 0,
+      "active_streams": 0,
+      "standalone_8215_mutated": false,
+      "model_request_sent": false,
+      "account_switch_sent": false,
+      "semantic_stream_replay_attempted": false,
+      "cross_account_continuity_claimed": false,
+      "status": "done"
     }
   },
   "blockers": [],
@@ -6625,7 +6651,9 @@
     "The in-app browser automation channel timed out before navigating away from about:blank. Protected server-side HTML and router status checks passed, but R118 browser-rendered composer or account-window behavior is not additionally claimed from that attempt.",
     "R119/0.2.35 was activated and then fully rolled back to R118/0.2.34 after the real no-model manual switch qualification failed at the Router-owned accounts catalog UID boundary; no model request or SSE replay occurred, and 8215 remained unchanged.",
     "R120/0.2.36 separates the Router-owned non-secret catalog boundary from root-private credential boundaries and passed an installed no-model manual Secondary-to-Primary-to-Secondary roundtrip without changing standalone 8215.",
-    "R120 manual switching is qualified on the installed host, but real automatic failover is not additionally induced by this deployment run and remains a separate installed-host qualification risk."
+    "R120 manual switching is qualified on the installed host, but real automatic failover is not additionally induced by this deployment run and remains a separate installed-host qualification risk.",
+    "R121 aligns the account launcher with the native profile-menu row at the source and asset-contract levels. The signed-in page and profile button rendered, but optional Statsig timeouts prevented a completed automated post-click geometry capture, so no pixel-perfect screenshot claim is made.",
+    "R121 changes presentation only. Account switching still starts a new backend session and does not migrate, replay, resume or restore prior semantic output, an in-flight request or running computation."
   ],
-  "updated_at": "2026-08-03T21:18:12+08:00"
+  "updated_at": "2026-08-03T22:09:45+08:00"
 }
