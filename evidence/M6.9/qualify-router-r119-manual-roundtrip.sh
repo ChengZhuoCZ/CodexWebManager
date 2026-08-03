@@ -26,6 +26,11 @@ effective_unit_sha256() { systemctl cat "$1" --no-pager 2>/dev/null | sha256sum 
 expect_active() { [[ "$(systemctl is-active "$1" 2>/dev/null || true)" == active ]]; }
 must() { local label=$1; shift; "$@" || { printf 'qualification_error=%s\n' "$label" >&2; exit 1; }; }
 
+web_listening() {
+  curl --noproxy '*' -fsS --max-time 2 -o /dev/null \
+    -H 'Host: 100.95.50.98:8216' -H 'Accept: text/html' http://127.0.0.1:8216/
+}
+
 router_state() {
   /usr/bin/node -e '
     const fs=require("node:fs"),http=require("node:http");
@@ -97,7 +102,8 @@ wait_after_switch() {
   for _attempt in $(seq 1 160); do
     if expect_active "$WEB_SERVICE" && expect_active "$APP_SERVICE" && \
       [[ "$(unit_value MainPID "$WEB_SERVICE")" != "$old_web_pid" ]] && \
-      [[ "$(unit_value MainPID "$APP_SERVICE")" != "$old_app_pid" ]] && idle_on_route "$expected"; then
+      [[ "$(unit_value MainPID "$APP_SERVICE")" != "$old_app_pid" ]] && idle_on_route "$expected" && \
+      web_listening; then
       ready=1; break
     fi
     sleep 0.25
